@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { homeStats, teamIntro } from '~/data/mock/home'
+import { homeHero, homeStats, teamIntro } from '~/data/mock/home'
+import { siteConfig } from '~/config/site'
 
 /**
  * 官网首页第一版（Task 3）。
@@ -24,6 +25,48 @@ useSeoMeta({
   ogTitle: '大信法务 - 跨境有我，法律无忧',
   ogDescription:
     '专注于为跨境电商企业、品牌卖家及供应链伙伴提供全链路、跨法域、高实效的法律顾问服务。'
+})
+
+// 基础 JSON-LD：仅使用需求文档已给出的信息（成立时间、业务范围、联系方式），
+// 不虚构律师执业资质、注册资本等未确认信息；正式域名确认后再补 url 字段。
+useHead({
+  script: [
+    {
+      type: 'application/ld+json',
+      innerHTML: JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'LegalService',
+        name: siteConfig.name,
+        description: homeHero.subtitle,
+        foundingDate: '2019',
+        areaServed: ['US', 'CN'],
+        knowsAbout: [
+          'TRO 知识产权',
+          'CPSC 产品召回',
+          '美国加州 65 号法案',
+          '用工劳动合规',
+          '合同风控',
+          '海关合规',
+          '跨境物流法律事务'
+        ],
+        contactPoint: [
+          {
+            '@type': 'ContactPoint',
+            telephone: siteConfig.contact.phone,
+            email: siteConfig.contact.email,
+            contactType: 'customer service',
+            availableLanguage: ['zh-CN']
+          }
+        ],
+        address: {
+          '@type': 'PostalAddress',
+          streetAddress: siteConfig.contact.address,
+          addressLocality: '深圳市',
+          addressCountry: 'CN'
+        }
+      })
+    }
+  ]
 })
 </script>
 
