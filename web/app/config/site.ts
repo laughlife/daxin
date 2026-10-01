@@ -1,11 +1,13 @@
 import type { SiteConfig } from '../types/site'
+import { CONTACT_DATA_NOTICE, contactInfo, wechatChannels } from '../data/mock/contacts'
 
 /**
  * 站点全局配置
  *
  * 说明：
- * - 所有正式品牌信息（Logo、微信号、电话、邮箱、地址、ICP 备案号等）
- *   均为明确的 TODO 占位符，待业务方确认后统一在本文件替换。
+ * - 正式品牌信息（Logo、ICP 备案号等）仍为 TODO 占位符，待业务方确认后统一替换。
+ * - 联系方式与微信咨询号来自《大信团队官网需求文档》初稿（data/mock/contacts.ts），
+ *   仍需甲方最终确认，页面会展示相应提示。
  * - 导航结构以本文件为唯一数据源，组件中不得硬编码导航。
  * - 路由地址为规划路径，对应页面在后续任务中实现（详见 docs/navigation-map.md）。
  */
@@ -22,16 +24,17 @@ export const siteConfig: SiteConfig = {
   },
 
   contact: {
-    wechatId: 'TODO-wechat-id', // TODO：正式微信号待确认
-    wechatLabel: '微信公众号 / 微信号（占位）',
-    phone: 'TODO：联系电话待确认',
-    email: 'TODO：联系邮箱待确认',
-    address: 'TODO：公司地址待确认'
+    wechatAccounts: wechatChannels,
+    defaultCopyChannelId: 'tro',
+    phone: contactInfo.phone,
+    email: contactInfo.email,
+    address: contactInfo.address,
+    notice: CONTACT_DATA_NOTICE
   },
 
   announcement: {
-    text: 'TODO：正式公告文案待确认。当前为占位公告，用于验证顶部公告栏与微信号复制功能。',
-    copyButtonLabel: '复制微信号',
+    text: 'TRO 案件与劳动争议咨询已开通专属微信号，添加后可获得免费初步评估。',
+    copyButtonLabel: '复制 TRO 微信号',
     copiedLabel: '微信号已复制',
     failedLabel: '复制失败，请手动复制'
   },

@@ -1,14 +1,31 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { siteConfig } from '~/config/site'
 
 /**
- * 顶部公告栏：占位公告文案 + 微信号 + 复制按钮。
+ * 顶部公告栏：咨询引导 + 微信号展示 + 复制按钮。
+ * 默认复制渠道由 siteConfig.contact.defaultCopyChannelId 指定（TRO 咨询号 kjzx88）。
  * 复制逻辑复用 useCopyText（纯前端，含 Clipboard API 降级）。
  */
 const { copied, failed, copy } = useCopyText()
 
+const defaultChannel = computed(
+  () =>
+    siteConfig.contact.wechatAccounts.find(
+      channel => channel.id === siteConfig.contact.defaultCopyChannelId
+    ) ?? siteConfig.contact.wechatAccounts[0]
+)
+
+const otherChannels = computed(() =>
+  siteConfig.contact.wechatAccounts.filter(
+    channel => channel.id !== defaultChannel.value?.id
+  )
+)
+
 function onCopy() {
-  void copy(siteConfig.contact.wechatId)
+  if (defaultChannel.value) {
+    void copy(defaultChannel.value.wechatId)
+  }
 }
 </script>
 
@@ -17,9 +34,17 @@ function onCopy() {
     <PageContainer class="site-announcement__inner">
       <p class="site-announcement__text">
         <span>{{ siteConfig.announcement.text }}</span>
-        <span class="site-announcement__wechat">
-          {{ siteConfig.contact.wechatLabel }}：
-          <strong>{{ siteConfig.contact.wechatId }}</strong>
+        <span v-if="defaultChannel" class="site-announcement__wechat">
+          {{ defaultChannel.name }}：
+          <strong>{{ defaultChannel.wechatId }}</strong>
+        </span>
+        <span
+          v-for="channel in otherChannels"
+          :key="channel.id"
+          class="site-announcement__wechat"
+        >
+          {{ channel.name }}：
+          <strong>{{ channel.wechatId }}</strong>
         </span>
       </p>
       <div class="site-announcement__action">
@@ -32,8 +57,8 @@ function onCopy() {
         </button>
         <span class="site-announcement__feedback" role="status" aria-live="polite">
           <template v-if="copied">{{ siteConfig.announcement.copiedLabel }}</template>
-          <template v-else-if="failed">
-            {{ siteConfig.announcement.failedLabel }}：{{ siteConfig.contact.wechatId }}
+          <template v-else-if="failed && defaultChannel">
+            {{ siteConfig.announcement.failedLabel }}：{{ defaultChannel.wechatId }}
           </template>
         </span>
       </div>

@@ -1,6 +1,7 @@
 /**
  * 站点全局配置相关类型定义
  */
+import type { ContactChannel } from './content'
 
 /** 单个导航项，支持可选的二级子菜单 */
 export interface NavItem {
@@ -30,18 +31,20 @@ export interface LogoConfig {
   text: string
 }
 
-/** 联系方式占位配置 */
+/** 联系方式配置（数据来自需求文档初稿，待甲方最终确认） */
 export interface ContactConfig {
-  /** 微信号（TODO 占位） */
-  wechatId: string
-  /** 微信号说明文案 */
-  wechatLabel: string
-  /** 电话（TODO 占位） */
+  /** 微信咨询渠道列表（TRO 咨询号 / 劳动法咨询号） */
+  wechatAccounts: ContactChannel[]
+  /** 公告栏默认复制的渠道 id */
+  defaultCopyChannelId: string
+  /** 电话 */
   phone: string
-  /** 邮箱（TODO 占位） */
+  /** 邮箱 */
   email: string
-  /** 地址（TODO 占位） */
+  /** 地址 */
   address: string
+  /** 数据来源说明（页面展示，提醒仍待确认） */
+  notice: string
 }
 
 /** 顶部公告栏配置 */

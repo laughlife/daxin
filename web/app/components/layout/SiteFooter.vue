@@ -1,11 +1,19 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { siteConfig } from '~/config/site'
 
 /**
- * 网站 Footer：公司信息占位 + 业务导航 + 联系方式占位 + 地址占位
- * + ICP / 版权 / 隐私政策 / 免责声明占位。
- * 导航数据来自 siteConfig.footerNav，不硬编码。
+ * 网站 Footer：公司信息占位 + 业务导航 + 双微信咨询渠道（含二维码占位）
+ * + 联系方式 + ICP / 版权 / 隐私政策 / 免责声明占位。
+ * 导航与联系方式数据来自 siteConfig，不硬编码。
  */
+const { copied, copy } = useCopyText()
+const copiedChannelId = ref<string | null>(null)
+
+async function copyWechat(channelId: string, wechatId: string) {
+  const ok = await copy(wechatId)
+  copiedChannelId.value = ok ? channelId : null
+}
 </script>
 
 <template>
@@ -44,12 +52,44 @@ import { siteConfig } from '~/config/site'
 
       <div class="site-footer__contact">
         <h3 class="site-footer__nav-title">联系我们</h3>
-        <ul>
-          <li>{{ siteConfig.contact.wechatLabel }}：{{ siteConfig.contact.wechatId }}</li>
+        <ul class="site-footer__channels">
+          <li
+            v-for="channel in siteConfig.contact.wechatAccounts"
+            :key="channel.id"
+            class="site-footer__channel"
+          >
+            <span class="site-footer__qr" aria-hidden="true">
+              <img
+                v-if="channel.qrSrc"
+                :src="channel.qrSrc"
+                :alt="`${channel.name}微信二维码`"
+              >
+              <template v-else>
+                <span class="site-footer__qr-placeholder">二维码<br>待提供</span>
+              </template>
+            </span>
+            <span class="site-footer__channel-info">
+              <span class="site-footer__channel-name">{{ channel.name }}</span>
+              <span class="site-footer__channel-id">
+                微信号：<strong>{{ channel.wechatId }}</strong>
+              </span>
+              <span class="site-footer__channel-purpose">{{ channel.purpose }}</span>
+              <button
+                type="button"
+                class="site-footer__copy"
+                @click="copyWechat(channel.id, channel.wechatId)"
+              >
+                {{ copied && copiedChannelId === channel.id ? '已复制' : '复制微信号' }}
+              </button>
+            </span>
+          </li>
+        </ul>
+        <ul class="site-footer__contact-list">
           <li>电话：{{ siteConfig.contact.phone }}</li>
           <li>邮箱：{{ siteConfig.contact.email }}</li>
           <li>地址：{{ siteConfig.contact.address }}</li>
         </ul>
+        <p class="site-footer__notice">{{ siteConfig.contact.notice }}</p>
       </div>
     </PageContainer>
 
@@ -137,11 +177,97 @@ import { siteConfig } from '~/config/site'
 }
 
 .site-footer__nav ul,
-.site-footer__contact ul {
+.site-footer__contact-list {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   color: rgb(255 255 255 / 65%);
+}
+
+/* 微信咨询渠道（含二维码占位） */
+.site-footer__channels {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.site-footer__channel {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.site-footer__qr {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 72px;
+  height: 72px;
+  flex-shrink: 0;
+  border: 1px dashed rgb(255 255 255 / 40%);
+  border-radius: var(--radius-md);
+  background-color: rgb(255 255 255 / 6%);
+  overflow: hidden;
+}
+
+.site-footer__qr img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.site-footer__qr-placeholder {
+  font-size: var(--text-xs);
+  line-height: var(--leading-tight);
+  text-align: center;
+  color: rgb(255 255 255 / 55%);
+}
+
+.site-footer__channel-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+
+.site-footer__channel-name {
+  font-weight: 600;
+  color: var(--color-text-inverse);
+}
+
+.site-footer__channel-id {
+  color: rgb(255 255 255 / 65%);
+}
+
+.site-footer__channel-id strong {
+  color: var(--color-accent);
+}
+
+.site-footer__channel-purpose {
+  font-size: var(--text-xs);
+  color: rgb(255 255 255 / 50%);
+}
+
+.site-footer__copy {
+  align-self: flex-start;
+  margin-top: var(--space-1);
+  padding: 2px var(--space-3);
+  border: 1px solid rgb(255 255 255 / 45%);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  color: var(--color-text-inverse);
+  transition: background-color var(--transition-base);
+}
+
+.site-footer__copy:hover {
+  background-color: rgb(255 255 255 / 15%);
+}
+
+.site-footer__notice {
+  margin-top: var(--space-3);
+  font-size: var(--text-xs);
+  color: rgb(255 255 255 / 45%);
 }
 
 .site-footer__link {
