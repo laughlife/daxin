@@ -12,6 +12,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
+    "smoke": "node scripts/smoke-check.mjs",
     "typecheck": "nuxt typecheck"
   },
   "dependencies": {
