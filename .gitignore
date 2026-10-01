@@ -1,0 +1,24 @@
+# Dependencies and generated output
+/web/node_modules/
+/web/.nuxt/
+/web/.output/
+/web/.data/
+/web/.nitro/
+/web/.cache/
+/web/dist/
+/api/vendor/
+
+# Local environment files
+.env
+.env.*
+!.env.example
+/web/.env
+/web/.env.*
+!/web/.env.example
+
+# Logs and editor files
+*.log
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
