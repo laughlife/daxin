@@ -1,4 +1,4 @@
-import type { SiteConfig } from '~/types/site'
+import type { SiteConfig } from '../types/site'
 
 /**
  * 站点全局配置
