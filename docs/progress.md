@@ -57,3 +57,9 @@ Task 1 验收通过：新项目目录结构清晰，旧 PHP 网站未被删除�
 ### 验收结论
 
 Task 2 验收通过：站点壳层（公告栏、Header、桌面/移动端导航、Footer）与全局设计系统就绪，`/` 可正常访问，验证命令全部通过；未接入任何后端、数据库或旧 PHP；未新增依赖。正式 Logo、微信二维码、联系方式、品牌色仍为 TODO 占位。
+
+## 2026-10-01 — Task 3 阶段 0：开发基线验证
+
+- 起点提交：8ef6fca（Task 2 最新提交），工作区干净。
+- 基线验证（web/，Windows，Node v24.16.0，npm 11.17.0）：npm ci、npm run typecheck、npm run build、npm run generate 全部成功（退出码 0）。
+- Task 2 无遗留问题，无需修复即进入 Task 3 开发。
