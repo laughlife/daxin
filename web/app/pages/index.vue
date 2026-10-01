@@ -1,178 +1,112 @@
 <script setup lang="ts">
-/**
- * 站点壳层预览页（非正式首页）
- * 仅用于验证 Task 2 建立的全局布局、设计令牌与基础组件，
- * 正式首页与业务页面在后续任务中开发。
- */
-useSeoMeta({
-  title: '站点壳层预览',
-  description:
-    '大信法务官网 Task 2 站点壳层与设计系统预览页，非正式首页，文案与联系方式均为占位符。'
-})
+import { ref } from 'vue'
+import { homeStats, teamIntro } from '~/data/mock/home'
 
-const colorSwatches = [
-  { name: '品牌主色', variable: '--color-primary' },
-  { name: '深色背景', variable: '--color-bg-dark' },
-  { name: '浅色背景', variable: '--color-bg-light' },
-  { name: '正文颜色', variable: '--color-text' },
-  { name: '次要文字', variable: '--color-text-muted' },
-  { name: '边框颜色', variable: '--color-border' },
-  { name: '成功', variable: '--color-success' },
-  { name: '警告', variable: '--color-warning' },
-  { name: '错误', variable: '--color-error' }
-]
+/**
+ * 官网首页第一版（Task 3）。
+ * 内容来自需求文档初稿与本地 Mock 数据（web/app/data/mock/），
+ * 未连接任何后端；正式素材（Logo、图片、合作伙伴）待提供。
+ */
+const contactModalOpen = ref(false)
+
+function openContactModal() {
+  contactModalOpen.value = true
+}
+
+function closeContactModal() {
+  contactModalOpen.value = false
+}
+
+useSeoMeta({
+  title: '跨境有我，法律无忧',
+  description:
+    '大信法务团队成立于 2019 年，为跨境电商企业、品牌卖家及供应链伙伴提供 TRO 知识产权、CPSC 召回、劳动合规、合同风控等全链路、跨法域法律服务。当前版本部分内容使用 Mock 演示数据。',
+  ogTitle: '大信法务 - 跨境有我，法律无忧',
+  ogDescription:
+    '专注于为跨境电商企业、品牌卖家及供应链伙伴提供全链路、跨法域、高实效的法律顾问服务。'
+})
 </script>
 
 <template>
   <div>
-    <section class="preview-hero">
-      <PageContainer size="narrow">
-        <p class="preview-hero__badge">Task 2 · 站点壳层预览</p>
-        <SectionHeading
-          :level="1"
-          align="center"
-          title="官网基础框架预览"
-          description="本页面不是正式首页，仅用于验证全局布局与设计系统：顶部公告栏、Header、桌面 / 移动端导航、Footer，以及按钮、卡片等基础组件。正式首页与各业务页面将在后续任务中开发，品牌信息均为占位符。"
-        />
-        <div class="preview-hero__actions">
-          <BaseButton variant="primary" size="lg">主按钮示例</BaseButton>
-          <BaseButton variant="secondary" size="lg">次按钮示例</BaseButton>
+    <HomeHero @open-contact="openContactModal" />
+
+    <section class="home-about" aria-label="团队介绍">
+      <PageContainer>
+        <SectionHeading align="center" :title="teamIntro.title" />
+        <div class="home-about__content">
+          <p
+            v-for="(paragraph, index) in teamIntro.paragraphs"
+            :key="index"
+            class="home-about__paragraph"
+          >
+            {{ paragraph }}
+          </p>
+          <NuxtLink :to="teamIntro.moreLink.to" class="home-about__more">
+            {{ teamIntro.moreLink.label }}
+            <span aria-hidden="true">→</span>
+          </NuxtLink>
         </div>
+        <StatsSection class="home-about__stats" :stats="homeStats" />
       </PageContainer>
     </section>
 
-    <section class="preview-section">
-      <PageContainer>
-        <SectionHeading
-          title="基础组件示例"
-          description="以下卡片使用 BaseCard 组件，标题使用 SectionHeading 组件，间距与颜色均来自设计令牌。"
-        />
-        <div class="preview-cards">
-          <BaseCard title="设计令牌">
-            颜色、间距、圆角、阴影与字体层级统一在 tokens.css 中以 CSS Variables
-            定义，组件内不散落硬编码色值。
-          </BaseCard>
-          <BaseCard title="全局布局">
-            公告栏、Header、主内容区与 Footer 通过默认布局组合；桌面导航支持键盘操作，
-            移动端抽屉支持遮罩、Escape 关闭与滚动锁定。
-          </BaseCard>
-          <BaseCard title="占位说明">
-            Logo、微信号、电话、邮箱、地址与 ICP 备案号均为 TODO
-            占位符，尚未写入任何未经确认的正式品牌信息。
-          </BaseCard>
-        </div>
-      </PageContainer>
-    </section>
+    <BusinessSection />
+    <CasePreviewSection />
+    <ArticlePreviewSection />
+    <PartnerStrip />
 
-    <section class="preview-section preview-section--alt">
-      <PageContainer>
-        <SectionHeading
-          title="色彩令牌示例"
-          description="下列色块直接引用 tokens.css 中的 CSS Variables，用于验证设计令牌在页面中生效。"
-        />
-        <ul class="preview-swatches">
-          <li v-for="swatch in colorSwatches" :key="swatch.variable" class="preview-swatch">
-            <span
-              class="preview-swatch__color"
-              :style="{ backgroundColor: `var(${swatch.variable})` }"
-            />
-            <span class="preview-swatch__name">{{ swatch.name }}</span>
-            <code class="preview-swatch__variable">{{ swatch.variable }}</code>
-          </li>
-        </ul>
-      </PageContainer>
-    </section>
+    <ConsultationCta @open-contact="openContactModal" />
+
+    <WechatQrModal :open="contactModalOpen" @close="closeContactModal" />
   </div>
 </template>
 
 <style scoped>
-.preview-hero {
-  padding-block: var(--space-16) var(--space-12);
-  background-color: var(--color-bg-light);
+.home-about {
+  padding-block: var(--space-16);
+  background-color: var(--color-bg-page);
+}
+
+.home-about__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  max-width: 860px;
+  margin-inline: auto;
+  margin-top: var(--space-6);
   text-align: center;
 }
 
-.preview-hero__badge {
-  display: inline-block;
-  margin-bottom: var(--space-4);
-  padding: var(--space-1) var(--space-4);
-  border-radius: var(--radius-full);
-  background-color: var(--color-primary-light);
-  color: var(--color-primary);
-  font-size: var(--text-sm);
-  font-weight: 600;
-}
-
-.preview-hero__actions {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-  margin-top: var(--space-8);
-}
-
-.preview-section {
-  padding-block: var(--space-12);
-}
-
-.preview-section--alt {
-  background-color: var(--color-bg-light);
-}
-
-.preview-cards {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-6);
-  margin-top: var(--space-8);
-}
-
-.preview-swatches {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--space-4);
-  margin-top: var(--space-8);
-}
-
-.preview-swatch {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  padding: var(--space-4);
-  background-color: var(--color-bg-page);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-}
-
-.preview-swatch__color {
-  height: 48px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--color-border);
-}
-
-.preview-swatch__name {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-text);
-}
-
-.preview-swatch__variable {
-  font-size: var(--text-xs);
+.home-about__paragraph {
   color: var(--color-text-muted);
+  line-height: var(--leading-relaxed);
 }
 
-@media (max-width: 1023px) {
-  .preview-cards {
-    grid-template-columns: 1fr;
-  }
+.home-about__paragraph:first-child {
+  font-size: var(--text-lg);
+  color: var(--color-text);
+  font-weight: 600;
+}
+
+.home-about__more {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--color-primary);
+}
+
+.home-about__more:hover {
+  color: var(--color-primary-dark);
+}
+
+.home-about__stats {
+  margin-top: var(--space-10);
 }
 
 @media (max-width: 639px) {
-  .preview-hero {
-    padding-block: var(--space-10) var(--space-8);
-  }
-
-  .preview-hero__actions :deep(.btn) {
-    width: 100%;
+  .home-about {
+    padding-block: var(--space-10);
   }
 }
 </style>
