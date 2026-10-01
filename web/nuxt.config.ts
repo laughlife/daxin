@@ -1,4 +1,5 @@
 import { siteConfig } from './app/config/site'
+import { mockCases } from './app/data/mock/cases'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -25,10 +26,15 @@ export default defineNuxtConfig({
 
   nitro: {
     prerender: {
-      // 站点壳层阶段仅预渲染首页；导航中的规划路由（TRO 业务、国内业务等）
-      // 尚未实现页面，关闭链接爬取避免预渲染 404，待业务页面落地后再开启。
+      // 站点壳层阶段仅预渲染已实现页面；其余规划路由（TRO 资讯、常见问题等）
+      // 尚未实现，关闭链接爬取避免预渲染 404，待业务页面落地后再开启。
       crawlLinks: false,
-      routes: ['/']
+      routes: [
+        '/',
+        '/tro/cases',
+        // Mock 案件详情页（静态可访问；接入真实数据后改为 SSR/ISR 并更新此处）
+        ...mockCases.map(item => `/tro/cases/${item.slug}`)
+      ]
     }
   }
 })
