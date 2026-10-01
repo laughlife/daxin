@@ -21,5 +21,14 @@ export default defineNuxtConfig({
         { name: 'description', content: siteConfig.description }
       ]
     }
+  },
+
+  nitro: {
+    prerender: {
+      // 站点壳层阶段仅预渲染首页；导航中的规划路由（TRO 业务、国内业务等）
+      // 尚未实现页面，关闭链接爬取避免预渲染 404，待业务页面落地后再开启。
+      crawlLinks: false,
+      routes: ['/']
+    }
   }
 })
