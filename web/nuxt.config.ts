@@ -31,6 +31,8 @@ export default defineNuxtConfig({
       crawlLinks: false,
       routes: [
         '/',
+        '/about',
+        '/infringement-check',
         '/tro/cases',
         // Mock 案件详情页（静态可访问；接入真实数据后改为 SSR/ISR 并更新此处）
         ...mockCases.map(item => `/tro/cases/${item.slug}`)
