@@ -1,6 +1,6 @@
 # 设计令牌说明（design-tokens.md）
 
-> 状态：Task 2 站点壳层阶段的暂定设计系统。正式品牌色、字体与 Logo 确认后，仅需修改 `web/app/assets/styles/tokens.css`，组件无需改动。
+> 状态：Task 3 起为需求文档阶段的临时红色主题（详见下方色彩变量说明）。正式品牌色、字体与 Logo 确认后，仅需修改 `web/app/assets/styles/tokens.css`，组件无需改动。
 
 令牌文件位置：
 
@@ -9,17 +9,19 @@
 
 ## 1. 色彩变量
 
+> **临时主题说明（Task 3 起）**：当前红色主题来自需求文档阶段要求（页面底色浅灰、内容卡片白色、重点红色、体现法律服务专业感），**只是临时主题**，待正式品牌规范确认后整体替换，仅需修改 `tokens.css`。
+
 | 变量 | 当前值 | 用途 |
 | --- | --- | --- |
-| `--color-primary` | `#1f4e8c` | 品牌主色（TODO：正式品牌色待最终确认） |
-| `--color-primary-dark` | `#16395f` | 主色加深，hover / 深色底 |
-| `--color-primary-light` | `#e9f0fa` | 主色浅底，选中态背景 |
-| `--color-accent` | `#c9a45c` | 点缀金色（TODO：待品牌确认） |
-| `--color-bg-page` | `#ffffff` | 页面默认背景 |
-| `--color-bg-light` | `#f5f7fa` | 浅色分区背景 |
-| `--color-bg-dark` | `#101826` | 深色背景（公告栏 / Footer） |
-| `--color-bg-overlay` | `rgb(16 24 38 / 55%)` | 移动端菜单遮罩 |
-| `--color-text` | `#1f2937` | 正文颜色 |
+| `--color-primary` | `#b91c1c` | 品牌主色（临时红，待正式品牌规范确认） |
+| `--color-primary-dark` | `#8f1414` | 主色加深，hover / 深色底 |
+| `--color-primary-light` | `#fbeaea` | 主色浅底，选中态背景 |
+| `--color-accent` | `#c9a45c` | 点缀金色，仅少量强调（TODO：待品牌确认） |
+| `--color-bg-page` | `#ffffff` | 页面默认背景 / 内容卡片白色 |
+| `--color-bg-light` | `#f4f4f5` | 浅色分区背景（页面底色浅灰） |
+| `--color-bg-dark` | `#262626` | 深色背景（公告栏 / Footer，深灰） |
+| `--color-bg-overlay` | `rgb(38 38 38 / 55%)` | 移动端菜单遮罩 |
+| `--color-text` | `#1f2937` | 正文颜色（高对比度） |
 | `--color-text-muted` | `#6b7280` | 次要文字颜色 |
 | `--color-text-inverse` | `#ffffff` | 深色底上的文字 |
 | `--color-text-on-primary` | `#ffffff` | 主色底上的文字 |
@@ -79,9 +81,9 @@
 
 | 圆角 | 值 | | 阴影 | 定义 |
 | --- | --- | --- | --- | --- |
-| `--radius-sm` | 4px | | `--shadow-sm` | `0 1px 2px rgb(16 24 38 / 8%)` |
-| `--radius-md` | 8px | | `--shadow-md` | `0 4px 12px rgb(16 24 38 / 10%)` |
-| `--radius-lg` | 16px | | `--shadow-lg` | `0 12px 32px rgb(16 24 38 / 16%)` |
+| `--radius-sm` | 4px | | `--shadow-sm` | `0 1px 2px rgb(38 38 38 / 8%)` |
+| `--radius-md` | 8px | | `--shadow-md` | `0 4px 12px rgb(38 38 38 / 10%)` |
+| `--radius-lg` | 16px | | `--shadow-lg` | `0 12px 32px rgb(38 38 38 / 16%)` |
 | `--radius-full` | 9999px | | | |
 
 ## 6. 响应式断点

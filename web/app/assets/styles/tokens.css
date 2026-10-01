@@ -8,19 +8,21 @@
  * 3. 品牌色为暂定值，正式品牌色确认后仅需修改本文件。
  */
 :root {
-  /* ===== 品牌色（TODO：正式品牌色待最终确认） ===== */
-  --color-primary: #1f4e8c;          /* 品牌主色 */
-  --color-primary-dark: #16395f;     /* 主色加深（hover / 深色底） */
-  --color-primary-light: #e9f0fa;    /* 主色浅底（选中态背景等） */
-  --color-accent: #c9a45c;           /* 点缀金色（TODO：待品牌确认） */
+  /* ===== 品牌色 =====
+   * 当前红色为需求文档阶段的临时主题（页面底色浅灰、卡片白色、重点红色），
+   * 正式品牌规范确认后仅需替换本区块变量。 */
+  --color-primary: #b91c1c;          /* 品牌主色（临时红） */
+  --color-primary-dark: #8f1414;     /* 主色加深（hover / 深色底） */
+  --color-primary-light: #fbeaea;    /* 主色浅底（选中态背景等） */
+  --color-accent: #c9a45c;           /* 点缀金色，仅少量强调（TODO：待品牌确认） */
 
   /* ===== 背景色 ===== */
-  --color-bg-page: #ffffff;          /* 页面默认背景 */
-  --color-bg-light: #f5f7fa;         /* 浅色分区背景 */
-  --color-bg-dark: #101826;          /* 深色背景（公告栏 / Footer） */
-  --color-bg-overlay: rgb(16 24 38 / 55%); /* 移动端菜单遮罩 */
+  --color-bg-page: #ffffff;          /* 页面默认背景（内容卡片白色） */
+  --color-bg-light: #f4f4f5;         /* 浅色分区背景（页面底色浅灰） */
+  --color-bg-dark: #262626;          /* 深色背景（公告栏 / Footer，深灰） */
+  --color-bg-overlay: rgb(38 38 38 / 55%); /* 移动端菜单遮罩 */
 
-  /* ===== 文字颜色 ===== */
+  /* ===== 文字颜色（保持高对比度） ===== */
   --color-text: #1f2937;             /* 正文颜色 */
   --color-text-muted: #6b7280;       /* 次要文字颜色 */
   --color-text-inverse: #ffffff;     /* 深色底上的文字 */
@@ -61,10 +63,10 @@
   --radius-lg: 16px;
   --radius-full: 9999px;
 
-  /* ===== 阴影 ===== */
-  --shadow-sm: 0 1px 2px rgb(16 24 38 / 8%);
-  --shadow-md: 0 4px 12px rgb(16 24 38 / 10%);
-  --shadow-lg: 0 12px 32px rgb(16 24 38 / 16%);
+  /* ===== 阴影（中性深灰基色） ===== */
+  --shadow-sm: 0 1px 2px rgb(38 38 38 / 8%);
+  --shadow-md: 0 4px 12px rgb(38 38 38 / 10%);
+  --shadow-lg: 0 12px 32px rgb(38 38 38 / 16%);
 
   /* ===== 字体 ===== */
   --font-family-base:
