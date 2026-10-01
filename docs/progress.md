@@ -63,3 +63,37 @@ Task 2 验收通过：站点壳层（公告栏、Header、桌面/移动端导航
 - 起点提交：8ef6fca（Task 2 最新提交），工作区干净。
 - 基线验证（web/，Windows，Node v24.16.0，npm 11.17.0）：npm ci、npm run typecheck、npm run build、npm run generate 全部成功（退出码 0）。
 - Task 2 无遗留问题，无需修复即进入 Task 3 开发。
+
+## 2026-10-01 — Task 3：首页第一版、Mock 内容体系与 TRO 案件查询 MVP
+
+### 改动
+
+- 阶段 0：基线验证通过（起点提交 8ef6fca，npm ci / typecheck / build / generate 全部成功），Task 2 无遗留问题。
+- Mock 内容模型：新增 `types/content.ts`（HomeStat / BusinessCard / CaseRecord / ArticleRecord / ContactChannel / ServiceCapabilityTag）与 `data/mock/`（home / businesses / cases / articles / contacts）。首页文案、业务条目、统计数据、联系方式均取自需求文档初稿；案件与文章为明显虚构的演示数据（MOCK 案件号、演示律所/品牌、【演示】标题前缀）；“近 3 天”使用固定 isRecent 字段，不依赖系统时间。
+- 多渠道联系配置：ContactConfig 改为 wechatAccounts（TRO 咨询号 kjzx88 / 劳动法咨询号 chen_6506）+ defaultCopyChannelId + notice；公告栏默认复制 kjzx88；Footer 展示双渠道卡片，qrSrc 为 null 时渲染“二维码待提供”占位，不伪造二维码。
+- 视觉主题：调整为需求文档阶段的红色临时主题（主色 #b91c1c、浅灰底 #f4f4f5、白色卡片、深灰公告栏/Footer），颜色仍全部来自 tokens.css；首页新组件使用 color-mix 从令牌派生透明度变化，无硬编码色值。
+- 首页第一版：Hero（跨境有我，法律无忧 + 查询 TRO 案件 + 联系我们免费评估案件/弹窗）、About US 团队介绍 + 5 项统计、核心业务（国外/国内分组卡片）、TRO 最新案件与进展、TRO 与劳动法案例分享、“我们的小伙伴”（服务能力标签 + 合作伙伴素材待提供占位）、底部 24H/7 咨询 CTA。新增组件：home/HomeHero、StatsSection、BusinessSection、BusinessCard、CasePreviewSection、CasePreviewCard、ArticlePreviewSection、PartnerStrip、ConsultationCta、contact/WechatQrModal。Hero 动效为纯 CSS（光效/网格/漂浮图形），prefers-reduced-motion 全局降级。
+- WechatQrModal：双咨询号 + 二维码占位 + 电话/邮箱/地址；Escape/遮罩/关闭按钮关闭，aria-modal，打开聚焦关闭按钮、关闭焦点还原触发元素，Tab 焦点循环，锁定 body 滚动。
+- TRO 案件查询 MVP：useMockCaseSearch（案件号/品牌/律所不区分大小写搜索、类型/起诉州筛选、可复用本地分页、URL query 同步可刷新恢复、无 fetch）；/tro/cases 列表页（桌面表格 + 移动卡片 + 分页 + 无结果状态 + 清空条件）；/tro/cases/[id] 详情页（完整 Mock 信息 + 相关案件 + 404 处理）；页面明确标注“当前为本地 Mock 数据，尚未连接真实案件数据库”；品牌为详情链接入口，律所为“按此律所筛选”按钮（律所专页未实现，已标注）。
+- 首批真实页面：/about（团队介绍/核心业务/服务理念/联系方式 + 素材待提供说明）；/infringement-check（前端演示表单：必填校验、错误提示、成功态仅提示“演示提交成功，当前尚未连接后端”，不发请求不存数据）。
+- 可访问性与 SEO：布局新增 skip link（跳到主要内容）；首页/案件查询/关于我们/侵权检测均配置 title、description、og:title、og:description；首页新增 LegalService JSON-LD（仅需求文档已给出信息：2019 年成立、业务范围、联系方式、地址；不虚构律师资质与注册资本）。
+- Smoke 检查：新增 web/scripts/smoke-check.mjs（原生 fetch，无测试框架）与 npm run smoke 脚本；nuxt.config 预渲染路由显式包含 /、/about、/infringement-check、/tro/cases 与 23 条 Mock 案件详情。
+- 文档：新增 docs/homepage-content-source.md、docs/mock-content-model.md；更新 navigation-map.md、design-tokens.md、progress.md、blockers.md。
+- 依赖：零新增（npm ls --depth=0 仍为 nuxt/vue/vue-router/typescript/vue-tsc）；继续使用 npm 与 package-lock.json（内容无实质变更）。
+- 未连接 Laravel / MySQL / 旧 PHP CMS；未修改旧 PHP 网站；未删除任何已有代码。
+
+### 实际验证
+
+验证环境：Windows，Node.js v24.16.0，npm 11.17.0（web/ 目录）。
+
+- npm ci：成功（中途一次 EPERM 失败，原因是此前被管道截断遗留的孤儿 nuxi generate 进程锁定 lightningcss 原生模块，终止进程后重试成功；与代码无关）。
+- npm run typecheck：成功，退出码 0（阶段中两次失败均已修复：WechatQrModal 索引可能为 undefined 的 TS18048；无其他遗留）。
+- npm run build：成功，退出码 0（中途一次 PostCSS 失败：CasePreviewCard 的 gap 属性被写坏，已修复）。
+- npm run generate：成功；产物含 index.html、about/、infringement-check/、tro/cases/ 与 23 个案件详情目录，无预渲染错误。
+- 静态预览（npm run preview，nitro-prerender，http://127.0.0.1:3000）+ npm run smoke：26/26 PASS，退出码 0。四条路由均 200；首页含“跨境有我，法律无忧/查询 TRO 案件/大信法务/核心业务/24 小时”；案件页含“TRO 案件查询/案件号/品牌名/代理律所/Mock 数据说明”；所有页面不含 NuxtWelcome 与壳层预览文字。
+- 案件详情 /tro/cases/mock-25-cv-9001：HTTP 200，含品牌名；SSR HTML 检查确认 skip-link、JSON-LD（LegalService）、og:title/og:description 均在首页输出中。
+- 浏览器级交互（弹窗焦点还原、抽屉菜单、搜索分页、390px 无横向滚动）已按规范实现并经静态产物/代码审查确认；本环境无浏览器自动化，建议人工在浏览器复核，已记入 blockers 备注。
+
+### 验收结论
+
+Task 3 验收通过：首页第一版（需求文档文案 + Mock 数据）、多渠道联系配置、红色临时主题、TRO 案件查询 MVP（搜索/筛选/分页/详情/URL 恢复）、/about 与 /infringement-check、可访问性与 SEO、Smoke 检查与文档全部完成；全部验证命令通过；未连接任何后端；零新增依赖。

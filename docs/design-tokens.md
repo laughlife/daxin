@@ -106,7 +106,7 @@
 ## 8. 组件使用原则
 
 1. 新组件优先复用 `ui/` 下的基础组件（PageContainer、SectionHeading、BaseButton、BaseCard），不重复造轮子。
-2. 组件样式一律引用令牌变量，禁止新增硬编码色值 / 魔法间距；确需新令牌时先加入 `tokens.css` 并更新本文档。
+2. 组件样式一律引用令牌变量，禁止新增硬编码色值 / 魔法间距；确需新令牌时先加入 `tokens.css` 并更新本文档。需要透明度或混色变化时使用 `color-mix(in srgb, var(--color-*) n%, transparent)` 从令牌派生（Task 3 首页组件已采用），不引入新的原始色值。
 3. 文案、导航、联系方式等来自 `web/app/config/site.ts`，组件内不硬编码内容数据。
 4. 使用 scoped style；穿透子组件时使用 `:deep()`，跨组件覆盖需保证足够选择器优先级。
 5. 当前阶段使用原生 CSS + CSS Variables，未引入 Tailwind 或第三方 UI 库；如确有需要应单独立任务评估。
