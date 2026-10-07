@@ -75,38 +75,17 @@ export const siteConfig: SiteConfig = {
 
   footerNav: [
     {
-      title: 'TRO 业务',
+      title: '业务范围',
       items: [
-        { label: 'TRO 案件查询', to: '/tro/cases' },
-        { label: 'TRO 侵权预警', to: '/tro/alerts' },
-        { label: 'TRO 成功案例', to: '/tro/success-cases' },
-        { label: 'CPSC 召回', to: '/tro/cpsc-recalls' }
-      ]
-    },
-    {
-      title: '国内业务',
-      items: [
-        { label: '劳动纠纷', to: '/domestic/labor-disputes' },
-        { label: '货代案例', to: '/domestic/freight-cases' },
-        { label: '跨境资讯', to: '/domestic/cross-border-news' }
-      ]
-    },
-    {
-      title: '常见问题',
-      items: [
-        { label: 'TRO 常见问题', to: '/faq/tro' },
-        { label: 'TRO 原告律所', to: '/faq/plaintiff-firms' },
-        { label: '劳动争议', to: '/faq/labor' },
-        { label: '跨境干货', to: '/faq/cross-border' }
-      ]
-    },
-    {
-      title: '其他',
-      items: [
-        { label: '侵权品牌库', to: '/brands' },
-        { label: '关于我们', to: '/about' },
-        { label: '科普干货', to: '/tro/guides' },
-        { label: '热点资讯', to: '/tro/news' }
+        { label: 'TRO应诉和解' },
+        { label: '亚马逊申诉/投诉' },
+        { label: '不侵权报告' },
+        { label: '商标/版权/专利申请注册' },
+        { label: 'CPSC召回' },
+        { label: '劳动争议' },
+        { label: '货代民商纠纷' },
+        { label: '企业法律顾问' },
+        { label: '跨境纠纷' }
       ]
     }
   ],
