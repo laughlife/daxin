@@ -23,6 +23,8 @@ const emit = defineEmits<{
 
 const expandedGroups = ref<number[]>([])
 const closeButtonEl = ref<HTMLButtonElement | null>(null)
+const panelEl = ref<HTMLElement | null>(null)
+let previouslyFocused: HTMLElement | null = null
 let savedBodyOverflow = ''
 
 function isGroupOpen(index: number): boolean {
@@ -52,7 +54,15 @@ function unlockBodyScroll() {
 function onKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     emit('close')
+    return
   }
+  if (event.key !== 'Tab' || !panelEl.value) return
+  const focusables = Array.from(panelEl.value.querySelectorAll<HTMLElement>('a[href], button:not([disabled]), [tabindex="0"]')).filter(el => el.getClientRects().length > 0)
+  const first = focusables[0]
+  const last = focusables[focusables.length - 1]
+  if (!first || !last) return
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus() }
+  else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus() }
 }
 
 watch(
@@ -60,6 +70,7 @@ watch(
   async (open) => {
     if (typeof document === 'undefined') return
     if (open) {
+      previouslyFocused = document.activeElement as HTMLElement | null
       lockBodyScroll()
       document.addEventListener('keydown', onKeydown)
       await nextTick()
@@ -67,6 +78,8 @@ watch(
     } else {
       unlockBodyScroll()
       document.removeEventListener('keydown', onKeydown)
+      previouslyFocused?.focus()
+      previouslyFocused = null
     }
   }
 )
@@ -83,6 +96,7 @@ onBeforeUnmount(() => {
   <div v-if="open" class="mobile-nav">
     <div class="mobile-nav__overlay" @click="emit('close')" />
     <div
+      ref="panelEl"
       class="mobile-nav__panel"
       role="dialog"
       aria-modal="true"

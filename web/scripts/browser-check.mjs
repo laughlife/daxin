@@ -1,0 +1,63 @@
+/** 使用已有 Playwright 运行；PLAYWRIGHT_MODULE 可指向 bundled module 的 file:// URL。 */
+import assert from 'node:assert/strict'
+const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
+const base = process.env.SMOKE_BASE_URL || 'http://127.0.0.1:3000'
+const browser = await chromium.launch({ headless:true, ...(process.env.BROWSER_EXECUTABLE ? { executablePath:process.env.BROWSER_EXECUTABLE } : {}) })
+const page = await browser.newPage({ viewport:{ width:1440, height:1000 } })
+const errors = []
+page.on('pageerror', error => errors.push(error.message))
+let count = 0
+function check(name, condition) { assert.ok(condition, name); console.log(`PASS ${++count}: ${name}`) }
+async function visit(path) { await page.goto(`${base}${path}`, { waitUntil:'networkidle' }) }
+try {
+  await visit('/')
+  check('首页礼包公告', await page.locator('.site-announcement').innerText().then(text => text.includes('联系我们可领取TRO侵权大礼包') && text.includes('kjzx88')))
+  await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+  await page.getByRole('button', { name:'复制 TRO 咨询号 kjzx88', exact:true }).click()
+  check('公告一键复制精确微信号', await page.evaluate(() => navigator.clipboard.readText()) === 'kjzx88')
+  check('首页日期筛选展示近期记录', await page.locator('.case-preview-card').count() === 3)
+  check('近期区域没有 2025 年旧案件', !(await page.locator('.case-preview-section').innerText()).includes('2025-'))
+  await page.getByRole('button', { name:'联系我们免费评估案件', exact:true }).click()
+  check('咨询弹窗显示四类二维码', await page.getByRole('dialog').locator('[data-qr-id]').count() === 4)
+  await page.keyboard.press('Escape')
+  for (const [path, expected] of [['/tro/alerts',['tro-public','tro-consult']],['/domestic/labor-disputes',['labor-public','labor-consult']],['/faq/labor',['labor-public','labor-consult']],['/faq/cross-border',['tro-public','tro-consult','labor-public','labor-consult']]]) {
+    await visit(path)
+    const ids = await page.locator('.content-sidebar [data-qr-id]').evaluateAll(elements => elements.map(el => el.dataset.qrId))
+    check(`${path} 精确使用对应业务二维码`, JSON.stringify(ids) === JSON.stringify(expected))
+    await page.locator('.article-list h2 a').first().click()
+    await page.locator('.article-detail__body').waitFor()
+    check(`${path} 文章可阅读`, await page.locator('.article-detail__body section').count() >= 3)
+  }
+  await visit('/tro/cases?page=999')
+  check('越界页码钳制为有效页', !(await page.locator('.case-pagination__summary').innerText()).includes('999') && await page.locator('tbody tr').count() > 0)
+  await page.locator('#case-search-from').fill('2026-10-05')
+  await page.locator('#case-search-to').fill('2026-10-07')
+  await page.waitForURL('**to=2026-10-07*')
+  check('案件日期范围筛选', await page.locator('tbody tr').count() === 3)
+  await page.reload({ waitUntil:'networkidle' })
+  check('刷新保留日期筛选', await page.locator('#case-search-from').inputValue() === '2026-10-05' && await page.locator('tbody tr').count() === 3)
+  await page.locator('tbody .case-table__brand').first().click()
+  await page.locator('.entity-detail__header').waitFor()
+  check('品牌显示历史关联案件', await page.locator('.entity-detail__cases article').count() === 2)
+  await page.locator('.entity-detail__cases a[href^="/law-firms/"]').first().click()
+  await page.locator('.entity-detail__header').waitFor()
+  check('律所显示关联案件', await page.locator('.entity-detail__cases article').count() > 1)
+  await visit('/about')
+  check('关于我们包含成功案例及企业宣讲', await page.locator('[aria-label="成功案例"]').count() === 1 && await page.locator('[aria-label="企业宣讲"]').count() === 1)
+  await page.setViewportSize({ width:390, height:844 })
+  for (const path of ['/', '/tro/cases', '/brands', '/about', '/tro/alerts/demo-1']) {
+    await visit(path)
+    check(`${path} 手机无横向溢出`, await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
+  }
+  await visit('/')
+  await page.getByRole('button', { name:'打开菜单', exact:true }).click()
+  for (let i=0; i<18; i++) {
+    await page.keyboard.press('Tab')
+    assert.ok(await page.evaluate(() => !!document.activeElement.closest('[role="dialog"]')), `菜单第 ${i+1} 次 Tab 焦点应留在抽屉内`)
+  }
+  check('手机菜单 Tab 焦点循环', true)
+  await page.keyboard.press('Escape')
+  check('关闭菜单焦点回到触发按钮', await page.getByRole('button',{ name:'打开菜单',exact:true }).evaluate(el => el === document.activeElement))
+  check('浏览器无脚本错误', errors.length === 0)
+  console.log(`浏览器验收完成：${count} 项通过`)
+} finally { await browser.close() }
