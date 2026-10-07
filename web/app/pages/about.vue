@@ -103,6 +103,7 @@ useSeoMeta({
       </section>
       <section class="about-page__section" aria-label="企业宣讲">
         <SectionHeading title="企业宣讲" description="围绕知识产权、劳动用工与合同风控，提供适合跨境企业的培训主题。" />
+        <div class="about-page__lecture-frame">
         <img
           class="about-page__lecture-photos"
           src="/images/lectures/enterprise-lectures.jpg"
@@ -111,6 +112,7 @@ useSeoMeta({
           height="810"
           loading="lazy"
         >
+        </div>
         <ArticleList :articles="lectureArticles" />
         <NuxtLink class="about-page__more" to="/about/lectures">查看宣讲主题与详情 →</NuxtLink>
       </section>
@@ -128,7 +130,9 @@ useSeoMeta({
 .about-page__section { padding:28px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
 .about-page__section + .about-page__section { margin-top:24px; }
 .about-page__intro-title { font-size:var(--text-3xl); line-height:1.4; }
-.about-page__lecture-photos { display:block; width:100%; height:auto; margin:20px auto 24px; border-radius:var(--radius-md); }
+.about-page__lecture-frame { overflow:hidden; margin:20px auto 24px; border-radius:var(--radius-md); }
+/* 原图顶部 40px 是截断标题；仅隐藏这部分，完整保留照片。 */
+.about-page__lecture-photos { display:block; width:100%; height:auto; margin-top:-2.56%; }
 .about-page__more { display:inline-flex; margin-top:20px; color:var(--color-primary); font-weight:600; font-size:var(--text-sm); }
 .about-page__more:hover { text-decoration:underline; }
 
