@@ -13,7 +13,10 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "smoke": "node scripts/smoke-check.mjs",
-    "typecheck": "nuxt typecheck"
+    "typecheck": "nuxt typecheck",
+    "test": "node --test scripts/content-utils.test.mjs",
+    "check:static": "node scripts/static-check.mjs",
+    "check:browser": "node scripts/browser-check.mjs"
   },
   "dependencies": {
     "nuxt": "4.5.2",

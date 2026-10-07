@@ -87,7 +87,7 @@ useSeoMeta({
 
 <template>
   <div class="check-page">
-    <PageContainer size="narrow">
+    <PageContainer><ContentColumns group="tro">
       <SectionHeading
         :level="1"
         title="产品侵权检测"
@@ -192,7 +192,7 @@ useSeoMeta({
           </p>
         </div>
       </form>
-    </PageContainer>
+    </ContentColumns></PageContainer>
   </div>
 </template>
 
