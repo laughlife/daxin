@@ -48,7 +48,6 @@ useSeoMeta({
   <div class="about-page">
     <PageContainer class="about-page__body"><ContentColumns>
       <section class="about-page__section" aria-label="团队介绍">
-        <p class="about-page__eyebrow">大信法务团队 · 成立于 2019 年</p>
         <h1 class="about-page__intro-title">团队介绍</h1>
         <p
           v-for="(paragraph, index) in teamIntro.paragraphs"
@@ -120,7 +119,6 @@ useSeoMeta({
 .about-page__body { padding-block:var(--space-8) var(--space-16); }
 .about-page__section { padding:28px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
 .about-page__section + .about-page__section { margin-top:24px; }
-.about-page__eyebrow { font-size:var(--text-sm); color:var(--color-primary); margin-bottom:10px; }
 .about-page__intro-title { font-size:var(--text-3xl); line-height:1.4; }
 .about-page__more { display:inline-flex; margin-top:20px; color:var(--color-primary); font-weight:600; font-size:var(--text-sm); }
 .about-page__more:hover { text-decoration:underline; }
