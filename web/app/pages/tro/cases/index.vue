@@ -50,6 +50,7 @@ useSeoMeta({
         </p>
       </header>
 
+      <ContentColumns group="tro">
       <CaseSearchPanel
         :filters="filters"
         :state-options="mockCaseStates"
@@ -103,6 +104,7 @@ useSeoMeta({
           </BaseButton>
         </div>
       </section>
+      </ContentColumns>
     </PageContainer>
   </div>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { entitySlug } from '~/utils/content'
 import { CASE_TYPE_LABELS, MOCK_DATA_NOTICE, findMockCaseById, mockCases } from '~/data/mock/cases'
 
 /**
@@ -33,7 +34,7 @@ useSeoMeta({
 
 <template>
   <div v-if="record" class="case-detail">
-    <PageContainer size="narrow">
+    <PageContainer><ContentColumns group="tro">
       <nav class="case-detail__breadcrumb" aria-label="面包屑">
         <NuxtLink to="/tro/cases">← 返回 TRO 案件查询</NuxtLink>
       </nav>
@@ -59,10 +60,10 @@ useSeoMeta({
         </div>
         <div>
           <dt>代理律所</dt>
-          <dd>{{ record.lawFirm }}（律所专页尚未实现）</dd>
+          <dd><NuxtLink :to="`/law-firms/${entitySlug(record.lawFirm)}`">{{ record.lawFirm }}</NuxtLink></dd>
         </div>
         <div>
-          <dt>起诉州</dt>
+          <dt>原告品牌</dt><dd><NuxtLink :to="`/brands/${entitySlug(record.plaintiffBrand)}`">{{ record.plaintiffBrand }} · 历史发案</NuxtLink></dd></div><div><dt>起诉州</dt>
           <dd>{{ record.state }}</dd>
         </div>
         <div>
@@ -105,7 +106,7 @@ useSeoMeta({
         <BaseButton to="/tro/cases" variant="secondary">返回案件列表</BaseButton>
         <BaseButton to="/" variant="ghost">回到首页</BaseButton>
       </div>
-    </PageContainer>
+    </ContentColumns></PageContainer>
   </div>
 </template>
 

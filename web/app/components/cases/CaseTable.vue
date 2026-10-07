@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { entitySlug } from '~/utils/content'
 import { CASE_TYPE_LABELS } from '~/data/mock/cases'
 import type { CaseRecord } from '~/types/content'
 
@@ -42,20 +43,18 @@ const emit = defineEmits<{
           <td>
             <NuxtLink
               class="case-table__brand"
-              :to="`/tro/cases/${record.slug}`"
+              :to="`/brands/${entitySlug(record.plaintiffBrand)}`"
             >
               {{ record.plaintiffBrand }}
             </NuxtLink>
           </td>
           <td>
-            <button
-              type="button"
+            <NuxtLink
               class="case-table__firm"
-              :title="`按 ${record.lawFirm} 筛选（律所专页尚未实现）`"
-              @click="emit('filterByFirm', record.lawFirm)"
+              :to="`/law-firms/${entitySlug(record.lawFirm)}`"
             >
               {{ record.lawFirm }}
-            </button>
+            </NuxtLink>
           </td>
           <td>{{ CASE_TYPE_LABELS[record.caseType] }}</td>
           <td>{{ record.state }}</td>
