@@ -1,6 +1,6 @@
 /** 使用已有 Playwright 运行；PLAYWRIGHT_MODULE 可指向 bundled module 的 file:// URL。 */
 import assert from 'node:assert/strict'
-import { isWithinDays } from '../app/utils/content.ts'
+import { isWithinDays, shanghaiDate } from '../app/utils/content.ts'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const base = process.env.SMOKE_BASE_URL || 'http://127.0.0.1:3000'
 const browser = await chromium.launch({ headless:true, ...(process.env.BROWSER_EXECUTABLE ? { executablePath:process.env.BROWSER_EXECUTABLE } : {}) })
@@ -42,14 +42,11 @@ try {
   await page.locator('#case-search-to').fill('2026-10-07')
   await page.waitForURL('**to=2026-10-07*')
   check('案件日期范围筛选', await page.locator('tbody tr').count() === 3)
-  await page.evaluate(() => {
-    const node = document.querySelector('#case-search-from')
-    const router = node.__vueParentComponent.appContext.config.globalProperties.$router
-    return router.push('/tro/cases?from=2026-10-07&to=2026-10-07')
-  })
-  await page.waitForFunction(() => document.querySelector('#case-search-from').value === '2026-10-07')
-  check('同路径查询导航同步筛选', await page.locator('tbody tr').count() === 1)
+  await page.getByRole('link', { name:'今日案件', exact:true }).click()
+  await page.waitForFunction(today => document.querySelector('#case-search-from').value === today, shanghaiDate())
+  check('同路径查询导航同步筛选', await page.locator('tbody tr').count() === ['2026-10-07','2026-10-06','2026-10-05'].filter(date => date === shanghaiDate()).length)
   await page.locator('#case-search-from').fill('2026-10-05')
+  await page.locator('#case-search-to').fill('2026-10-07')
   await page.waitForURL('**from=2026-10-05*')
   await page.reload({ waitUntil:'networkidle' })
   check('刷新保留日期筛选', await page.locator('#case-search-from').inputValue() === '2026-10-05' && await page.locator('tbody tr').count() === 3)

@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useMockCaseSearch } from '~/composables/useMockCaseSearch'
 import { MOCK_DATA_NOTICE, mockCaseStates } from '~/data/mock/cases'
+const { today } = useContentDate()
+const recentFrom = computed(() => { const date = new Date(`${today.value}T00:00:00Z`); date.setUTCDate(date.getUTCDate() - 2); return date.toISOString().slice(0, 10) })
 
 /**
  * TRO 案件查询页（MVP，本地 Mock 版本）。
@@ -51,6 +53,11 @@ useSeoMeta({
       </header>
 
       <ContentColumns group="tro">
+      <nav class="cases-page__shortcuts" aria-label="日期快捷筛选">
+        <NuxtLink :to="{ path: '/tro/cases', query: { from: today, to: today } }">今日案件</NuxtLink>
+        <NuxtLink :to="{ path: '/tro/cases', query: { from: recentFrom, to: today } }">近三天案件</NuxtLink>
+        <NuxtLink to="/tro/cases">全部历史案件</NuxtLink>
+      </nav>
       <CaseSearchPanel
         :filters="filters"
         :state-options="mockCaseStates"
@@ -182,4 +189,9 @@ useSeoMeta({
     gap: var(--space-4);
   }
 }
+</style>
+
+<style scoped>
+.cases-page__shortcuts { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+.cases-page__shortcuts a { font-size:14px; padding:8px 14px; border:1px solid var(--color-border); border-radius:8px; background:white; }
 </style>
