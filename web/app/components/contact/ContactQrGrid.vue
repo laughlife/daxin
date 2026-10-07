@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { qrChannels } from '~/data/mock/qr'
-const props = withDefaults(defineProps<{ group?: 'tro' | 'labor' | 'all'; kind?: 'all' | 'public' | 'consult' }>(), { group: 'all', kind: 'all' })
+const props = withDefaults(defineProps<{ group?: 'tro' | 'labor' | 'all'; kind?: 'all' | 'public' | 'consult'; zoomable?: boolean }>(), { group: 'all', kind: 'all' })
+const emit = defineEmits<{ zoom: [group: 'tro' | 'labor'] }>()
 const channels = computed(() => qrChannels.filter(item => (props.group === 'all' || item.group === props.group) && (props.kind === 'all' || item.kind === props.kind)))
 const grid = ref<HTMLElement | null>(null)
 const twoLineIds = ref<string[]>([])
@@ -34,7 +35,10 @@ onBeforeUnmount(() => observer?.disconnect())
 <template>
   <div ref="grid" class="contact-qr-grid" :class="{ 'contact-qr-grid--single': channels.length === 1 }">
     <figure v-for="channel in channels" :key="channel.id" :data-qr-id="channel.id">
-      <img :src="channel.qrSrc" :alt="`${channel.name}二维码`" width="160" height="160" loading="lazy">
+      <button v-if="zoomable" type="button" class="contact-qr-grid__zoom" :aria-label="`放大${channel.name}二维码`" @click="emit('zoom', channel.group)">
+        <img :src="channel.qrSrc" :alt="`${channel.name}二维码`" width="160" height="160" loading="lazy">
+      </button>
+      <img v-else :src="channel.qrSrc" :alt="`${channel.name}二维码`" width="160" height="160" loading="lazy">
       <figcaption>
         <strong>{{ channel.name }}</strong>
         <span class="contact-qr-grid__note" :class="{ 'contact-qr-grid__note--two': twoLineIds.includes(channel.id) }">
@@ -48,6 +52,8 @@ onBeforeUnmount(() => observer?.disconnect())
 </template>
 <style scoped>
 .contact-qr-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.contact-qr-grid__zoom { display:block; width:100%; padding:0; border:0; background:transparent; cursor:zoom-in; }
+.contact-qr-grid__zoom:focus-visible { outline:2px solid var(--color-accent); outline-offset:4px; border-radius:8px; }
 figure { margin:0; min-width:0; text-align:center; }
 img { display:block; width:100%; max-width:180px; height:auto; aspect-ratio:1; object-fit:contain; margin:0 auto 8px; background:white; border:8px solid white; border-radius:8px; }
 figcaption { display:flex; flex-direction:column; gap:6px; font-size:12px; }

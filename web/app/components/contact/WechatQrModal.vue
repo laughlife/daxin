@@ -12,6 +12,7 @@ import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
 const props = defineProps<{
   open: boolean
   group: 'tro' | 'labor'
+  kind?: 'consult' | 'public'
 }>()
 
 const emit = defineEmits<{
@@ -95,10 +96,10 @@ onBeforeUnmount(() => {
       class="qr-modal__panel"
       role="dialog"
       aria-modal="true"
-      :aria-label="`${group === 'tro' ? 'TRO' : '劳动法'}扫码咨询`"
+      :aria-label="`${group === 'tro' ? 'TRO' : '劳动法'}${kind === 'public' ? '公众号二维码' : '扫码咨询'}`"
     >
       <header class="qr-modal__head">
-        <h2 class="qr-modal__title">{{ group === 'tro' ? 'TRO' : '劳动法' }}咨询</h2>
+        <h2 class="qr-modal__title">{{ group === 'tro' ? 'TRO' : '劳动法' }}{{ kind === 'public' ? '公众号' : '咨询' }}</h2>
         <button
           ref="closeButtonEl"
           type="button"
@@ -111,7 +112,7 @@ onBeforeUnmount(() => {
       </header>
 
       <div class="qr-modal__body">
-        <ContactQrGrid :group="group" kind="consult" />
+        <ContactQrGrid :group="group" :kind="kind ?? 'consult'" />
       </div>
     </div>
   </div>
