@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { businessCards, businessGroups } from '~/data/mock/businesses'
-import { homeHero, teamIntro } from '~/data/mock/home'
+import { teamIntro } from '~/data/mock/home'
 import { contentArticles } from '~/data/mock/catalog'
 const successArticles = contentArticles.filter(item => item.sectionPath === '/tro/success-cases')
 const lectureArticles = contentArticles.filter(item => item.sectionPath === '/about/lectures')
@@ -46,17 +46,10 @@ useSeoMeta({
 
 <template>
   <div class="about-page">
-    <section class="about-page__hero">
-      <PageContainer size="narrow">
-        <h1 class="about-page__title">关于大信法务</h1>
-        <p class="about-page__slogan">{{ homeHero.title }}</p>
-        <p class="about-page__subtitle">{{ homeHero.subtitle }}</p>
-      </PageContainer>
-    </section>
-
     <PageContainer class="about-page__body"><ContentColumns>
       <section class="about-page__section" aria-label="团队介绍">
-        <SectionHeading title="团队介绍" />
+        <p class="about-page__eyebrow">大信法务团队 · 成立于 2019 年</p>
+        <h1 class="about-page__intro-title">团队介绍</h1>
         <p
           v-for="(paragraph, index) in teamIntro.paragraphs"
           :key="index"
@@ -107,12 +100,12 @@ useSeoMeta({
       <section class="about-page__section" aria-label="成功案例">
         <SectionHeading title="TRO 成功案例" description="展示服务流程与资料整理方式；以下为演示案例，不代表团队实际办案业绩。" />
         <ArticleList :articles="successArticles" />
-        <NuxtLink to="/tro/success-cases">查看全部成功案例 →</NuxtLink>
+        <NuxtLink class="about-page__more" to="/tro/success-cases">查看全部成功案例 →</NuxtLink>
       </section>
       <section class="about-page__section" aria-label="企业宣讲">
         <SectionHeading title="企业宣讲" description="围绕知识产权、劳动用工与合同风控，提供适合跨境企业的培训主题。真实活动照片与记录待提供。" />
         <ArticleList :articles="lectureArticles" />
-        <NuxtLink to="/about/lectures">查看宣讲主题与详情 →</NuxtLink>
+        <NuxtLink class="about-page__more" to="/about/lectures">查看宣讲主题与详情 →</NuxtLink>
       </section>
       <section class="about-page__section about-page__partners" aria-label="我们的小伙伴">
         <PartnerStrip />
@@ -123,42 +116,14 @@ useSeoMeta({
 </template>
 
 <style scoped>
-.about-page__hero {
-  padding-block: var(--space-12);
-  background-color: var(--color-bg-dark);
-  color: var(--color-text-inverse);
-  text-align: center;
-}
-
-.about-page__title {
-  font-size: var(--text-4xl);
-}
-
-.about-page__slogan {
-  margin-top: var(--space-3);
-  font-size: var(--text-xl);
-  color: var(--color-accent);
-  font-weight: 600;
-}
-
-.about-page__subtitle {
-  margin-top: var(--space-3);
-  color: color-mix(in srgb, var(--color-text-inverse) 75%, transparent);
-  font-size: var(--text-sm);
-}
-
-.about-page__body {
-  padding-block: var(--space-10) var(--space-16);
-  background-color: var(--color-bg-page);
-}
-
-.about-page__section {
-  padding-block: var(--space-8);
-}
-
-.about-page__section + .about-page__section {
-  border-top: 1px solid var(--color-border);
-}
+.about-page { background:var(--color-bg-light); }
+.about-page__body { padding-block:var(--space-8) var(--space-16); }
+.about-page__section { padding:28px; border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
+.about-page__section + .about-page__section { margin-top:24px; }
+.about-page__eyebrow { font-size:var(--text-sm); color:var(--color-primary); margin-bottom:10px; }
+.about-page__intro-title { font-size:var(--text-3xl); line-height:1.4; }
+.about-page__more { display:inline-flex; margin-top:20px; color:var(--color-primary); font-weight:600; font-size:var(--text-sm); }
+.about-page__more:hover { text-decoration:underline; }
 
 .about-page__paragraph {
   margin-top: var(--space-4);
@@ -186,15 +151,16 @@ useSeoMeta({
 }
 
 .about-page__business-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
 }
 
 .about-page__business {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 8px;
+  line-height: 1.7;
   padding: var(--space-3) var(--space-4);
   background-color: var(--color-bg-light);
   border-radius: var(--radius-md);
@@ -243,12 +209,9 @@ useSeoMeta({
 }
 
 @media (max-width: 639px) {
-  .about-page__hero {
-    padding-block: var(--space-10);
-  }
-
-  .about-page__title {
-    font-size: var(--text-3xl);
-  }
+  .about-page__body { padding-block:var(--space-5) var(--space-10); }
+  .about-page__section { padding:20px; }
+  .about-page__business-list { grid-template-columns:1fr; }
+  .about-page__intro-title { font-size:var(--text-2xl); }
 }
 </style>
