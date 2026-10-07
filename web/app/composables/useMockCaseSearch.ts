@@ -1,6 +1,7 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { mockCases } from '~/data/mock/cases'
 import type { CaseRecord, CaseType } from '~/types/content'
+import { clampPage, inDateRange } from '~/utils/content'
 
 /**
  * TRO 案件本地 Mock 搜索（不调用 fetch、不伪造后端接口）。
@@ -18,6 +19,8 @@ export interface CaseSearchFilters {
   lawFirm: string
   caseType: CaseType | ''
   state: string
+  dateFrom: string
+  dateTo: string
 }
 
 export interface UseMockCaseSearchOptions {
@@ -42,8 +45,8 @@ function queryToCaseType(value: unknown): CaseType | '' {
 }
 
 function queryToPage(value: unknown): number {
-  const parsed = Number.parseInt(queryToString(value), 10)
-  return Number.isFinite(parsed) && parsed >= 1 ? parsed : 1
+  const parsed = Number(queryToString(value))
+  return Number.isSafeInteger(parsed) && parsed >= 1 ? parsed : 1
 }
 
 function contains(haystack: string, needle: string): boolean {
@@ -61,7 +64,9 @@ export function useMockCaseSearch(options: UseMockCaseSearchOptions = {}) {
     plaintiffBrand: queryToString(route.query.brand),
     lawFirm: queryToString(route.query.firm),
     caseType: queryToCaseType(route.query.type),
-    state: queryToString(route.query.state)
+    state: queryToString(route.query.state),
+    dateFrom: queryToString(route.query.from),
+    dateTo: queryToString(route.query.to)
   })
 
   const page = ref(queryToPage(route.query.page))
@@ -87,7 +92,7 @@ export function useMockCaseSearch(options: UseMockCaseSearchOptions = {}) {
       if (filters.state && record.state !== filters.state) {
         return false
       }
-      return true
+      return inDateRange(record.filedAt, filters.dateFrom, filters.dateTo)
     })
   )
 
@@ -106,7 +111,7 @@ export function useMockCaseSearch(options: UseMockCaseSearchOptions = {}) {
         filters.plaintiffBrand.trim() ||
         filters.lawFirm.trim() ||
         filters.caseType ||
-        filters.state
+        filters.state || filters.dateFrom || filters.dateTo
     )
   )
 
@@ -119,11 +124,11 @@ export function useMockCaseSearch(options: UseMockCaseSearchOptions = {}) {
 
   /** 结果页数变少时收敛当前页 */
   watch(totalPages, value => {
-    if (page.value > value) page.value = value
-  })
+    page.value = clampPage(page.value, value)
+  }, { immediate: true, flush: 'sync' })
 
   function setPage(value: number) {
-    page.value = Math.min(Math.max(1, value), totalPages.value)
+    page.value = clampPage(value, totalPages.value)
   }
 
   function resetFilters() {
@@ -132,6 +137,8 @@ export function useMockCaseSearch(options: UseMockCaseSearchOptions = {}) {
     filters.lawFirm = ''
     filters.caseType = ''
     filters.state = ''
+    filters.dateFrom = ''
+    filters.dateTo = ''
     page.value = 1
   }
 
@@ -146,7 +153,9 @@ export function useMockCaseSearch(options: UseMockCaseSearchOptions = {}) {
     if (filters.plaintiffBrand.trim()) query.brand = filters.plaintiffBrand.trim()
     if (filters.lawFirm.trim()) query.firm = filters.lawFirm.trim()
     if (filters.caseType) query.type = filters.caseType
-    if (filters.state) query.state = filters.state
+    if (filters.state) query.state = filters.state || filters.dateFrom || filters.dateTo
+    if (filters.dateFrom) query.from = filters.dateFrom
+    if (filters.dateTo) query.to = filters.dateTo
     if (page.value > 1) query.page = String(page.value)
     return query
   }
@@ -160,7 +169,7 @@ export function useMockCaseSearch(options: UseMockCaseSearchOptions = {}) {
           void router.replace({ query: buildQuery() })
         }
       },
-      { flush: 'post' }
+      { flush: 'post', immediate: true }
     )
   }
 

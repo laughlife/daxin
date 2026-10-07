@@ -87,7 +87,10 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
           </option>
         </select>
       </div>
+      <div class="case-search-panel__field"><label for="case-search-from">立案日期从</label><input id="case-search-from" v-model="filters.dateFrom" type="date" :max="filters.dateTo || undefined"></div>
+      <div class="case-search-panel__field"><label for="case-search-to">立案日期至</label><input id="case-search-to" v-model="filters.dateTo" type="date" :min="filters.dateFrom || undefined"></div>
     </div>
+    <p v-if="filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo" role="alert">开始日期不能晚于结束日期，请调整日期范围。</p>
     <div class="case-search-panel__actions">
       <p class="case-search-panel__hint">
         输入即时筛选，无需提交；查询状态会同步到 URL，刷新后可恢复。
