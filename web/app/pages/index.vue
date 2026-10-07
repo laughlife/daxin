@@ -98,7 +98,6 @@ useHead({
 
     <BusinessSection />
     <section class="home-content"><PageContainer><ContentColumns><CasePreviewSection /><ArticlePreviewSection /></ContentColumns></PageContainer></section>
-    <PartnerStrip />
 
     <WechatQrModal :group="contactGroup" :open="contactModalOpen" @close="closeContactModal" />
   </div>

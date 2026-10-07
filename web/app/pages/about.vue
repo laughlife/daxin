@@ -235,12 +235,8 @@ useSeoMeta({
   color: var(--color-text-muted);
 }
 
-.about-page__partners :deep(.partner-strip) { padding-block: 0; }
-.about-page__partners :deep(.container) { padding-inline: 0; }
-.about-page__partners :deep(.partner-strip__tags) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 @media (max-width: 767px) {
-  .about-page__partners :deep(.partner-strip__tags),
   .about-page__principles {
     grid-template-columns: 1fr;
   }
