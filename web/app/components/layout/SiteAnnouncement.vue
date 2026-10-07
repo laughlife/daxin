@@ -16,12 +16,6 @@ const defaultChannel = computed(
     ) ?? siteConfig.contact.wechatAccounts[0]
 )
 
-const otherChannels = computed(() =>
-  siteConfig.contact.wechatAccounts.filter(
-    channel => channel.id !== defaultChannel.value?.id
-  )
-)
-
 function onCopy() {
   if (defaultChannel.value) {
     void copy(defaultChannel.value.wechatId)
@@ -34,18 +28,11 @@ function onCopy() {
     <PageContainer class="site-announcement__inner">
       <p class="site-announcement__text">
         <span>{{ siteConfig.announcement.text }}</span>
-        <span v-if="defaultChannel" class="site-announcement__wechat">
+        <button v-if="defaultChannel" type="button" class="site-announcement__wechat" aria-label="复制 TRO 咨询号 kjzx88" @click="onCopy">
           {{ defaultChannel.name }}：
           <strong>{{ defaultChannel.wechatId }}</strong>
-        </span>
-        <span
-          v-for="channel in otherChannels"
-          :key="channel.id"
-          class="site-announcement__wechat"
-        >
-          {{ channel.name }}：
-          <strong>{{ channel.wechatId }}</strong>
-        </span>
+        </button>
+
       </p>
       <div class="site-announcement__action">
         <button

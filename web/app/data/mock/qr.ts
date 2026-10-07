@@ -1,0 +1,7 @@
+/** 原图来自需求 PDF 第 8 页（TRO）、第 9 页（劳动法），按图下标签逐一对应。 */
+export const qrChannels = [
+  { id: 'tro-public', group: 'tro', kind: 'public', name: 'TRO 公众号', qrSrc: '/images/qr/tro-public.png', wechatId: '' },
+  { id: 'tro-consult', group: 'tro', kind: 'consult', name: 'TRO 咨询号', qrSrc: '/images/qr/tro-consult.png', wechatId: 'kjzx88' },
+  { id: 'labor-public', group: 'labor', kind: 'public', name: '劳动法公众号', qrSrc: '/images/qr/labor-public.png', wechatId: '' },
+  { id: 'labor-consult', group: 'labor', kind: 'consult', name: '劳动法咨询号', qrSrc: '/images/qr/labor-consult.png', wechatId: 'chen_6506' }
+] as const

@@ -22,7 +22,8 @@ async function copyWechat(channelId: string, wechatId: string) {
       <div class="site-footer__brand">
         <span class="site-footer__logo" aria-hidden="true">{{ siteConfig.logo.text }}</span>
         <p class="site-footer__name">{{ siteConfig.name }}</p>
-        <p class="site-footer__subtitle">{{ siteConfig.subtitle }}</p>
+        <p class="site-footer__subtitle">大信法务团队深耕跨境电商与国际物流法律服务，覆盖海运、空运、TRO 知识产权、用工劳动合规及合同风控。</p>
+        <ContactQrGrid kind="public" />
         <BaseButton
           :to="siteConfig.cta.to"
           variant="secondary"

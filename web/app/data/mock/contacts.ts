@@ -15,7 +15,7 @@ export const wechatChannels: ContactChannel[] = [
     name: 'TRO 咨询号',
     wechatId: 'kjzx88',
     purpose: 'TRO 案件、侵权预警与跨境知识产权咨询',
-    qrSrc: null,
+    qrSrc: '/images/qr/tro-consult.png',
     available: true
   },
   {
@@ -23,7 +23,7 @@ export const wechatChannels: ContactChannel[] = [
     name: '劳动法咨询号',
     wechatId: 'chen_6506',
     purpose: '劳动争议与企业用工咨询',
-    qrSrc: null,
+    qrSrc: '/images/qr/labor-consult.png',
     available: true
   }
 ]

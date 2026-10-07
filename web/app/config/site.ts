@@ -13,9 +13,9 @@ import { CONTACT_DATA_NOTICE, contactInfo, wechatChannels } from '../data/mock/c
  */
 export const siteConfig: SiteConfig = {
   name: '大信法务',
-  subtitle: 'TODO：正式副标题待确认',
+  subtitle: '跨境电商与国际物流法律服务',
   description:
-    'TODO：正式网站描述待确认。当前为占位描述，大信法务官网站点壳层与设计系统预览。',
+    '大信法务团队，为跨境电商与国际物流企业提供 TRO、知识产权、劳动合规与争议解决服务。',
 
   logo: {
     src: null, // TODO：正式 Logo 尚未提供
@@ -33,7 +33,7 @@ export const siteConfig: SiteConfig = {
   },
 
   announcement: {
-    text: 'TRO 案件与劳动争议咨询已开通专属微信号，添加后可获得免费初步评估。',
+    text: '联系我们可领取TRO侵权大礼包',
     copyButtonLabel: '复制 TRO 微信号',
     copiedLabel: '微信号已复制',
     failedLabel: '复制失败，请手动复制'

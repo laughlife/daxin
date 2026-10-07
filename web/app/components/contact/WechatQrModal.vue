@@ -121,47 +121,7 @@ onBeforeUnmount(() => {
       <div class="qr-modal__body">
         <p class="qr-modal__notice">{{ siteConfig.contact.notice }}</p>
 
-        <ul class="qr-modal__channels">
-          <li
-            v-for="channel in siteConfig.contact.wechatAccounts"
-            :key="channel.id"
-            class="qr-modal__channel"
-          >
-            <span class="qr-modal__qr">
-              <img
-                v-if="channel.qrSrc"
-                :src="channel.qrSrc"
-                :alt="`${channel.name}微信二维码`"
-              >
-              <span v-else class="qr-modal__qr-placeholder" role="img" :aria-label="`${channel.name}二维码待提供占位`">
-                二维码<br>待提供
-              </span>
-            </span>
-            <span class="qr-modal__channel-info">
-              <span class="qr-modal__channel-name">{{ channel.name }}</span>
-              <span class="qr-modal__channel-id">
-                微信号：<strong>{{ channel.wechatId }}</strong>
-              </span>
-              <span class="qr-modal__channel-purpose">{{ channel.purpose }}</span>
-              <span class="qr-modal__channel-actions">
-                <button
-                  type="button"
-                  class="qr-modal__copy"
-                  @click="copyWechat(channel.id, channel.wechatId)"
-                >
-                  {{ copied && copiedChannelId === channel.id ? '已复制' : '复制微信号' }}
-                </button>
-                <span
-                  v-if="failed && copiedChannelId === null"
-                  class="qr-modal__copy-feedback"
-                  role="status"
-                >
-                  复制失败，请手动复制
-                </span>
-              </span>
-            </span>
-          </li>
-        </ul>
+        <ContactQrGrid />
 
         <ul class="qr-modal__contact">
           <li>电话：{{ siteConfig.contact.phone }}</li>
