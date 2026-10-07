@@ -100,8 +100,6 @@ useHead({
     <section class="home-content"><PageContainer><ContentColumns><CasePreviewSection /><ArticlePreviewSection /></ContentColumns></PageContainer></section>
     <PartnerStrip />
 
-    <ConsultationCta @open-contact="openContactModal" />
-
     <WechatQrModal :group="contactGroup" :open="contactModalOpen" @close="closeContactModal" />
   </div>
 </template>
