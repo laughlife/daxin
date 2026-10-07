@@ -58,18 +58,21 @@ export function useMockCaseSearch(options: UseMockCaseSearchOptions = {}) {
 
   const route = useRoute()
   const router = useRouter()
+  // 静态预渲染不含 URL query：首次水合保持同一 DOM，挂载后再应用查询条件。
+  let ready = !(import.meta.client && useNuxtApp().payload.prerenderedAt)
+  const initialQuery: typeof route.query = ready ? route.query : {}
 
   const filters = reactive<CaseSearchFilters>({
-    caseNumber: queryToString(route.query.cn),
-    plaintiffBrand: queryToString(route.query.brand),
-    lawFirm: queryToString(route.query.firm),
-    caseType: queryToCaseType(route.query.type),
-    state: queryToString(route.query.state),
-    dateFrom: queryToString(route.query.from),
-    dateTo: queryToString(route.query.to)
+    caseNumber: queryToString(initialQuery.cn),
+    plaintiffBrand: queryToString(initialQuery.brand),
+    lawFirm: queryToString(initialQuery.firm),
+    caseType: queryToCaseType(initialQuery.type),
+    state: queryToString(initialQuery.state),
+    dateFrom: queryToString(initialQuery.from),
+    dateTo: queryToString(initialQuery.to)
   })
 
-  const page = ref(queryToPage(route.query.page))
+  const page = ref(queryToPage(initialQuery.page))
 
   /** 筛选结果（不含分页） */
   const results = computed<CaseRecord[]>(() =>
@@ -162,7 +165,7 @@ export function useMockCaseSearch(options: UseMockCaseSearchOptions = {}) {
     return query
   }
 
-  watch(() => route.query, query => {
+  function readQuery(query: typeof route.query) {
     readingQuery = true
     filters.caseNumber = queryToString(query.cn)
     filters.plaintiffBrand = queryToString(query.brand)
@@ -173,23 +176,22 @@ export function useMockCaseSearch(options: UseMockCaseSearchOptions = {}) {
     filters.dateTo = queryToString(query.to)
     page.value = clampPage(queryToPage(query.page), totalPages.value)
     readingQuery = false
-  }, { flush: 'sync' })
-
-  // 查询状态同步到 URL（仅客户端，router.replace 避免污染历史记录）
-  if (syncQuery) {
-    watch(
-      [filters, page],
-      () => {
-        if (import.meta.client) {
-          const query = buildQuery()
-          if (Object.keys(query).length !== Object.keys(route.query).length || Object.entries(query).some(([key, value]) => route.query[key] !== value)) {
-            void router.replace({ query })
-          }
-        }
-      },
-      { flush: 'post', immediate: true }
-    )
   }
+  watch(() => route.query, query => { if (ready) readQuery(query) }, { flush: 'sync' })
+
+  function syncUrl() {
+    if (!syncQuery || !import.meta.client || !ready) return
+    const query = buildQuery()
+    if (Object.keys(query).length !== Object.keys(route.query).length || Object.entries(query).some(([key, value]) => route.query[key] !== value)) {
+      void router.replace({ query })
+    }
+  }
+  if (syncQuery) watch([filters, page], syncUrl, { flush: 'post', immediate: true })
+  onMounted(() => {
+    ready = true
+    readQuery(route.query)
+    syncUrl()
+  })
 
   return {
     filters,

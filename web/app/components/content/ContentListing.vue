@@ -4,16 +4,25 @@ import type { ContentSection } from '~/data/mock/catalog'
 import { clampPage, inDateRange } from '~/utils/content'
 const props = defineProps<{ section: ContentSection }>()
 const route = useRoute()
-const keyword = ref(typeof route.query.q === 'string' ? route.query.q : '')
-const from = ref(typeof route.query.from === 'string' ? route.query.from : '')
-const to = ref(typeof route.query.to === 'string' ? route.query.to : '')
-const rawPage = ref(Number(route.query.page) || 1)
+const initialQuery: typeof route.query = import.meta.client && useNuxtApp().payload.prerenderedAt ? {} : route.query
+const keyword = ref(typeof initialQuery.q === 'string' ? initialQuery.q : '')
+const from = ref(typeof initialQuery.from === 'string' ? initialQuery.from : '')
+const to = ref(typeof initialQuery.to === 'string' ? initialQuery.to : '')
+const rawPage = ref(Number(initialQuery.page) || 1)
 const siblings = computed(() => contentSections.filter(item => item.path.split('/')[1] === props.section.path.split('/')[1]))
 const matching = computed(() => contentArticles.filter(item => item.sectionPath === props.section.path && item.keywords.toLowerCase().includes(keyword.value.trim().toLowerCase()) && inDateRange(item.publishedAt, from.value, to.value)).sort((a,b) => b.publishedAt.localeCompare(a.publishedAt)))
 const pages = computed(() => Math.max(1, Math.ceil(matching.value.length / 6)))
 const page = computed(() => clampPage(rawPage.value, pages.value))
 const visible = computed(() => matching.value.slice((page.value-1)*6, page.value*6))
-watch([keyword, from, to], () => { rawPage.value = 1 })
+watch([keyword, from, to], () => { rawPage.value = 1 }, { flush:'sync' })
+function readQuery() {
+  keyword.value = typeof route.query.q === 'string' ? route.query.q : ''
+  from.value = typeof route.query.from === 'string' ? route.query.from : ''
+  to.value = typeof route.query.to === 'string' ? route.query.to : ''
+  rawPage.value = Number(route.query.page) || 1
+}
+onMounted(readQuery)
+watch(() => route.query, readQuery)
 function reset() { keyword.value = ''; from.value = ''; to.value = ''; rawPage.value = 1 }
 </script>
 <template>
