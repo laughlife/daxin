@@ -31,6 +31,24 @@ const caseSeeds: CaseSeed[] = [
     id: 'case-26-03', caseNumber: 'MOCK-26-cv-9103', filedAt: '2026-10-05', lawFirm: '演示律所 Gamma', plaintiffBrand: 'IronPaw Tools（演示）', state: '纽约州', caseType: 'patent', status: '沟通中', summary: '新增静态演示案件：展示专利争议信息确认与相关文件的沟通流程。', tags: ['静态演示', '专利'], isRecent: false
   },
   {
+    id: 'case-26-04', caseNumber: 'MOCK-26-cv-9104', filedAt: '2026-10-07', lawFirm: '演示律所 Alpha', plaintiffBrand: 'LumiPet（演示）', state: '得克萨斯州', caseType: 'trademark', status: '初步评估中', summary: '近期静态演示案件：展示通知核对、证据整理与品牌历史案件关联，不对应真实诉讼。', tags: ['静态演示', '资料核对'], isRecent: false
+  },
+  {
+    id: 'case-26-05', caseNumber: 'MOCK-26-cv-9105', filedAt: '2026-10-07', lawFirm: '演示律所 Delta', plaintiffBrand: 'VerdeKitchen（演示）', state: '佛罗里达州', caseType: 'copyright', status: '初步评估中', summary: '近期静态演示案件：展示通知核对、证据整理与品牌历史案件关联，不对应真实诉讼。', tags: ['静态演示', '资料核对'], isRecent: false
+  },
+  {
+    id: 'case-26-06', caseNumber: 'MOCK-26-cv-9106', filedAt: '2026-10-06', lawFirm: '演示律所 Beta', plaintiffBrand: 'NorthGale Sports（演示）', state: '伊利诺伊州', caseType: 'trademark', status: '初步评估中', summary: '近期静态演示案件：展示通知核对、证据整理与品牌历史案件关联，不对应真实诉讼。', tags: ['静态演示', '资料核对'], isRecent: false
+  },
+  {
+    id: 'case-26-07', caseNumber: 'MOCK-26-cv-9107', filedAt: '2026-10-06', lawFirm: '演示律所 Epsilon', plaintiffBrand: 'CopperBird Lighting（演示）', state: '加利福尼亚州', caseType: 'patent', status: '初步评估中', summary: '近期静态演示案件：展示通知核对、证据整理与品牌历史案件关联，不对应真实诉讼。', tags: ['静态演示', '资料核对'], isRecent: false
+  },
+  {
+    id: 'case-26-08', caseNumber: 'MOCK-26-cv-9108', filedAt: '2026-10-05', lawFirm: '演示律所 Gamma', plaintiffBrand: 'MistyGarden（演示）', state: '华盛顿州', caseType: 'copyright', status: '初步评估中', summary: '近期静态演示案件：展示通知核对、证据整理与品牌历史案件关联，不对应真实诉讼。', tags: ['静态演示', '资料核对'], isRecent: false
+  },
+  {
+    id: 'case-26-09', caseNumber: 'MOCK-26-cv-9109', filedAt: '2026-10-05', lawFirm: '演示律所 Alpha', plaintiffBrand: 'SteelHorn Auto（演示）', state: '得克萨斯州', caseType: 'trademark', status: '初步评估中', summary: '近期静态演示案件：展示通知核对、证据整理与品牌历史案件关联，不对应真实诉讼。', tags: ['静态演示', '资料核对'], isRecent: false
+  },
+  {
     id: 'case-01',
     caseNumber: 'MOCK-25-cv-9001',
     filedAt: '2025-09-28',
