@@ -1,7 +1,7 @@
 <script setup lang="ts">
 withDefaults(defineProps<{ group?: 'tro' | 'labor' | 'all' }>(), { group: 'all' })
 </script>
-<template><div class="content-columns"><main class="content-columns__main"><slot /></main><ContentSidebar :group="group" /></div></template>
+<template><div class="content-columns"><div class="content-columns__main"><slot /></div><ContentSidebar :group="group" /></div></template>
 <style scoped>
 .content-columns { display:grid; grid-template-columns:minmax(0,1fr) 288px; gap:28px; align-items:start; }
 .content-columns__main { min-width:0; }

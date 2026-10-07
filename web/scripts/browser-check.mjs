@@ -1,5 +1,6 @@
 /** 使用已有 Playwright 运行；PLAYWRIGHT_MODULE 可指向 bundled module 的 file:// URL。 */
 import assert from 'node:assert/strict'
+import { isWithinDays } from '../app/utils/content.ts'
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const base = process.env.SMOKE_BASE_URL || 'http://127.0.0.1:3000'
 const browser = await chromium.launch({ headless:true, ...(process.env.BROWSER_EXECUTABLE ? { executablePath:process.env.BROWSER_EXECUTABLE } : {}) })
@@ -15,7 +16,7 @@ try {
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
   await page.getByRole('button', { name:'复制 TRO 咨询号 kjzx88', exact:true }).click()
   check('公告一键复制精确微信号', await page.evaluate(() => navigator.clipboard.readText()) === 'kjzx88')
-  check('首页日期筛选展示近期记录', await page.locator('.case-preview-card').count() === 3)
+  check('首页日期筛选展示近期记录', await page.locator('.case-preview-card').count() === ['2026-10-07','2026-10-06','2026-10-05'].filter(date => isWithinDays(date)).length)
   check('近期区域没有 2025 年旧案件', !(await page.locator('.case-preview-section').innerText()).includes('2025-'))
   await page.getByRole('button', { name:'联系我们免费评估案件', exact:true }).click()
   check('咨询弹窗显示四类二维码', await page.getByRole('dialog').locator('[data-qr-id]').count() === 4)
@@ -34,6 +35,15 @@ try {
   await page.locator('#case-search-to').fill('2026-10-07')
   await page.waitForURL('**to=2026-10-07*')
   check('案件日期范围筛选', await page.locator('tbody tr').count() === 3)
+  await page.evaluate(() => {
+    const node = document.querySelector('#case-search-from')
+    const router = node.__vueParentComponent.appContext.config.globalProperties.$router
+    return router.push('/tro/cases?from=2026-10-07&to=2026-10-07')
+  })
+  await page.waitForFunction(() => document.querySelector('#case-search-from').value === '2026-10-07')
+  check('同路径查询导航同步筛选', await page.locator('tbody tr').count() === 1)
+  await page.locator('#case-search-from').fill('2026-10-05')
+  await page.waitForURL('**from=2026-10-05*')
   await page.reload({ waitUntil:'networkidle' })
   check('刷新保留日期筛选', await page.locator('#case-search-from').inputValue() === '2026-10-05' && await page.locator('tbody tr').count() === 3)
   await page.locator('tbody .case-table__brand').first().click()

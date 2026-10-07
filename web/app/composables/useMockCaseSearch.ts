@@ -117,10 +117,12 @@ export function useMockCaseSearch(options: UseMockCaseSearchOptions = {}) {
 
   const hasResults = computed(() => total.value > 0)
 
+  let readingQuery = false
+
   /** 筛选条件变化时回到第一页 */
   watch(filters, () => {
-    page.value = 1
-  })
+    if (!readingQuery) page.value = 1
+  }, { flush: 'sync' })
 
   /** 结果页数变少时收敛当前页 */
   watch(totalPages, value => {
@@ -160,13 +162,29 @@ export function useMockCaseSearch(options: UseMockCaseSearchOptions = {}) {
     return query
   }
 
+  watch(() => route.query, query => {
+    readingQuery = true
+    filters.caseNumber = queryToString(query.cn)
+    filters.plaintiffBrand = queryToString(query.brand)
+    filters.lawFirm = queryToString(query.firm)
+    filters.caseType = queryToCaseType(query.type)
+    filters.state = queryToString(query.state)
+    filters.dateFrom = queryToString(query.from)
+    filters.dateTo = queryToString(query.to)
+    page.value = clampPage(queryToPage(query.page), totalPages.value)
+    readingQuery = false
+  }, { flush: 'sync' })
+
   // 查询状态同步到 URL（仅客户端，router.replace 避免污染历史记录）
   if (syncQuery) {
     watch(
       [filters, page],
       () => {
         if (import.meta.client) {
-          void router.replace({ query: buildQuery() })
+          const query = buildQuery()
+          if (Object.keys(query).length !== Object.keys(route.query).length || Object.entries(query).some(([key, value]) => route.query[key] !== value)) {
+            void router.replace({ query })
+          }
         }
       },
       { flush: 'post', immediate: true }
