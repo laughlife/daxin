@@ -74,14 +74,14 @@ const emit = defineEmits<{
 }
 
 .home-hero::before {
-  background: radial-gradient(ellipse at 75% 45%, #b6263655, transparent 55%),
-    radial-gradient(ellipse at 20% 70%, #b7964933, transparent 45%);
+  background: radial-gradient(ellipse at 75% 45%, color-mix(in srgb, var(--color-primary) 34%, transparent), transparent 55%),
+    radial-gradient(ellipse at 20% 70%, color-mix(in srgb, var(--color-accent) 20%, transparent), transparent 45%);
   animation: hero-atmosphere 12s ease-in-out infinite alternate;
 }
 
 .home-hero::after {
-  background-image: linear-gradient(#ffffff08 1px, transparent 1px),
-    linear-gradient(90deg, #ffffff08 1px, transparent 1px);
+  background-image: linear-gradient(color-mix(in srgb, var(--color-text-inverse) 3%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-text-inverse) 3%, transparent) 1px, transparent 1px);
   background-size: 64px 64px;
   animation: hero-grid 18s linear infinite;
   mask-image: linear-gradient(90deg, transparent, black);
