@@ -24,21 +24,24 @@ import { siteConfig } from '~/config/site'
           :key="group.title"
           class="site-footer__nav-group"
         >
+          <h3 class="site-footer__section-title">{{ group.title }}</h3>
           <ul>
             <li v-for="item in group.items" :key="item.label">
-              {{ item.label }}
+              <span v-if="item.label === '商标/版权/专利申请注册'">商标/版权/专利<br>申请注册</span>
+              <span v-else>{{ item.label }}</span>
             </li>
           </ul>
         </div>
       </section>
 
       <div class="site-footer__contact" aria-label="联系我们">
-        <ul class="site-footer__contact-list">
-          <li>地址：{{ siteConfig.contact.address }}</li>
-          <li>电话：{{ siteConfig.contact.phone }}</li>
-          <li>微信：{{ siteConfig.contact.wechatAccounts.find(channel => channel.id === 'labor')?.wechatId }}</li>
-          <li>邮箱：{{ siteConfig.contact.email }}</li>
-        </ul>
+        <h3 class="site-footer__section-title">联系我们</h3>
+        <dl class="site-footer__contact-list">
+          <div class="site-footer__address"><dt>地址</dt><dd>{{ siteConfig.contact.address }}</dd></div>
+          <div><dt>电话</dt><dd><a :href="`tel:${siteConfig.contact.phone}`">{{ siteConfig.contact.phone }}</a></dd></div>
+          <div><dt>微信</dt><dd>{{ siteConfig.contact.wechatAccounts.find(channel => channel.id === 'labor')?.wechatId }}</dd></div>
+          <div><dt>邮箱</dt><dd><a :href="`mailto:${siteConfig.contact.email}`">{{ siteConfig.contact.email }}</a></dd></div>
+        </dl>
       </div>
     </PageContainer>
 
@@ -70,14 +73,20 @@ import { siteConfig } from '~/config/site'
 .site-footer__subtitle { max-width:760px; line-height:var(--leading-relaxed); color:rgb(255 255 255 / 65%); }
 .site-footer__nav { display:flex; flex-wrap:wrap; justify-content:center; gap:var(--space-5) var(--space-8); padding-block:var(--space-6); border-block:1px solid rgb(255 255 255 / 15%); }
 .site-footer__nav-group { display:flex; flex-direction:column; align-items:center; gap:var(--space-4); width:100%; }
-.site-footer__nav-title { font-size:var(--text-base); color:var(--color-text-inverse); flex-shrink:0; }
-.site-footer__nav ul { display:flex; flex-wrap:wrap; justify-content:center; gap:var(--space-3) var(--space-6); max-width:920px; color:rgb(255 255 255 / 65%); list-style:none; padding:0; }
-.site-footer__contact { text-align:center; }
-.site-footer__contact > h3 { margin-bottom:var(--space-6); font-size:var(--text-xl); }
+.site-footer__section-title { font-size:var(--text-lg); font-weight:600; color:var(--color-text-inverse); text-align:center; letter-spacing:0.08em; }
+.site-footer__section-title::after { content:''; display:block; width:28px; height:2px; margin:12px auto 0; background:var(--color-accent); }
+.site-footer__nav ul { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; width:100%; max-width:900px; color:rgb(255 255 255 / 80%); list-style:none; padding:0; }
+.site-footer__nav li { display:flex; justify-content:center; align-items:center; min-height:64px; padding:10px 16px; text-align:center; line-height:1.65; border:1px solid rgb(255 255 255 / 12%); border-radius:var(--radius-md); background:rgb(255 255 255 / 3%); }
+.site-footer__contact > h3 { margin-bottom:var(--space-6); }
 .site-footer__channels { grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; max-width:440px; margin:var(--space-4) auto 0; gap:var(--space-6); }
 .site-footer__channels :deep(img) { width:100%; max-width:180px; }
-.site-footer__contact-list { display:flex; flex-direction:column; align-items:center; gap:var(--space-3); color:rgb(255 255 255 / 65%); list-style:none; padding:0; overflow-wrap:anywhere; }
-.site-footer__contact-list li { max-width:100%; line-height:var(--leading-relaxed); }
+.site-footer__contact-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; max-width:900px; margin:0 auto; }
+.site-footer__contact-list > div { min-width:0; padding:16px 20px; border:1px solid rgb(255 255 255 / 12%); border-radius:var(--radius-md); background:rgb(255 255 255 / 3%); }
+.site-footer__contact-list dt { margin-bottom:6px; font-size:var(--text-xs); color:rgb(255 255 255 / 50%); }
+.site-footer__contact-list dd { margin:0; color:rgb(255 255 255 / 85%); line-height:1.7; overflow-wrap:anywhere; }
+.site-footer__contact-list a { color:inherit; }
+.site-footer__contact-list a:hover { color:var(--color-accent); }
+.site-footer__address { grid-column:1 / -1; }
 .site-footer__notice { margin-top:var(--space-3); font-size:var(--text-xs); color:rgb(255 255 255 / 45%); }
 .site-footer__link { color:rgb(255 255 255 / 65%); }
 .site-footer__link:hover { color:var(--color-text-inverse); }
@@ -88,7 +97,10 @@ import { siteConfig } from '~/config/site'
   .site-footer__channels { grid-template-columns:repeat(2,minmax(0,1fr)); max-width:440px; }
   .site-footer__nav { justify-content:center; }
   .site-footer__nav-group { width:100%; flex-direction:column; gap:var(--space-2); }
-  .site-footer__contact-list { flex-direction:column; overflow-wrap:anywhere; }
+  .site-footer__contact-list { grid-template-columns:1fr; }
+  .site-footer__nav ul { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .site-footer__nav li:last-child { grid-column:1 / -1; }
+  .site-footer__nav li { padding-inline:10px; }
   .site-footer__bottom-inner { flex-direction:column; text-align:center; }
   .site-footer__legal, .site-footer__policies { justify-content:center; }
 }
