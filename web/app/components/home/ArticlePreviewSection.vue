@@ -1,30 +1,10 @@
 <script setup lang="ts">
-import { findArticlesByCategory } from '~/data/mock/articles'
-
-/**
- * 首页“案例分享”区域：TRO 案件进展 + 劳动法案例分享。
- * 内容为 Mock 演示数据（标题带【演示】前缀），非真实案件。
- * “近 3 天”等时效信息来自固定 Mock 字段，不依赖系统时间。
- */
-const troArticles = findArticlesByCategory('TRO 案件进展').slice(0, 2)
-const laborArticles = findArticlesByCategory('劳动法案例').slice(0, 2)
-
-const columns = [
-  {
-    id: 'tro',
-    title: 'TRO 最新案件与进展分享',
-    moreLabel: '更多 TRO 文章',
-    moreHref: '/tro/news',
-    articles: troArticles
-  },
-  {
-    id: 'labor',
-    title: '劳动法案例分享',
-    moreLabel: '更多劳动法文章',
-    moreHref: '/faq/labor',
-    articles: laborArticles
-  }
-]
+import { contentArticles } from '~/data/mock/catalog'
+const { today, isRecent } = useContentDate()
+const columns = computed(() => [
+  { id: 'tro', title: 'TRO 案例预警', moreLabel: '更多 TRO 文章', moreHref: '/tro/alerts', articles: contentArticles.filter(item => item.sectionPath === '/tro/alerts' && isRecent(item.publishedAt)).sort((a,b) => b.publishedAt.localeCompare(a.publishedAt)).slice(0,3) },
+  { id: 'labor', title: '劳动法案例分享', moreLabel: '更多劳动法文章', moreHref: '/domestic/labor-disputes', articles: contentArticles.filter(item => item.sectionPath === '/domestic/labor-disputes' && isRecent(item.publishedAt)).sort((a,b) => b.publishedAt.localeCompare(a.publishedAt)).slice(0,3) }
+])
 </script>
 
 <template>
@@ -33,7 +13,7 @@ const columns = [
       <SectionHeading
         align="center"
         title="TRO 与劳动法案例分享"
-        description="以下为演示内容（Mock 数据），不对应真实案件或真实法律意见，仅用于验证页面框架。"
+        :description="`按北京时间 ${today} 及前两天筛选，以下为静态演示内容。`"
       />
       <div class="article-preview-section__columns">
         <div
@@ -48,6 +28,7 @@ const columns = [
               <span aria-hidden="true">→</span>
             </NuxtLink>
           </div>
+          <p v-if="!column.articles.length" role="status">近三天暂无文章，点击更多文章查看历史内容。</p>
           <ul class="article-preview-section__list">
             <li v-for="article in column.articles" :key="article.id">
               <article class="article-preview-card">
@@ -83,7 +64,7 @@ const columns = [
 
 .article-preview-section__columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr;
   gap: var(--space-8);
   margin-top: var(--space-8);
 }

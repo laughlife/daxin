@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { isRecent } = useContentDate()
 import { entitySlug } from '~/utils/content'
 import { CASE_TYPE_LABELS } from '~/data/mock/cases'
 import type { CaseRecord } from '~/types/content'
@@ -20,7 +21,7 @@ const emit = defineEmits<{
   <article class="case-card">
     <div class="case-card__head">
       <span class="case-card__type">{{ CASE_TYPE_LABELS[record.caseType] }}</span>
-      <span v-if="record.isRecent" class="case-card__recent">近 3 天更新</span>
+      <span v-if="isRecent(record.filedAt)" class="case-card__recent">近 3 天更新</span>
       <span class="case-card__status">{{ record.status }}</span>
     </div>
     <h3 class="case-card__brand">

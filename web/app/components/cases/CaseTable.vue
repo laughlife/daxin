@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { isRecent } = useContentDate()
 import { entitySlug } from '~/utils/content'
 import { CASE_TYPE_LABELS } from '~/data/mock/cases'
 import type { CaseRecord } from '~/types/content'
@@ -38,7 +39,7 @@ const emit = defineEmits<{
         <tr v-for="record in records" :key="record.id">
           <td class="case-table__number">
             {{ record.caseNumber }}
-            <span v-if="record.isRecent" class="case-table__recent">近 3 天</span>
+            <span v-if="isRecent(record.filedAt)" class="case-table__recent">近 3 天</span>
           </td>
           <td>
             <NuxtLink

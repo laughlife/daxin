@@ -5,7 +5,7 @@ import type { CaseRecord, CaseType } from '../../types/content'
  *
  * 重要：以下全部为演示数据——案件号、品牌、律所均为虚构占位，
  * 不对应任何真实法律案件；正式数据未来通过 Laravel API 替换本仓库层。
- * “近 3 天”使用固定 isRecent 标记，不依赖系统时间，避免 SSR 水合不一致。
+ * 近期标签由 useContentDate 按北京时间立案日期计算，保留历史日期，不滚动改写。
  */
 
 /** 案件类型展示映射 */
@@ -21,6 +21,15 @@ export const MOCK_DATA_NOTICE = '当前为本地 Mock 数据，尚未连接真�
 type CaseSeed = Omit<CaseRecord, 'slug' | 'category'>
 
 const caseSeeds: CaseSeed[] = [
+  {
+    id: 'case-26-01', caseNumber: 'MOCK-26-cv-9101', filedAt: '2026-10-07', lawFirm: '演示律所 Alpha', plaintiffBrand: 'SnowFox Outdoor（演示）', state: '伊利诺伊州', caseType: 'trademark', status: '资料整理中', summary: '新增静态演示案件：展示近期商标通知的信息整理及咨询流程，不对应真实案件。', tags: ['静态演示', '商标'], isRecent: false
+  },
+  {
+    id: 'case-26-02', caseNumber: 'MOCK-26-cv-9102', filedAt: '2026-10-06', lawFirm: '演示律所 Beta', plaintiffBrand: 'AuroraLeaf Home（演示）', state: '加利福尼亚州', caseType: 'copyright', status: '初步评估中', summary: '新增静态演示案件：展示近期版权资料核对、销售记录整理及关联品牌档案。', tags: ['静态演示', '版权'], isRecent: false
+  },
+  {
+    id: 'case-26-03', caseNumber: 'MOCK-26-cv-9103', filedAt: '2026-10-05', lawFirm: '演示律所 Gamma', plaintiffBrand: 'IronPaw Tools（演示）', state: '纽约州', caseType: 'patent', status: '沟通中', summary: '新增静态演示案件：展示专利争议信息确认与相关文件的沟通流程。', tags: ['静态演示', '专利'], isRecent: false
+  },
   {
     id: 'case-01',
     caseNumber: 'MOCK-25-cv-9001',

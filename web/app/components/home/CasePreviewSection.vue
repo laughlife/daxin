@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { MOCK_DATA_NOTICE, mockCases } from '~/data/mock/cases'
+const { today, isRecent } = useContentDate()
 
 /**
  * 首页“TRO 最新案件与进展”区域：
  * 取 Mock 数据中 isRecent 标记的最新案件展示（固定标记，避免依赖系统时间）。
  */
 const recentCases = computed(() =>
-  mockCases.filter(item => item.isRecent).slice(0, 3)
+  mockCases.filter(item => isRecent(item.filedAt)).sort((a,b) => b.filedAt.localeCompare(a.filedAt)).slice(0, 6)
 )
 </script>
 
@@ -16,8 +17,8 @@ const recentCases = computed(() =>
     <PageContainer>
       <div class="case-preview-section__head">
         <SectionHeading
-          title="TRO 最新案件与进展"
-          description="最新 TRO 案件动态演示。"
+          title="近三天 TRO 案件与进展"
+          :description="`北京时间 ${today} 及前两天的立案动态`"
         />
         <NuxtLink to="/tro/cases" class="case-preview-section__all">
           进入 TRO 案件查询
@@ -27,6 +28,7 @@ const recentCases = computed(() =>
       <p class="case-preview-section__notice" role="note">
         {{ MOCK_DATA_NOTICE }}以下案件号、品牌与律所均为虚构演示数据。
       </p>
+      <p v-if="!recentCases.length" class="case-preview-section__notice" role="status">近三天暂无案件记录，可进入案件查询查看历史资料。</p>
       <div class="case-preview-section__grid">
         <CasePreviewCard
           v-for="record in recentCases"

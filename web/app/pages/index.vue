@@ -95,8 +95,7 @@ useHead({
     </section>
 
     <BusinessSection />
-    <CasePreviewSection />
-    <ArticlePreviewSection />
+    <section class="home-content"><PageContainer><ContentColumns><CasePreviewSection /><ArticlePreviewSection /></ContentColumns></PageContainer></section>
     <PartnerStrip />
 
     <ConsultationCta @open-contact="openContactModal" />
@@ -152,4 +151,11 @@ useHead({
     padding-block: var(--space-10);
   }
 }
+</style>
+
+<style scoped>
+.home-content { padding-block:48px; background:var(--color-bg-light); }
+.home-content :deep(.case-preview-section), .home-content :deep(.article-preview-section) { padding:0 0 28px; background:transparent; }
+.home-content :deep(.case-preview-section > .page-container), .home-content :deep(.article-preview-section > .page-container) { padding:0; }
+.home-content :deep(.case-preview-section__grid) { grid-template-columns:1fr; }
 </style>

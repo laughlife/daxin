@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { isRecent } = useContentDate()
 import { entitySlug } from '~/utils/content'
 import { CASE_TYPE_LABELS, MOCK_DATA_NOTICE, findMockCaseById, mockCases } from '~/data/mock/cases'
 
@@ -46,7 +47,7 @@ useSeoMeta({
       <header class="case-detail__head">
         <div class="case-detail__badges">
           <span class="case-detail__type">{{ CASE_TYPE_LABELS[record.caseType] }}</span>
-          <span v-if="record.isRecent" class="case-detail__recent">近 3 天更新</span>
+          <span v-if="isRecent(record.filedAt)" class="case-detail__recent">近 3 天更新</span>
           <span class="case-detail__status">{{ record.status }}</span>
         </div>
         <h1 class="case-detail__title">{{ record.plaintiffBrand }}</h1>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+const { isRecent } = useContentDate()
 import type { CaseRecord } from '~/types/content'
 import { CASE_TYPE_LABELS } from '~/data/mock/cases'
 
@@ -18,7 +19,7 @@ defineProps<{
       <span class="case-preview-card__type">
         {{ CASE_TYPE_LABELS[record.caseType] }}
       </span>
-      <span v-if="record.isRecent" class="case-preview-card__recent">近 3 天更新</span>
+      <span v-if="isRecent(record.filedAt)" class="case-preview-card__recent">近 3 天更新</span>
     </div>
     <h3 class="case-preview-card__brand">
       <NuxtLink :to="`/tro/cases/${record.slug}`">{{ record.plaintiffBrand }}</NuxtLink>
