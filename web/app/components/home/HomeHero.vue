@@ -171,7 +171,11 @@ const emit = defineEmits<{
   position: relative;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  min-height: 520px;
+  z-index: 1;
   gap: var(--space-5);
   padding-block: var(--space-20) var(--space-16);
 }
@@ -186,14 +190,14 @@ const emit = defineEmits<{
 }
 
 .home-hero__title {
-  font-size: var(--text-4xl);
+  font-size: clamp(36px, 4.2vw, 60px);
   line-height: var(--leading-tight);
   letter-spacing: 0.02em;
 }
 
 .home-hero__subtitle {
-  max-width: 64ch;
-  font-size: var(--text-lg);
+  max-width: 900px;
+  font-size: clamp(18px, 1.6vw, 23px);
   line-height: var(--leading-relaxed);
   color: color-mix(in srgb, var(--color-text-inverse) 78%, transparent);
 }
@@ -201,6 +205,7 @@ const emit = defineEmits<{
 .home-hero__actions {
   display: flex;
   flex-wrap: wrap;
+  justify-content: center;
   gap: var(--space-4);
   margin-top: var(--space-2);
 }
@@ -225,10 +230,11 @@ const emit = defineEmits<{
 @media (max-width: 639px) {
   .home-hero__inner {
     padding-block: var(--space-12) var(--space-10);
+    min-height: 460px;
   }
 
   .home-hero__title {
-    font-size: var(--text-3xl);
+    font-size: clamp(30px, 8vw, 38px);
   }
 
   .home-hero__subtitle {
