@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { businessCards, businessGroups } from '~/data/mock/businesses'
 import { homeHero, teamIntro } from '~/data/mock/home'
-import { siteConfig } from '~/config/site'
 import { contentArticles } from '~/data/mock/catalog'
 const successArticles = contentArticles.filter(item => item.sectionPath === '/tro/success-cases')
 const lectureArticles = contentArticles.filter(item => item.sectionPath === '/about/lectures')
@@ -115,23 +114,8 @@ useSeoMeta({
         <ArticleList :articles="lectureArticles" />
         <NuxtLink to="/about/lectures">查看宣讲主题与详情 →</NuxtLink>
       </section>
-      <section class="about-page__section" aria-label="联系方式">
-        <SectionHeading
-          title="联系方式"
-          :description="siteConfig.contact.notice"
-        />
-        <ContactQrGrid kind="consult" />
-        <ul class="about-page__contact">
-          <li>电话：{{ siteConfig.contact.phone }}</li>
-          <li>邮箱：{{ siteConfig.contact.email }}</li>
-          <li>地址：{{ siteConfig.contact.address }}</li>
-        </ul>
-        <div class="about-page__actions">
-          <BaseButton to="/tro/cases" variant="primary">查询 TRO 案件</BaseButton>
-          <BaseButton to="/infringement-check" variant="secondary">
-            {{ siteConfig.cta.label }}
-          </BaseButton>
-        </div>
+      <section class="about-page__section about-page__partners" aria-label="我们的小伙伴">
+        <PartnerStrip />
       </section>
       </ContentColumns>
     </PageContainer>
@@ -251,31 +235,12 @@ useSeoMeta({
   color: var(--color-text-muted);
 }
 
-.about-page__contact {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-  color: var(--color-text);
-}
-
-.about-page__contact strong {
-  color: var(--color-primary);
-}
-
-.about-page__contact-purpose {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-}
-
-.about-page__actions {
-  display: flex;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  margin-top: var(--space-6);
-}
+.about-page__partners :deep(.partner-strip) { padding-block: 0; }
+.about-page__partners :deep(.container) { padding-inline: 0; }
+.about-page__partners :deep(.partner-strip__tags) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
 @media (max-width: 767px) {
+  .about-page__partners :deep(.partner-strip__tags),
   .about-page__principles {
     grid-template-columns: 1fr;
   }
