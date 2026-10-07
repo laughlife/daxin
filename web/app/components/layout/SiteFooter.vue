@@ -14,7 +14,7 @@ import { siteConfig } from '~/config/site'
       <div class="site-footer__brand">
         <span class="site-footer__logo" aria-hidden="true">{{ siteConfig.logo.text }}</span>
         <p class="site-footer__name">{{ siteConfig.name }}</p>
-        <p class="site-footer__subtitle">大信法务团队深耕跨境电商与国际物流法律服务，覆盖海运、空运、TRO 知识产权、用工劳动合规及合同风控。</p>
+        <p class="site-footer__subtitle">大信法务团队为深耕跨境赛道的专业跨境电商、国际物流律师团队。主营海运、空运全链路法律业务，面向国际物流、跨境服务商、出海卖家提供法律顾问服务;同步覆盖用工劳动合规、TRO、合同风控、海关合规，可代理，各类纠纷诉讼，高效处理货损、欠款、维权等各类争议</p>
         <ContactQrGrid kind="public" class="site-footer__channels" />
       </div>
 
