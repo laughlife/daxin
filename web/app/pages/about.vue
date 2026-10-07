@@ -74,7 +74,7 @@ useSeoMeta({
       <section class="about-page__section" aria-label="核心业务">
         <SectionHeading
           title="核心业务"
-          description="业务条目来自需求文档；各业务专页将在后续任务中实现。"
+          description="围绕跨境企业经营，覆盖国外与国内法律服务。"
         />
         <div
           v-for="group in businessGroupsList"
