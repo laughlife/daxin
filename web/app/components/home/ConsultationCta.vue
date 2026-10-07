@@ -7,7 +7,7 @@ import { consultationCta } from '~/data/mock/home'
  * + 打开二维码咨询弹窗的按钮（由父级页面控制弹窗）。
  */
 const emit = defineEmits<{
-  openContact: []
+  openContact: [group: 'tro' | 'labor']
 }>()
 </script>
 
@@ -18,20 +18,15 @@ const emit = defineEmits<{
         <h2 class="consultation-cta__title">{{ consultationCta.title }}</h2>
         <p class="consultation-cta__desc">{{ consultationCta.description }}</p>
         <ul class="consultation-cta__channels">
-          <li
-            v-for="channel in siteConfig.contact.wechatAccounts"
-            :key="channel.id"
-          >
-            {{ channel.name }}：<strong>{{ channel.wechatId }}</strong>
-          </li>
           <li>电话：{{ siteConfig.contact.phone }}</li>
           <li>邮箱：{{ siteConfig.contact.email }}</li>
         </ul>
       </div>
       <div class="consultation-cta__actions">
-        <BaseButton variant="primary" size="lg" @click="emit('openContact')">
-          {{ consultationCta.openModalLabel }}
+        <BaseButton variant="primary" size="lg" @click="emit('openContact', 'tro')">
+          TRO 扫码咨询
         </BaseButton>
+        <BaseButton variant="secondary" size="lg" class="consultation-cta__secondary" @click="emit('openContact', 'labor')">劳动法扫码咨询</BaseButton>
         <BaseButton :to="siteConfig.cta.to" variant="secondary" size="lg" class="consultation-cta__secondary">
           {{ siteConfig.cta.label }}
         </BaseButton>

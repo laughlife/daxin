@@ -19,7 +19,8 @@ try {
   check('首页日期筛选展示近期记录', await page.locator('.case-preview-card').count() === ['2026-10-07','2026-10-06','2026-10-05'].filter(date => isWithinDays(date)).length)
   check('近期区域没有 2025 年旧案件', !(await page.locator('.case-preview-section').innerText()).includes('2025-'))
   await page.getByRole('button', { name:'联系我们免费评估案件', exact:true }).click()
-  check('咨询弹窗显示四类二维码', await page.getByRole('dialog').locator('[data-qr-id]').count() === 4)
+  check('免费评估仅显示 TRO 咨询二维码', await page.getByRole('dialog').locator('[data-qr-id]').evaluateAll(items => items.length === 1 && items[0].dataset.qrId === 'tro-consult'))
+  check('咨询弹窗不显示微信号与复制按钮', !(await page.getByRole('dialog').innerText()).match(/kjzx88|chen_6506|复制/))
   await page.keyboard.press('Escape')
   for (const [path, expected] of [['/tro/alerts',['tro-public','tro-consult']],['/domestic/labor-disputes',['labor-public','labor-consult']],['/faq/labor',['labor-public','labor-consult']],['/faq/cross-border',['tro-public','tro-consult','labor-public','labor-consult']]]) {
     await visit(path)

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { siteConfig } from '~/config/site'
 
 /**
@@ -7,13 +6,6 @@ import { siteConfig } from '~/config/site'
  * + 联系方式 + ICP / 版权 / 隐私政策 / 免责声明占位。
  * 导航与联系方式数据来自 siteConfig，不硬编码。
  */
-const { copied, copy } = useCopyText()
-const copiedChannelId = ref<string | null>(null)
-
-async function copyWechat(channelId: string, wechatId: string) {
-  const ok = await copy(wechatId)
-  copiedChannelId.value = ok ? channelId : null
-}
 </script>
 
 <template>
@@ -53,38 +45,7 @@ async function copyWechat(channelId: string, wechatId: string) {
 
       <div class="site-footer__contact">
         <h3 class="site-footer__nav-title">联系我们</h3>
-        <ul class="site-footer__channels">
-          <li
-            v-for="channel in siteConfig.contact.wechatAccounts"
-            :key="channel.id"
-            class="site-footer__channel"
-          >
-            <span class="site-footer__qr" aria-hidden="true">
-              <img
-                v-if="channel.qrSrc"
-                :src="channel.qrSrc"
-                :alt="`${channel.name}微信二维码`"
-              >
-              <template v-else>
-                <span class="site-footer__qr-placeholder">二维码<br>待提供</span>
-              </template>
-            </span>
-            <span class="site-footer__channel-info">
-              <span class="site-footer__channel-name">{{ channel.name }}</span>
-              <span class="site-footer__channel-id">
-                微信号：<strong>{{ channel.wechatId }}</strong>
-              </span>
-              <span class="site-footer__channel-purpose">{{ channel.purpose }}</span>
-              <button
-                type="button"
-                class="site-footer__copy"
-                @click="copyWechat(channel.id, channel.wechatId)"
-              >
-                {{ copied && copiedChannelId === channel.id ? '已复制' : '复制微信号' }}
-              </button>
-            </span>
-          </li>
-        </ul>
+        <ContactQrGrid kind="consult" class="site-footer__channels" />
         <ul class="site-footer__contact-list">
           <li>电话：{{ siteConfig.contact.phone }}</li>
           <li>邮箱：{{ siteConfig.contact.email }}</li>

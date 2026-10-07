@@ -9,8 +9,10 @@ import { siteConfig } from '~/config/site'
  * 未连接任何后端；正式素材（Logo、图片、合作伙伴）待提供。
  */
 const contactModalOpen = ref(false)
+const contactGroup = ref<'tro' | 'labor'>('tro')
 
-function openContactModal() {
+function openContactModal(group: 'tro' | 'labor' = 'tro') {
+  contactGroup.value = group
   contactModalOpen.value = true
 }
 
@@ -100,7 +102,7 @@ useHead({
 
     <ConsultationCta @open-contact="openContactModal" />
 
-    <WechatQrModal :open="contactModalOpen" @close="closeContactModal" />
+    <WechatQrModal :group="contactGroup" :open="contactModalOpen" @close="closeContactModal" />
   </div>
 </template>
 

@@ -120,14 +120,8 @@ useSeoMeta({
           title="联系方式"
           :description="siteConfig.contact.notice"
         />
+        <ContactQrGrid kind="consult" />
         <ul class="about-page__contact">
-          <li
-            v-for="channel in siteConfig.contact.wechatAccounts"
-            :key="channel.id"
-          >
-            {{ channel.name }}：<strong>{{ channel.wechatId }}</strong>
-            <span class="about-page__contact-purpose">（{{ channel.purpose }}）</span>
-          </li>
           <li>电话：{{ siteConfig.contact.phone }}</li>
           <li>邮箱：{{ siteConfig.contact.email }}</li>
           <li>地址：{{ siteConfig.contact.address }}</li>

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, ref, watch } from 'vue'
-import { siteConfig } from '~/config/site'
 
 /**
  * 微信二维码咨询弹窗（纯前端，不连接后端）。
@@ -12,6 +11,7 @@ import { siteConfig } from '~/config/site'
  */
 const props = defineProps<{
   open: boolean
+  group: 'tro' | 'labor'
 }>()
 
 const emit = defineEmits<{
@@ -22,14 +22,6 @@ const panelEl = ref<HTMLElement | null>(null)
 const closeButtonEl = ref<HTMLButtonElement | null>(null)
 let previouslyFocused: HTMLElement | null = null
 let savedBodyOverflow = ''
-
-const { copied, failed, copy } = useCopyText()
-const copiedChannelId = ref<string | null>(null)
-
-async function copyWechat(channelId: string, wechatId: string) {
-  const ok = await copy(wechatId)
-  copiedChannelId.value = ok ? channelId : null
-}
 
 const FOCUSABLE_SELECTOR =
   'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])'
@@ -103,10 +95,10 @@ onBeforeUnmount(() => {
       class="qr-modal__panel"
       role="dialog"
       aria-modal="true"
-      aria-label="微信咨询与联系方式"
+      :aria-label="`${group === 'tro' ? 'TRO' : '劳动法'}扫码咨询`"
     >
       <header class="qr-modal__head">
-        <h2 class="qr-modal__title">微信咨询与联系方式</h2>
+        <h2 class="qr-modal__title">{{ group === 'tro' ? 'TRO' : '劳动法' }}咨询</h2>
         <button
           ref="closeButtonEl"
           type="button"
@@ -119,15 +111,7 @@ onBeforeUnmount(() => {
       </header>
 
       <div class="qr-modal__body">
-        <p class="qr-modal__notice">{{ siteConfig.contact.notice }}</p>
-
-        <ContactQrGrid />
-
-        <ul class="qr-modal__contact">
-          <li>电话：{{ siteConfig.contact.phone }}</li>
-          <li>邮箱：{{ siteConfig.contact.email }}</li>
-          <li>地址：{{ siteConfig.contact.address }}</li>
-        </ul>
+        <ContactQrGrid :group="group" kind="consult" />
       </div>
     </div>
   </div>
