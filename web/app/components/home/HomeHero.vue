@@ -4,7 +4,7 @@ import { homeHero } from '~/data/mock/home'
 /**
  * 首页 Hero 首屏。
  * 动效为纯 CSS 背景光效 / 网格 / 缓慢漂浮装饰图形，无外部视频与远程图片；
- * prefers-reduced-motion 时由全局规则自动降级（见 main.css）。
+ * prefers-reduced-motion 时关闭背景动画。
  */
 const emit = defineEmits<{
   openContact: []
@@ -63,6 +63,43 @@ const emit = defineEmits<{
       transparent 1px
     );
   background-size: auto, auto, 48px 48px, 48px 48px;
+}
+
+.home-hero::before,
+.home-hero::after {
+  content: '';
+  position: absolute;
+  inset: -20%;
+  pointer-events: none;
+}
+
+.home-hero::before {
+  background: radial-gradient(ellipse at 75% 45%, #b6263655, transparent 55%),
+    radial-gradient(ellipse at 20% 70%, #b7964933, transparent 45%);
+  animation: hero-atmosphere 12s ease-in-out infinite alternate;
+}
+
+.home-hero::after {
+  background-image: linear-gradient(#ffffff08 1px, transparent 1px),
+    linear-gradient(90deg, #ffffff08 1px, transparent 1px);
+  background-size: 64px 64px;
+  animation: hero-grid 18s linear infinite;
+  mask-image: linear-gradient(90deg, transparent, black);
+}
+
+@keyframes hero-atmosphere {
+  from { transform: translate3d(-6%, -4%, 0) scale(1); }
+  to { transform: translate3d(6%, 5%, 0) scale(1.15); }
+}
+
+@keyframes hero-grid {
+  to { transform: translate3d(64px, 64px, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-hero::before, .home-hero::after, .home-hero__orb {
+    animation: none !important;
+  }
 }
 
 .home-hero__decor {
@@ -126,7 +163,7 @@ const emit = defineEmits<{
     transform: translate3d(0, 0, 0);
   }
   to {
-    transform: translate3d(-24px, 18px, 0);
+    transform: translate3d(-60px, 40px, 0);
   }
 }
 
