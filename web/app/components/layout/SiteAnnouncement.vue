@@ -61,14 +61,17 @@ function onCopy() {
 }
 
 .site-announcement__inner {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) auto minmax(100px, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: var(--space-4);
   padding-block: var(--space-2);
 }
 
 .site-announcement__text {
+  grid-column: 2;
+  justify-content: center;
+  text-align: center;
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2) var(--space-4);
@@ -81,6 +84,8 @@ function onCopy() {
 }
 
 .site-announcement__action {
+  grid-column: 3;
+  justify-self: end;
   display: flex;
   align-items: center;
   gap: var(--space-3);
@@ -108,16 +113,17 @@ function onCopy() {
 }
 
 /* 移动端：允许换行，公告文案与操作区上下排列 */
-@media (max-width: 639px) {
+@media (max-width: 1023px) {
   .site-announcement__inner {
+    display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: center;
     gap: var(--space-2);
   }
 
   .site-announcement__action {
     width: 100%;
-    justify-content: space-between;
+    justify-content: center;
     flex-wrap: wrap;
   }
 
