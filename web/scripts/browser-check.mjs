@@ -29,6 +29,13 @@ try {
     await page.locator('.article-detail__body').waitFor()
     check(`${path} 文章可阅读`, await page.locator('.article-detail__body section').count() >= 3)
   }
+  await visit('/tro/alerts')
+  await page.locator('.listing-search input[type=search]').fill('SnowFox')
+  check('栏目检索关联品牌', await page.locator('.article-list__card').count() === 1)
+  await page.locator('.listing-search input[type=search]').fill('MOCK-26-cv-9102')
+  check('栏目检索关联案件号', await page.locator('.article-list__card').count() === 1)
+  await visit('/tro/cases?page=4&to=2025-12-31')
+  check('四页请求在三页结果内收敛', (await page.locator('.case-pagination__summary').innerText()).includes('第 3 / 3 页'))
   await visit('/tro/cases?page=999')
   check('越界页码钳制为有效页', !(await page.locator('.case-pagination__summary').innerText()).includes('999') && await page.locator('tbody tr').count() > 0)
   await page.locator('#case-search-from').fill('2026-10-05')

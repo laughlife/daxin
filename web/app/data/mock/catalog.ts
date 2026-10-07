@@ -1,8 +1,9 @@
 import { mockArticles } from './articles'
+import { mockCases } from './cases'
 import type { ArticleRecord } from '../../types/content'
 
 export interface ContentSection { path: string; title: string; group: 'tro' | 'labor' | 'all'; description: string; topics: string[] }
-export interface ContentArticle extends ArticleRecord { sectionPath: string; body: { title: string; text: string }[]; keywords: string }
+export interface ContentArticle extends ArticleRecord { sectionPath: string; body: { title: string; text: string }[]; keywords: string; relatedCaseSlugs: string[] }
 
 export const contentSections: ContentSection[] = [
   { path: '/about/lectures', title: '企业宣讲', group: 'all', description: '跨境企业法律培训主题与服务流程展示，以下为演示资料。', topics: ['【演示】跨境电商知识产权培训主题', '【演示】企业劳动用工与合同风控宣讲'] },
@@ -34,7 +35,8 @@ function articleBody(section: ContentSection, title: string, excerpt: string) {
 const existing: ContentArticle[] = mockArticles.map(article => {
   const sectionPath = article.category === '劳动法案例' ? '/faq/labor' : '/tro/news'
   const section = contentSections.find(item => item.path === sectionPath)!
-  return { ...article, sectionPath, body: articleBody(section, article.title, article.excerpt), keywords: article.title + ' ' + article.excerpt }
+  const relatedCases = section.group === 'tro' ? mockCases.filter(item => article.excerpt.includes(item.caseNumber)).slice(0, 2) : []
+  return { ...article, relatedCaseSlugs: relatedCases.map(item => item.slug), sectionPath, body: articleBody(section, article.title, article.excerpt), keywords: [article.title, article.excerpt, ...relatedCases.map(item => `${item.caseNumber} ${item.plaintiffBrand} ${item.lawFirm}`)].join(' ') }
 })
 
 export const contentArticles: ContentArticle[] = [
@@ -42,7 +44,8 @@ export const contentArticles: ContentArticle[] = [
   ...contentSections.flatMap(section => section.topics.map((topic, index) => {
     const title = topic.startsWith('【演示】') ? topic : `【演示】${topic}`
     const excerpt = `${section.description}本篇展示“${topic.replace('【演示】', '')}”的资料准备与服务流程。`
-    return { id: `${section.path}-${index}`, category: section.title, title, excerpt, publishedAt: index === 0 ? '2026-10-07' : '2026-10-06', isFeatured: index === 0, href: `${section.path}/demo-${index + 1}`, imageSrc: null, imageAlt: '', sectionPath: section.path, body: articleBody(section, title, excerpt), keywords: `${title} ${excerpt}` }
+    const relatedCase = section.group === 'tro' ? mockCases[index] : undefined
+    return { relatedCaseSlugs: relatedCase ? [relatedCase.slug] : [], id: `${section.path}-${index}`, category: section.title, title, excerpt, publishedAt: index === 0 ? '2026-10-07' : '2026-10-06', isFeatured: index === 0, href: `${section.path}/demo-${index + 1}`, imageSrc: null, imageAlt: '', sectionPath: section.path, body: articleBody(section, title, excerpt), keywords: `${title} ${excerpt} ${relatedCase ? `${relatedCase.caseNumber} ${relatedCase.plaintiffBrand} ${relatedCase.lawFirm}` : ''}` }
   }))
 ]
 
