@@ -1,3 +1,5 @@
+> 2026-10-07 更新：下文规划路由已全部实现；另增加 /about/lectures 及其详情、品牌与律所档案、隐私和免责声明演示页面。当前路由完整列表由 catalog.ts、entities.ts 与 nuxt.config.ts 维护。
+
 # 导航地图（navigation-map.md）
 
 > 状态：Task 3 首页第一版阶段。导航唯一数据源为 `web/app/config/site.ts`（`mainNav` / `footerNav` / `cta`），组件不硬编码导航。
