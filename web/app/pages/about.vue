@@ -2,6 +2,9 @@
 import { businessCards, businessGroups } from '~/data/mock/businesses'
 import { homeHero, teamIntro } from '~/data/mock/home'
 import { siteConfig } from '~/config/site'
+import { contentArticles } from '~/data/mock/catalog'
+const successArticles = contentArticles.filter(item => item.sectionPath === '/tro/success-cases')
+const lectureArticles = contentArticles.filter(item => item.sectionPath === '/about/lectures')
 
 /**
  * 关于我们（第一版）。
@@ -52,7 +55,7 @@ useSeoMeta({
       </PageContainer>
     </section>
 
-    <PageContainer size="narrow" class="about-page__body">
+    <PageContainer class="about-page__body"><ContentColumns>
       <section class="about-page__section" aria-label="团队介绍">
         <SectionHeading title="团队介绍" />
         <p
@@ -62,6 +65,7 @@ useSeoMeta({
         >
           {{ paragraph }}
         </p>
+        <p class="about-page__paragraph">大信法务团队坚持以维护客户利益为导向，结合客户需求与具体经营场景，为跨境从业者提供法律服务与解决方案。</p>
         <p class="about-page__notice" role="note">
           本页文案来自《大信团队官网需求文档》初稿，待甲方最终确认；团队照片、律师简介与资质证书等正式素材待提供，当前不展示任何虚构素材。
         </p>
@@ -101,6 +105,16 @@ useSeoMeta({
         </ul>
       </section>
 
+      <section class="about-page__section" aria-label="成功案例">
+        <SectionHeading title="TRO 成功案例" description="展示服务流程与资料整理方式；以下为演示案例，不代表团队实际办案业绩。" />
+        <ArticleList :articles="successArticles" />
+        <NuxtLink to="/tro/success-cases">查看全部成功案例 →</NuxtLink>
+      </section>
+      <section class="about-page__section" aria-label="企业宣讲">
+        <SectionHeading title="企业宣讲" description="围绕知识产权、劳动用工与合同风控，提供适合跨境企业的培训主题。真实活动照片与记录待提供。" />
+        <ArticleList :articles="lectureArticles" />
+        <NuxtLink to="/about/lectures">查看宣讲主题与详情 →</NuxtLink>
+      </section>
       <section class="about-page__section" aria-label="联系方式">
         <SectionHeading
           title="联系方式"
@@ -125,6 +139,7 @@ useSeoMeta({
           </BaseButton>
         </div>
       </section>
+      </ContentColumns>
     </PageContainer>
   </div>
 </template>

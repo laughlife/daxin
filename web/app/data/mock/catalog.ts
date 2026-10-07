@@ -5,6 +5,7 @@ export interface ContentSection { path: string; title: string; group: 'tro' | 'l
 export interface ContentArticle extends ArticleRecord { sectionPath: string; body: { title: string; text: string }[]; keywords: string }
 
 export const contentSections: ContentSection[] = [
+  { path: '/about/lectures', title: '企业宣讲', group: 'all', description: '跨境企业法律培训主题与服务流程展示，以下为演示资料。', topics: ['【演示】跨境电商知识产权培训主题', '【演示】企业劳动用工与合同风控宣讲'] },
   { path: '/tro/alerts', title: 'TRO 侵权预警', group: 'tro', description: '跟踪知识产权案件动态，做好品牌与产品风险自查。', topics: ['收到 TRO 通知后的信息整理', '产品上架前的知识产权检查'] },
   { path: '/tro/success-cases', title: 'TRO 成功案例', group: 'tro', description: '了解案件处理流程与沟通方式，以下为流程演示案例。', topics: ['【演示】店铺冻结后的应诉与和解流程', '【演示】知识产权纠纷材料归档'] },
   { path: '/tro/cpsc-recalls', title: 'CPSC 召回', group: 'tro', description: '聚焦美国产品安全、召回沟通与资料准备。', topics: ['产品召回资料准备与协作流程', '跨境产品安全问题的内部记录'] },
