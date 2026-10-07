@@ -34,6 +34,8 @@ export default defineNuxtConfig({
       routes: [
         '/',
         '/about',
+        '/privacy',
+        '/disclaimer',
         '/infringement-check',
         ...contentRoutes,
         ...entityRoutes,
