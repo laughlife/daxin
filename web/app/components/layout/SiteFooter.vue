@@ -2,7 +2,7 @@
 import { siteConfig } from '~/config/site'
 
 /**
- * 网站 Footer：公司信息占位 + 业务导航 + 双微信咨询渠道（含二维码占位）
+ * 网站 Footer：品牌信息 + 横向业务导航 + 四个公众号及咨询二维码
  * + 联系方式 + ICP / 版权 / 隐私政策 / 免责声明占位。
  * 导航与联系方式数据来自 siteConfig，不硬编码。
  */
@@ -15,15 +15,7 @@ import { siteConfig } from '~/config/site'
         <span class="site-footer__logo" aria-hidden="true">{{ siteConfig.logo.text }}</span>
         <p class="site-footer__name">{{ siteConfig.name }}</p>
         <p class="site-footer__subtitle">大信法务团队深耕跨境电商与国际物流法律服务，覆盖海运、空运、TRO 知识产权、用工劳动合规及合同风控。</p>
-        <ContactQrGrid kind="public" />
-        <BaseButton
-          :to="siteConfig.cta.to"
-          variant="secondary"
-          size="sm"
-          class="site-footer__cta"
-        >
-          {{ siteConfig.cta.label }}
-        </BaseButton>
+
       </div>
 
       <nav class="site-footer__nav" aria-label="页脚导航">
@@ -45,7 +37,7 @@ import { siteConfig } from '~/config/site'
 
       <div class="site-footer__contact">
         <h3 class="site-footer__nav-title">联系我们</h3>
-        <ContactQrGrid kind="consult" class="site-footer__channels" />
+        <ContactQrGrid class="site-footer__channels" />
         <ul class="site-footer__contact-list">
           <li>电话：{{ siteConfig.contact.phone }}</li>
           <li>邮箱：{{ siteConfig.contact.email }}</li>
@@ -75,216 +67,33 @@ import { siteConfig } from '~/config/site'
 </template>
 
 <style scoped>
-.site-footer {
-  background-color: var(--color-bg-dark);
-  color: var(--color-text-inverse);
-  font-size: var(--text-sm);
-}
-
-.site-footer__main {
-  display: grid;
-  grid-template-columns: 1.2fr 2fr 1.2fr;
-  gap: var(--space-10);
-  padding-block: var(--space-12);
-}
-
-.site-footer__brand {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-3);
-}
-
-.site-footer__logo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 44px;
-  height: 44px;
-  border-radius: var(--radius-md);
-  background-color: var(--color-primary);
-  color: var(--color-text-on-primary);
-  font-weight: 700;
-}
-
-.site-footer__name {
-  font-size: var(--text-xl);
-  font-weight: 700;
-}
-
-.site-footer__subtitle {
-  color: rgb(255 255 255 / 65%);
-}
-
-.site-footer .site-footer__cta {
-  border-color: rgb(255 255 255 / 60%);
-  color: var(--color-text-inverse);
-}
-
-.site-footer .site-footer__cta:hover {
-  background-color: rgb(255 255 255 / 12%);
-  color: var(--color-text-inverse);
-}
-
-.site-footer__nav {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-6);
-}
-
-.site-footer__nav-title {
-  margin-bottom: var(--space-3);
-  font-size: var(--text-base);
-  color: var(--color-text-inverse);
-}
-
-.site-footer__nav ul,
-.site-footer__contact-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  color: rgb(255 255 255 / 65%);
-}
-
-/* 微信咨询渠道（含二维码占位） */
-.site-footer__channels {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-  margin-bottom: var(--space-4);
-}
-
-.site-footer__channel {
-  display: flex;
-  gap: var(--space-3);
-  align-items: flex-start;
-}
-
-.site-footer__qr {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 72px;
-  height: 72px;
-  flex-shrink: 0;
-  border: 1px dashed rgb(255 255 255 / 40%);
-  border-radius: var(--radius-md);
-  background-color: rgb(255 255 255 / 6%);
-  overflow: hidden;
-}
-
-.site-footer__qr img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-.site-footer__qr-placeholder {
-  font-size: var(--text-xs);
-  line-height: var(--leading-tight);
-  text-align: center;
-  color: rgb(255 255 255 / 55%);
-}
-
-.site-footer__channel-info {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  min-width: 0;
-}
-
-.site-footer__channel-name {
-  font-weight: 600;
-  color: var(--color-text-inverse);
-}
-
-.site-footer__channel-id {
-  color: rgb(255 255 255 / 65%);
-}
-
-.site-footer__channel-id strong {
-  color: var(--color-accent);
-}
-
-.site-footer__channel-purpose {
-  font-size: var(--text-xs);
-  color: rgb(255 255 255 / 50%);
-}
-
-.site-footer__copy {
-  align-self: flex-start;
-  margin-top: var(--space-1);
-  padding: 2px var(--space-3);
-  border: 1px solid rgb(255 255 255 / 45%);
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
-  color: var(--color-text-inverse);
-  transition: background-color var(--transition-base);
-}
-
-.site-footer__copy:hover {
-  background-color: rgb(255 255 255 / 15%);
-}
-
-.site-footer__notice {
-  margin-top: var(--space-3);
-  font-size: var(--text-xs);
-  color: rgb(255 255 255 / 45%);
-}
-
-.site-footer__link {
-  color: rgb(255 255 255 / 65%);
-}
-
-.site-footer__link:hover {
-  color: var(--color-text-inverse);
-}
-
-.site-footer__bottom {
-  border-top: 1px solid rgb(255 255 255 / 15%);
-  padding-block: var(--space-4);
-}
-
-.site-footer__bottom-inner {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-  color: rgb(255 255 255 / 55%);
-}
-
-.site-footer__legal,
-.site-footer__policies {
-  display: flex;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-}
-
-/* 平板：品牌与联系方式一行，导航整行 */
-@media (max-width: 1023px) {
-  .site-footer__main {
-    grid-template-columns: 1fr 1fr;
-    gap: var(--space-8);
-    padding-block: var(--space-10);
-  }
-
-  .site-footer__nav {
-    grid-column: 1 / -1;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-/* 移动端：单列堆叠 */
-@media (max-width: 639px) {
-  .site-footer__main {
-    grid-template-columns: 1fr;
-    gap: var(--space-8);
-  }
-
-  .site-footer__bottom-inner {
-    flex-direction: column;
-    align-items: flex-start;
-  }
+.site-footer { background:var(--color-bg-dark); color:var(--color-text-inverse); font-size:var(--text-sm); }
+.site-footer__main { display:flex; flex-direction:column; gap:var(--space-8); padding-block:var(--space-12); }
+.site-footer__brand { display:flex; flex-direction:column; align-items:center; text-align:center; gap:var(--space-3); }
+.site-footer__logo { display:inline-flex; align-items:center; justify-content:center; width:80px; height:80px; border-radius:var(--radius-lg); background:var(--color-primary); color:var(--color-text-on-primary); font-size:var(--text-3xl); font-weight:700; }
+.site-footer__name { font-size:var(--text-3xl); font-weight:700; }
+.site-footer__subtitle { max-width:760px; line-height:var(--leading-relaxed); color:rgb(255 255 255 / 65%); }
+.site-footer__nav { display:flex; flex-wrap:wrap; justify-content:center; gap:var(--space-5) var(--space-8); padding-block:var(--space-6); border-block:1px solid rgb(255 255 255 / 15%); }
+.site-footer__nav-group { display:flex; align-items:baseline; gap:var(--space-4); }
+.site-footer__nav-title { font-size:var(--text-base); color:var(--color-text-inverse); flex-shrink:0; }
+.site-footer__nav ul { display:flex; flex-wrap:wrap; gap:var(--space-2) var(--space-4); }
+.site-footer__contact { text-align:center; }
+.site-footer__contact > h3 { margin-bottom:var(--space-6); font-size:var(--text-xl); }
+.site-footer__channels { grid-template-columns:repeat(4,minmax(0,1fr)); max-width:920px; margin:0 auto var(--space-6); gap:var(--space-6); }
+.site-footer__channels :deep(img) { width:100%; max-width:180px; }
+.site-footer__contact-list { display:flex; flex-wrap:wrap; justify-content:center; gap:var(--space-2) var(--space-6); color:rgb(255 255 255 / 65%); }
+.site-footer__notice { margin-top:var(--space-3); font-size:var(--text-xs); color:rgb(255 255 255 / 45%); }
+.site-footer__link { color:rgb(255 255 255 / 65%); }
+.site-footer__link:hover { color:var(--color-text-inverse); }
+.site-footer__bottom { border-top:1px solid rgb(255 255 255 / 15%); padding-block:var(--space-4); }
+.site-footer__bottom-inner { display:flex; align-items:center; justify-content:space-between; gap:var(--space-4); flex-wrap:wrap; color:rgb(255 255 255 / 55%); }
+.site-footer__legal, .site-footer__policies { display:flex; gap:var(--space-4); flex-wrap:wrap; }
+@media (max-width:767px) {
+  .site-footer__channels { grid-template-columns:repeat(2,minmax(0,1fr)); max-width:440px; }
+  .site-footer__nav { justify-content:flex-start; }
+  .site-footer__nav-group { width:100%; flex-direction:column; gap:var(--space-2); }
+  .site-footer__contact-list { flex-direction:column; overflow-wrap:anywhere; }
+  .site-footer__bottom-inner { flex-direction:column; text-align:center; }
+  .site-footer__legal, .site-footer__policies { justify-content:center; }
 }
 </style>
