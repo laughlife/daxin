@@ -1,5 +1,6 @@
 import { siteConfig } from './app/config/site'
 import { mockCases } from './app/data/mock/cases'
+import { contentRoutes } from './app/data/mock/catalog'
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -33,6 +34,7 @@ export default defineNuxtConfig({
         '/',
         '/about',
         '/infringement-check',
+        ...contentRoutes,
         '/tro/cases',
         // Mock 案件详情页（静态可访问；接入真实数据后改为 SSR/ISR 并更新此处）
         ...mockCases.map(item => `/tro/cases/${item.slug}`)
