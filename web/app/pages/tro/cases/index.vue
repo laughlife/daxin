@@ -100,7 +100,7 @@ useSeoMeta({
         <div v-else class="cases-page__empty">
           <p class="cases-page__empty-title">未找到匹配的案件</p>
           <p class="cases-page__empty-desc">
-            请尝试更换关键词，或清空搜索条件后浏览全部 Mock 案件。
+            请尝试更换关键词，或清空搜索条件后浏览全部历史案件。
           </p>
           <BaseButton
             variant="secondary"

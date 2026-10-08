@@ -96,7 +96,7 @@ export function useMockCaseSearch(options: UseMockCaseSearchOptions = {}) {
         return false
       }
       return inDateRange(record.filedAt, filters.dateFrom, filters.dateTo)
-    })
+    }).sort((a,b) => b.filedAt.localeCompare(a.filedAt) || a.caseNumber.localeCompare(b.caseNumber))
   )
 
   const total = computed(() => results.value.length)

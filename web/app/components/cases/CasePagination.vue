@@ -33,7 +33,7 @@ const visiblePages = computed<number[]>(() => {
     aria-label="案件查询分页"
   >
     <p class="case-pagination__summary">
-      共 {{ total }} {{ noun ?? '条演示案件' }}，第 {{ page }} / {{ totalPages }} 页
+      共 {{ total }} {{ noun ?? '条案件' }}，第 {{ page }} / {{ totalPages }} 页
     </p>
     <div class="case-pagination__controls">
       <button
