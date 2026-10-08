@@ -1,6 +1,7 @@
 <script setup lang="ts">
 const { isRecent } = useContentDate()
 import { entitySlug } from '~/utils/content'
+import { findArticleContent } from '~/repositories/articleContent'
 import { CASE_TYPE_LABELS, MOCK_DATA_NOTICE, findMockCaseById, mockCases } from '~/data/mock/cases'
 
 /**
@@ -11,6 +12,7 @@ import { CASE_TYPE_LABELS, MOCK_DATA_NOTICE, findMockCaseById, mockCases } from 
 const route = useRoute()
 
 const record = findMockCaseById(String(route.params.id ?? ''))
+const originalContent = findArticleContent(record?.source?.articleId)
 
 if (!record) {
   throw createError({
@@ -90,6 +92,15 @@ useSeoMeta({
         <ul class="case-detail__tags">
           <li v-for="tag in record.tags" :key="tag">{{ tag }}</li>
         </ul>
+      </section>
+
+      <section
+        v-if="originalContent"
+        class="case-detail__section"
+        aria-label="来源文章原文"
+      >
+        <SectionHeading :level="2" title="来源文章原文与配图" description="保留旧站原文排版与图片；同一篇报道可能包含多起案件。" />
+        <RichArticleBody :content="originalContent" />
       </section>
 
       <section

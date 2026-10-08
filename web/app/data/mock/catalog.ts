@@ -1,3 +1,4 @@
+import { findArticleContent } from '../../repositories/articleContent'
 import { mockArticles } from './articles'
 import { mockCases } from './cases'
 import legacyArticles from '../legacy/articles.json'
@@ -56,6 +57,13 @@ export const contentArticles: ContentArticle[] = [
   ...legacyArticles.filter(item => item.sectionPath === '/tro/alerts').map(item => ({ ...item, id: item.id + '-news', sectionPath: '/tro/news', href: `/tro/news/legacy-${item.source.articleId}` })),
   ...legacyArticles.filter(item => item.sectionPath === '/domestic/labor-disputes').map(item => ({ ...item, id: item.id + '-faq', sectionPath: '/faq/labor', href: `/faq/labor/legacy-${item.source.articleId}` }))
 ]
+for (const article of contentArticles) {
+  const body = findArticleContent(article.source?.articleId)
+  if (body?.images.length) {
+    article.imageSrc = body.images[0]!
+    article.imageAlt = article.title + ' · 原文配图'
+  }
+}
 for (const section of contentSections) {
   if (replacedSections.includes(section.path)) section.description = '精选大信旧站数据库中的历史资料，保留原始发布日期和来源。'
 }
