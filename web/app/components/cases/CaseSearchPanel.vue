@@ -42,7 +42,7 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
           id="case-search-number"
           v-model="filters.caseNumber"
           type="search"
-          placeholder="如 MOCK-25-cv-9001"
+          placeholder="如 25-cv-00126"
           autocomplete="off"
         >
       </div>
@@ -52,7 +52,7 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
           id="case-search-brand"
           v-model="filters.plaintiffBrand"
           type="search"
-          placeholder="如 SnowFox"
+          placeholder="如 Frisbee 或 Bug Art"
           autocomplete="off"
         >
       </div>
