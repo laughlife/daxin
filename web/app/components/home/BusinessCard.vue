@@ -2,7 +2,7 @@
 import type { BusinessCard } from '~/types/content'
 
 /**
- * 首页业务卡片：标题 + 简介 + 业务条目 + 入口链接。
+ * 首页业务卡片：标题 + 简介 + 业务条目。
  * iconKey 映射为内置几何 SVG 占位图标（不使用正式素材、不伪造 Logo）。
  * hover 与 focus-visible 均有明显状态。
  */
@@ -46,10 +46,6 @@ const iconPaths: Record<BusinessCard['iconKey'], string[]> = {
         {{ item }}
       </li>
     </ul>
-    <NuxtLink :to="card.href" class="business-card__link">
-      了解详情
-      <span aria-hidden="true">→</span>
-    </NuxtLink>
   </article>
 </template>
 
@@ -123,16 +119,5 @@ const iconPaths: Record<BusinessCard['iconKey'], string[]> = {
   border-radius: var(--radius-full);
   background-color: var(--color-primary);
 }
+</style>
 
-.business-card__link {
-  margin-top: auto;
-  padding-top: var(--space-2);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-primary);
-}
-
-.business-card__link:hover {
-  color: var(--color-primary-dark);
-}
-</style>
