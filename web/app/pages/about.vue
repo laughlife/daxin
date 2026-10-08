@@ -3,6 +3,7 @@ import { businessCards, businessGroups } from '~/data/mock/businesses'
 import { teamIntro } from '~/data/mock/home'
 import { contentArticles } from '~/data/mock/catalog'
 const successArticles = contentArticles.filter(item => item.sectionPath === '/tro/success-cases')
+  .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).slice(0, 5)
 const lectureArticles = contentArticles.filter(item => item.sectionPath === '/about/lectures')
 
 /**
