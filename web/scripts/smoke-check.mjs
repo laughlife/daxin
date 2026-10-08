@@ -57,7 +57,7 @@ const casesMarkers = [
   '案件号',
   '品牌名',
   '代理律所',
-  '当前为本地 Mock 数据，尚未连接真实案件数据库'
+  '资料摘自大信旧站数据库'
 ]
 
 const forbiddenMarkers = ['NuxtWelcome', '站点壳层预览', '官网基础框架预览']
