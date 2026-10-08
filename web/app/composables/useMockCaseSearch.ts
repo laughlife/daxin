@@ -89,7 +89,7 @@ export function useMockCaseSearch(options: UseMockCaseSearchOptions = {}) {
       if (filters.lawFirm.trim() && !contains(record.lawFirm, filters.lawFirm)) {
         return false
       }
-      if (filters.caseType && record.caseType !== filters.caseType) {
+      if (filters.caseType && !(record.caseTypes ?? [record.caseType]).includes(filters.caseType)) {
         return false
       }
       if (filters.state && record.state !== filters.state) {

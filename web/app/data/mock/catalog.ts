@@ -1,9 +1,10 @@
 import { mockArticles } from './articles'
 import { mockCases } from './cases'
+import legacyArticles from '../legacy/articles.json'
 import type { ArticleRecord } from '../../types/content'
 
 export interface ContentSection { path: string; title: string; group: 'tro' | 'labor' | 'all'; description: string; topics: string[] }
-export interface ContentArticle extends ArticleRecord { sectionPath: string; body: { title: string; text: string }[]; keywords: string; relatedCaseSlugs: string[] }
+export interface ContentArticle extends ArticleRecord { sectionPath: string; body: { title: string; text: string }[]; keywords: string; relatedCaseSlugs: string[]; source?: { articleId: number; table: string; title: string } }
 
 export const contentSections: ContentSection[] = [
   { path: '/about/lectures', title: '企业宣讲', group: 'all', description: '跨境企业法律培训主题与服务流程展示，以下为演示资料。', topics: ['【演示】跨境电商知识产权培训主题', '【演示】企业劳动用工与合同风控宣讲'] },
@@ -39,14 +40,23 @@ const existing: ContentArticle[] = mockArticles.map(article => {
   return { ...article, relatedCaseSlugs: relatedCases.map(item => item.slug), sectionPath, body: articleBody(section, article.title, article.excerpt), keywords: [article.title, article.excerpt, ...relatedCases.map(item => `${item.caseNumber} ${item.plaintiffBrand} ${item.lawFirm}`)].join(' ') }
 })
 
-export const contentArticles: ContentArticle[] = [
+const demoArticles: ContentArticle[] = [
   ...existing,
   ...contentSections.flatMap(section => section.topics.map((topic, index) => {
     const title = topic.startsWith('【演示】') ? topic : `【演示】${topic}`
     const excerpt = `${section.description}本篇展示“${topic.replace('【演示】', '')}”的资料准备与服务流程。`
-    const relatedCase = section.group === 'tro' ? mockCases[index] : undefined
-    return { relatedCaseSlugs: relatedCase ? [relatedCase.slug] : [], id: `${section.path}-${index}`, category: section.title, title, excerpt, publishedAt: index === 0 ? '2026-10-07' : '2026-10-06', isFeatured: index === 0, href: `${section.path}/demo-${index + 1}`, imageSrc: null, imageAlt: '', sectionPath: section.path, body: articleBody(section, title, excerpt), keywords: `${title} ${excerpt} ${relatedCase ? `${relatedCase.caseNumber} ${relatedCase.plaintiffBrand} ${relatedCase.lawFirm}` : ''}` }
+    return { relatedCaseSlugs: [], id: `${section.path}-${index}`, category: section.title, title, excerpt, publishedAt: index === 0 ? '2026-10-07' : '2026-10-06', isFeatured: index === 0, href: `${section.path}/demo-${index + 1}`, imageSrc: null, imageAlt: '', sectionPath: section.path, body: articleBody(section, title, excerpt), keywords: `${title} ${excerpt} ` }
   }))
 ]
 
+const replacedSections = ['/tro/alerts', '/tro/news', '/tro/success-cases', '/domestic/labor-disputes', '/faq/labor']
+export const contentArticles: ContentArticle[] = [
+  ...demoArticles.filter(item => !replacedSections.includes(item.sectionPath)),
+  ...legacyArticles,
+  ...legacyArticles.filter(item => item.sectionPath === '/tro/alerts').map(item => ({ ...item, id: item.id + '-news', sectionPath: '/tro/news', href: `/tro/news/legacy-${item.source.articleId}` })),
+  ...legacyArticles.filter(item => item.sectionPath === '/domestic/labor-disputes').map(item => ({ ...item, id: item.id + '-faq', sectionPath: '/faq/labor', href: `/faq/labor/legacy-${item.source.articleId}` }))
+]
+for (const section of contentSections) {
+  if (replacedSections.includes(section.path)) section.description = '精选大信旧站数据库中的历史资料，保留原始发布日期和来源。'
+}
 export const contentRoutes = [...contentSections.map(item => item.path), ...contentArticles.map(item => item.href)]
