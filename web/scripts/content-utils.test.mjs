@@ -1,12 +1,19 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { clampPage, shanghaiDate, isWithinDays, inDateRange } from '../app/utils/content.ts'
+import { clampPage, shanghaiDate, isWithinDays, inDateRange, entitySlug } from '../app/utils/content.ts'
 
 test('分页限制在有效范围，拒绝零、负数、小数、无穷和非法值', () => {
   for (const [input, expected] of [[999, 3], [4, 3], [0, 1], [-1, 1], [2.5, 1], ['abc', 1], [Infinity, 1], [2, 2]]) {
     assert.equal(clampPage(input, 3), expected)
   }
   assert.equal(clampPage(999, 0), 1)
+})
+test('中文权利主体生成独立且不为空的详情路径', () => {
+  const names = ['钻石画', '凝胶水枪', '热转印打印机支架', 'ELECTRIC BICYCLE 电动自行车']
+  const slugs = names.map(entitySlug)
+  assert.equal(new Set(slugs).size, names.length)
+  assert.ok(slugs.every(slug => slug && !slug.startsWith('-') && !slug.endsWith('-')))
+  assert.equal(entitySlug('Frisbee'), 'frisbee')
 })
 test('北京时间自然日最近三天，排除未来及非法日期', () => {
   const now = new Date('2026-10-06T16:30:00Z')

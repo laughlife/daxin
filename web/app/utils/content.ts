@@ -27,5 +27,5 @@ export function clampPage(value: unknown, totalPages: number): number {
 }
 
 export function entitySlug(name: string): string {
-  return name.replace(/（演示）/g, '').replace(/^演示律所\s*/, '').trim().toLowerCase().replace(/[^a-z0-9]+/g, '-')
+  return name.replace(/（演示）/g, '').replace(/^演示律所\s*/, '').trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '')
 }
