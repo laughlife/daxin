@@ -18,8 +18,11 @@ def local_image(value):
     parsed = urlsplit(value)
     if parsed.scheme or parsed.netloc:
         return None
-    path = unquote(parsed.path).replace('\\', '/').lstrip('./')
-    if not path.startswith('res/') or '..' in path.split('/'):
+    path = unquote(parsed.path).replace('\\', '/')
+    if path.startswith('./'):
+        path = path[2:]
+    path = path.lstrip('/')
+    if not path.startswith('res/') or '..' in path.split('/') or Path(path).suffix.lower() not in {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.avif', '.bmp'}:
         return None
     return path
 

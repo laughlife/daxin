@@ -1,8 +1,11 @@
 import unittest
-from import_legacy import clean_html
+from import_legacy import clean_html, local_image
 
 
 class RichContentTests(unittest.TestCase):
+    def test_rejects_traversal_and_non_images(self):
+        for path in ('../res/a.png', 'res/../../secret.png', 'res/code.php', '//other.example/a.png'):
+            self.assertIsNone(local_image(path))
     def test_preserves_layout_and_local_images(self):
         html = '<section><p style="text-align:center;color:rgb(255,0,0)"><strong>案件</strong></p><img src="res/a.png" width="100%"></section>'
         result = clean_html(html, {'res/a.png': '/images/legacy/res/a.png'})
