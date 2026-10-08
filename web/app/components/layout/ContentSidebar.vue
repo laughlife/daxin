@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { contentArticles } from '~/data/mock/catalog'
+import { selectReading } from '~/utils/articleRecommendations'
 import { siteConfig } from '~/config/site'
 const props = withDefaults(defineProps<{ group?: 'tro' | 'labor' | 'all' }>(), { group: 'all' })
-const articles = computed(() => contentArticles.filter(item => props.group === 'all' || (props.group === 'tro' ? item.sectionPath.startsWith('/tro') : item.sectionPath.startsWith('/domestic') || item.sectionPath === '/faq/labor')).slice(-4).reverse())
+const articles = computed(() => selectReading(contentArticles, props.group))
 </script>
 <template>
   <aside class="content-sidebar" aria-label="联系与相关阅读">
@@ -22,3 +23,4 @@ const articles = computed(() => contentArticles.filter(item => props.group === '
 .sidebar-card__links a { color:var(--color-text); }
 @media(min-width:640px) and (max-width:1023px) { .content-sidebar { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); } }
 </style>
+

@@ -1,6 +1,6 @@
 import { findArticleContent } from '../../repositories/articleContent'
-import { mockArticles } from './articles'
-import { mockCases } from './cases'
+
+
 import legacyArticles from '../legacy/articles.json'
 import type { ArticleRecord } from '../../types/content'
 
@@ -22,40 +22,23 @@ export const contentSections: ContentSection[] = [
   { path: '/faq/cross-border', title: '跨境干货', group: 'all', description: '跨境电商与国际物流经营中的资料准备与风险管理。', topics: ['跨境经营资料如何建立台账？', '国际物流争议如何整理证据时间线？'] }
 ]
 
-function articleBody(section: ContentSection, title: string, excerpt: string) {
-  const checklist = section.group === 'tro'
-    ? '整理案件号、通知日期、品牌名称、代理律所及销售平台信息；保留邮件原文、链接、销售记录、产品图片和授权材料。'
-    : '整理合同、付款凭证、沟通记录与事项时间线；劳动事项同时准备劳动合同、规章制度、考勤及工资记录，物流事项准备提单、交接记录和货物照片。'
-  return [
-    { title: '内容概览', text: excerpt },
-    { title: '资料准备', text: checklist },
-    { title: '沟通与服务流程', text: '按时间顺序汇总事实，标注尚待确认的信息与希望解决的问题。可通过本页对应的公众号了解资讯，或添加咨询号提交初步情况，由团队结合具体材料进一步沟通。' },
-    { title: '演示说明', text: `本篇“${title}”用于展示${section.title}栏目与阅读流程，不对应真实案例实绩，不构成针对具体事项的法律意见。正式文章及案例将在运营资料确认后替换。` }
-  ]
+function aliases(from: string, to: string): ContentArticle[] {
+  const category = contentSections.find(section => section.path === to)!.title
+  return legacyArticles.filter(article => article.sectionPath === from).map(article => ({
+    ...article, id: `${article.id}-${to}`, sectionPath: to, category,
+    href: `${to}/legacy-${article.source.articleId}`
+  }))
 }
 
-const existing: ContentArticle[] = mockArticles.map(article => {
-  const sectionPath = article.category === '劳动法案例' ? '/faq/labor' : '/tro/news'
-  const section = contentSections.find(item => item.path === sectionPath)!
-  const relatedCases = section.group === 'tro' ? mockCases.filter(item => article.excerpt.includes(item.caseNumber)).slice(0, 2) : []
-  return { ...article, relatedCaseSlugs: relatedCases.map(item => item.slug), sectionPath, body: articleBody(section, article.title, article.excerpt), keywords: [article.title, article.excerpt, ...relatedCases.map(item => `${item.caseNumber} ${item.plaintiffBrand} ${item.lawFirm}`)].join(' ') }
-})
-
-const demoArticles: ContentArticle[] = [
-  ...existing,
-  ...contentSections.flatMap(section => section.topics.map((topic, index) => {
-    const title = topic.startsWith('【演示】') ? topic : `【演示】${topic}`
-    const excerpt = `${section.description}本篇展示“${topic.replace('【演示】', '')}”的资料准备与服务流程。`
-    return { relatedCaseSlugs: [], id: `${section.path}-${index}`, category: section.title, title, excerpt, publishedAt: index === 0 ? '2026-10-07' : '2026-10-06', isFeatured: index === 0, href: `${section.path}/demo-${index + 1}`, imageSrc: null, imageAlt: '', sectionPath: section.path, body: articleBody(section, title, excerpt), keywords: `${title} ${excerpt} ` }
-  }))
-]
-
-const replacedSections = ['/tro/alerts', '/tro/news', '/tro/success-cases', '/domestic/labor-disputes', '/faq/labor']
 export const contentArticles: ContentArticle[] = [
-  ...demoArticles.filter(item => !replacedSections.includes(item.sectionPath)),
   ...legacyArticles,
-  ...legacyArticles.filter(item => item.sectionPath === '/tro/alerts').map(item => ({ ...item, id: item.id + '-news', sectionPath: '/tro/news', href: `/tro/news/legacy-${item.source.articleId}` })),
-  ...legacyArticles.filter(item => item.sectionPath === '/domestic/labor-disputes').map(item => ({ ...item, id: item.id + '-faq', sectionPath: '/faq/labor', href: `/faq/labor/legacy-${item.source.articleId}` }))
+  ...aliases('/tro/alerts', '/tro/news'),
+  ...aliases('/domestic/labor-disputes', '/faq/labor'),
+  ...aliases('/tro/guides', '/faq/tro'),
+  ...legacyArticles.filter(article => article.source.articleId === 290 || article.source.articleId === 8).map(article => ({
+    ...article, id: article.id + '-cross-border', sectionPath: '/faq/cross-border', category: '跨境干货',
+    href: `/faq/cross-border/legacy-${article.source.articleId}`
+  }))
 ]
 for (const article of contentArticles) {
   const body = findArticleContent(article.source?.articleId)
@@ -65,6 +48,7 @@ for (const article of contentArticles) {
   }
 }
 for (const section of contentSections) {
-  if (replacedSections.includes(section.path)) section.description = '精选大信旧站数据库中的历史资料，保留原始发布日期和来源。'
+  section.description = contentArticles.some(article => article.sectionPath === section.path) ? '精选大信旧站数据库中的历史资料，保留原始发布日期、原文排版与配图。' : section.path === '/about/lectures' ? '企业宣讲照片已展示于关于我们页面，详细宣讲文章待补充。' : '旧站数据库暂未找到对应专题文章，资料整理后补充。'
 }
 export const contentRoutes = [...contentSections.map(item => item.path), ...contentArticles.map(item => item.href)]
+

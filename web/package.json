@@ -14,7 +14,7 @@
     "postinstall": "nuxt prepare",
     "smoke": "node scripts/smoke-check.mjs",
     "typecheck": "nuxt typecheck",
-    "test": "node --test scripts/content-utils.test.mjs",
+    "test": "node --test scripts/*.test.mjs",
     "check:static": "node scripts/static-check.mjs",
     "check:browser": "node scripts/browser-check.mjs"
   },
@@ -28,3 +28,4 @@
     "vue-tsc": "3.3.11"
   }
 }
+
