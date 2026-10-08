@@ -22,7 +22,7 @@ const emit = defineEmits<{
 <template>
   <div class="case-table__wrapper">
     <table class="case-table">
-      <caption class="visually-hidden">TRO 案件查询结果（Mock 演示数据）</caption>
+      <caption class="visually-hidden">TRO 历史案件查询结果</caption>
       <thead>
         <tr>
           <th scope="col">案件号</th>

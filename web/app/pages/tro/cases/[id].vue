@@ -27,8 +27,8 @@ const relatedCases = mockCases
 
 useSeoMeta({
   title: `${record.plaintiffBrand} - TRO 案件详情`,
-  description: `${record.caseNumber}：${record.summary}（本地 Mock 演示数据，非真实案件）`,
-  ogTitle: `${record.plaintiffBrand} - TRO 案件详情（Mock）`,
+  description: `${record.caseNumber}：${record.summary}（旧站历史资料）`,
+  ogTitle: `${record.plaintiffBrand} - TRO 案件详情`,
   ogDescription: record.summary
 })
 </script>
@@ -41,7 +41,7 @@ useSeoMeta({
       </nav>
 
       <p class="case-detail__notice" role="note">
-        {{ MOCK_DATA_NOTICE }}本页面案件信息均为虚构演示数据。
+        {{ MOCK_DATA_NOTICE }}
       </p>
 
       <header class="case-detail__head">
@@ -64,7 +64,7 @@ useSeoMeta({
           <dd><NuxtLink :to="`/law-firms/${entitySlug(record.lawFirm)}`">{{ record.lawFirm }}</NuxtLink></dd>
         </div>
         <div>
-          <dt>原告品牌</dt><dd><NuxtLink :to="`/brands/${entitySlug(record.plaintiffBrand)}`">{{ record.plaintiffBrand }} · 历史发案</NuxtLink></dd></div><div><dt>起诉州</dt>
+          <dt>品牌 / 权利主体</dt><dd><NuxtLink :to="`/brands/${entitySlug(record.plaintiffBrand)}`">{{ record.plaintiffBrand }} · 历史发案</NuxtLink></dd></div><div><dt>起诉州</dt>
           <dd>{{ record.state }}</dd>
         </div>
         <div>
@@ -76,6 +76,13 @@ useSeoMeta({
           <dd>{{ record.status }}</dd>
         </div>
       </dl>
+
+      <section v-if="record.source" class="case-detail__section" aria-label="资料来源">
+        <SectionHeading :level="2" title="资料来源" />
+        <p v-if="record.plaintiffName" class="case-detail__summary">原告：{{ record.plaintiffName }}</p>
+        <p class="case-detail__summary">旧站文章《{{ record.source.title }}》 · 发布于 {{ record.source.publishedAt }} · 记录 {{ record.source.articleId }}</p>
+        <NuxtLink :to="`${record.tags.includes('成功案例') ? '/tro/success-cases' : '/tro/alerts'}/legacy-${record.source.articleId}`">阅读来源文章 →</NuxtLink>
+      </section>
 
       <section class="case-detail__section" aria-label="案件摘要">
         <SectionHeading :level="2" title="案件摘要" />
@@ -90,7 +97,7 @@ useSeoMeta({
         class="case-detail__section"
         aria-label="相关案件"
       >
-        <SectionHeading :level="2" title="同类型相关案件（Mock）" />
+        <SectionHeading :level="2" title="同类型相关案件" />
         <ul class="case-detail__related">
           <li v-for="item in relatedCases" :key="item.id">
             <NuxtLink :to="`/tro/cases/${item.slug}`">

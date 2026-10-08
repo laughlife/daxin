@@ -32,10 +32,10 @@ function onFilterByFirm(firm: string) {
 useSeoMeta({
   title: 'TRO 案件查询',
   description:
-    'TRO 案件查询演示页：支持按案件号、品牌名、代理律所搜索，并按案件类型与起诉州筛选。当前为本地 Mock 数据，尚未连接真实案件数据库。',
+    'TRO 历史案件查询：支持按案件号、品牌名、代理律所搜索，并按案件类型与起诉州筛选。资料整理自大信旧站数据库。',
   ogTitle: 'TRO 案件查询 - 大信法务',
   ogDescription:
-    '按案件号、品牌、律所与起诉州检索 TRO 案件动态（当前为本地 Mock 演示数据）。'
+    '按案件号、品牌、律所与起诉州检索 TRO 案件动态（大信旧站历史资料）。'
 })
 </script>
 
@@ -48,7 +48,7 @@ useSeoMeta({
           description="检索 TRO 案件的立案信息、原告品牌、代理律所与案件进展，帮助卖家快速评估风险。"
         />
         <p class="cases-page__notice" role="note">
-          {{ MOCK_DATA_NOTICE }}案件号、品牌与律所均为虚构演示数据。
+          {{ MOCK_DATA_NOTICE }}
         </p>
       </header>
 

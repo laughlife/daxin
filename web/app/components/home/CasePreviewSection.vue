@@ -10,6 +10,7 @@ const { today, isRecent } = useContentDate()
 const recentCases = computed(() =>
   mockCases.filter(item => isRecent(item.filedAt)).sort((a,b) => b.filedAt.localeCompare(a.filedAt)).slice(0, 6)
 )
+const visibleCases = computed(() => recentCases.value.length ? recentCases.value : [...mockCases].sort((a,b) => b.filedAt.localeCompare(a.filedAt)).slice(0,6))
 </script>
 
 <template>
@@ -17,8 +18,8 @@ const recentCases = computed(() =>
     <PageContainer>
       <div class="case-preview-section__head">
         <SectionHeading
-          title="近三天 TRO 案件与进展"
-          :description="`北京时间 ${today} 及前两天的立案动态`"
+          :title="recentCases.length ? '近三天 TRO 案件与进展' : '精选历史 TRO 案件'"
+          :description="recentCases.length ? `北京时间 ${today} 及前两天的立案动态` : '从大信旧站资料中精选，按原始立案日期排序。'"
         />
         <NuxtLink to="/tro/cases" class="case-preview-section__all">
           进入 TRO 案件查询
@@ -26,12 +27,12 @@ const recentCases = computed(() =>
         </NuxtLink>
       </div>
       <p class="case-preview-section__notice" role="note">
-        {{ MOCK_DATA_NOTICE }}以下案件号、品牌与律所均为虚构演示数据。
+        {{ MOCK_DATA_NOTICE }}
       </p>
       <p v-if="!recentCases.length" class="case-preview-section__notice" role="status">近三天暂无案件记录，可进入案件查询查看历史资料。</p>
       <div class="case-preview-section__grid">
         <CasePreviewCard
-          v-for="record in recentCases"
+          v-for="record in visibleCases"
           :key="record.id"
           :record="record"
         />

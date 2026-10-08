@@ -62,7 +62,7 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
           id="case-search-firm"
           v-model="filters.lawFirm"
           type="search"
-          placeholder="如 演示律所 Alpha"
+          placeholder="如 Keith 或 GBC"
           autocomplete="off"
         >
       </div>

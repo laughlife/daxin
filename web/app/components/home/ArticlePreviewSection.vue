@@ -1,9 +1,14 @@
 <script setup lang="ts">
 import { contentArticles } from '~/data/mock/catalog'
 const { today, isRecent } = useContentDate()
+function previewArticles(path: string) {
+  const all = contentArticles.filter(item => item.sectionPath === path).sort((a,b) => b.publishedAt.localeCompare(a.publishedAt))
+  const recent = all.filter(item => isRecent(item.publishedAt))
+  return (recent.length ? recent : all).slice(0,3)
+}
 const columns = computed(() => [
-  { id: 'tro', title: 'TRO 案例预警', moreLabel: '更多 TRO 文章', moreHref: '/tro/alerts', articles: contentArticles.filter(item => item.sectionPath === '/tro/alerts' && isRecent(item.publishedAt)).sort((a,b) => b.publishedAt.localeCompare(a.publishedAt)).slice(0,3) },
-  { id: 'labor', title: '劳动法案例分享', moreLabel: '更多劳动法文章', moreHref: '/domestic/labor-disputes', articles: contentArticles.filter(item => item.sectionPath === '/domestic/labor-disputes' && isRecent(item.publishedAt)).sort((a,b) => b.publishedAt.localeCompare(a.publishedAt)).slice(0,3) }
+  { id: 'tro', title: 'TRO 案例预警', moreLabel: '更多 TRO 文章', moreHref: '/tro/alerts', articles: previewArticles('/tro/alerts') },
+  { id: 'labor', title: '劳动法案例分享', moreLabel: '更多劳动法文章', moreHref: '/domestic/labor-disputes', articles: previewArticles('/domestic/labor-disputes') }
 ])
 </script>
 
@@ -13,7 +18,7 @@ const columns = computed(() => [
       <SectionHeading
         align="center"
         title="TRO 与劳动法案例分享"
-        :description="`按北京时间 ${today} 及前两天筛选，以下为静态演示内容。`"
+        description="精选大信旧站历史文章，保留原始发布日期；有近三天更新时优先展示。"
       />
       <div class="article-preview-section__columns">
         <div
