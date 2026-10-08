@@ -1,16 +1,17 @@
 import type { CaseRecord, CaseType } from '../../types/content'
 import legacyCases from '../legacy/cases.json'
+import recentCases from './recent-cases.json'
 
 export const CASE_TYPE_LABELS: Record<CaseType, string> = {
   trademark: '商标', patent: '专利', copyright: '版权'
 }
-export const MOCK_DATA_NOTICE = '资料摘自大信旧站数据库，保留原始立案日期；当前为本地静态资料，未实时同步法院进展。'
+export const MOCK_DATA_NOTICE = '历史资料摘自大信旧站数据库，保留原始立案日期；另含明确标注的近三天演示数据，不代表真实发案。当前未实时同步法院进展。'
 /** 保留既有导出名称，数据已替换为旧库人工整理记录。 */
-export const mockCases: CaseRecord[] = legacyCases.map(seed => ({
+export const mockCases: CaseRecord[] = [...legacyCases, ...recentCases].map(seed => ({
   ...seed,
   caseType: seed.caseType as CaseType,
-  caseTypes: (seed.caseTypes ?? [seed.caseType]) as CaseType[],
-  category: (seed.caseTypes ?? [seed.caseType]).map(type => CASE_TYPE_LABELS[type as CaseType]).join(' / ') + '侵权',
+  caseTypes: ('caseTypes' in seed ? seed.caseTypes : [seed.caseType]) as CaseType[],
+  category: (('caseTypes' in seed ? seed.caseTypes : [seed.caseType]) as CaseType[]).map(type => CASE_TYPE_LABELS[type]).join(' / ') + '侵权',
   slug: seed.caseNumber.toLowerCase()
 }))
 export function findMockCaseById(id: string): CaseRecord | undefined {
