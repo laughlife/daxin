@@ -26,3 +26,7 @@ Thumbs.db
 # Local MCP runtime
 /tools/mysql-mcp/.venv/
 **/__pycache__/
+
+# Local legacy-site preview runtime
+/tmp/legacy-php/
+/tmp/legacy-preview/
