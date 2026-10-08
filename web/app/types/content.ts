@@ -59,6 +59,9 @@ export interface CaseRecord {
   state: string
   /** 案件类型 */
   caseType: CaseType
+  caseTypes?: CaseType[]
+  plaintiffName?: string
+  source?: { articleId: number; title: string; publishedAt: string; table: string; excerpt: string }
   /** 展示分类，如 “商标侵权” */
   category: string
   /** 案件状态（演示值） */
