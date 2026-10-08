@@ -22,3 +22,7 @@
 Thumbs.db
 .idea/
 .vscode/
+
+# Local MCP runtime
+/tools/mysql-mcp/.venv/
+**/__pycache__/
