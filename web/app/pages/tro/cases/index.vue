@@ -5,9 +5,9 @@ const { today } = useContentDate()
 const recentFrom = computed(() => { const date = new Date(`${today.value}T00:00:00Z`); date.setUTCDate(date.getUTCDate() - 2); return date.toISOString().slice(0, 10) })
 
 /**
- * TRO 案件查询页（MVP，本地 Mock 版本）。
+ * TRO 案件查询页。
  * 搜索 / 筛选 / 分页逻辑全部在 useMockCaseSearch 中，页面不做业务计算；
- * 查询状态同步到 URL query，刷新后可恢复；不调用任何后端接口。
+ * 查询状态同步到 URL query，刷新后可恢复。
  */
 const {
   filters,
@@ -32,10 +32,10 @@ function onFilterByFirm(firm: string) {
 useSeoMeta({
   title: 'TRO 案件查询',
   description:
-    'TRO 历史案件查询：支持按案件号、品牌名、代理律所搜索，并按案件类型与起诉州筛选。资料整理自大信旧站数据库。',
+    'TRO 历史案件查询：支持按案件号、品牌名、代理律所搜索，并按案件类型与起诉州筛选。',
   ogTitle: 'TRO 案件查询 - 大信法务',
   ogDescription:
-    '按案件号、品牌、律所与起诉州检索 TRO 案件动态（大信旧站历史资料）。'
+    '按案件号、品牌、律所与起诉州检索 TRO 案件动态。'
 })
 </script>
 

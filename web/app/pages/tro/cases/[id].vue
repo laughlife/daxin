@@ -5,8 +5,8 @@ import { findArticleContent } from '~/repositories/articleContent'
 import { CASE_TYPE_LABELS, MOCK_DATA_NOTICE, findMockCaseById, mockCases } from '~/data/mock/cases'
 
 /**
- * TRO 案件详情页（本地 Mock 版本）。
- * 按 slug / id 查找 Mock 案件，未命中时返回 404；
+ * TRO 案件详情页。
+ * 按 slug / id 查找案件记录，未命中时返回 404；
  * 所有预渲染路径由 nuxt.config 的 nitro.prerender.routes 提供。
  */
 const route = useRoute()
@@ -22,14 +22,14 @@ if (!record) {
   })
 }
 
-/** 同类型相关案件（演示“相关案件”入口，排除自身） */
+/** 同类型相关案件（“相关案件”入口，排除自身） */
 const relatedCases = mockCases
   .filter(item => item.caseType === record.caseType && item.id !== record.id)
   .slice(0, 3)
 
 useSeoMeta({
   title: `${record.plaintiffBrand} - TRO 案件详情`,
-  description: `${record.caseNumber}：${record.summary}（旧站历史资料）`,
+  description: `${record.caseNumber}：${record.summary}`,
   ogTitle: `${record.plaintiffBrand} - TRO 案件详情`,
   ogDescription: record.summary
 })
@@ -82,7 +82,7 @@ useSeoMeta({
       <section v-if="record.source" class="case-detail__section" aria-label="资料来源">
         <SectionHeading :level="2" title="资料来源" />
         <p v-if="record.plaintiffName" class="case-detail__summary">原告：{{ record.plaintiffName }}</p>
-        <p class="case-detail__summary">旧站文章《{{ record.source.title }}》 · 发布于 {{ record.source.publishedAt }} · 记录 {{ record.source.articleId }}</p>
+        <p class="case-detail__summary">《{{ record.source.title }}》 · 发布于 {{ record.source.publishedAt }} · 记录 {{ record.source.articleId }}</p>
         <NuxtLink :to="`${record.tags.includes('成功案例') ? '/tro/success-cases' : '/tro/alerts'}/legacy-${record.source.articleId}`">阅读来源文章 →</NuxtLink>
       </section>
 
@@ -99,7 +99,7 @@ useSeoMeta({
         class="case-detail__section"
         aria-label="来源文章原文"
       >
-        <SectionHeading :level="2" title="来源文章原文与配图" description="保留旧站原文排版与图片；同一篇报道可能包含多起案件。" />
+        <SectionHeading :level="2" title="来源文章原文与配图" description="保留文章原有排版与图片；同一篇报道可能包含多起案件。" />
         <RichArticleBody :content="originalContent" />
       </section>
 

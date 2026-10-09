@@ -8,7 +8,7 @@ import type { CaseRecord } from '~/types/content'
  * 案件结果表格（桌面端）。
  * - 原告品牌为详情链接入口；
  * - 代理律所为“按此律所筛选”按钮入口（律所落地页未实现，点击即应用筛选）；
- * - isRecent 行显示“近 3 天更新”徽标（固定 Mock 标记）。
+ * - isRecent 行显示“近 3 天更新”徽标（固定标记）。
  */
 defineProps<{
   records: CaseRecord[]
