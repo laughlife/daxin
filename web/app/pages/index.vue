@@ -5,8 +5,8 @@ import { siteConfig } from '~/config/site'
 
 /**
  * 官网首页第一版（Task 3）。
- * 内容来自需求文档初稿与本地 Mock 数据（web/app/data/mock/），
- * 未连接任何后端；正式素材（Logo、图片、合作伙伴）待提供。
+ * 页面内容经由数据仓库层读取，组件不直接访问数据源；
+ * 正式素材（Logo、图片、合作伙伴）待提供。
  */
 const contactModalOpen = ref(false)
 const contactGroup = ref<'tro' | 'labor'>('tro')
@@ -23,7 +23,7 @@ function closeContactModal() {
 useSeoMeta({
   title: '跨境有我，法律无忧',
   description:
-    '大信法务团队成立于 2019 年，为跨境电商企业、品牌卖家及供应链伙伴提供 TRO 知识产权、CPSC 召回、劳动合规、合同风控等全链路、跨法域法律服务。当前版本部分内容使用 Mock 演示数据。',
+    '大信法务团队成立于 2019 年，为跨境电商企业、品牌卖家及供应链伙伴提供 TRO 知识产权、CPSC 召回、劳动合规、合同风控等全链路、跨法域法律服务。',
   ogTitle: '大信法务 - 跨境有我，法律无忧',
   ogDescription:
     '专注于为跨境电商企业、品牌卖家及供应链伙伴提供全链路、跨法域、高实效的法律顾问服务。'

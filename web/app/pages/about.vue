@@ -98,7 +98,7 @@ useSeoMeta({
       </section>
 
       <section class="about-page__section" aria-label="成功案例">
-        <SectionHeading title="TRO 成功案例" description="精选旧站已发布的成功案例，结果与金额按历史原文记录展示。" />
+        <SectionHeading title="TRO 成功案例" description="精选成功案例，结果与金额按记录展示。" />
         <ArticleList :articles="successArticles" />
         <NuxtLink class="about-page__more" to="/tro/success-cases">查看全部成功案例 →</NuxtLink>
       </section>
