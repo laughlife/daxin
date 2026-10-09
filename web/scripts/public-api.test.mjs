@@ -26,11 +26,26 @@ import {
   toSafeNumericIds,
 } from '../server/utils/public/query.ts'
 import {
+  CASE_TYPE_LABELS,
+  caseTypeLabel,
   beijingDateOnly,
   isRecentFiledAt,
   mapCaseRecord,
   toDateOnly,
 } from '../server/utils/public/case-mapper.ts'
+
+test('caseTypeLabel：未标注类型显示“待确认类型”，绝不显示具体类型', () => {
+  assert.equal(caseTypeLabel('trademark'), '商标')
+  assert.equal(caseTypeLabel('patent'), '专利')
+  assert.equal(caseTypeLabel('copyright'), '版权')
+  // 库中 unknown（待确认类型）与空值都必须显示为待确认
+  assert.equal(caseTypeLabel('unknown'), '待确认类型')
+  assert.equal(caseTypeLabel(''), '待确认类型')
+  assert.equal(caseTypeLabel(undefined), '待确认类型')
+  assert.equal(caseTypeLabel(null), '待确认类型')
+  assert.equal(caseTypeLabel('Trademark'), '商标', '大小写不敏感')
+  assert.notEqual(caseTypeLabel('unknown'), '商标')
+})
 
 test('页码夹取：0、负数、非整数与非法值都回落到合法页码', () => {
   assert.equal(normalizePage(0), 1)
@@ -239,8 +254,10 @@ test('映射：没有任何关联数据时仍产出合法 CaseRecord，并用空
   assert.equal(record.state, '')
   assert.equal(record.caseTypes.length, 0)
   assert.deepEqual(record.caseTypes, [])
-  // case_ip_types 为空时的回退值；caseTypes 保持真实的空数组，不补齐
-  assert.equal(record.caseType, 'trademark')
+  // 未确认侵权类型时必须回退为空串，绝不能回退成某个具体类型（例如 trademark）：
+  // 否则前台会把“未标注”显示成“商标”。界面统一用 caseTypeLabel() 显示“待确认类型”。
+  assert.equal(record.caseType, '')
+  assert.equal(CASE_TYPE_LABELS[record.caseType], undefined, '空 caseType 不应对应任何具体类型标签')
   assert.equal(record.category, '')
   // cases.status 属内部状态，不对外暴露
   assert.equal(record.status, '')

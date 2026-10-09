@@ -148,9 +148,10 @@ function mapSource(source: CaseSourceInput | null | undefined): CaseRecord['sour
  * - `status`：cases.status 属内部流转状态（契约要求不对外暴露），固定返回空串；
  * - `tags`：没有标签表，固定返回空数组；
  * - `caseType`：先取 ip_types.slug（数据库中有 trademark / copyright / patent / unknown）；
- *   当前 case_ip_types 关联表为空（0 行），所以所有行都会走到回退分支。回退值取 'trademark'，
- *   同时 caseTypes 保持为真实派生结果（空数组），不做补齐，避免把“未标注”伪装成“商标”。
- *   若后续导入补齐了关联，caseType 会自动使用第一个真实类型。
+ *   当前 case_ip_types 全部回填为 unknown（待确认类型），因此所有行都会走到回退分支。
+ *   回退值是**空串**，不是 'trademark'——未标注的案件绝不能显示成某个具体类型。
+ *   界面用 caseTypeLabel() 把它显示为“待确认类型”；等后台核验补齐真实类型后，
+ *   caseType 会自动取到第一个真实类型。
  * - `category`：由 caseTypes 的中文标签拼接，无类型数据时返回空串，
  *   而不是拼出没有信息量的“侵权”。
  */
@@ -168,7 +169,10 @@ export function mapCaseRecord(row: CaseRowInput, relations: CaseRelationsInput =
     lawFirm: normalizeText(relations.lawFirmNames?.[0]),
     plaintiffBrand: normalizeText(relations.brandNames?.[0]),
     state: '',
-    caseType: caseTypes[0] ?? 'trademark',
+    // 没有已确认的侵权类型时返回空串，绝不回退成某个具体类型：
+    // 界面统一用 caseTypeLabel() 显示“待确认类型”，而接口层保持“未知即空”的语义，
+    // 避免其他消费方把未标注当成真实结论。
+    caseType: caseTypes[0] ?? '',
     caseTypes,
     plaintiffName: normalizeText(row.plaintiff),
     source: mapSource(relations.source),
