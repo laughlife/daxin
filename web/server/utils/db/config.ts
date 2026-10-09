@@ -32,27 +32,59 @@ const port = (env: Environment, key: string): number => {
   return value
 }
 
-const connection = (env: Environment, prefix: 'DB' | 'LEGACY_DB'): ConnectionConfig => ({
-  host: required(env, `${prefix}_HOST`),
-  port: port(env, `${prefix}_PORT`),
-  user: required(env, `${prefix}_USER`),
-  password: required(env, `${prefix}_PASSWORD`),
-  database: required(env, `${prefix}_NAME`),
-  charset: env[`${prefix}_CHARSET`]?.trim() || 'utf8mb4',
-  connectionLimit: Number(env[`${prefix}_POOL_SIZE`] || '10'),
-})
-
-export function getDbConfig(env: Environment = ((globalThis as { process?: { env?: Environment } }).process?.env || {})) : DbConfig {
-  const target = connection(env, 'DB')
-  const legacy = connection(env, 'LEGACY_DB')
-  if (env.NODE_ENV === 'production' && target.user.toLowerCase() === 'root') {
+const connection = (env: Environment, prefix: 'DB' | 'LEGACY_DB'): ConnectionConfig => {
+  const config: ConnectionConfig = {
+    host: required(env, `${prefix}_HOST`),
+    port: port(env, `${prefix}_PORT`),
+    user: required(env, `${prefix}_USER`),
+    password: required(env, `${prefix}_PASSWORD`),
+    database: required(env, `${prefix}_NAME`),
+    charset: env[`${prefix}_CHARSET`]?.trim() || 'utf8mb4',
+    connectionLimit: Number(env[`${prefix}_POOL_SIZE`] || '10'),
+  }
+  if (env.NODE_ENV === 'production' && config.user.toLowerCase() === 'root') {
     throw new Error('生产环境禁止使用 root 数据库账号')
   }
+  return config
+}
+
+/** 目标业务库配置；业务读写只需要这一个。 */
+export function getTargetDbConfig(
+  env: Environment = ((globalThis as { process?: { env?: Environment } }).process?.env || {}),
+): ConnectionConfig {
+  return connection(env, 'DB')
+}
+
+/**
+ * 旧库配置；只在迁移或只读核查时使用。
+ * 单独暴露是因为旧库连接并非运行时必需：未配置 LEGACY_DB_* 时，
+ * 网站与后台仍应能正常访问目标库，而不是在启动或首次查询时整体失败。
+ */
+export function getLegacyDbConfig(
+  env: Environment = ((globalThis as { process?: { env?: Environment } }).process?.env || {}),
+): ConnectionConfig {
+  return connection(env, 'LEGACY_DB')
+}
+
+export function getDbConfig(
+  env: Environment = ((globalThis as { process?: { env?: Environment } }).process?.env || {}),
+): DbConfig {
+  const target = getTargetDbConfig(env)
+  // 旧库配置延迟到真正读取时才校验，避免未配置旧库时阻断业务库访问。
+  let legacyCache: ConnectionConfig | undefined
   return {
     targetName: target.database,
-    legacyName: legacy.database,
+    get legacyName(): string {
+      try {
+        return (legacyCache ??= getLegacyDbConfig(env)).database
+      } catch {
+        return ''
+      }
+    },
     target,
-    legacy,
+    get legacy(): ConnectionConfig {
+      return (legacyCache ??= getLegacyDbConfig(env))
+    },
   }
 }
 

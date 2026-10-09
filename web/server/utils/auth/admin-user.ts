@@ -38,7 +38,8 @@ type AdminRow = {
 }
 
 // 列清单为模块内常量，不拼接任何用户输入。
-const PUBLIC_COLUMNS = 'u.id, u.username, u.display_name, u.email, u.status'
+// 必须显式选出 r.code AS role_code：连接后一行一个角色，collectRoles 依赖这个别名。
+const PUBLIC_COLUMNS = 'u.id, u.username, u.display_name, u.email, u.status, r.code AS role_code'
 const CREDENTIAL_COLUMNS = `${PUBLIC_COLUMNS}, u.password_hash, u.password_algo, u.failed_login_count, u.locked_until`
 const ADMIN_JOINS = `FROM admin_users u
   LEFT JOIN admin_user_roles ur ON ur.user_id = u.id
