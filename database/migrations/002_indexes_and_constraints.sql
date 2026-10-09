@@ -40,9 +40,11 @@ CREATE INDEX idx_migration_review_source ON migration_review_items (legacy_sourc
 -- @end-if-index-missing
 
 -- 结构自检视图：迁移前后人工抽查每个业务表的列数与索引数。
+-- 不使用 database()，这样在任何库里都能查询；由调用方加 WHERE 过滤库名。
 -- CREATE OR REPLACE VIEW 自身即可重复执行。
 CREATE OR REPLACE VIEW v_schema_overview AS
 SELECT
+  t.TABLE_SCHEMA AS table_schema,
   t.TABLE_NAME AS table_name,
   COUNT(DISTINCT c.COLUMN_NAME) AS column_count,
   COUNT(DISTINCT s.INDEX_NAME) AS index_count
@@ -51,7 +53,6 @@ LEFT JOIN information_schema.COLUMNS c
   ON c.TABLE_SCHEMA = t.TABLE_SCHEMA AND c.TABLE_NAME = t.TABLE_NAME
 LEFT JOIN information_schema.STATISTICS s
   ON s.TABLE_SCHEMA = t.TABLE_SCHEMA AND s.TABLE_NAME = t.TABLE_NAME
-WHERE t.TABLE_SCHEMA = DATABASE()
-  AND t.TABLE_TYPE = 'BASE TABLE'
+WHERE t.TABLE_TYPE = 'BASE TABLE'
   AND t.TABLE_NAME <> 'schema_migrations'
-GROUP BY t.TABLE_NAME;
+GROUP BY t.TABLE_SCHEMA, t.TABLE_NAME;

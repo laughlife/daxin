@@ -157,11 +157,12 @@ export function resolveMysqlConnection({ repoRoot = REPO_ROOT, env = process.env
     database: pick('DB_NAME') || 'daxin',
     password,
     loginPath: '',
+    auth: '',
   }
   // 有密码时直接用密码；没有密码时回退到 mysql_config_editor 保存的登录配置。
-  if (base.user && base.password) return base
+  if (base.user && base.password) return { ...base, auth: 'password' }
   const loginPath = findMysqlLoginPath(env)
-  if (loginPath) return { ...base, user: base.user || 'root', loginPath }
+  if (loginPath) return { ...base, user: base.user || 'root', loginPath, auth: 'login-path', password: '' }
   return null
 }
 
@@ -451,7 +452,7 @@ export function splitConditionalIndexBlocks(sql) {
  * 按文件名顺序执行迁移，并把已执行的版本写入 schema_migrations。
  * 每个文件在一条连接内执行；同一版本重复执行返回 skipped，不会重复写入台账。
  */
-export async function applyMigrations(connection, { dir = MIGRATIONS_DIR, database = connection.database } = {}) {
+export async function applyMigrations(connection, { dir = MIGRATIONS_DIR, database = connection.database, force = false } = {}) {
   const files = await loadMigrationFiles(dir)
   const applied = []
   const skipped = []
@@ -471,7 +472,7 @@ CREATE TABLE IF NOT EXISTS ${MIGRATION_LEDGER_TABLE} (
   for (const file of files) {
     const version = file.name.replace(/\.sql$/i, '')
     const checksum = createHash('sha256').update(file.content).digest('hex')
-    if (ledgerMap.has(version)) {
+    if (ledgerMap.has(version) && !force) {
       skipped.push({ version, checksumMatches: ledgerMap.get(version) === checksum })
       continue
     }
@@ -773,11 +774,12 @@ export function isTestDatabaseName(database) {
 }
 
 function parseCliArgs(argv) {
-  const options = { apply: false, drop: false, json: false, help: false, database: '' }
+  const options = { apply: false, drop: false, force: false, json: false, help: false, database: '' }
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     if (arg === '--apply') options.apply = true
     else if (arg === '--drop') options.drop = true
+    else if (arg === '--force') options.force = true
     else if (arg === '--json') options.json = true
     else if (arg === '--help' || arg === '-h') options.help = true
     else if (arg === '--database') options.database = argv[++index] ?? ''
@@ -792,6 +794,7 @@ const USAGE = `用法：node tools/migrate-legacy/schema-check.mjs [选项]
   --database <name>  指定要核对的数据库（默认读取 web/.env 的 DB_NAME）
   --apply            执行 database/migrations/*.sql 并写入 schema_migrations 台账
   --drop             执行 --apply 前删除目标测试库（仅允许 *_dev、*_test）
+  --force            忽略 schema_migrations 台账，重新执行全部迁移（DDL 必须幂等）
   --json             以 JSON 输出结果
   -h, --help         显示本帮助
 `
@@ -846,7 +849,7 @@ async function main() {
     if (isTestDatabaseName(database)) {
       await createTestDatabase(connection, database)
     }
-    const result = await applyMigrations(connection, { database })
+    const result = await applyMigrations(connection, { database, force: options.force })
     report.applied = result.applied
     report.skipped = result.skipped
     report.conditionalSkipped = result.conditionalSkipped
@@ -856,7 +859,7 @@ async function main() {
     report.live = await verifyLiveSchema(connection, { database })
   }
   if (connection) {
-    report.connection = { host: connection.host, port: connection.port, user: connection.user, database, auth: connection.loginPath ? 'login-path' : 'password' }
+    report.connection = { host: connection.host, port: connection.port, user: connection.user, database, auth: connection.auth }
   }
 
   const liveOk = !report.live
