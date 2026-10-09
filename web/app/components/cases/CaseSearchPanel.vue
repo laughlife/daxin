@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import type { CaseSearchFilters } from '~/composables/useMockCaseSearch'
-import { CASE_TYPE_LABELS } from '~/data/mock/cases'
+import type { CaseSearchFilters } from '~/composables/useCaseSearch'
+import { CASE_TYPE_LABELS } from '~/utils/caseTypeLabel'
 import type { CaseType } from '~/types/content'
 
 /**
- * TRO 案件查询面板：案件号 / 品牌名 / 代理律所搜索 + 案件类型 / 起诉州筛选。
- * 纯展示组件，搜索状态由 useMockCaseSearch 提供（filters 为 reactive 对象）。
+ * TRO 案件查询面板：关键词搜索 + 侵权类型 / 起诉时间筛选。
+ * 纯展示组件，搜索状态由 useCaseSearch 提供（filters 为 reactive 对象）。
+ * 起诉州没有对应数据，已从界面移除；案件类型筛选直接下发服务端真实类型字段。
  */
-defineProps<{
-  /** 来自 useMockCaseSearch 的 reactive 筛选状态 */
+const props = defineProps<{
+  /** 来自 useCaseSearch 的 reactive 筛选状态 */
   filters: CaseSearchFilters
-  /** 起诉州选项 */
-  stateOptions: string[]
   /** 是否有生效中的条件 */
   hasActiveFilters: boolean
 }>()
@@ -26,6 +25,10 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
   { value: 'patent', label: CASE_TYPE_LABELS.patent },
   { value: 'copyright', label: CASE_TYPE_LABELS.copyright }
 ]
+
+const invalidDateRange = computed(() =>
+  Boolean(props.filters.dateFrom && props.filters.dateTo && props.filters.dateFrom > props.filters.dateTo)
+)
 </script>
 
 <template>
@@ -36,38 +39,18 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
     @submit.prevent
   >
     <div class="case-search-panel__grid">
-      <div class="case-search-panel__field">
-        <label for="case-search-number">案件号</label>
+      <div class="case-search-panel__field case-search-panel__field--wide">
+        <label for="case-search-keyword">关键词</label>
         <input
-          id="case-search-number"
-          v-model="filters.caseNumber"
+          id="case-search-keyword"
+          v-model="filters.keyword"
           type="search"
-          placeholder="如 25-cv-00126"
+          placeholder="案件号、原告、品牌名或代理律所，如 25-cv-00126 / Keith"
           autocomplete="off"
         >
       </div>
       <div class="case-search-panel__field">
-        <label for="case-search-brand">品牌名</label>
-        <input
-          id="case-search-brand"
-          v-model="filters.plaintiffBrand"
-          type="search"
-          placeholder="如 Frisbee 或 Bug Art"
-          autocomplete="off"
-        >
-      </div>
-      <div class="case-search-panel__field">
-        <label for="case-search-firm">代理律所</label>
-        <input
-          id="case-search-firm"
-          v-model="filters.lawFirm"
-          type="search"
-          placeholder="如 Keith 或 GBC"
-          autocomplete="off"
-        >
-      </div>
-      <div class="case-search-panel__field">
-        <label for="case-search-type">案件类型</label>
+        <label for="case-search-type">侵权类型</label>
         <select id="case-search-type" v-model="filters.caseType">
           <option
             v-for="option in caseTypeOptions"
@@ -79,21 +62,18 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
         </select>
       </div>
       <div class="case-search-panel__field">
-        <label for="case-search-state">起诉州</label>
-        <select id="case-search-state" v-model="filters.state">
-          <option value="">全部州</option>
-          <option v-for="state in stateOptions" :key="state" :value="state">
-            {{ state }}
-          </option>
-        </select>
+        <label for="case-search-from">起诉时间从</label>
+        <input id="case-search-from" v-model="filters.dateFrom" type="date" :max="filters.dateTo || undefined">
       </div>
-      <div class="case-search-panel__field"><label for="case-search-from">立案日期从</label><input id="case-search-from" v-model="filters.dateFrom" type="date" :max="filters.dateTo || undefined"></div>
-      <div class="case-search-panel__field"><label for="case-search-to">立案日期至</label><input id="case-search-to" v-model="filters.dateTo" type="date" :min="filters.dateFrom || undefined"></div>
+      <div class="case-search-panel__field">
+        <label for="case-search-to">起诉时间至</label>
+        <input id="case-search-to" v-model="filters.dateTo" type="date" :min="filters.dateFrom || undefined">
+      </div>
     </div>
-    <p v-if="filters.dateFrom && filters.dateTo && filters.dateFrom > filters.dateTo" role="alert">开始日期不能晚于结束日期，请调整日期范围。</p>
+    <p v-if="invalidDateRange" role="alert">开始日期不能晚于结束日期，请调整日期范围。</p>
     <div class="case-search-panel__actions">
       <p class="case-search-panel__hint">
-        输入即时筛选，无需提交；查询状态会同步到 URL，刷新后可恢复。
+        输入即时筛选，无需提交；查询条件会同步到 URL，刷新后可恢复。
       </p>
       <button
         type="button"
@@ -127,6 +107,10 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
   flex-direction: column;
   gap: var(--space-1);
   min-width: 0;
+}
+
+.case-search-panel__field--wide {
+  grid-column: span 3;
 }
 
 .case-search-panel__field label {
@@ -184,6 +168,10 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
   .case-search-panel__grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .case-search-panel__field--wide {
+    grid-column: span 2;
+  }
 }
 
 @media (max-width: 639px) {
@@ -193,6 +181,10 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
 
   .case-search-panel__grid {
     grid-template-columns: 1fr;
+  }
+
+  .case-search-panel__field--wide {
+    grid-column: span 1;
   }
 }
 </style>

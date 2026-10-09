@@ -1,11 +1,12 @@
 <script setup lang="ts">
-const { isRecent } = useContentDate()
 import type { CaseRecord } from '~/types/content'
-import { CASE_TYPE_LABELS } from '~/data/mock/cases'
+import { caseTypeLabel } from '~/utils/caseTypeLabel'
+
+const { isRecent } = useContentDate()
 
 /**
  * 首页 TRO 案件预览卡片：展示案件的关键字段，
- * isRecent 显示“近 3 天更新”徽标（固定标记，不依赖系统时间）。
+ * isRecent 显示“近 3 天更新”徽标（由接口按北京时间计算）。
  * 点击整卡进入案件详情（/tro/cases/[id]）。
  */
 defineProps<{
@@ -17,30 +18,30 @@ defineProps<{
   <article class="case-preview-card">
     <div class="case-preview-card__head">
       <span class="case-preview-card__type">
-        {{ CASE_TYPE_LABELS[record.caseType] }}
+        {{ caseTypeLabel(record.caseType) }}
       </span>
       <span v-if="isRecent(record.filedAt)" class="case-preview-card__recent">近 3 天更新</span>
     </div>
     <h3 class="case-preview-card__brand">
-      <NuxtLink :to="`/tro/cases/${record.slug}`">{{ record.plaintiffBrand }}</NuxtLink>
+      <NuxtLink :to="`/tro/cases/${record.slug}`">{{ record.plaintiffBrand || record.caseNumber }}</NuxtLink>
     </h3>
     <p class="case-preview-card__summary">{{ record.summary }}</p>
     <dl class="case-preview-card__meta">
       <div>
         <dt>案件号</dt>
-        <dd>{{ record.caseNumber }}</dd>
+        <dd>{{ record.caseNumber || '—' }}</dd>
       </div>
       <div>
-        <dt>起诉州</dt>
-        <dd>{{ record.state }}</dd>
+        <dt>代理律所</dt>
+        <dd>{{ record.lawFirm || '—' }}</dd>
       </div>
       <div>
-        <dt>状态</dt>
-        <dd>{{ record.status }}</dd>
+        <dt>原告</dt>
+        <dd>{{ record.plaintiffName || '—' }}</dd>
       </div>
       <div>
-        <dt>立案日期</dt>
-        <dd>{{ record.filedAt }}</dd>
+        <dt>起诉时间</dt>
+        <dd>{{ record.filedAt || '—' }}</dd>
       </div>
     </dl>
     <NuxtLink :to="`/tro/cases/${record.slug}`" class="case-preview-card__more">

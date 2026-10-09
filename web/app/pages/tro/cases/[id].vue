@@ -1,20 +1,39 @@
 <script setup lang="ts">
+import { fetchCaseDetail, fetchCases } from '~/repositories/cases'
+import { caseTypeLabel } from '~/utils/caseTypeLabel'
+import { entityDirectoryHref } from '~/utils/content'
+import type { CaseRecord } from '~/types/content'
+
 const { isRecent } = useContentDate()
-import { entitySlug } from '~/utils/content'
-import { findArticleContent } from '~/repositories/articleContent'
-import { CASE_TYPE_LABELS, MOCK_DATA_NOTICE, findMockCaseById, mockCases } from '~/data/mock/cases'
 
 /**
  * TRO 案件详情页。
- * 按 slug / id 查找案件记录，未命中时返回 404；
- * 所有预渲染路径由 nuxt.config 的 nitro.prerender.routes 提供。
+ * 通过仓储 fetchCaseDetail(slug) 读取真实数据；未命中返回 404，接口失败展示错误状态。
+ * 相关案件取同一原告品牌的历史案件（服务端关键词覆盖品牌名）。
  */
 const route = useRoute()
+const slug = String(route.params.id ?? '')
 
-const record = findMockCaseById(String(route.params.id ?? ''))
-const originalContent = findArticleContent(record?.source?.articleId)
+const { data, error, refresh } = await useAsyncData(
+  () => `tro-case:${slug}`,
+  async () => {
+    const record = await fetchCaseDetail(slug)
+    if (!record) return null
+    let related: CaseRecord[] = []
+    if (record.plaintiffBrand) {
+      try {
+        const page = await fetchCases({ keyword: record.plaintiffBrand, pageSize: 4 })
+        related = page.items.filter(item => item.id !== record.id).slice(0, 3)
+      } catch {
+        // 相关案件属于附加信息，失败不影响详情展示。
+        related = []
+      }
+    }
+    return { record, related }
+  }
+)
 
-if (!record) {
+if (!data.value && !error.value) {
   throw createError({
     statusCode: 404,
     statusMessage: '案件不存在',
@@ -22,109 +41,122 @@ if (!record) {
   })
 }
 
-/** 同类型相关案件（“相关案件”入口，排除自身） */
-const relatedCases = mockCases
-  .filter(item => item.caseType === record.caseType && item.id !== record.id)
-  .slice(0, 3)
+const record = computed(() => data.value?.record ?? null)
+const relatedCases = computed(() => data.value?.related ?? [])
+const errorMessage = computed(() =>
+  error.value instanceof Error && error.value.message
+    ? error.value.message
+    : '案件详情加载失败，请稍后重试'
+)
 
 useSeoMeta({
-  title: `${record.plaintiffBrand} - TRO 案件详情`,
-  description: `${record.caseNumber}：${record.summary}`,
-  ogTitle: `${record.plaintiffBrand} - TRO 案件详情`,
-  ogDescription: record.summary
+  title: () => record.value ? `${record.value.plaintiffBrand || record.value.caseNumber} - TRO 案件详情` : 'TRO 案件详情',
+  description: () => record.value ? `${record.value.caseNumber}：${record.value.summary}` : 'TRO 案件详情',
+  ogTitle: () => record.value ? `${record.value.plaintiffBrand || record.value.caseNumber} - TRO 案件详情` : 'TRO 案件详情',
+  ogDescription: () => record.value?.summary ?? ''
 })
 </script>
 
 <template>
-  <div v-if="record" class="case-detail">
+  <div class="case-detail">
     <PageContainer><ContentColumns group="tro">
       <nav class="case-detail__breadcrumb" aria-label="面包屑">
         <NuxtLink to="/tro/cases">← 返回 TRO 案件查询</NuxtLink>
       </nav>
 
-      <p class="case-detail__notice" role="note">
-        {{ MOCK_DATA_NOTICE }}
-      </p>
+      <ErrorState
+        v-if="error"
+        title="案件详情加载失败"
+        :message="errorMessage"
+        @retry="refresh"
+      />
 
-      <header class="case-detail__head">
-        <div class="case-detail__badges">
-          <span class="case-detail__type">{{ CASE_TYPE_LABELS[record.caseType] }}</span>
-          <span v-if="isRecent(record.filedAt)" class="case-detail__recent">近 3 天更新</span>
-          <span class="case-detail__status">{{ record.status }}</span>
+      <template v-else-if="record">
+        <header class="case-detail__head">
+          <div class="case-detail__badges">
+            <span class="case-detail__type">{{ caseTypeLabel(record.caseType) }}</span>
+            <span v-if="isRecent(record.filedAt)" class="case-detail__recent">近 3 天更新</span>
+          </div>
+          <h1 class="case-detail__title">{{ record.plaintiffBrand || record.caseNumber }}</h1>
+          <p class="case-detail__number">案件号：{{ record.caseNumber || '—' }}</p>
+        </header>
+
+        <dl class="case-detail__facts">
+          <div>
+            <dt>起诉时间</dt>
+            <dd>{{ record.filedAt || '—' }}</dd>
+          </div>
+          <div>
+            <dt>代理律所</dt>
+            <dd>
+              <NuxtLink
+                v-if="record.lawFirm"
+                :to="entityDirectoryHref('firm', record.lawFirm)"
+              >
+                {{ record.lawFirm }}
+              </NuxtLink>
+              <span v-else>—</span>
+            </dd>
+          </div>
+          <div>
+            <dt>原告</dt>
+            <dd>{{ record.plaintiffName || '—' }}</dd>
+          </div>
+          <div>
+            <dt>涉案品牌</dt>
+            <dd>
+              <NuxtLink
+                v-if="record.plaintiffBrand"
+                :to="entityDirectoryHref('brand', record.plaintiffBrand)"
+              >
+                {{ record.plaintiffBrand }} · 历史发案
+              </NuxtLink>
+              <span v-else>—</span>
+            </dd>
+          </div>
+          <div>
+            <dt>侵权类型</dt>
+            <dd>{{ caseTypeLabel(record.caseType) }}</dd>
+          </div>
+        </dl>
+
+        <section v-if="record.source" class="case-detail__section" aria-label="资料来源">
+          <SectionHeading :level="2" title="资料来源" />
+          <p class="case-detail__summary">《{{ record.source.title }}》 · 发布于 {{ record.source.publishedAt || '—' }}</p>
+          <p v-if="record.source.excerpt" class="case-detail__summary">{{ record.source.excerpt }}</p>
+        </section>
+
+        <section v-if="record.summary" class="case-detail__section" aria-label="案件摘要">
+          <SectionHeading :level="2" title="案件摘要" />
+          <p class="case-detail__summary">{{ record.summary }}</p>
+          <ul v-if="record.tags.length" class="case-detail__tags">
+            <li v-for="tag in record.tags" :key="tag">{{ tag }}</li>
+          </ul>
+        </section>
+
+        <section
+          v-if="relatedCases.length"
+          class="case-detail__section"
+          aria-label="相关案件"
+        >
+          <SectionHeading :level="2" title="同品牌相关案件" />
+          <ul class="case-detail__related">
+            <li v-for="item in relatedCases" :key="item.id">
+              <NuxtLink :to="`/tro/cases/${item.slug}`">
+                {{ item.caseNumber }}
+                <span class="case-detail__related-meta">
+                  {{ item.filedAt }} · {{ caseTypeLabel(item.caseType) }}
+                </span>
+              </NuxtLink>
+            </li>
+          </ul>
+        </section>
+
+        <div class="case-detail__actions">
+          <BaseButton to="/tro/cases" variant="secondary">返回案件列表</BaseButton>
+          <BaseButton to="/" variant="ghost">回到首页</BaseButton>
         </div>
-        <h1 class="case-detail__title">{{ record.plaintiffBrand }}</h1>
-        <p class="case-detail__number">案件号：{{ record.caseNumber }}</p>
-      </header>
-
-      <dl class="case-detail__facts">
-        <div>
-          <dt>立案日期</dt>
-          <dd>{{ record.filedAt }}</dd>
-        </div>
-        <div>
-          <dt>代理律所</dt>
-          <dd><NuxtLink :to="`/law-firms/${entitySlug(record.lawFirm)}`">{{ record.lawFirm }}</NuxtLink></dd>
-        </div>
-        <div>
-          <dt>品牌 / 权利主体</dt><dd><NuxtLink :to="`/brands/${entitySlug(record.plaintiffBrand)}`">{{ record.plaintiffBrand }} · 历史发案</NuxtLink></dd></div><div><dt>起诉州</dt>
-          <dd>{{ record.state }}</dd>
-        </div>
-        <div>
-          <dt>案件类型</dt>
-          <dd>{{ record.category }}</dd>
-        </div>
-        <div>
-          <dt>案件状态</dt>
-          <dd>{{ record.status }}</dd>
-        </div>
-      </dl>
-
-      <section v-if="record.source" class="case-detail__section" aria-label="资料来源">
-        <SectionHeading :level="2" title="资料来源" />
-        <p v-if="record.plaintiffName" class="case-detail__summary">原告：{{ record.plaintiffName }}</p>
-        <p class="case-detail__summary">《{{ record.source.title }}》 · 发布于 {{ record.source.publishedAt }} · 记录 {{ record.source.articleId }}</p>
-        <NuxtLink :to="`${record.tags.includes('成功案例') ? '/tro/success-cases' : '/tro/alerts'}/legacy-${record.source.articleId}`">阅读来源文章 →</NuxtLink>
-      </section>
-
-      <section class="case-detail__section" aria-label="案件摘要">
-        <SectionHeading :level="2" title="案件摘要" />
-        <p class="case-detail__summary">{{ record.summary }}</p>
-        <ul class="case-detail__tags">
-          <li v-for="tag in record.tags" :key="tag">{{ tag }}</li>
-        </ul>
-      </section>
-
-      <section
-        v-if="originalContent"
-        class="case-detail__section"
-        aria-label="来源文章原文"
-      >
-        <SectionHeading :level="2" title="来源文章原文与配图" description="保留文章原有排版与图片；同一篇报道可能包含多起案件。" />
-        <RichArticleBody :content="originalContent" />
-      </section>
-
-      <section
-        v-if="relatedCases.length"
-        class="case-detail__section"
-        aria-label="相关案件"
-      >
-        <SectionHeading :level="2" title="同类型相关案件" />
-        <ul class="case-detail__related">
-          <li v-for="item in relatedCases" :key="item.id">
-            <NuxtLink :to="`/tro/cases/${item.slug}`">
-              {{ item.plaintiffBrand }}
-              <span class="case-detail__related-meta">
-                {{ item.caseNumber }} · {{ item.state }} · {{ item.status }}
-              </span>
-            </NuxtLink>
-          </li>
-        </ul>
-      </section>
-
-      <div class="case-detail__actions">
-        <BaseButton to="/tro/cases" variant="secondary">返回案件列表</BaseButton>
-        <BaseButton to="/" variant="ghost">回到首页</BaseButton>
-      </div>
+      </template>
     </ContentColumns></PageContainer>
   </div>
 </template>
@@ -139,15 +171,6 @@ useSeoMeta({
 .case-detail__breadcrumb {
   margin-bottom: var(--space-4);
   font-size: var(--text-sm);
-}
-
-.case-detail__notice {
-  margin-bottom: var(--space-4);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  background-color: color-mix(in srgb, var(--color-warning) 10%, transparent);
-  color: var(--color-warning);
-  font-size: var(--text-xs);
 }
 
 .case-detail__head {
@@ -182,14 +205,6 @@ useSeoMeta({
   color: var(--color-warning);
   font-size: var(--text-xs);
   font-weight: 600;
-}
-
-.case-detail__status {
-  padding: 2px var(--space-3);
-  border-radius: var(--radius-full);
-  background-color: var(--color-bg-light);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
 }
 
 .case-detail__title {

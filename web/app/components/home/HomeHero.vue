@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { homeHero } from '~/data/mock/home'
+import { homeHero } from '~/config/homeContent'
 
 /**
  * 首页 Hero 首屏。

@@ -57,8 +57,8 @@ export interface CaseRecord {
   plaintiffBrand: string
   /** 起诉州 */
   state: string
-  /** 案件类型 */
-  caseType: CaseType
+  /** 案件类型；没有已确认的侵权类型时为空串，界面统一显示“待确认类型” */
+  caseType: CaseType | ''
   caseTypes?: CaseType[]
   plaintiffName?: string
   source?: { articleId: number; title: string; publishedAt: string; table: string; excerpt: string }

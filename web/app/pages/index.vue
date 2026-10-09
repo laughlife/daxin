@@ -1,15 +1,28 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { homeHero, homeStats, teamIntro } from '~/data/mock/home'
+import { homeHero, homeStats, teamIntro } from '~/config/homeContent'
+import { fetchHomeData } from '~/repositories/home'
 import { siteConfig } from '~/config/site'
 
 /**
  * 官网首页第一版（Task 3）。
- * 页面内容经由数据仓库层读取，组件不直接访问数据源；
- * 正式素材（Logo、图片、合作伙伴）待提供。
+ * 首页文案来自 `~/config/homeContent`；成功案例与推荐阅读来自仓储 fetchHomeData()。
  */
 const contactModalOpen = ref(false)
 const contactGroup = ref<'tro' | 'labor'>('tro')
+
+const { data: homeData, error: homeError, refresh: refreshHome } = await useAsyncData(
+  'home-data',
+  () => fetchHomeData()
+)
+
+const featuredCases = computed(() => homeData.value?.featuredCases ?? [])
+const recentArticles = computed(() => homeData.value?.recentArticles ?? [])
+const homeErrorMessage = computed(() =>
+  homeError.value instanceof Error && homeError.value.message
+    ? homeError.value.message
+    : '首页数据加载失败，请稍后重试'
+)
 
 function openContactModal(group: 'tro' | 'labor' = 'tro') {
   contactGroup.value = group
@@ -97,7 +110,18 @@ useHead({
     </section>
 
     <BusinessSection />
-    <section class="home-content"><PageContainer><ContentColumns><CasePreviewSection /><ArticlePreviewSection /></ContentColumns></PageContainer></section>
+    <section class="home-content"><PageContainer><ContentColumns>
+      <ErrorState
+        v-if="homeError"
+        title="首页数据加载失败"
+        :message="homeErrorMessage"
+        @retry="refreshHome"
+      />
+      <template v-else>
+        <CasePreviewSection :cases="featuredCases" />
+        <ArticlePreviewSection :articles="recentArticles" />
+      </template>
+    </ContentColumns></PageContainer></section>
 
     <WechatQrModal :group="contactGroup" :open="contactModalOpen" @close="closeContactModal" />
   </div>

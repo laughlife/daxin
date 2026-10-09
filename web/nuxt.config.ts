@@ -1,9 +1,9 @@
 import { siteConfig } from './app/config/site'
-import { mockCases } from './app/data/mock/cases'
-import { contentRoutes } from './app/data/mock/catalog'
-import { entityRoutes } from './app/data/mock/entities'
 
-// https://nuxt.com/docs/api/configuration/nuxt-config
+// 注意：这里刻意不 import 任何 data/mock 或数据仓库。
+// 页面已改为由 Nitro API 读取数据库，构建期不应再依赖 mock 数据推导路由，
+// 否则 npm run build / generate 会去预渲染 mock 里的示例案件（其中包含明确标注的演示数据），
+// 与「前台不展示演示数据」的要求冲突。
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
@@ -28,8 +28,9 @@ export default defineNuxtConfig({
 
   nitro: {
     prerender: {
-      // 站点壳层阶段仅预渲染已实现页面；其余规划路由（TRO 资讯、常见问题等）
-      // 尚未实现，关闭链接爬取避免预渲染 404，待业务页面落地后再开启。
+      // 只预渲染不依赖数据库的固定页面。
+      // 详情页（案件、文章、品牌、律所）数据量上千且来自数据库，
+      // 由 SSR/ISR 按需渲染，不进入预渲染清单；开启链接爬取会试图抓取全部详情页。
       crawlLinks: false,
       routes: [
         '/',
@@ -37,11 +38,9 @@ export default defineNuxtConfig({
         '/privacy',
         '/disclaimer',
         '/infringement-check',
-        ...contentRoutes,
-        ...entityRoutes,
         '/tro/cases',
-        // 案件详情页（静态可访问；接入真实数据后改为 SSR/ISR 并更新此处）
-        ...mockCases.map(item => `/tro/cases/${item.slug}`)
+        '/brands',
+        '/law-firms'
       ]
     }
   }

@@ -1,16 +1,25 @@
 <script setup lang="ts">
-import { businessCards, businessGroups } from '~/data/mock/businesses'
-import { teamIntro } from '~/data/mock/home'
-import { contentArticles } from '~/data/mock/catalog'
-const successArticles = contentArticles.filter(item => item.sectionPath === '/tro/success-cases')
-  .sort((a, b) => b.publishedAt.localeCompare(a.publishedAt)).slice(0, 5)
-const lectureArticles = contentArticles.filter(item => item.sectionPath === '/about/lectures')
+import { businessCards, businessGroups } from '~/config/businessContent'
+import { teamIntro } from '~/config/homeContent'
+import { fetchArticles } from '~/repositories/articles'
 
 /**
  * 关于我们（第一版）。
  * 文案来自需求文档初稿；正式图片、资质与团队素材待提供，
  * 页面内使用明确的占位说明，不伪造素材。
+ * TRO 成功案例来自公开文章接口的 tro-success 分类。
  */
+const { data: successData, error: successError, refresh: refreshSuccess } = await useAsyncData(
+  'about-success-cases',
+  () => fetchArticles({ category: 'tro-success', pageSize: 5 })
+)
+const successArticles = computed(() => successData.value?.items ?? [])
+const successErrorMessage = computed(() =>
+  successError.value instanceof Error && successError.value.message
+    ? successError.value.message
+    : '成功案例加载失败，请稍后重试'
+)
+
 const businessGroupsList = (['overseas', 'domestic'] as const).map(key => ({
   key,
   title: businessGroups[key].title,
@@ -99,7 +108,13 @@ useSeoMeta({
 
       <section class="about-page__section" aria-label="成功案例">
         <SectionHeading title="TRO 成功案例" description="精选成功案例，结果与金额按记录展示。" />
-        <ArticleList :articles="successArticles" />
+        <ErrorState
+          v-if="successError"
+          title="成功案例加载失败"
+          :message="successErrorMessage"
+          @retry="refreshSuccess"
+        />
+        <ArticleList v-else :articles="successArticles" />
         <NuxtLink class="about-page__more" to="/tro/success-cases">查看全部成功案例 →</NuxtLink>
       </section>
       <section class="about-page__section" aria-label="企业宣讲">
@@ -114,7 +129,6 @@ useSeoMeta({
           loading="lazy"
         >
         </div>
-        <ArticleList :articles="lectureArticles" />
         <NuxtLink class="about-page__more" to="/about/lectures">查看宣讲主题与详情 →</NuxtLink>
       </section>
       <section class="about-page__section about-page__partners" aria-label="我们的小伙伴">

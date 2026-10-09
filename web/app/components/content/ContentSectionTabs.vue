@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { contentSections } from '~/data/mock/catalog'
+import { contentSections } from '~/config/contentSections'
 const props = defineProps<{ path: string }>()
 const tabs = computed(() => {
   const group = props.path.split('/')[1]

@@ -1,29 +1,58 @@
 <script setup lang="ts">
-import { useMockCaseSearch } from '~/composables/useMockCaseSearch'
-import { MOCK_DATA_NOTICE, mockCaseStates } from '~/data/mock/cases'
+import { useCaseSearch } from '~/composables/useCaseSearch'
+import { fetchCases } from '~/repositories/cases'
+
 const { today } = useContentDate()
 const recentFrom = computed(() => { const date = new Date(`${today.value}T00:00:00Z`); date.setUTCDate(date.getUTCDate() - 2); return date.toISOString().slice(0, 10) })
 
 /**
  * TRO 案件查询页。
- * 搜索 / 筛选 / 分页逻辑全部在 useMockCaseSearch 中，页面不做业务计算；
- * 查询状态同步到 URL query，刷新后可恢复。
+ * 搜索 / 筛选 / 分页全部由服务端完成：页面用 useAsyncData 调用 fetchCases()，
+ * 以查询条件作为 key，翻页或改筛选都会重新请求；查询状态同步到 URL query，刷新后可恢复。
  */
 const {
   filters,
   page,
-  pagedResults,
-  total,
-  totalPages,
+  apiQuery,
+  queryKey,
   hasActiveFilters,
-  hasResults,
   setPage,
-  resetFilters,
-  applyFilter
-} = useMockCaseSearch({ pageSize: 8 })
+  resetFilters
+} = useCaseSearch({ pageSize: 8 })
 
+const { data, status, error, refresh } = await useAsyncData(
+  () => `tro-cases:${queryKey.value}`,
+  async () => {
+    const first = await fetchCases(apiQuery.value)
+    // 服务端会把越界页码夹到最后一页并返回空数组；按夹取后的页码再取一次，
+    // 保证直接访问 ?page=9999 时展示的是最后一页内容而不是空结果。
+    if (page.value > first.totalPages) {
+      return await fetchCases({ ...apiQuery.value, page: first.page })
+    }
+    return first
+  },
+  { default: () => null, watch: [queryKey] }
+)
+
+const result = computed(() => data.value ?? { items: [], total: 0, page: 1, pageSize: 8, totalPages: 1 })
+const isPending = computed(() => status.value === 'pending')
+const hasResults = computed(() => result.value.items.length > 0)
+const errorMessage = computed(() =>
+  error.value instanceof Error && error.value.message
+    ? error.value.message
+    : '案件列表加载失败，请稍后重试'
+)
+
+/** 客户端把越界页码修正为服务端夹取后的页码，并把 URL 一并修正。 */
+if (import.meta.client) {
+  watch(data, value => {
+    if (value && page.value !== value.page && page.value > value.totalPages) page.value = value.page
+  })
+}
+
+/** “按此律所筛选”复用关键词搜索（服务端关键词覆盖案件号 / 原告 / 品牌 / 律所）。 */
 function onFilterByFirm(firm: string) {
-  applyFilter('lawFirm', firm)
+  filters.keyword = firm
   if (import.meta.client) {
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -32,10 +61,10 @@ function onFilterByFirm(firm: string) {
 useSeoMeta({
   title: 'TRO 案件查询',
   description:
-    'TRO 历史案件查询：支持按案件号、品牌名、代理律所搜索，并按案件类型与起诉州筛选。',
+    'TRO 历史案件查询：支持按案件号、原告、品牌名与代理律所搜索，并按侵权类型与起诉时间筛选。',
   ogTitle: 'TRO 案件查询 - 大信法务',
   ogDescription:
-    '按案件号、品牌、律所与起诉州检索 TRO 案件动态。'
+    '按案件号、原告、品牌与律所检索 TRO 案件动态。'
 })
 </script>
 
@@ -45,11 +74,8 @@ useSeoMeta({
       <header class="cases-page__head">
         <SectionHeading
           title="TRO 案件查询"
-          description="检索 TRO 案件的立案信息、原告品牌、代理律所与案件进展，帮助卖家快速评估风险。"
+          description="检索 TRO 案件的起诉时间、案件号、代理律所、原告与涉案品牌，帮助卖家快速评估风险。"
         />
-        <p class="cases-page__notice" role="note">
-          {{ MOCK_DATA_NOTICE }}
-        </p>
       </header>
 
       <ContentColumns group="tro">
@@ -60,56 +86,67 @@ useSeoMeta({
       </nav>
       <CaseSearchPanel
         :filters="filters"
-        :state-options="mockCaseStates"
         :has-active-filters="hasActiveFilters"
         @reset="resetFilters"
       />
 
       <section class="cases-page__results" aria-label="查询结果" aria-live="polite">
-        <p class="cases-page__count">
-          共找到 <strong>{{ total }}</strong> 条结果
-          <template v-if="hasActiveFilters">（已应用筛选条件）</template>
-        </p>
-
-        <template v-if="hasResults">
-          <!-- 桌面端表格 -->
-          <div class="cases-page__table">
-            <CaseTable
-              :records="pagedResults"
-              @filter-by-firm="onFilterByFirm"
-            />
-          </div>
-          <!-- 移动端卡片列表 -->
-          <div class="cases-page__cards">
-            <CaseCard
-              v-for="record in pagedResults"
-              :key="record.id"
-              :record="record"
-              @filter-by-firm="onFilterByFirm"
-            />
-          </div>
-
-          <CasePagination
-            :page="page"
-            :total-pages="totalPages"
-            :total="total"
-            @update:page="setPage"
+        <template v-if="error">
+          <ErrorState
+            title="案件列表加载失败"
+            :message="errorMessage"
+            @retry="refresh"
           />
         </template>
 
-        <div v-else class="cases-page__empty">
-          <p class="cases-page__empty-title">未找到匹配的案件</p>
-          <p class="cases-page__empty-desc">
-            请尝试更换关键词，或清空搜索条件后浏览全部历史案件。
+        <template v-else>
+          <p class="cases-page__count">
+            共找到 <strong>{{ result.total }}</strong> 条结果
+            <template v-if="hasActiveFilters">（已应用筛选条件）</template>
           </p>
-          <BaseButton
-            variant="secondary"
-            :disabled="!hasActiveFilters"
-            @click="resetFilters"
-          >
-            清空搜索条件
-          </BaseButton>
-        </div>
+
+          <p v-if="isPending" class="cases-page__loading" role="status">正在加载案件数据…</p>
+
+          <template v-if="hasResults">
+            <!-- 桌面端表格 -->
+            <div class="cases-page__table">
+              <CaseTable
+                :records="result.items"
+                @filter-by-firm="onFilterByFirm"
+              />
+            </div>
+            <!-- 移动端卡片列表 -->
+            <div class="cases-page__cards">
+              <CaseCard
+                v-for="record in result.items"
+                :key="record.id"
+                :record="record"
+                @filter-by-firm="onFilterByFirm"
+              />
+            </div>
+
+            <CasePagination
+              :page="result.page"
+              :total-pages="result.totalPages"
+              :total="result.total"
+              @update:page="setPage"
+            />
+          </template>
+
+          <div v-else-if="!isPending" class="cases-page__empty">
+            <p class="cases-page__empty-title">未找到匹配的案件</p>
+            <p class="cases-page__empty-desc">
+              请尝试更换关键词或调整筛选条件，也可以清空条件后浏览全部历史案件。
+            </p>
+            <BaseButton
+              variant="secondary"
+              :disabled="!hasActiveFilters"
+              @click="resetFilters"
+            >
+              清空搜索条件
+            </BaseButton>
+          </div>
+        </template>
       </section>
       </ContentColumns>
     </PageContainer>
@@ -127,15 +164,6 @@ useSeoMeta({
   margin-bottom: var(--space-6);
 }
 
-.cases-page__notice {
-  margin-top: var(--space-3);
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  background-color: color-mix(in srgb, var(--color-warning) 10%, transparent);
-  color: var(--color-warning);
-  font-size: var(--text-xs);
-}
-
 .cases-page__results {
   margin-top: var(--space-6);
 }
@@ -148,6 +176,12 @@ useSeoMeta({
 
 .cases-page__count strong {
   color: var(--color-primary);
+}
+
+.cases-page__loading {
+  margin-bottom: var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
 }
 
 .cases-page__cards {

@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import type { ArticleContent } from '~/repositories/articleContent'
-defineProps<{ content: ArticleContent }>()
-// 此字段由导入清洗器生成；未来 API 必须在服务端执行等价的标签、属性与资源校验。
+/**
+ * 富文本正文：直接渲染接口清洗后的 HTML（GET /api/public/articles/[slug] 的 `html`）。
+ * 清洗在服务端完成（server/utils/public/sanitize.ts），此处不再二次解析。
+ */
+defineProps<{ html: string }>()
 </script>
 
 <template>
-  <div class="rich-article-body" v-html="content.html" />
+  <div class="rich-article-body" v-html="html" />
 </template>
 
 <style scoped>

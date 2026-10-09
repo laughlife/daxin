@@ -1,14 +1,30 @@
 <script setup lang="ts">
-import { contentArticles } from '~/data/mock/catalog'
-const { today, isRecent } = useContentDate()
-function previewArticles(path: string) {
-  const all = contentArticles.filter(item => item.sectionPath === path).sort((a,b) => b.publishedAt.localeCompare(a.publishedAt))
-  const recent = all.filter(item => isRecent(item.publishedAt))
-  return (recent.length ? recent : all).slice(0,3)
-}
+import type { ArticleRecord } from '~/types/content'
+
+/**
+ * 首页“案例分享”区域。
+ * 文章数据由首页 useAsyncData 调用 fetchHomeData() 取得后传入；
+ * 按 href 前缀分流到 TRO / 劳动法两栏，保留原始发布日期。
+ */
+const props = defineProps<{
+  articles: ArticleRecord[]
+}>()
+
 const columns = computed(() => [
-  { id: 'tro', title: 'TRO 案例预警', moreLabel: '更多 TRO 文章', moreHref: '/tro/alerts', articles: previewArticles('/tro/alerts') },
-  { id: 'labor', title: '劳动法案例分享', moreLabel: '更多劳动法文章', moreHref: '/domestic/labor-disputes', articles: previewArticles('/domestic/labor-disputes') }
+  {
+    id: 'tro',
+    title: 'TRO 案例预警',
+    moreLabel: '更多 TRO 文章',
+    moreHref: '/tro/alerts',
+    articles: props.articles.filter(article => article.href.startsWith('/tro/')).slice(0, 3)
+  },
+  {
+    id: 'labor',
+    title: '劳动法案例分享',
+    moreLabel: '更多劳动法文章',
+    moreHref: '/domestic/labor-disputes',
+    articles: props.articles.filter(article => article.href.startsWith('/domestic/')).slice(0, 3)
+  }
 ])
 </script>
 
@@ -18,7 +34,7 @@ const columns = computed(() => [
       <SectionHeading
         align="center"
         title="TRO 与劳动法案例分享"
-        description="精选案例分享文章，保留原始发布日期；有近三天更新时优先展示。"
+        description="精选案例分享文章，保留原始发布日期。"
       />
       <div class="article-preview-section__columns">
         <div
@@ -33,7 +49,7 @@ const columns = computed(() => [
               <span aria-hidden="true">→</span>
             </NuxtLink>
           </div>
-          <p v-if="!column.articles.length" role="status">近三天暂无文章，点击更多文章查看历史内容。</p>
+          <p v-if="!column.articles.length" role="status">该栏目暂无最新文章，点击更多文章查看历史内容。</p>
           <ul class="article-preview-section__list">
             <li v-for="article in column.articles" :key="article.id">
               <article class="article-preview-card">

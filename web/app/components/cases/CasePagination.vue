@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 /**
- * 案件查询分页条（本地分页，逻辑在 useMockCaseSearch 中复用）。
+ * 列表分页条（页码与总数均由服务端 meta 提供）。
  * 页码过多时按窗口截取，保证移动端不换行溢出。
  */
 const props = defineProps<{
@@ -33,7 +33,7 @@ const visiblePages = computed<number[]>(() => {
     aria-label="案件查询分页"
   >
     <p class="case-pagination__summary">
-      共 {{ total }} {{ noun ?? '条案件' }}，第 {{ page }} / {{ totalPages }} 页
+      总计 {{ total }} {{ noun ?? '条案件' }}，第 {{ page }} / {{ totalPages }} 页
     </p>
     <div class="case-pagination__controls">
       <button

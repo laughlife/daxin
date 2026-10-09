@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { siteConfig } from '~/config/site'
-import { consultationCta } from '~/data/mock/home'
+import { consultationCta } from '~/config/homeContent'
 
 /**
  * 首页底部咨询 CTA：24H/7 联系法务团队 + 电话 / 邮箱 / 双微信咨询号

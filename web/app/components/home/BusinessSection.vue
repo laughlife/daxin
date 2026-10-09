@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { businessCards, businessGroups } from '~/data/mock/businesses'
+import { businessCards, businessGroups } from '~/config/businessContent'
 
 /**
  * 首页“核心业务”区域：按 国外业务 / 国内业务 分组渲染 BusinessCard。

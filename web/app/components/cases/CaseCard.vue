@@ -1,12 +1,14 @@
 <script setup lang="ts">
-const { isRecent } = useContentDate()
-import { entitySlug } from '~/utils/content'
-import { CASE_TYPE_LABELS } from '~/data/mock/cases'
+import { entityDirectoryHref } from '~/utils/content'
+import { caseTypeLabel } from '~/utils/caseTypeLabel'
 import type { CaseRecord } from '~/types/content'
+
+const { isRecent } = useContentDate()
 
 /**
  * 案件卡片（移动端列表使用）。
- * 品牌为详情链接；律所为“按此律所筛选”按钮入口。
+ * 展示与桌面表格一致的六项信息；没有起诉州 / 状态数据，不再展示这两项。
+ * 品牌为目录页入口，律所为“按此律所筛选”按钮入口。
  */
 defineProps<{
   record: CaseRecord
@@ -20,34 +22,42 @@ const emit = defineEmits<{
 <template>
   <article class="case-card">
     <div class="case-card__head">
-      <span class="case-card__type">{{ CASE_TYPE_LABELS[record.caseType] }}</span>
+      <span class="case-card__type">{{ caseTypeLabel(record.caseType) }}</span>
       <span v-if="isRecent(record.filedAt)" class="case-card__recent">近 3 天更新</span>
-      <span class="case-card__status">{{ record.status }}</span>
     </div>
     <h3 class="case-card__brand">
-      <NuxtLink :to="`/brands/${entitySlug(record.plaintiffBrand)}`">{{ record.plaintiffBrand }}</NuxtLink>
+      <NuxtLink
+        v-if="record.plaintiffBrand"
+        :to="entityDirectoryHref('brand', record.plaintiffBrand)"
+      >
+        {{ record.plaintiffBrand }}
+      </NuxtLink>
+      <span v-else>品牌待确认</span>
     </h3>
-    <p class="case-card__number">案件号：{{ record.caseNumber }}</p>
+    <p class="case-card__number">案件号：{{ record.caseNumber || '—' }}</p>
     <p class="case-card__summary">{{ record.summary }}</p>
     <dl class="case-card__meta">
       <div>
+        <dt>起诉时间</dt>
+        <dd>{{ record.filedAt || '—' }}</dd>
+      </div>
+      <div>
+        <dt>原告</dt>
+        <dd>{{ record.plaintiffName || '—' }}</dd>
+      </div>
+      <div>
         <dt>代理律所</dt>
         <dd>
-          <NuxtLink
+          <button
+            v-if="record.lawFirm"
+            type="button"
             class="case-card__firm"
-            :to="`/law-firms/${entitySlug(record.lawFirm)}`"
+            @click="emit('filterByFirm', record.lawFirm)"
           >
             {{ record.lawFirm }}
-          </NuxtLink>
+          </button>
+          <span v-else>—</span>
         </dd>
-      </div>
-      <div>
-        <dt>起诉州</dt>
-        <dd>{{ record.state }}</dd>
-      </div>
-      <div>
-        <dt>立案日期</dt>
-        <dd>{{ record.filedAt }}</dd>
       </div>
     </dl>
     <NuxtLink class="case-card__detail" :to="`/tro/cases/${record.slug}`">
@@ -93,12 +103,6 @@ const emit = defineEmits<{
   font-weight: 600;
 }
 
-.case-card__status {
-  margin-left: auto;
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-}
-
 .case-card__brand {
   font-size: var(--text-base);
 }
@@ -133,6 +137,7 @@ const emit = defineEmits<{
 .case-card__meta div {
   display: flex;
   gap: var(--space-1);
+  min-width: 0;
 }
 
 .case-card__meta dt {
@@ -145,6 +150,8 @@ const emit = defineEmits<{
 }
 
 .case-card__firm {
+  padding: 0;
+  font: inherit;
   font-size: var(--text-xs);
   color: var(--color-text);
   border-bottom: 1px dashed var(--color-border-strong);

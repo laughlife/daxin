@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { qrChannels } from '~/data/mock/qr'
+import { qrChannels } from '~/config/contactQr'
 const props = withDefaults(defineProps<{ group?: 'tro' | 'labor' | 'all'; kind?: 'all' | 'public' | 'consult'; zoomable?: boolean }>(), { group: 'all', kind: 'all' })
 const emit = defineEmits<{ zoom: [group: 'tro' | 'labor'] }>()
 const channels = computed(() => qrChannels.filter(item => (props.group === 'all' || item.group === props.group) && (props.kind === 'all' || item.kind === props.kind)))

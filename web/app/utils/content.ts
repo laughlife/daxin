@@ -29,3 +29,15 @@ export function clampPage(value: unknown, totalPages: number): number {
 export function entitySlug(name: string): string {
   return name.replace(/（演示）/g, '').replace(/^演示律所\s*/, '').trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '')
 }
+
+/**
+ * 品牌 / 律所目录页地址，可带关键词定位。
+ *
+ * 案件记录只带实体名称、不带实体 slug（slug 由公开接口的实体列表提供），
+ * 因此案件列表里的品牌 / 律所入口统一跳到目录页并按名称筛选，避免拼出无效 slug。
+ */
+export function entityDirectoryHref(kind: 'brand' | 'firm', keyword: string): string {
+  const base = kind === 'brand' ? '/brands' : '/faq/plaintiff-firms'
+  const trimmed = keyword.trim()
+  return trimmed ? `${base}?q=${encodeURIComponent(trimmed)}` : base
+}
