@@ -119,6 +119,22 @@ const DECLARATION_KEYWORDS = new Set([
 const IGNORED_STATEMENTS = /^(SET|START\s+TRANSACTION|COMMIT|BEGIN|USE|CREATE\s+DATABASE|CREATE\s+(?:OR\s+REPLACE\s+)?VIEW)\b/i
 
 /**
+ * 数据迁移语句：只改数据、不改结构。
+ *
+ * 这类语句允许出现在任何迁移文件里（结构文件也可能顺带回填），但不参与结构解析。
+ * 结构类迁移仍不允许出现 DROP / TRUNCATE / ALTER / DELETE —— 那些会绕过版本台账，
+ * 或删除无法通过重放恢复的数据；确需删除时必须单独人工评审。
+ */
+const DATA_STATEMENTS = /^(INSERT|UPDATE|REPLACE)\b/i
+
+/**
+ * 纯数据迁移文件需要在文件里显式声明 `-- @data-migration`。
+ * 声明后该文件必须使用 INSERT/UPDATE/REPLACE，且不得包含 DDL，
+ * 避免把建表语句悄悄放进“数据迁移”里绕过结构校验。
+ */
+const DATA_MIGRATION_MARKER = /^--\s*@data-migration\b/m
+
+/**
  * 关联表的外键列在插入时必然提供，允许 NOT NULL 且不带默认值。
  * 其余 NOT NULL 列必须给出默认值，避免增量加列时失败。
  */
@@ -286,6 +302,7 @@ export function parseMigrations(files) {
   let statementCount = 0
   for (const file of files) {
     const { cleaned, conditional } = splitConditionalIndexBlocks(file.content)
+    const isDataMigration = DATA_MIGRATION_MARKER.test(file.content)
     for (const block of conditional) {
       const index = parseCreateIndex(block.sql)
       if (!index) {
@@ -298,6 +315,14 @@ export function parseMigrations(files) {
     for (const statement of splitStatements(stripSqlComments(cleaned))) {
       if (IGNORED_STATEMENTS.test(statement)) continue
       statementCount += 1
+
+      if (isDataMigration) {
+        if (!DATA_STATEMENTS.test(statement)) {
+          errors.push(`${file.name} 声明为纯数据迁移，但出现非数据语句：${statement.slice(0, 60)}…`)
+        }
+        continue
+      }
+
       const table = parseCreateTable(statement)
       if (table) {
         if (tables.has(table.table)) errors.push(`${file.name} 重复定义表 ${table.table}`)
@@ -322,6 +347,8 @@ export function parseMigrations(files) {
         }
         continue
       }
+      // 结构迁移里允许附带数据回填，但删除类语句必须人工评审。
+      if (DATA_STATEMENTS.test(statement)) continue
       errors.push(`${file.name} 出现未预期的语句：${statement.slice(0, 60)}…`)
     }
   }

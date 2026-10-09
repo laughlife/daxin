@@ -41,12 +41,34 @@ async function makeFixture(files) {
 test('真实迁移目录存在且编号连续', async () => {
   const files = await loadMigrationFiles()
   assert.ok(files.length >= 2, `期望至少 2 个迁移文件，实际 ${files.length}`)
+  // 迁移文件按三位编号递增且名字可读；前两个必须仍是结构迁移。
+  const names = files.map((file) => file.name)
+  assert.equal(names[0], '001_initial_schema.sql')
+  assert.equal(names[1], '002_indexes_and_constraints.sql')
+  const numbers = names.map((name) => Number.parseInt(name.slice(0, 3), 10))
   assert.deepEqual(
-    files.map((file) => file.name),
-    ['001_initial_schema.sql', '002_indexes_and_constraints.sql'],
+    numbers,
+    numbers.map((_, index) => index + 1),
+    `迁移编号必须从 001 连续递增，实际 ${numbers.join(', ')}`,
   )
   for (const file of files) {
     assert.ok(file.content.trim().length > 0, `${file.name} 内容为空`)
+  }
+})
+
+test('数据迁移文件必须显式声明且不含 DDL', async () => {
+  const files = await loadMigrationFiles()
+  for (const file of files) {
+    if (!/^--\s*@data-migration\b/m.test(file.content)) continue
+    // 声明为纯数据迁移后，不得再出现建表/改结构语句。
+    assert.ok(
+      !/\bCREATE\s+(TABLE|INDEX|VIEW|DATABASE)\b/i.test(stripSqlComments(file.content)),
+      `${file.name} 声明为纯数据迁移，不得包含 DDL`,
+    )
+    assert.ok(
+      !/^\s*(DROP|TRUNCATE|ALTER|DELETE)\b/im.test(stripSqlComments(file.content)),
+      `${file.name} 不得包含 DROP/TRUNCATE/ALTER/DELETE`,
+    )
   }
 })
 
@@ -223,8 +245,11 @@ test('迁移可重复执行：在隔离库连续执行两次结果一致', { tim
     await dropTestDatabase(connection, database)
     await createTestDatabase(connection, database)
 
+    // 迁移文件会随迭代增加，这里从文件清单推导期望值，避免每加一个迁移就改测试。
+    const expectedVersions = (await loadMigrationFiles()).map((file) => file.name.replace(/\.sql$/, ''))
+
     const first = await applyMigrations(connection, { database })
-    assert.deepEqual(first.applied, ['001_initial_schema', '002_indexes_and_constraints'], '首次执行应应用全部迁移')
+    assert.deepEqual(first.applied, expectedVersions, '首次执行应应用全部迁移')
 
     const firstSchema = await readDatabaseSchema(connection, database)
     assert.ok(firstSchema.tableNames.includes('articles'), '首次执行后应存在 articles 表')
@@ -234,7 +259,7 @@ test('迁移可重复执行：在隔离库连续执行两次结果一致', { tim
     assert.deepEqual(second.applied, [], '第二次执行不应重复应用任何迁移')
     assert.deepEqual(
       second.skipped.map((item) => item.version),
-      ['001_initial_schema', '002_indexes_and_constraints'],
+      expectedVersions,
       '第二次执行应全部跳过',
     )
     assert.ok(second.skipped.every((item) => item.checksumMatches), '已应用版本的校验和必须与文件一致')

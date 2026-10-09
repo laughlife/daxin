@@ -56,11 +56,23 @@ const casesMarkers = [
   'TRO 案件查询',
   '案件号',
   '品牌名',
-  '代理律所',
-  '资料摘自大信旧站数据库'
+  '代理律所'
 ]
 
-const forbiddenMarkers = ['NuxtWelcome', '站点壳层预览', '官网基础框架预览']
+/**
+ * 需求明确要求前台不展示数据来源提示。
+ * 这些字样一旦出现在公开页面即为缺陷，因此列入禁止标记。
+ */
+const forbiddenMarkers = [
+  'NuxtWelcome',
+  '站点壳层预览',
+  '官网基础框架预览',
+  '旧站数据库',
+  '旧站历史资料',
+  '静态快照',
+  'Mock 演示数据',
+  '【演示数据】'
+]
 
 async function main() {
   console.log(`Smoke 检查开始：${BASE_URL}\n`)
