@@ -1,11 +1,14 @@
-import type { ContactChannel } from '../../types/content'
+import type { ContactChannel } from '../types/content'
 
 /**
- * 联系方式 Mock 数据
+ * 联系方式配置（站点配置，不是内容数据）。
  *
  * 来源：《大信团队官网需求文档》初稿，仍待甲方最终确认（见 docs/blockers.md）。
- * qrSrc 一律为 null：正式微信二维码尚未提供，组件须渲染“二维码待提供”占位卡片，
- * 禁止生成假二维码图片。
+ * 原先放在 data/mock/contacts.ts，页面改走数据库后它被误当成 Mock 数据；
+ * 这些是真实的对外联系渠道配置，因此迁到 config 下。
+ *
+ * qrSrc 为实际部署的二维码资源路径；组件在图片缺失时渲染“二维码待提供”占位卡片，
+ * 不生成假二维码图片。
  */
 
 /** 微信咨询渠道 */

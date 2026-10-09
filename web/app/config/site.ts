@@ -1,12 +1,12 @@
 import type { SiteConfig } from '../types/site'
-import { CONTACT_DATA_NOTICE, contactInfo, wechatChannels } from '../data/mock/contacts'
+import { CONTACT_DATA_NOTICE, contactInfo, wechatChannels } from './contact'
 
 /**
  * 站点全局配置
  *
  * 说明：
  * - 正式品牌信息（Logo、ICP 备案号等）仍为 TODO 占位符，待业务方确认后统一替换。
- * - 联系方式与微信咨询号来自《大信团队官网需求文档》初稿（data/mock/contacts.ts），
+ * - 联系方式与微信咨询号来自《大信团队官网需求文档》初稿（同目录 contact.ts），
  *   仍需甲方最终确认，页面会展示相应提示。
  * - 导航结构以本文件为唯一数据源，组件中不得硬编码导航。
  * - 路由地址为规划路径，对应页面在后续任务中实现（详见 docs/navigation-map.md）。
