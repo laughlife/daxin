@@ -20,6 +20,7 @@
     "check:browser": "node scripts/browser-check.mjs"
   },
   "dependencies": {
+    "mysql2": "^3.24.5",
     "nuxt": "4.5.2",
     "vue": "3.5.43",
     "vue-router": "5.3.1"
@@ -29,4 +30,3 @@
     "vue-tsc": "3.3.11"
   }
 }
-
