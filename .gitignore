@@ -15,6 +15,8 @@
 /web/.env
 /web/.env.*
 !/web/.env.example
+# 一次性管理员初始密码等本地凭据，禁止提交
+*.admin-initial-password.txt
 
 # Logs and editor files
 *.log

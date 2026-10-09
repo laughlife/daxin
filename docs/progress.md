@@ -110,6 +110,54 @@ Task 2 验收通过：站点壳层（公告栏、Header、桌面/移动端导航
 Task 3 验收通过：首页第一版（需求文档文案 + Mock 数据）、多渠道联系配置、红色临时主题、TRO 案件查询 MVP（搜索/筛选/分页/详情/URL 恢复）、/about 与 /infringement-check、可访问性与 SEO、Smoke 检查与文档全部完成；全部验证命令通过；未连接任何后端；零新增依赖。
 
 
+## 2026-10-09 — 全栈改造：数据库、旧库迁移与后台鉴权
+
+### 改动
+
+- **Task 2 新库结构**：新增 `database/migrations/001_initial_schema.sql`（29 张业务表，覆盖站点配置、
+  媒体、业务板块、文章、案例、品牌、律所、侵权类型、关系、迁移核验与管理员）与
+  `002_indexes_and_constraints.sql`（全文索引、补充索引与结构自检视图）。主键统一
+  `BIGINT UNSIGNED`，唯一键与页面查询索引固定在建表语句内。新增
+  `tools/migrate-legacy/schema-check.mjs`：静态结构校验、真实库核对、迁移执行器与
+  `schema_migrations` 台账。
+- **Task 3 旧库迁移**：新增 `tools/migrate-legacy/{mysql-client,legacy-source,legacy-parser,legacy-import,legacy-migrate,probe-legacy}`，
+  旧库只读解析并导入新库；`docs/migration-report-2026-10-09.md` 记录核验结果与回滚步骤。
+- **Task 4 后台鉴权**：新增 `web/server/utils/auth/*`、`web/server/api/admin/{login.post,logout.post,me.get}.ts`、
+  `tools/create-admin.mjs`，以及后台 UI 外壳（`web/app/pages/admin/*`、`layouts/admin.vue`、
+  `middleware/admin.ts`、`composables/useAdminSession.ts`）。
+
+### 实际验证
+
+- 结构：隔离库 `daxin_schema_check_dev` 连续执行两次结果一致；`--force` 重放通过；
+  `daxin` 实测 29 张业务表、89 个索引、1 个视图。
+- 迁移：旧库 `da` 只读；导入批次 `20261009-01` 写入 288 篇文章、832 个案件、228 个品牌、
+  95 家律所、3684 个媒体资源、3690 条图片关联、863 条案件来源、34 条去重后核验项，
+  重复案件号 0。源库迁移前后 76 张表、`cn_list` 315 行、`cn_list_5` 273 行、`cn_res` 5677 行未变化。
+  隔离库连续导入两次各表行数完全一致，证明可重复执行。
+- 鉴权：`npm run test` 58/58 通过；`npx nuxt typecheck` 退出码 0。真实账号联调：
+  未登录 `/api/admin/me` 401；错误密码与不存在用户同为 401 且提示一致；连续 5 次失败触发
+  429 与 15 分钟窗口；正确密码返回 200 且 roles 回填 `["admin"]`，Cookie 含 HttpOnly、
+  SameSite=Lax；退出后再次访问 401；未登录访问 `/admin` 302 到 `/admin/login?redirect=/admin`；
+  已登录 SSR 渲染后台外壳且不含公开站点头尾。
+
+### 过程中修正的缺陷
+
+- DDL 解析器把 `COMMENT '…'` 里的反引号当作字符串定界符，导致列被静默丢弃、唯一键引用不存在的列；
+  同时 `VARCHAR(191)` 这类带长度的类型解析失败。两者都已修复并补上防回归断言。
+- 导入实现逐条串行写库，实测数十分钟未完成；改为按阶段并发批量写入后约 2 分钟完成。
+- `getDbConfig` 同时校验 `LEGACY_DB_*`，导致未配置旧库时任何目标库查询（含登录）返回 500；
+  已拆分为目标库与旧库配置，旧库配置延迟到真正使用时校验。
+- `admin-user.ts` 未选出 `r.code AS role_code`，导致登录返回的 roles 恒为空数组，
+  admin 账号会被前端判定为无权限。
+- 登录接口在账号不存在时跳过口令校验，存在按响应时间枚举用户名的风险，已改为恒定执行一次派生。
+
+### 遗留
+
+- 34 项人工核验、19 个低置信案件号、30 个重复案件号归属需后台核验。
+- 3684 个旧站图片尚未上传 OSS（Task 5）。
+- 密码哈希当前使用 scrypt 而非 design 要求的 Argon2id；已保留算法前缀以便平滑升级。
+- OSS 真实参数（Region、Bucket、Endpoint、AccessKey）仍需用户提供。
+
 ## 2026-10-07 — 首页展示与精准咨询入口调整
 
 - 顶部领取 TRO 侵权大礼包的文字居中；仅顶部展示 kjzx88 并保留点击复制。
