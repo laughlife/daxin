@@ -14,25 +14,43 @@ export const DEFAULT_SESSION_TTL_SECONDS = 8 * 60 * 60
 /** 记住登录时的上限，避免长期有效令牌。 */
 export const MAX_SESSION_TTL_SECONDS = 7 * 24 * 60 * 60
 
+/** 时间输入：Date 或可被 Date 解析的字符串。 */
+export type TimeInput = Date | string
+
+/** Session 视图：兼容数据库列名与驼峰两种写法。 */
+export type SessionLike = {
+  expiresAt?: TimeInput
+  expires_at?: TimeInput
+  revokedAt?: TimeInput | null
+  revoked_at?: TimeInput | null
+}
+
+/** Set-Cookie 参数。 */
+export type SessionCookieOptions = {
+  maxAgeSeconds?: number
+  secure?: boolean
+  path?: string
+}
+
 /** 生成 32 字节随机令牌，使用 URL 安全编码。 */
-export function createSessionToken() {
+export function createSessionToken(): string {
   return randomBytes(32).toString('base64url')
 }
 
 /** 令牌哈希：入库与比对都只使用该值。 */
-export function hashSessionToken(token) {
+export function hashSessionToken(token: string): string {
   return createHash('sha256').update(String(token ?? ''), 'utf8').digest('hex')
 }
 
 /** 计算过期时间点；ttl 会被限制在允许范围内。 */
-export function computeExpiresAt(now = new Date(), ttlSeconds = DEFAULT_SESSION_TTL_SECONDS) {
+export function computeExpiresAt(now: TimeInput = new Date(), ttlSeconds: number = DEFAULT_SESSION_TTL_SECONDS): Date {
   const base = now instanceof Date ? now : new Date(now)
   const bounded = Math.min(Math.max(Math.floor(ttlSeconds), 60), MAX_SESSION_TTL_SECONDS)
   return new Date(base.getTime() + bounded * 1000)
 }
 
 /** 是否已过期；到期瞬间即视为失效。 */
-export function isSessionExpired(expiresAt, now = new Date()) {
+export function isSessionExpired(expiresAt: TimeInput, now: TimeInput = new Date()): boolean {
   const expiry = expiresAt instanceof Date ? expiresAt : new Date(expiresAt)
   if (Number.isNaN(expiry.getTime())) return true
   const reference = now instanceof Date ? now : new Date(now)
@@ -40,10 +58,11 @@ export function isSessionExpired(expiresAt, now = new Date()) {
 }
 
 /** Session 是否仍然可用：未过期且未被撤销。 */
-export function isSessionActive(session, now = new Date()) {
+export function isSessionActive(session: SessionLike | null | undefined, now: TimeInput = new Date()): boolean {
   if (!session) return false
   if (session.revokedAt || session.revoked_at) return false
   const expiresAt = session.expiresAt ?? session.expires_at
+  if (!expiresAt) return false
   return !isSessionExpired(expiresAt, now)
 }
 
@@ -51,7 +70,7 @@ export function isSessionActive(session, now = new Date()) {
  * 生成 Set-Cookie 值。
  * maxAgeSeconds 为 0 时输出清除 Cookie 的写法。
  */
-export function buildSessionCookie(token, { maxAgeSeconds = DEFAULT_SESSION_TTL_SECONDS, secure = false, path = '/' } = {}) {
+export function buildSessionCookie(token: string, { maxAgeSeconds = DEFAULT_SESSION_TTL_SECONDS, secure = false, path = '/' }: SessionCookieOptions = {}): string {
   const parts = [`${SESSION_COOKIE_NAME}=${encodeURIComponent(String(token ?? ''))}`]
   parts.push(`Path=${path}`)
   parts.push(`Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}`)
@@ -62,7 +81,7 @@ export function buildSessionCookie(token, { maxAgeSeconds = DEFAULT_SESSION_TTL_
 }
 
 /** 从 Cookie 头解析 Session 令牌；缺失返回空串。 */
-export function parseSessionCookie(cookieHeader) {
+export function parseSessionCookie(cookieHeader: string | undefined | null): string {
   const header = String(cookieHeader ?? '')
   if (!header) return ''
   for (const segment of header.split(';')) {

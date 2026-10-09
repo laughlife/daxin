@@ -8,9 +8,15 @@
 // 权限码格式：<domain>:<action>，domain 使用单数，例如 article:write、admin:user:write。
 // 通配符 '*' 表示全部权限，'<domain>:*' 表示该域全部动作。
 
-export const ROLE_CODES = Object.freeze(['admin', 'editor', 'viewer'])
+export const ROLE_CODES = Object.freeze(['admin', 'editor', 'viewer'] as const)
 
-export const ROLE_PERMISSIONS = Object.freeze({
+/** 后台角色码。 */
+export type AdminRole = (typeof ROLE_CODES)[number]
+
+/** 带 HTTP 状态码的错误，供接口层转成 401/403。 */
+export type PermissionError = Error & { statusCode: number }
+
+export const ROLE_PERMISSIONS: Readonly<Record<AdminRole, readonly string[]>> = Object.freeze({
   admin: ['*'],
   editor: [
     'article:read', 'article:write',
@@ -50,19 +56,21 @@ export const ADMIN_PATH_PERMISSIONS = Object.freeze([
 /** 只读角色禁止进入的新建/编辑路径片段。 */
 const WRITE_ONLY_SEGMENTS = ['/new', '/edit', '/create']
 
-const VALID_ROLES = new Set(ROLE_CODES)
+const VALID_ROLES = new Set<string>(ROLE_CODES)
 
 /** 把角色集合展开为权限集合，去重并过滤未知角色。 */
-export function permissionsForRoles(roles = []) {
-  const permissions = new Set()
+export function permissionsForRoles(roles: readonly string[] = []): string[] {
+  const permissions = new Set<string>()
   for (const role of roles) {
     if (!VALID_ROLES.has(role)) continue
-    for (const permission of ROLE_PERMISSIONS[role] ?? []) permissions.add(permission)
+    const granted = ROLE_PERMISSIONS[role as AdminRole]
+    if (!granted) continue
+    for (const permission of granted) permissions.add(permission)
   }
   return [...permissions].sort()
 }
 
-function matches(granted, required) {
+function matches(granted: string, required: string): boolean {
   if (granted === '*') return true
   if (granted === required) return true
   if (granted.endsWith(':*')) {
@@ -73,32 +81,35 @@ function matches(granted, required) {
 }
 
 /** 判断角色集合是否具备某个权限。 */
-export function hasPermission(roles, permission) {
+export function hasPermission(roles: readonly string[], permission: string): boolean {
   if (!permission) return false
   return permissionsForRoles(roles).some((granted) => matches(granted, permission))
 }
 
+/** 构造带状态码的错误，交由接口层转成 401/403。 */
+function permissionError(message: string, statusCode: number): PermissionError {
+  const error = new Error(message) as PermissionError
+  error.statusCode = statusCode
+  return error
+}
+
 /** 缺少权限时抛出带状态码的错误，交由接口层转成 401/403。 */
-export function requirePermission(roles, permission) {
+export function requirePermission(roles: readonly string[], permission: string): void {
   if (!Array.isArray(roles) || roles.length === 0) {
-    const error = new Error('未登录或登录已失效')
-    error.statusCode = 401
-    throw error
+    throw permissionError('未登录或登录已失效', 401)
   }
   if (!hasPermission(roles, permission)) {
-    const error = new Error(`缺少权限：${permission}`)
-    error.statusCode = 403
-    throw error
+    throw permissionError(`缺少权限：${permission}`, 403)
   }
 }
 
 /** 登录后默认跳转路径；无角色时回到登录页。 */
-export function defaultRouteForRoles(roles = []) {
+export function defaultRouteForRoles(roles: readonly string[] = []): string {
   return roles.some((role) => VALID_ROLES.has(role)) ? '/admin' : '/admin/login'
 }
 
 /** 判断角色集合能否访问某个后台路径；非 /admin 路径始终允许。 */
-export function canAccessPath(roles, path) {
+export function canAccessPath(roles: readonly string[], path: string): boolean {
   const target = String(path ?? '/')
   if (!target.startsWith('/admin')) return true
   if (roles.length === 0) return false

@@ -36,6 +36,13 @@ const MAX_USER_AGENT_LENGTH = 255
 /** 统一的失败提示，避免通过文案区分账号状态。 */
 const INVALID_CREDENTIALS_MESSAGE = '用户名或密码错误，或账号不可用'
 
+/**
+ * 账号不存在时仍然执行一次同参数的口令派生，使响应耗时与“密码错误”一致，
+ * 避免通过响应时间枚举出哪些用户名真实存在。
+ * 该哈希对应的随机口令不保存在任何地方，因此它永远不可能登录成功。
+ */
+const DUMMY_PASSWORD_HASH = 'scrypt$16384$8$1$IcVFAF4E+CGVecXhLAeaUg==$9tlibipTpzYL40Xv+hLgS1sPoHYsAFwOa7Xr/601cPU='
+
 type LoginBody = {
   username: string
   password: string
@@ -121,7 +128,8 @@ export default defineEventHandler(async (event) => {
   }
 
   const user = await findAdminByUsername(username)
-  const passwordOk = user ? await verifyPassword(password, user.passwordHash) : false
+  // 账号不存在时也走一次校验，保持与“密码错误”相同的耗时。
+  const passwordOk = await verifyPassword(password, user?.passwordHash ?? DUMMY_PASSWORD_HASH)
   if (!user || !passwordOk || user.status !== 'active') {
     await recordLoginAttempt({ username, ipDigest, succeeded: false, reason: failureReason(user, passwordOk) })
     await registerFailedLogin(username)
