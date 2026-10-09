@@ -32,6 +32,19 @@ const port = (env: Environment, key: string): number => {
   return value
 }
 
+/**
+ * 允许在 NODE_ENV=production 下使用 root 的显式开关。
+ *
+ * 背景：`nuxt generate` / `nuxt build` 都会设置 NODE_ENV=production，因此本机用 root
+ * 连接（web/.env 的默认本地配置）时，预渲染会因下面的 root 检查而失败，把「数据库错误」
+ * 烘焙进静态产物。为了不阻断本地构建与预览，同时不放宽真实生产的默认约束：
+ *   - 默认仍然禁止生产环境使用 root；
+ *   - 只有显式设置 DAXIN_ALLOW_ROOT_DB=1（例如本地 build/generate）才放行，并打印一次告警。
+ */
+const ALLOW_ROOT_FLAG = 'DAXIN_ALLOW_ROOT_DB'
+
+let warnedAboutRoot = false
+
 const connection = (env: Environment, prefix: 'DB' | 'LEGACY_DB'): ConnectionConfig => {
   const config: ConnectionConfig = {
     host: required(env, `${prefix}_HOST`),
@@ -43,7 +56,13 @@ const connection = (env: Environment, prefix: 'DB' | 'LEGACY_DB'): ConnectionCon
     connectionLimit: Number(env[`${prefix}_POOL_SIZE`] || '10'),
   }
   if (env.NODE_ENV === 'production' && config.user.toLowerCase() === 'root') {
-    throw new Error('生产环境禁止使用 root 数据库账号')
+    if (env[ALLOW_ROOT_FLAG] !== '1') {
+      throw new Error(`生产环境禁止使用 root 数据库账号；本机构建或预览可显式设置 ${ALLOW_ROOT_FLAG}=1 放行`)
+    }
+    if (!warnedAboutRoot) {
+      warnedAboutRoot = true
+      console.warn(`[db-config] 已通过 ${ALLOW_ROOT_FLAG}=1 放行生产环境 root 账号，请勿在正式环境这样部署`)
+    }
   }
   return config
 }

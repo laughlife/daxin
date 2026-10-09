@@ -85,3 +85,21 @@ test('生产配置禁止使用 root 账号', () => {
   )
   assert.doesNotThrow(() => getTargetDbConfig({ ...targetEnv, NODE_ENV: 'production' }))
 })
+
+test('本机构建与预览可显式放行生产环境 root', () => {
+  // nuxt build / generate 都会设置 NODE_ENV=production，
+  // 本地用 root 连接时需要这个开关，否则预渲染会把数据库错误烘焙进静态产物。
+  assert.doesNotThrow(() => getTargetDbConfig({
+    ...targetEnv,
+    NODE_ENV: 'production',
+    DB_USER: 'root',
+    DAXIN_ALLOW_ROOT_DB: '1',
+  }))
+  // 非 1 的值不放行，避免误写成 0/false 也被当成开启。
+  assert.throws(() => getTargetDbConfig({
+    ...targetEnv,
+    NODE_ENV: 'production',
+    DB_USER: 'root',
+    DAXIN_ALLOW_ROOT_DB: '0',
+  }), /root/)
+})
