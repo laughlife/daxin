@@ -176,7 +176,7 @@ function resetForm() {
       </form>
 
       <div v-if="uploading || progress > 0" class="admin-media__progress">
-        <p id="media-progress-label" class="admin-media__progress-text">
+        <p id="media-progress-label" class="admin-media__progress-text" aria-live="polite">
           上传进度：{{ progress }}%
         </p>
         <div
@@ -194,7 +194,13 @@ function resetForm() {
       <p v-if="errorMessage" class="admin-media__error" role="alert">{{ errorMessage }}</p>
     </BaseCard>
 
-    <BaseCard v-if="result" class="admin-media__card admin-media__card--success" title="上传成功" :title-level="2">
+    <BaseCard
+      v-if="result"
+      class="admin-media__card admin-media__card--success"
+      title="上传成功"
+      :title-level="2"
+      role="status"
+    >
       <dl class="admin-media__result">
         <div class="admin-media__result-row">
           <dt>访问地址</dt>
