@@ -2,7 +2,7 @@
 import type { HomeStat } from '~/types/content'
 
 /**
- * 统计数据区：渲染来自 Mock 的 HomeStat 列表，
+ * 统计数据区：渲染 HomeStat 列表，
  * emphasis 项使用主色大号数字强调。
  */
 defineProps<{

@@ -1,8 +1,8 @@
 /**
  * 内容模型类型定义
  *
- * 说明：当前阶段所有内容数据均来自本地 Mock（web/app/data/mock/），
- * 未来接入 Laravel API 时仅需替换数据仓库层，页面组件不应重写。
+ * 说明：页面内容统一经由数据仓库层读取，
+ * 替换数据源时仅需调整仓库层，页面组件不应重写。
  */
 
 /** 首页统计项 */
@@ -43,17 +43,17 @@ export interface BusinessCard {
 /** TRO 案件类型 */
 export type CaseType = 'trademark' | 'patent' | 'copyright'
 
-/** TRO 案件记录（Mock） */
+/** TRO 案件记录 */
 export interface CaseRecord {
   /** 唯一标识 */
   id: string
-  /** 案件号（Mock 编号） */
+  /** 案件号 */
   caseNumber: string
-  /** 立案日期（固定 Mock 值，不依赖系统时间） */
+  /** 立案日期（固定值，不依赖系统时间） */
   filedAt: string
-  /** 代理律所（演示名称） */
+  /** 代理律所 */
   lawFirm: string
-  /** 原告品牌（演示名称） */
+  /** 原告品牌 */
   plaintiffBrand: string
   /** 起诉州 */
   state: string
@@ -64,19 +64,19 @@ export interface CaseRecord {
   source?: { articleId: number; title: string; publishedAt: string; table: string; excerpt: string }
   /** 展示分类，如 “商标侵权” */
   category: string
-  /** 案件状态（演示值） */
+  /** 案件状态 */
   status: string
   /** 摘要 */
   summary: string
   /** 标签 */
   tags: string[]
-  /** 是否“近 3 天”更新（Mock 固定标记，避免 SSR 时间不一致） */
+  /** 是否“近 3 天”更新（固定标记，避免 SSR 时间不一致） */
   isRecent: boolean
   /** 详情页 slug */
   slug: string
 }
 
-/** 文章 / 案例分享记录（Mock） */
+/** 文章 / 案例分享记录 */
 export interface ArticleRecord {
   /** 唯一标识 */
   id: string
@@ -86,7 +86,7 @@ export interface ArticleRecord {
   title: string
   /** 摘要 */
   excerpt: string
-  /** 发布日期（固定 Mock 值） */
+  /** 发布日期（固定值） */
   publishedAt: string
   /** 是否置顶推荐 */
   isFeatured: boolean

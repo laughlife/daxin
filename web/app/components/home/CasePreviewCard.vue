@@ -4,8 +4,8 @@ import type { CaseRecord } from '~/types/content'
 import { CASE_TYPE_LABELS } from '~/data/mock/cases'
 
 /**
- * 首页 TRO 案件预览卡片：展示 Mock 案件的关键字段，
- * isRecent 显示“近 3 天更新”徽标（固定 Mock 标记，不依赖系统时间）。
+ * 首页 TRO 案件预览卡片：展示案件的关键字段，
+ * isRecent 显示“近 3 天更新”徽标（固定标记，不依赖系统时间）。
  * 点击整卡进入案件详情（/tro/cases/[id]）。
  */
 defineProps<{

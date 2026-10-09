@@ -18,7 +18,7 @@ const columns = computed(() => [
       <SectionHeading
         align="center"
         title="TRO 与劳动法案例分享"
-        description="精选大信旧站历史文章，保留原始发布日期；有近三天更新时优先展示。"
+        description="精选案例分享文章，保留原始发布日期；有近三天更新时优先展示。"
       />
       <div class="article-preview-section__columns">
         <div

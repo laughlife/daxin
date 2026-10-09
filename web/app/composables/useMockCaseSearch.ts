@@ -4,13 +4,13 @@ import type { CaseRecord, CaseType } from '~/types/content'
 import { clampPage, inDateRange } from '~/utils/content'
 
 /**
- * TRO 案件本地 Mock 搜索（不调用 fetch、不伪造后端接口）。
+ * TRO 案件查询与筛选（对注入的数据源做本地筛选、排序与分页，不发起网络请求）。
  *
  * - 搜索字段：案件号 / 原告品牌 / 代理律所（均不区分大小写的包含匹配）；
  * - 筛选：案件类型（商标/专利/版权）、起诉州；
  * - 本地分页，分页逻辑与筛选解耦、可复用；
  * - 查询状态映射到 URL query（cn/brand/firm/type/state/page），刷新后可恢复；
- * - 数据源默认 mockCases，可通过 options.source 注入（未来切换 API 数据仓库）。
+ * - 数据源默认取数据仓库提供的案件列表，可通过 options.source 注入。
  */
 
 export interface CaseSearchFilters {
@@ -28,7 +28,7 @@ export interface UseMockCaseSearchOptions {
   pageSize?: number
   /** 是否同步查询状态到 URL query，默认 true */
   syncQuery?: boolean
-  /** 数据源，默认本地 Mock 案件列表 */
+  /** 数据源，默认取案件列表 */
   source?: CaseRecord[]
 }
 

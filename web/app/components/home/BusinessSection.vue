@@ -4,7 +4,7 @@ import { businessCards, businessGroups } from '~/data/mock/businesses'
 
 /**
  * 首页“核心业务”区域：按 国外业务 / 国内业务 分组渲染 BusinessCard。
- * 数据来自 Mock（业务条目全部出自需求文档）。
+ * 业务条目全部出自需求文档。
  */
 const groups = computed(() =>
   (Object.keys(businessGroups) as Array<keyof typeof businessGroups>).map(key => ({

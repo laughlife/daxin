@@ -5,7 +5,7 @@ const { today, isRecent } = useContentDate()
 
 /**
  * 首页“TRO 最新案件与进展”区域：
- * 取 Mock 数据中 isRecent 标记的最新案件展示（固定标记，避免依赖系统时间）。
+ * 取数据中 isRecent 标记的最新案件展示（固定标记，避免依赖系统时间）。
  */
 const recentCases = computed(() =>
   mockCases.filter(item => isRecent(item.filedAt)).sort((a,b) => b.filedAt.localeCompare(a.filedAt)).slice(0, 6)
@@ -19,7 +19,7 @@ const visibleCases = computed(() => recentCases.value.length ? recentCases.value
       <div class="case-preview-section__head">
         <SectionHeading
           :title="recentCases.length ? '近三天 TRO 案件与进展' : '精选历史 TRO 案件'"
-          :description="recentCases.length ? `北京时间 ${today} 及前两天的立案动态` : '从大信旧站资料中精选，按原始立案日期排序。'"
+          :description="recentCases.length ? `北京时间 ${today} 及前两天的立案动态` : '精选历史案件，按原始立案日期排序。'"
         />
         <NuxtLink to="/tro/cases" class="case-preview-section__all">
           进入 TRO 案件查询
