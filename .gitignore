@@ -30,3 +30,6 @@ Thumbs.db
 # Local legacy-site preview runtime
 /tmp/legacy-php/
 /tmp/legacy-preview/
+
+# 迁移 dry-run 生成物：随时可用 tools/migrate-legacy/legacy-migrate.mjs --dry-run 重新生成
+/docs/migration-dry-run.json
