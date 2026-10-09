@@ -170,6 +170,52 @@ export async function executeSql(connection, sql, options = {}) {
   await execute(connection, sql, { timeoutMs: 180000, stdoutLimit: 4 * 1024 * 1024, ...options })
 }
 
+/**
+ * 并发执行多条写入语句。
+ *
+ * 每篇文章的写入都是幂等的 INSERT ... ON DUPLICATE KEY UPDATE，彼此不依赖，
+ * 因此可以并发执行；串行执行 288 篇文章会产生数千次往返，实测需要数十分钟。
+ * 并发度默认 8，避免本机 MySQL 连接数被打满。
+ */
+export async function executeSqlBatch(connection, statements, { concurrency = 8, ...options } = {}) {
+  const list = statements.filter(Boolean)
+  const errors = []
+  let cursor = 0
+  const workers = Array.from({ length: Math.max(1, Math.min(concurrency, list.length)) }, async () => {
+    while (cursor < list.length) {
+      const index = cursor
+      cursor += 1
+      try {
+        await executeSql(connection, list[index], options)
+      } catch (error) {
+        errors.push(`语句 #${index} 失败：${error.message}`)
+      }
+    }
+  })
+  await Promise.all(workers)
+  if (errors.length > 0) {
+    throw new Error(`批量写入失败 ${errors.length} 条，首条：${errors[0]}`)
+  }
+}
+
+/**
+ * 并发执行多个返回单值的查询，并保持与输入相同的顺序。
+ * 用于批量取出刚写入记录的主键，避免逐条 SELECT。
+ */
+export async function queryRowsBatch(connection, queries, { concurrency = 8, ...options } = {}) {
+  const results = new Array(queries.length)
+  let cursor = 0
+  const workers = Array.from({ length: Math.max(1, Math.min(concurrency, queries.length)) }, async () => {
+    while (cursor < queries.length) {
+      const index = cursor
+      cursor += 1
+      results[index] = await queryRows(connection, queries[index], options)
+    }
+  })
+  await Promise.all(workers)
+  return results
+}
+
 export function quoteLiteral(value) {
   if (value === null || value === undefined) return 'NULL'
   return `'${String(value).replace(/\\/g, '\\\\').replace(/'/g, "''")}'`

@@ -12,21 +12,25 @@ import { mkdir, writeFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
 
 import { resolveLegacyConnection, resolveTargetConnection } from './mysql-client.mjs'
+import { applyMigrations, createTestDatabase, isTestDatabaseName } from './schema-check.mjs'
 import { parseLegacyArticle } from './legacy-parser.mjs'
 import { PROJECT_CATEGORY_MAP, fetchLegacyArticles, fetchLegacyProjectStats, parseResourcePath } from './legacy-source.mjs'
 import { importBatch, verifyBatch } from './legacy-import.mjs'
 
 function parseArgs(argv) {
-  const options = { dryRun: false, doImport: false, includeUnmapped: false, batch: '', out: '' }
+  const options = { dryRun: false, doImport: false, includeUnmapped: false, batch: '', out: '', database: '', ensureSchema: false }
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     if (arg === '--dry-run') options.dryRun = true
     else if (arg === '--import') options.doImport = true
     else if (arg === '--include-unmapped') options.includeUnmapped = true
+    else if (arg === '--ensure-schema') options.ensureSchema = true
     else if (arg === '--batch') options.batch = argv[++index] ?? ''
     else if (arg.startsWith('--batch=')) options.batch = arg.slice('--batch='.length)
     else if (arg === '--out') options.out = argv[++index] ?? ''
     else if (arg.startsWith('--out=')) options.out = arg.slice('--out='.length)
+    else if (arg === '--database') options.database = argv[++index] ?? ''
+    else if (arg.startsWith('--database=')) options.database = arg.slice('--database='.length)
     else if (arg === '--help' || arg === '-h') options.help = true
     else throw new Error(`未知参数：${arg}`)
   }
@@ -37,11 +41,13 @@ const USAGE = `用法：node tools/migrate-legacy/legacy-migrate.mjs <模式> [�
 
 模式（必须二选一）：
   --dry-run                 只读取旧库并生成迁移报告，不写目标库
-  --import                  向目标库 daxin 导入（需同时提供 --batch）
+  --import                  向目标库导入（需同时提供 --batch）
 
 选项：
   --batch <key>             迁移批次标识，建议使用北京时间日期，例如 20261009-01
   --out <file>              报告输出路径，默认 docs/migration-dry-run.json
+  --database <name>         导入到指定库（默认取 web/.env 的 DB_NAME）
+  --ensure-schema           导入前先执行 database/migrations 下的 DDL
   --include-unmapped        同时解析未映射栏目（默认只处理已确认的四个栏目）
   -h, --help                显示本帮助
 `
@@ -249,10 +255,29 @@ async function main() {
     process.exitCode = 2
     return
   }
+  if (options.database) {
+    if (options.database === legacy.database) {
+      console.error(`拒绝导入：目标库与旧库同名（${options.database}）`)
+      process.exitCode = 2
+      return
+    }
+    target.database = options.database
+  }
   if (target.database === legacy.database) {
     console.error(`拒绝导入：目标库与旧库同名（${target.database}）`)
     process.exitCode = 2
     return
+  }
+  if (options.ensureSchema) {
+    if (isTestDatabaseName(target.database)) {
+      await createTestDatabase(target, target.database)
+    } else if (target.database !== resolveTargetConnection()?.database) {
+      console.error(`拒绝在非测试库 ${target.database} 上自动建结构：请先运行 schema-check --apply`)
+      process.exitCode = 2
+      return
+    }
+    const migrations = await applyMigrations(target, { database: target.database })
+    console.log(`结构准备：本次执行 ${migrations.applied.length} 个迁移，跳过 ${migrations.skipped.length} 个`)
   }
   console.log(`目标库 ${target.database}，批次 ${options.batch}`)
   const result = await importBatch({ target, legacy, batchKey: options.batch, includeUnmapped: options.includeUnmapped, articles, report })
