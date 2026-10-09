@@ -5,7 +5,7 @@
 
 ## 目标
 
-将当前 Nuxt 静态展示站升级为 Nuxt 全栈网站：页面通过服务端 API 读取新数据库 `daxin`，后台提供管理员登录、退出、基础权限和内容配置；旧库数据只读解析，不覆盖现有数据；图片通过阿里云 OSS 前端直传，服务端签发 RAM 角色的 STS 临时凭证。
+将当前 Nuxt 静态展示站升级为 Nuxt 全栈网站：页面通过服务端 API 读取新数据库 `daxin`，后台提供管理员登录、退出、基础权限和内容配置；旧库数据只读解析，不覆盖现有数据；图片通过阿里云 OSS PostObject 表单直传，服务端使用 AccessKey 生成短时 policy 和签名。
 
 关于我们页面恢复旧网站 `http://yan1.qinianyun.com/about/` 的内容结构，删除“扫码领取 TRO 侵权大礼包”区域及蓝色框标记内容，不保留当前已确认的新版模块。该地址当前无法由浏览工具直接访问，实施时以需求文档截图、旧源码和用户提供的正式素材为准。
 
@@ -19,8 +19,8 @@
 - 关于我们恢复旧网站结构，删除“扫码领取 TRO 侵权大礼包”及蓝色框内容。
 - 旧数据库只读，迁移过程不覆盖、不删除、不修改源数据。
 - 新业务库名称为 `daxin`；源库按约定使用 `da`。若本机现有数据库名称与约定不一致，迁移前先核对，不自动重命名或删除。
-- 前端直传 OSS，后端返回 STS 临时授权；单文件最大 20MB；对象路径使用 `YYYYMMDD/{uuid}.{ext}`。
-- OSS 长期 AccessKey 只存在服务端环境变量，不进入前端、数据库、Git 或浏览器。
+- 前端使用 OSS PostObject 表单直传，后端返回短时 policy、签名和 AccessKey ID；单文件最大 20MB；对象路径使用 `YYYYMMDD/{uuid}.{ext}`。
+- OSS AccessKey Secret 只存在服务端环境变量，不进入前端、数据库、Git 或浏览器；浏览器只获得 policy、签名、AccessKey ID 和过期时间。
 - 前台不展示“旧站”“旧库”“静态快照”“演示数据”等数据来源提示；来源记录保留在后台和数据库中。
 
 ## 架构
@@ -33,7 +33,7 @@ Nuxt 4 运行在 Node 服务端模式，使用 Nitro `server/api` 提供 API。�
 - `web/server/api/admin/*`：登录、权限、配置和内容管理接口；
 - `web/server/utils/db/*`：连接池、事务、查询和迁移辅助函数；
 - `web/server/utils/auth/*`：密码哈希、Session、权限检查；
-- `web/server/utils/oss/*`：STS 签发、对象 key 校验和 OSS 配置；
+- `web/server/utils/oss/*`：PostObject policy 签名、对象 key 校验和 OSS 配置；
 - `web/app/repositories/*`：页面数据访问层，屏蔽 API 与组件；
 - `web/app/pages/admin/*`：后台页面；
 - `database/migrations/*`：版本化 DDL；
@@ -99,7 +99,7 @@ type ApiResult<T> = {
 
 迁移脚本默认拒绝 DROP、TRUNCATE、DELETE、UPDATE 和 ALTER 源库语句。目标库写入使用事务和可重复执行的 `migration_batch_id`，避免重复导入。源库重命名不纳入自动脚本，必须先确认本机实际数据库状态并完成备份。
 
-## OSS 直传
+## OSS 表单直传
 
 后台先请求：
 
@@ -107,7 +107,7 @@ type ApiResult<T> = {
 POST /api/admin/upload-policy
 ```
 
-服务端检查 Session、角色、用途和文件类型后，通过 RAM Role ARN 生成短时 STS 凭证和 policy。前端使用临时凭证直传 OSS；上传完成后调用：
+服务端检查 Session、角色、用途和文件类型后，使用服务端 AccessKey Secret 生成带过期时间、大小限制、MIME 限制和日期目录前缀的 PostObject policy 与签名。前端组装 `multipart/form-data` 表单直接上传 OSS；上传完成后调用：
 
 ```text
 POST /api/admin/media
@@ -133,14 +133,13 @@ LEGACY_DB_NAME=da
 ALIYUN_OSS_REGION
 ALIYUN_OSS_BUCKET
 ALIYUN_OSS_ENDPOINT
-ALIYUN_OSS_ROLE_ARN
 ALIYUN_OSS_ACCESS_KEY_ID
 ALIYUN_OSS_ACCESS_KEY_SECRET
 ALIYUN_OSS_PUBLIC_BASE_URL
 UPLOAD_MAX_BYTES=20971520
 ```
 
-如果部署环境支持实例 RAM 角色，则可省略长期 AccessKey；否则 AccessKey 只放在服务端 `web/.env` 或部署平台 Secret 中，绝不放到前端公开变量（例如 `NUXT_PUBLIC_*`）。
+AccessKey 只放在服务端 `web/.env` 或部署平台 Secret 中，绝不放到前端公开变量（例如 `NUXT_PUBLIC_*`）。policy 设置短过期时间并限制 bucket、key 前缀、MIME 和 20MB 大小，避免长期授权。
 
 ## 页面接入
 
@@ -159,7 +158,7 @@ UPLOAD_MAX_BYTES=20971520
 - 所有 SQL 使用参数绑定；列表 API 设置最大 `page_size`；
 - Session 使用 HttpOnly、SameSite 和服务端过期控制；
 - 登录失败限速，密码使用 Argon2id 或 bcrypt；
-- OSS policy 限制 bucket、key 前缀、MIME 和 20MB 大小；
+- OSS PostObject policy 限制 bucket、key 前缀、MIME 和 20MB 大小；
 - 正文 HTML 在服务端白名单清洗，禁止脚本、事件属性、外部任意图片和危险 CSS；
 - 后台操作写审计日志；
 - 生产环境禁止使用 root 数据库账号；
@@ -172,7 +171,7 @@ UPLOAD_MAX_BYTES=20971520
 - 文章、图片、案件、品牌和律所迁移数量与核验报告一致；
 - 案件六列、品牌详情、律所详情和历史案件关系可通过 API 和页面验证；
 - 管理员登录、退出、权限拒绝、Session 过期均有自动化测试；
-- OSS 20MB 边界、非法 MIME、错误 key、过期 STS 和重复上传均有测试；
+- OSS 20MB 边界、非法 MIME、错误 key、过期 policy 和重复上传均有测试；
 - 前端 API 断开时显示可理解的错误状态，不回退到旧站提示；
 - `typecheck`、单元测试、API 测试、静态资源检查和浏览器验收全部通过；
 - 局域网预览和生产启动方式分别验证。
@@ -182,7 +181,7 @@ UPLOAD_MAX_BYTES=20971520
 1. 先提交并评审本设计文档；
 2. 编写分阶段实施计划；
 3. 建立新库 DDL、迁移 dry-run 和校验报告；
-4. 实现服务端 DB、认证、权限和 OSS STS；
+4. 实现服务端 DB、认证、权限和 OSS 表单签名；
 5. 导入旧库数据并人工确认待核验项；
 6. 将页面切换到 API；
 7. 实现后台页面和表单；
@@ -191,5 +190,5 @@ UPLOAD_MAX_BYTES=20971520
 
 ## 待补充的外部配置
 
-开始 OSS 接入前需要提供：OSS Region、Bucket、Endpoint、公网访问域名、RAM Role ARN，以及服务端使用的 AccessKey ID/Secret（如果运行环境没有实例 RAM 角色）。这些值写入 `web/.env` 或部署平台 Secret，不写入 Git。
+开始 OSS 接入前需要提供：OSS Region、Bucket、Endpoint、公网访问域名，以及服务端使用的 AccessKey ID/Secret。这些值写入 `web/.env` 或部署平台 Secret，不写入 Git；不需要提供 RAM Role ARN。
 

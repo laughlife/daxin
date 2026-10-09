@@ -4,9 +4,9 @@
 
 **Goal:** 将新版官网从本地静态数据升级为由 `daxin` 数据库、Nuxt API、管理员后台和 OSS 媒体管理驱动的网站。
 
-**Architecture:** 保留现有 Nuxt 4 + Vue 3 前端，启用 Nitro Node 服务端 API。旧库 `da` 只读解析，结构化数据写入新库 `daxin`；公开页面与后台通过同一套服务端仓储访问数据。图片由浏览器使用服务端签发的 RAM/STS 临时凭证直传 OSS，数据库只保存经过服务端校验的 OSS 元数据。
+**Architecture:** 保留现有 Nuxt 4 + Vue 3 前端，启用 Nitro Node 服务端 API。旧库 `da` 只读解析，结构化数据写入新库 `daxin`；公开页面与后台通过同一套服务端仓储访问数据。图片由浏览器使用服务端生成的 OSS PostObject policy 表单直传，数据库只保存经过服务端校验的 OSS 元数据。
 
-**Tech Stack:** Nuxt 4.5、Vue 3、TypeScript、Nitro server API、MySQL 8、参数化 SQL、Argon2id 或 bcrypt、阿里云 RAM/STS/OSS、Node test。
+**Tech Stack:** Nuxt 4.5、Vue 3、TypeScript、Nitro server API、MySQL 8、参数化 SQL、Argon2id 或 bcrypt、阿里云 OSS PostObject、Node test。
 
 **Spec:** `docs/superpowers/specs/2026-10-09-fullstack-admin-database-oss-design.md`
 
@@ -26,7 +26,7 @@
 - 源库连接指向错误数据库：测试迁移 dry-run 的连接目标和零写入行为。
 - 重复执行迁移：测试 `migration_batch_id` 和唯一键不会重复文章、图片或关系。
 - 旧正文包含恶意 HTML/外链图片：测试服务端清洗和资源白名单。
-- STS、OSS key 和文件大小不合法：测试过期凭证、越权前缀、非法 MIME、20MB 边界。
+- OSS policy、key 和文件大小不合法：测试过期 policy、越权前缀、非法 MIME、20MB 边界。
 - 后台 Session 和权限失效：测试退出、过期、viewer/editor/admin 权限拒绝。
 
 ## 文件结构
@@ -35,7 +35,7 @@
 - Create `tools/migrate-legacy/*`：旧库只读解析、dry-run、导入和校验。
 - Create `web/server/utils/db/*`：连接池、事务和仓储基础函数。
 - Create `web/server/utils/auth/*`：密码、Session 和权限。
-- Create `web/server/utils/oss/*`：RAM/STS 签发和 OSS key 校验。
+- Create `web/server/utils/oss/*`：PostObject policy 签名和 OSS key 校验。
 - Create `web/server/api/public/*`：公开读取接口。
 - Create `web/server/api/admin/*`：登录、配置、内容和媒体接口。
 - Create `web/app/pages/admin/*`：后台登录和基础管理表单。
@@ -137,7 +137,7 @@
 - [ ] 运行 auth 测试、typecheck 和浏览器登录验收。
 - [ ] Commit: `feat: 增加管理员登录与基础权限`。
 
-### Task 5: OSS STS 和媒体资源管理
+### Task 5: OSS 表单签名和媒体资源管理
 
 **Files:**
 - Create: `web/server/utils/oss/config.ts`
@@ -149,18 +149,18 @@
 - Test: `web/scripts/oss-upload.test.mjs`
 
 **Interfaces:**
-- `issueUploadPolicy(input, admin): Promise<UploadPolicy>`
+- `issueUploadPolicy(input, admin): Promise<UploadPolicy>` 使用服务端 AccessKey Secret 生成 OSS PostObject policy 和签名。
 - `validateUpload(input): void`
 - `registerMedia(input, admin): Promise<MediaAsset>`
 - `UploadPolicy` 必须包含临时 token、bucket、endpoint、key、expireAt、最大字节数和允许 MIME。
 
 - [ ] 写测试：20MB 以下通过，超过 20MB、非法 MIME、错误日期 key、非授权目录和过期 policy 拒绝。
 - [ ] 运行测试确认先失败。
-- [ ] 实现 RAM Role/STS 签发、日期目录 key、UUID 文件名和服务端二次校验。
+- [ ] 实现 PostObject policy 签名、日期目录 key、UUID 文件名和服务端二次校验。
 - [ ] 创建 `.env.example`；正式 AccessKey 只填写到 `web/.env` 或部署平台 Secret。
 - [ ] 前端实现选择、上传进度、失败重试和完成登记。
 - [ ] 使用测试 bucket 或本地 mock 完成上传验收；获得 OSS 参数后再做真实上传验收。
-- [ ] Commit: `feat: 接入 OSS STS 图片直传和媒体登记`。
+- [ ] Commit: `feat: 接入 OSS 表单直传和媒体登记`。
 
 ### Task 6: 公开 API 和页面仓储切换
 
