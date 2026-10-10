@@ -27,7 +27,8 @@ function onCopy() {
   <div class="site-announcement">
     <PageContainer class="site-announcement__inner">
       <p class="site-announcement__text">
-        <span>{{ siteConfig.announcement.text }}</span>
+        <!-- 文案为空时不再输出空 span，避免留下无意义的空白文本节点 -->
+        <span v-if="siteConfig.announcement.text">{{ siteConfig.announcement.text }}</span>
         <button v-if="defaultChannel" type="button" class="site-announcement__wechat" aria-label="复制 TRO 咨询号 kjzx88" @click="onCopy">
           {{ defaultChannel.name }}：
           <strong>{{ defaultChannel.wechatId }}</strong>

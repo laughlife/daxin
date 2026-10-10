@@ -33,7 +33,9 @@ export const siteConfig: SiteConfig = {
   },
 
   announcement: {
-    text: '联系我们可领取TRO侵权大礼包',
+    // 需求：「扫码领取 TRO 侵权大礼包」区域必须移除，因此公告栏不再展示该引导文案。
+    // 保留公告栏是因为微信号复制入口仍是站点的联系方式之一（需求未要求删除联系方式）。
+    text: '',
     copyButtonLabel: '复制 TRO 微信号',
     copiedLabel: '微信号已复制',
     failedLabel: '复制失败，请手动复制'

@@ -12,8 +12,9 @@ function check(name, condition) { assert.ok(condition, name); console.log(`PASS 
 async function visit(path) { await page.goto(`${base}${path}`, { waitUntil:'networkidle' }) }
 try {
   await visit('/')
-  check('首页礼包公告', await page.locator('.site-announcement').innerText().then(text => text.includes('联系我们可领取TRO侵权大礼包') && text.includes('kjzx88')))
-  check('顶部礼包文字居中', await page.locator('.site-announcement__text').evaluate(el => Math.abs(el.getBoundingClientRect().left + el.getBoundingClientRect().width / 2 - innerWidth / 2) < 3))
+  // 需求要求移除「扫码领取 TRO 侵权大礼包」区域：公告栏不得再出现该引导文案。
+  check('首页不出现 TRO 大礼包引导', !(await page.locator('.site-announcement').innerText()).includes('大礼包'))
+  check('公告栏保留微信号复制入口', await page.locator('.site-announcement').innerText().then(text => text.includes('kjzx88')))
   check('首页背景具有动态光效', await page.locator('.home-hero').evaluate(el => getComputedStyle(el, '::before').animationName.includes('hero-atmosphere')))
   await page.emulateMedia({ reducedMotion:'reduce' })
   check('减少动态偏好关闭背景动画', await page.locator('.home-hero').evaluate(el => getComputedStyle(el, '::before').animationName === 'none'))

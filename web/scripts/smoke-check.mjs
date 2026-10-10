@@ -98,6 +98,9 @@ async function main() {
     record(`首页包含「${marker}」`, home.includes(marker))
   }
 
+  // 需求明确要求移除「扫码领取 TRO 侵权大礼包」区域，因此前台不得再出现该文案。
+  record('首页不包含「大礼包」引导', !home.includes('大礼包'))
+
   const cases = pages.get('/tro/cases') ?? ''
   for (const marker of casesMarkers) {
     record(`案件查询页包含「${marker}」`, cases.includes(marker))
