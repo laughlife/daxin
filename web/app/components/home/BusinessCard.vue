@@ -43,7 +43,11 @@ const iconPaths: Record<BusinessCard['iconKey'], string[]> = {
     </span>
     <h3 class="business-card__title">{{ card.title }}</h3>
     <p class="business-card__summary">{{ card.summary }}</p>
-    <ul class="business-card__items">
+    <!-- 成绩/数据类文案独立成块强调，避免与描述混在一段里被忽略 -->
+    <p v-if="card.achievement" class="business-card__achievement">
+      {{ card.achievement }}
+    </p>
+    <ul v-if="card.items.length > 0" class="business-card__items">
       <li v-for="item in card.items" :key="item">
         <span class="business-card__dot" aria-hidden="true" />
         {{ item }}
@@ -106,6 +110,16 @@ const iconPaths: Record<BusinessCard['iconKey'], string[]> = {
 .business-card__summary {
   font-size: var(--text-sm);
   color: var(--color-text-muted);
+}
+
+.business-card__achievement {
+  padding: var(--space-3);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius-sm);
+  background-color: var(--color-primary-light);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+  color: var(--color-text);
 }
 
 .business-card__items {

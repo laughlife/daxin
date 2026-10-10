@@ -30,6 +30,11 @@ export interface BusinessCard {
   title: string
   /** 一句话简介 */
   summary: string
+  /**
+   * 成绩/数据类文案，独立成块强调显示（可选）。
+   * 例如「团队处理上万起TRO侵权案件，多案达成0赔偿撤诉或极低和解金…」。
+   */
+  achievement?: string
   /** 业务条目（来自需求文档，不自行发明业务方向） */
   items: string[]
   /** 图标键，由组件映射为内置 SVG 占位图标 */

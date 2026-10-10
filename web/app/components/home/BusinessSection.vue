@@ -1,17 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { businessCards, businessGroups } from '~/config/businessContent'
+import { businessCards, businessSection } from '~/config/businessContent'
 
 /**
- * 首页“核心业务”区域：按 国外业务 / 国内业务 分组渲染 BusinessCard。
- * 业务条目全部出自需求文档。
+ * 首页「核心业务」区域。
+ *
+ * 需求方确认：四个板块**平铺为 2×2 网格**，不再按「国外业务 / 国内业务」分组，
+ * 因此这里直接渲染 businessCards，不再按 group 分栏。
  */
-const groups = computed(() =>
-  (Object.keys(businessGroups) as Array<keyof typeof businessGroups>).map(key => ({
-    ...businessGroups[key],
-    cards: businessCards.filter(card => card.group === key)
-  }))
-)
+const cards = computed(() => businessCards)
 </script>
 
 <template>
@@ -19,25 +16,15 @@ const groups = computed(() =>
     <PageContainer>
       <SectionHeading
         align="center"
-        title="核心业务"
-        description="国外业务聚焦 TRO 知识产权与出海合规，国内业务覆盖企业法律顾问与纠纷处理。"
+        :title="businessSection.title"
+        :description="businessSection.description"
       />
-      <div
-        v-for="group in groups"
-        :key="group.id"
-        class="business-section__group"
-      >
-        <div class="business-section__group-head">
-          <h3 class="business-section__group-title">{{ group.title }}</h3>
-          <p class="business-section__group-desc">{{ group.description }}</p>
-        </div>
-        <div class="business-section__grid">
-          <BusinessCard
-            v-for="card in group.cards"
-            :key="card.id"
-            :card="card"
-          />
-        </div>
+      <div class="business-section__grid">
+        <BusinessCard
+          v-for="card in cards"
+          :key="card.id"
+          :card="card"
+        />
       </div>
     </PageContainer>
   </section>
@@ -49,50 +36,15 @@ const groups = computed(() =>
   background-color: var(--color-bg-light);
 }
 
-.business-section__group {
-  margin-top: var(--space-10);
-}
-
-.business-section__group-head {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-  margin-bottom: var(--space-5);
-}
-
-.business-section__group-title {
-  position: relative;
-  padding-left: var(--space-4);
-  font-size: var(--text-xl);
-  color: var(--color-text);
-}
-
-.business-section__group-title::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 4px;
-  height: 1.1em;
-  border-radius: var(--radius-full);
-  background-color: var(--color-primary);
-}
-
-.business-section__group-desc {
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-
+/* 四块平铺：桌面 2×2，窄屏单列 */
 .business-section__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-6);
+  margin-top: var(--space-10);
 }
 
-/* 移动端：单列布局 */
-@media (max-width: 639px) {
+@media (max-width: 767px) {
   .business-section {
     padding-block: var(--space-10);
   }
