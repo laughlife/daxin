@@ -28,6 +28,20 @@ if (!base) {
   process.exit(2)
 }
 
+// `npm run generate` 与 `npm run build` 都写 .output，但产物性质相反：
+// generate 只产出静态文件（Nitro preset=static），此时用 npm run preview 起的是静态文件服务，
+// 所有未预渲染的 SSR 路由都会 404。若不提示，会把它误判成「应用出现大量坏链」。
+// 这里检测产物形态，若显然是静态产物则直接说明原因并退出。
+const hasServerBundle = await exists(join(root, '..', 'server', 'index.mjs'))
+const hasStaticIndex = await exists(join(root, 'index.html'))
+if (hasStaticIndex && !hasServerBundle) {
+  console.error('当前 .output 是静态产物（Nitro preset=static），不是 SSR 服务产物。')
+  console.error('静态产物只有预渲染页面，案件/文章/品牌等按需 SSR 路由必然 404。')
+  console.error('请先重新构建 SSR 产物再运行本检查：')
+  console.error('  npm run build && npm run preview')
+  process.exit(2)
+}
+
 async function files(dir) {
   const entries = await readdir(dir, { withFileTypes: true })
   return (await Promise.all(entries.map(item => item.isDirectory() ? files(join(dir, item.name)) : [join(dir, item.name)]))).flat()
