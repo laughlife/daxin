@@ -8,6 +8,11 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
 
+  // 开发服务端口固定为 3002（本项目约定），可用 PORT 环境变量覆盖。
+  devServer: {
+    port: 3002
+  },
+
   // 全局基础样式（内部通过 @import 引入设计令牌 tokens.css）
   css: ['~/assets/styles/main.css'],
 
@@ -33,14 +38,9 @@ export default defineNuxtConfig({
       // 由 SSR/ISR 按需渲染，不进入预渲染清单；开启链接爬取会试图抓取全部详情页。
       crawlLinks: false,
       routes: [
-        '/',
-        '/about',
         '/privacy',
         '/disclaimer',
-        '/infringement-check',
-        '/tro/cases',
-        '/brands',
-        '/law-firms'
+        '/infringement-check'
       ]
     }
   }
