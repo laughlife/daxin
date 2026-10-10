@@ -206,7 +206,24 @@ npm run check:static  # 内部链接与资源完整性检查，需运行中的�
 
 数据库与后台相关的验证脚本（在仓库根目录执行，需要已配置 `web/.env` 且服务已启动）：`tools/verify-admin-api.mjs`、`tools/verify-admin-config-pages.mjs`、`tools/verify-oss-upload.mjs`、`tools/check-public-api.mjs`、`tools/check-backfill.mjs`、`tools/check-review-resolution.mjs`、`tools/check-ip-types-admin.mjs` 等。
 
-`npm run check:browser` 需要 Playwright，本环境未安装，因此无法在此运行。它默认导入 `playwright`，可通过 `PLAYWRIGHT_MODULE` 指向已安装模块的 `file://` 地址，`BROWSER_EXECUTABLE` 指定浏览器可执行文件，`SMOKE_BASE_URL` 指定目标地址。
+`npm run check:browser` 是浏览器验收（Playwright，实测 44 项通过）。它通过
+`web/scripts/run-browser-check.mjs` 启动，该启动器会自动解析 Playwright 模块与浏览器：
+
+- Playwright 独立安装在 `D:\AppData\playwright`（`playwright-core`，不进入 web 项目依赖）。
+  换机器时可用 `PLAYWRIGHT_DIR` 指向其他安装目录，或用 `PLAYWRIGHT_MODULE` 直接指定模块入口。
+- 浏览器复用本机已安装的 Edge / Chrome（实测 Edge 154、Chrome 155 均可驱动），
+  因此**无需下载 Playwright 自带浏览器**（省约 150MB）。也可用 `BROWSER_EXECUTABLE` 指定。
+- 需要运行中的服务：`SMOKE_BASE_URL=http://[::1]:4411 npm run check:browser`。
+
+首次在新机器安装 Playwright：
+
+```powershell
+mkdir D:\AppData\playwright
+cd D:\AppData\playwright
+npm init -y
+npm install playwright-core
+```
+
 
 ## 已知限制与待办
 
