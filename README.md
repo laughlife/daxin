@@ -196,13 +196,22 @@ node tools/migrate-legacy/legacy-migrate.mjs --import --batch <batch_key>
 ```powershell
 npm run typecheck     # nuxt typecheck
 npm run test          # node --test，含 web/scripts/*.test.mjs 与 tools/migrate-legacy/*.test.mjs
-npm run build         # 生产构建（经 scripts/nuxt-build.mjs 注入 DAXIN_ALLOW_ROOT_DB=1）
+npm run build         # 生产构建，产出 SSR 服务
 npm run generate      # 静态生成，产物在 web/.output/public
 npm run smoke         # 路由 Smoke 检查，需运行中的服务
 npm run check:static  # 内部链接与资源完整性检查，需运行中的服务
+npm run check:browser # 浏览器验收（Playwright），需运行中的服务
 ```
 
-`smoke` 与 `check:static` 需要一个运行中的服务，默认 `http://127.0.0.1:3000`，可用 `SMOKE_BASE_URL` 覆盖。
+> **`build` 与 `generate` 都写 `.output/`，且 `generate` 会覆盖 `build` 的产物。**
+> `build` 产出 SSR 服务（`.output/server/index.mjs`），`generate` 产出纯静态文件
+> （Nitro preset=static）。在 `generate` 之后跑 `npm run preview`，起的是静态文件服务，
+> 只有预渲染页面存在，案件/文章/品牌等按需 SSR 路由会全部 404。
+> 需要完整站点时请执行 `npm run build && npm run preview`。
+> `check:static` 会检测产物形态，遇到静态产物会直接说明原因并以退出码 2 结束，避免误判为坏链。
+
+`smoke`、`check:static` 与 `check:browser` 需要一个运行中的服务，默认 `http://127.0.0.1:3000`，可用 `SMOKE_BASE_URL` 覆盖。
+注意开发服务器只绑定 IPv6 localhost，因此地址应写 `http://[::1]:<端口>` 而不是 `127.0.0.1`。
 
 数据库与后台相关的验证脚本（在仓库根目录执行，需要已配置 `web/.env` 且服务已启动）：`tools/verify-admin-api.mjs`、`tools/verify-admin-config-pages.mjs`、`tools/verify-oss-upload.mjs`、`tools/check-public-api.mjs`、`tools/check-backfill.mjs`、`tools/check-review-resolution.mjs`、`tools/check-ip-types-admin.mjs` 等。
 
