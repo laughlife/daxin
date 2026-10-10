@@ -18,11 +18,12 @@ export const businessCards: BusinessCard[] = [
     title: 'TRO全流程处理',
     summary: '美国TRO起诉、应诉与和解，缺席判决及疑难案件，助力客户低成本快速解冻账户。',
     achievement: '团队处理上万起TRO侵权案件，多案达成0赔偿撤诉或极低和解金，如沙滩包0赔偿解冻百万美金、钻石画案件0赔偿解冻45万美金等。',
+    // 「0赔偿撤诉」为关键成绩，加粗放大显示
+    achievementHighlight: '0赔偿撤诉',
     items: [],
     iconKey: 'scale',
-    href: '/tro/success-cases',
-    detailLinkLabel: '了解详情',
-    accent: true
+    // 成绩文案整体可点击，跳转 TRO 成功案例（需求 2026-10-10）
+    href: '/tro/success-cases'
   },
   {
     id: 'cross-border-ip',
@@ -36,7 +37,6 @@ export const businessCards: BusinessCard[] = [
     ],
     iconKey: 'shield',
     href: '/about',
-    accent: false
   },
   {
     id: 'cross-border-compliance',
@@ -51,7 +51,6 @@ export const businessCards: BusinessCard[] = [
     ],
     iconKey: 'document',
     href: '/about',
-    accent: false
   },
   {
     id: 'domestic-corporate-counsel',
@@ -67,7 +66,6 @@ export const businessCards: BusinessCard[] = [
     ],
     iconKey: 'briefcase',
     href: '/about',
-    accent: true
   }
 ]
 

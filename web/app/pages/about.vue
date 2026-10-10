@@ -1,37 +1,23 @@
 <script setup lang="ts">
-import { businessCards } from '~/config/businessContent'
-import { fetchArticles } from '~/repositories/articles'
 import { toAboutContent } from '~/utils/aboutContent'
 
 /**
  * 关于我们。
  *
- * 结构与文案按旧站 http://yan1.qinianyun.com/about/ 对齐（已用 Playwright 抓取整页比对）：
+ * 结构与视觉按旧站 http://yan1.qinianyun.com/about/ 复刻（已用 Playwright 抓取整页比对）：
  *   1. 首屏：左侧配图（旧站为法庭天平图）+ 右侧「欢迎您来访」标题、公司名、三段介绍、24H 联系
- *   2. 核心业务：四块业务卡片（与首页同一份文案）
- *   3. TRO 成功案例（标题带 TRO SUCCESS STORIES 副标题）
+ *   2. 核心业务：按旧站做法只用图片展示（**不复用首页的业务卡片文案**）
+ *   3. TRO 成功案例：旧站该区块为 4 张案例图（**不是文章卡片列表**）
  *   4. 企业宣讲（4 列图片网格，旧站 14 张）
  *   5. 我们的小伙伴（合作伙伴 logo 墙）
  *
- * 旧站该页顶部的「扫码领取 TRO 侵权大礼包」扫码区按需求**不保留**。
- * 文案与图片全部来自数据库配置（site_settings 的 about 组），可在后台编辑；
- * 未配置图片时不渲染空白框。页面样式沿用新站设计系统（红色主色、统一间距与圆角），
- * 只对齐旧站的模块顺序与信息结构。
+ * 旧站该页顶部的「扫码领取 TRO 侵权大礼包」扫码区按需求**不保留**；
+ * 旧站的深色页脚也不复刻，全站统一沿用现有页脚。
+ * 文案与图片全部来自数据库配置（site_settings 的 about 组），可在后台编辑。
  */
 const { data: settings, error: settingsError, refresh: refreshSettings } = await useSiteSettings()
 
 const about = computed(() => toAboutContent(settings.value))
-
-const { data: successData, error: successError, refresh: refreshSuccess } = await useAsyncData(
-  'about-success-cases',
-  () => fetchArticles({ category: 'tro-success', pageSize: 4 })
-)
-const successArticles = computed(() => successData.value?.items ?? [])
-const successErrorMessage = computed(() =>
-  successError.value instanceof Error && successError.value.message
-    ? successError.value.message
-    : '成功案例加载失败，请稍后重试'
-)
 
 const contact = computed(() => settings.value?.contact ?? {})
 const contactPhone = computed(() => contact.value.phone ?? '')
@@ -78,23 +64,25 @@ useSeoMeta({
           </div>
         </section>
 
-        <!-- 2. 核心业务：与首页共用同一份四板块文案 -->
+        <!-- 2. 核心业务：按旧站做法只用图片展示，不复用首页的业务卡片 -->
         <section class="about-page__section" aria-label="核心业务">
           <SectionHeading
             align="center"
+            eyebrow="OUR BUSINESS"
             title="核心业务"
             description="覆盖跨境知识产权、产品合规、涉外纠纷与国内企业法律顾问四大板块。"
           />
-          <div class="about-page__business-grid">
-            <BusinessCard
-              v-for="card in businessCards"
-              :key="card.id"
-              :card="card"
-            />
-          </div>
+          <ul v-if="about.businessImages.length > 0" class="about-page__business-gallery">
+            <li v-for="(src, index) in about.businessImages" :key="index">
+              <img :src="src" alt="大信法务核心业务" loading="lazy">
+            </li>
+          </ul>
+          <p v-else class="about-page__notice" role="note">
+            业务配图尚未上传。可在「后台 → 站点设置 → 关于我们」的 about_business_images 中配置。
+          </p>
         </section>
 
-        <!-- 3. TRO 成功案例 -->
+        <!-- 3. TRO 成功案例：旧站该区块为 4 张案例图 -->
         <section class="about-page__section" aria-label="成功案例">
           <SectionHeading
             align="center"
@@ -102,18 +90,17 @@ useSeoMeta({
             :title="about.successTitle"
             description="精选成功案例，结果与金额按记录展示。"
           />
-          <ErrorState
-            v-if="successError"
-            title="成功案例加载失败"
-            :message="successErrorMessage"
-            @retry="refreshSuccess"
-          />
-          <template v-else>
-            <ArticleList :articles="successArticles" />
-            <p class="about-page__more">
-              <NuxtLink to="/tro/success-cases">查看全部成功案例 →</NuxtLink>
-            </p>
-          </template>
+          <ul v-if="about.successImages.length > 0" class="about-page__success-gallery">
+            <li v-for="(src, index) in about.successImages" :key="index">
+              <img :src="src" :alt="`${about.successTitle} ${index + 1}`" loading="lazy">
+            </li>
+          </ul>
+          <p v-else class="about-page__notice" role="note">
+            成功案例图片尚未上传。可在「后台 → 站点设置 → 关于我们」的 about_success_images 中配置。
+          </p>
+          <p class="about-page__more">
+            <NuxtLink to="/tro/success-cases">查看全部成功案例 →</NuxtLink>
+          </p>
         </section>
 
         <!-- 4. 企业宣讲：4 列图片网格 -->
@@ -268,11 +255,44 @@ useSeoMeta({
   margin-top: var(--space-16);
 }
 
-/* 2. 核心业务：2×2 平铺，与首页一致 */
-.about-page__business-grid {
+/* 2. 核心业务：旧站该区块为图片展示 */
+.about-page__business-gallery {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-6);
+  list-style: none;
+  padding: 0;
+}
+
+.about-page__business-gallery img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+}
+
+/* 3. TRO 成功案例：旧站为 4 张竖版案例图 */
+.about-page__success-gallery {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-4);
+  list-style: none;
+  padding: 0;
+}
+
+.about-page__success-gallery img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.about-page__success-gallery img:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 /* 4. 企业宣讲：旧站为 4 列网格 */
@@ -341,6 +361,10 @@ useSeoMeta({
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .about-page__success-gallery {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   /* 窄屏下用较小的标题尺度，避免 36px 在手机上一行放不下 */
   .about-page :deep(.section-heading__title) {
     font-size: var(--text-3xl);
@@ -357,7 +381,7 @@ useSeoMeta({
 }
 
 @media (max-width: 767px) {
-  .about-page__business-grid {
+  .about-page__business-gallery {
     grid-template-columns: 1fr;
   }
 }

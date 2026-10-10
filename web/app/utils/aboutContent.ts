@@ -24,8 +24,12 @@ export interface AboutContent {
   heroImage: string
   /** 团队介绍配图。 */
   teamImages: string[]
+  /** 核心业务配图（旧站该区块只用图片展示）。 */
+  businessImages: string[]
   /** 成功案例区块标题。 */
   successTitle: string
+  /** 成功案例图片（旧站该区块为图片，不是文章卡片列表）。 */
+  successImages: string[]
   /** 成功案例对应的文章分类 slug。 */
   successCategory: string
   /** 企业宣讲标题。 */
@@ -93,7 +97,9 @@ export function toAboutContent(settings: PublicSettings | null | undefined): Abo
       const single = readText(values, 'about_team_image', '')
       return single ? [single] : []
     })(),
+    businessImages: readStringList(values, 'about_business_images'),
     successTitle: readText(values, 'about_success_title', DEFAULTS.successTitle),
+    successImages: readStringList(values, 'about_success_images'),
     successCategory: readText(values, 'about_success_category', DEFAULTS.successCategory),
     lectureTitle: readText(values, 'about_lecture_title', DEFAULTS.lectureTitle),
     lectureImages,

@@ -13,6 +13,24 @@ const props = defineProps<{
   card: BusinessCard
 }>()
 
+/**
+ * 把成绩文案切成「普通文本 / 高亮文本」片段，用于把关键短语单独加粗放大。
+ * 用 indexOf 切分而不是正则，避免短语里出现正则元字符时失效。
+ */
+const achievementParts = computed(() => {
+  const text = props.card.achievement ?? ''
+  const key = props.card.achievementHighlight ?? ''
+  if (!text) return []
+  if (!key) return [{ text, highlight: false }]
+  const index = text.indexOf(key)
+  if (index === -1) return [{ text, highlight: false }]
+  return [
+    { text: text.slice(0, index), highlight: false },
+    { text: key, highlight: true },
+    { text: text.slice(index + key.length), highlight: false },
+  ].filter((part) => part.text !== '')
+})
+
 /** 内置占位图标（几何线条，非正式品牌素材） */
 const iconPaths: Record<BusinessCard['iconKey'], string[]> = {
   scale: ['M12 4v16', 'M7 20h10', 'M4 8h16', 'M4 8 2 13h4L4 8Z', 'M20 8l-2 5h4l-2-5Z'],
@@ -23,10 +41,7 @@ const iconPaths: Record<BusinessCard['iconKey'], string[]> = {
 </script>
 
 <template>
-  <article
-    class="business-card"
-    :class="{ 'business-card--accent': card.accent }"
-  >
+  <article class="business-card">
     <span class="business-card__icon" aria-hidden="true">
       <svg
         viewBox="0 0 24 24"
@@ -43,23 +58,26 @@ const iconPaths: Record<BusinessCard['iconKey'], string[]> = {
     </span>
     <h3 class="business-card__title">{{ card.title }}</h3>
     <p class="business-card__summary">{{ card.summary }}</p>
-    <!-- 成绩/数据类文案独立成块强调，避免与描述混在一段里被忽略 -->
-    <p v-if="card.achievement" class="business-card__achievement">
-      {{ card.achievement }}
-    </p>
+    <!-- 成绩文案整体可点击跳转成功案例，其中关键短语加粗放大（需求 2026-10-10）。 -->
+    <template v-if="card.achievement">
+      <NuxtLink
+        v-if="card.href"
+        class="business-card__achievement"
+        :to="card.href"
+      >
+        <template v-for="(part, index) in achievementParts" :key="index">
+          <strong v-if="part.highlight" class="business-card__achievement-key">{{ part.text }}</strong>
+          <template v-else>{{ part.text }}</template>
+        </template>
+      </NuxtLink>
+      <p v-else class="business-card__achievement">{{ card.achievement }}</p>
+    </template>
     <ul v-if="card.items.length > 0" class="business-card__items">
       <li v-for="item in card.items" :key="item">
         <span class="business-card__dot" aria-hidden="true" />
         {{ item }}
       </li>
     </ul>
-    <NuxtLink
-      v-if="card.detailLinkLabel"
-      class="business-card__detail"
-      :to="card.href"
-    >
-      {{ card.detailLinkLabel }}
-    </NuxtLink>
   </article>
 </template>
 
@@ -87,10 +105,6 @@ const iconPaths: Record<BusinessCard['iconKey'], string[]> = {
   border-color: color-mix(in srgb, var(--color-primary) 35%, var(--color-border));
 }
 
-.business-card--accent {
-  border-top: 3px solid var(--color-primary);
-}
-
 .business-card__icon {
   display: inline-flex;
   align-items: center;
@@ -112,14 +126,23 @@ const iconPaths: Record<BusinessCard['iconKey'], string[]> = {
   color: var(--color-text-muted);
 }
 
+/* 成绩文案：与其它卡片正文同级排版，不做整块变色强调（需求 2026-10-10） */
 .business-card__achievement {
-  padding: var(--space-3);
-  border-left: 3px solid var(--color-primary);
-  border-radius: var(--radius-sm);
-  background-color: var(--color-primary-light);
+  display: block;
   font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
   color: var(--color-text);
+}
+
+a.business-card__achievement:hover {
+  color: var(--color-primary);
+}
+
+/* 关键短语（如「0赔偿撤诉」）加粗放大 */
+.business-card__achievement-key {
+  font-size: var(--text-base);
+  font-weight: 700;
+  color: var(--color-primary);
 }
 
 .business-card__items {
@@ -142,19 +165,6 @@ const iconPaths: Record<BusinessCard['iconKey'], string[]> = {
   flex-shrink: 0;
   border-radius: var(--radius-full);
   background-color: var(--color-primary);
-}
-
-.business-card__detail {
-  margin-top: auto;
-  align-self: flex-start;
-  padding-top: var(--space-2);
-  color: var(--color-primary);
-  font-size: var(--text-sm);
-  font-weight: 600;
-}
-
-.business-card__detail:hover {
-  text-decoration: underline;
 }
 </style>
 

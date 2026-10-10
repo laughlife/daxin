@@ -50,17 +50,20 @@ try {
   await page.getByRole('button', { name: '复制 TRO 咨询号 kjzx88', exact: true }).click()
   check('公告一键复制精确微信号', await page.evaluate(() => navigator.clipboard.readText()) === 'kjzx88')
 
-  // 首页核心业务：需求要求第一块业务跳转 TRO 成功案例并显示入口，其余核心业务不显示「了解详情」。
+  // 首页核心业务（需求 2026-10-10 修订）：
+  //   - 四块样式一致，「TRO全流程处理」不再单独红色强调；
+  //   - 不再有「了解详情」入口；
+  //   - 成绩文案整体可点击跳转 TRO 成功案例，其中「0赔偿撤诉」加粗放大。
   // 说明：首页业务卡片目前仍来自前端 config（web/app/config/businessContent.ts），
   // 数据库中的 service_sections 是后台配置项的预备数据，尚未驱动首页渲染。
   const businessSection = page.locator('.business-section')
   check('首页核心业务区块存在', await businessSection.count() === 1)
-  check('首页核心业务第一块指向 TRO 成功案例', await businessSection.locator('a[href="/tro/success-cases"]').count() > 0)
-  // 只有第一块提供入口，因此「了解详情」应恰好出现一次
-  check('首页核心业务仅第一块显示了解详情', await businessSection.locator('.business-card__detail').count() === 1)
-  check('了解详情链接指向成功案例', await businessSection.locator('.business-card__detail').getAttribute('href') === '/tro/success-cases')
+  check('核心业务四块卡片齐全', await businessSection.locator('.business-card').count() === 4)
+  check('核心业务不再有红色强调卡片', await businessSection.locator('.business-card--accent').count() === 0)
+  check('核心业务不再显示了解详情', await businessSection.locator('.business-card__detail').count() === 0)
+  check('成绩文案可点击跳转成功案例', await businessSection.locator('a.business-card__achievement[href="/tro/success-cases"]').count() === 1)
+  check('成绩关键短语加粗显示', (await businessSection.locator('.business-card__achievement-key').innerText()).trim() === '0赔偿撤诉')
 
-  // 首页成功案例与推荐阅读来自真实库
   // 首页成功案例与推荐阅读来自真实库
   check('首页展示成功案例卡片', await page.locator('.case-preview-card').count() > 0)
 
@@ -171,6 +174,15 @@ try {
   check('页脚业务项为可点击链接', await footerLinks.count() > 0)
   const footerHref = await footerLinks.first().getAttribute('href')
   check('页脚业务项有有效 href', Boolean(footerHref) && footerHref.startsWith('/'))
+
+  // 需求（2026-10-10）：页脚改为三项竖排；页脚用新 logo，去掉原文字占位；
+  // 页头已放 logo，不再并列显示「大信法务」文字与副标题。
+  check('页脚为三项竖排布局', await page.locator('.site-footer__column').count() === 3)
+  check('页脚使用 logo 图片', await page.locator('.site-footer__logo-img').count() === 1)
+  check('页脚不再有文字方块占位', await page.locator('.site-footer__logo').count() === 0)
+  check('页头使用 logo 图片', await page.locator('.site-header__logo-img').count() === 1)
+  check('页头不再并列显示站名文字', await page.locator('.site-header__logo-text').count() === 0)
+  check('页头不出现站名副标题文本', !(await page.locator('.site-header__inner').innerText()).includes('跨境电商与国际物流法律服务'))
 
   // ---------- 移动端 ----------
   await page.setViewportSize({ width: 390, height: 844 })

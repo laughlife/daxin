@@ -41,10 +41,9 @@ const logoSrc = computed(() => logoFromSettings.value || siteConfig.logo.src)
           :src="logoSrc"
           :alt="siteConfig.logo.alt"
         >
-        <span v-else class="site-header__logo" aria-hidden="true">
-          {{ siteConfig.logo.text }}
-        </span>
-        <span class="site-header__title">
+        <!-- 未配置 logo 图片时才回退为文字占位；
+             已放 logo 时不再并列显示「大信法务」名称与副标题（需求 2026-10-10）。 -->
+        <span v-else class="site-header__logo-text">
           <span class="site-header__name">{{ siteConfig.name }}</span>
           <span class="site-header__subtitle">{{ siteConfig.subtitle }}</span>
         </span>
@@ -119,26 +118,12 @@ const logoSrc = computed(() => logoFromSettings.value || siteConfig.logo.src)
 }
 
 .site-header__logo-img {
-  height: 40px;
+  height: 44px;
   width: auto;
 }
 
-/* Logo 占位：无正式 Logo 时显示文字块 */
-.site-header__logo {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: var(--radius-md);
-  background-color: var(--color-primary);
-  color: var(--color-text-on-primary);
-  font-size: var(--text-sm);
-  font-weight: 700;
-}
-
-.site-header__title {
+/* 无正式 Logo 时的文字回退（有 logo 时不渲染这一块） */
+.site-header__logo-text {
   display: flex;
   flex-direction: column;
   min-width: 0;

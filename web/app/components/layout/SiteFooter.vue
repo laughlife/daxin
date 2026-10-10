@@ -20,6 +20,26 @@ const footerServices = computed(() => {
   return items.filter((item) => item.title)
 })
 
+/** 相关链接：后台维护的导航链接（页脚第三栏）。 */
+const footerLinks = computed(() => {
+  const items = settings.value?.footer?.links ?? []
+  return items.filter((item) => item.title && item.linkPath)
+})
+
+/** 页脚 logo：优先用后台站点配置的 site_logo（新 logo）。 */
+const logoSrc = computed(() => {
+  const value = settings.value?.settings?.site_logo
+  return typeof value === 'string' && value.trim() ? value.trim() : ''
+})
+
+/** 劳动法咨询微信号，从联系渠道读取，取不到时回退静态配置。 */
+const laborWechat = computed(() => {
+  const channel = (settings.value?.footer?.channels ?? []).find((item) => item.itemKey === 'contact-wechat-labor')
+  return channel?.value
+    || siteConfig.contact.wechatAccounts.find((item) => item.id === 'labor')?.wechatId
+    || ''
+})
+
 /** 服务端暂无配置时的静态兜底（仅文案，不可点击）。 */
 const fallbackGroups = computed(() => siteConfig.footerNav)
 </script>
@@ -27,19 +47,28 @@ const fallbackGroups = computed(() => siteConfig.footerNav)
 <template>
   <footer class="site-footer">
     <PageContainer class="site-footer__main">
+      <!-- 上：公司 logo（新 logo）+ 简介 + 双公众号二维码 -->
       <div class="site-footer__brand">
-        <div class="site-footer__identity">
-          <span class="site-footer__logo" aria-hidden="true">{{ siteConfig.logo.text }}</span>
-          <p class="site-footer__name">{{ siteConfig.name }}</p>
+        <div class="site-footer__brand-main">
+          <div class="site-footer__identity">
+            <img
+              v-if="logoSrc"
+              class="site-footer__logo-img"
+              :src="logoSrc"
+              :alt="siteConfig.name"
+            >
+            <p v-else class="site-footer__name">{{ siteConfig.name }}</p>
+          </div>
+          <p class="site-footer__subtitle">{{ siteConfig.footerIntro }}</p>
         </div>
-        <p class="site-footer__subtitle">大信法务团队为深耕跨境赛道的专业跨境电商、国际物流律师团队。主营海运、空运全链路法律业务，面向国际物流、跨境服务商、出海卖家提供法律顾问服务;同步覆盖用工劳动合规、TRO、合同风控、海关合规，可代理，各类纠纷诉讼，高效处理货损、欠款、维权等各类争议</p>
         <ContactQrGrid kind="public" zoomable class="site-footer__channels" @zoom="enlargeQr" />
       </div>
 
-      <section class="site-footer__nav" aria-label="业务范围">
-        <div class="site-footer__nav-group">
+      <!-- 下：三项竖排（业务范围 / 联系我们 / 二维码或导航），业务范围可点击跳转 -->
+      <div class="site-footer__columns">
+        <section class="site-footer__column" aria-label="业务范围">
           <h3 class="site-footer__section-title">业务范围</h3>
-          <ul v-if="footerServices.length > 0">
+          <ul v-if="footerServices.length > 0" class="site-footer__list">
             <li v-for="item in footerServices" :key="item.itemKey">
               <NuxtLink v-if="item.linkPath" class="site-footer__service-link" :to="item.linkPath">
                 {{ item.title }}
@@ -47,22 +76,33 @@ const fallbackGroups = computed(() => siteConfig.footerNav)
               <span v-else>{{ item.title }}</span>
             </li>
           </ul>
-          <ul v-else>
+          <ul v-else class="site-footer__list">
             <li v-for="group in fallbackGroups" :key="group.title">
               <span v-for="item in group.items" :key="item.label">{{ item.label }}</span>
             </li>
           </ul>
-        </div>
-      </section>
+        </section>
 
-      <div class="site-footer__contact" aria-label="联系我们">
-        <h3 class="site-footer__section-title">联系我们</h3>
-        <dl class="site-footer__contact-list">
-          <div><dt>微信</dt><dd>{{ siteConfig.contact.wechatAccounts.find(channel => channel.id === 'labor')?.wechatId }}</dd></div>
-          <div><dt>电话</dt><dd><a :href="`tel:${siteConfig.contact.phone}`">{{ siteConfig.contact.phone }}</a></dd></div>
-          <div><dt>邮箱</dt><dd><a :href="`mailto:${siteConfig.contact.email}`">{{ siteConfig.contact.email }}</a></dd></div>
-          <div><dt>地址</dt><dd>{{ siteConfig.contact.address }}</dd></div>
-        </dl>
+        <section class="site-footer__column" aria-label="联系我们">
+          <h3 class="site-footer__section-title">联系我们</h3>
+          <dl class="site-footer__contact-list">
+            <div><dt>微信</dt><dd>{{ laborWechat }}</dd></div>
+            <div><dt>电话</dt><dd><a :href="`tel:${siteConfig.contact.phone}`">{{ siteConfig.contact.phone }}</a></dd></div>
+            <div><dt>邮箱</dt><dd><a :href="`mailto:${siteConfig.contact.email}`">{{ siteConfig.contact.email }}</a></dd></div>
+            <div><dt>地址</dt><dd>{{ siteConfig.contact.address }}</dd></div>
+          </dl>
+        </section>
+
+        <section class="site-footer__column" aria-label="相关链接">
+          <h3 class="site-footer__section-title">相关链接</h3>
+          <ul v-if="footerLinks.length > 0" class="site-footer__list">
+            <li v-for="item in footerLinks" :key="item.itemKey">
+              <NuxtLink class="site-footer__service-link" :to="item.linkPath">
+                {{ item.title }}
+              </NuxtLink>
+            </li>
+          </ul>
+        </section>
       </div>
     </PageContainer>
 
@@ -88,24 +128,28 @@ const fallbackGroups = computed(() => siteConfig.footerNav)
 
 <style scoped>
 .site-footer { background:var(--color-bg-dark); color:var(--color-text-inverse); font-size:var(--text-sm); }
-.site-footer__main { display:flex; flex-direction:column; gap:20px; padding-block:28px; }
-.site-footer__brand { display:grid; grid-template-columns:150px minmax(0,1fr) 280px; align-items:center; gap:28px; }
-.site-footer__identity { display:flex; flex-direction:column; align-items:center; gap:12px; }
-.site-footer__logo { display:inline-flex; align-items:center; justify-content:center; width:80px; height:80px; border-radius:var(--radius-lg); background:var(--color-primary); color:var(--color-text-on-primary); font-size:var(--text-3xl); font-weight:700; }
-.site-footer__name { font-size:var(--text-3xl); font-weight:700; }
-.site-footer__subtitle { margin:0; text-align:left; max-width:760px; line-height:var(--leading-relaxed); color:rgb(255 255 255 / 65%); }
-.site-footer__nav { display:flex; flex-wrap:wrap; justify-content:center; gap:var(--space-5) var(--space-8); padding-block:18px; border-block:1px solid rgb(255 255 255 / 15%); }
-.site-footer__nav-group { display:grid; grid-template-columns:150px minmax(0,1fr); align-items:start; gap:28px; width:100%; }
+.site-footer__main { display:flex; flex-direction:column; gap:var(--space-8); padding-block:var(--space-8); }
+
+/* 上：logo + 简介（左）与双公众号二维码（右） */
+.site-footer__brand { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:var(--space-8); }
+.site-footer__brand-main { display:flex; flex-direction:column; gap:var(--space-4); min-width:0; }
+.site-footer__identity { display:flex; align-items:center; gap:var(--space-3); }
+.site-footer__logo-img { height:52px; width:auto; }
+.site-footer__name { font-size:var(--text-2xl); font-weight:700; }
+.site-footer__subtitle { margin:0; max-width:820px; line-height:var(--leading-relaxed); color:rgb(255 255 255 / 65%); }
+
+/* 下：三项竖排 */
+.site-footer__columns { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:var(--space-8); padding-top:var(--space-6); border-top:1px solid rgb(255 255 255 / 15%); }
+.site-footer__column { display:flex; flex-direction:column; gap:var(--space-4); min-width:0; }
 .site-footer__section-title { font-size:var(--text-lg); font-weight:600; color:var(--color-text-inverse); text-align:left; letter-spacing:0.08em; padding-top:4px; }
 .site-footer__section-title::after { content:''; display:block; width:28px; height:2px; margin:8px 0 0; background:var(--color-accent); }
-.site-footer__nav ul { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px 20px; width:100%; max-width:900px; color:rgb(255 255 255 / 80%); list-style:none; padding:0; }
-.site-footer__nav li { display:flex; justify-content:center; align-items:center; min-height:28px; padding:2px 8px; text-align:center; line-height:1.65;  }
-.site-footer__contact { display:grid; grid-template-columns:150px minmax(0,1fr); gap:28px; align-items:start; }
-.site-footer__contact > h3 { margin:0; }
-.site-footer__channels { grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; max-width:300px; margin:0; gap:var(--space-6); }
+.site-footer__list { display:flex; flex-direction:column; gap:8px; margin:0; padding:0; list-style:none; color:rgb(255 255 255 / 80%); }
+.site-footer__service-link { color:rgb(255 255 255 / 80%); line-height:1.7; }
+.site-footer__service-link:hover { color:var(--color-accent); }
+.site-footer__channels { grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-6); margin:0; }
 .site-footer__channels :deep(img) { width:100%; max-width:100px; }
-.site-footer__contact-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px 28px; margin:0; }
-.site-footer__contact-list > div { display:flex; align-items:baseline; justify-content:flex-start; gap:8px; min-width:0; }
+.site-footer__contact-list { display:flex; flex-direction:column; gap:10px; margin:0; }
+.site-footer__contact-list > div { display:flex; align-items:baseline; gap:8px; min-width:0; }
 .site-footer__contact-list dt { flex-shrink:0; font-size:var(--text-sm); color:rgb(255 255 255 / 50%); }
 .site-footer__contact-list dd { margin:0; color:rgb(255 255 255 / 85%); line-height:1.7; overflow-wrap:anywhere; }
 .site-footer__contact-list a { color:inherit; }
@@ -117,17 +161,10 @@ const fallbackGroups = computed(() => siteConfig.footerNav)
 .site-footer__bottom-inner { display:flex; align-items:center; justify-content:space-between; gap:var(--space-4); flex-wrap:wrap; color:rgb(255 255 255 / 55%); }
 .site-footer__legal, .site-footer__policies { display:flex; gap:var(--space-4); flex-wrap:wrap; }
 @media (max-width:1023px) {
-  .site-footer__channels { grid-template-columns:repeat(2,minmax(0,1fr)); max-width:300px; }
-  .site-footer__nav { justify-content:center; }
-  .site-footer__brand, .site-footer__nav-group, .site-footer__contact { grid-template-columns:1fr; gap:16px; }
-  .site-footer__subtitle { text-align:center; }
-  .site-footer__channels { margin:0 auto; }
-  .site-footer__section-title { text-align:center; }
-  .site-footer__section-title::after { margin-inline:auto; }
-  .site-footer__contact-list { grid-template-columns:1fr; }
-  .site-footer__nav ul { grid-template-columns:repeat(2,minmax(0,1fr)); }
-  .site-footer__nav li:last-child { grid-column:1 / -1; }
-  .site-footer__nav li { padding-inline:10px; }
+  /* 窄屏：上区块改为上下排列；三项由三列降为单列堆叠 */
+  .site-footer__brand { grid-template-columns:1fr; gap:var(--space-6); }
+  .site-footer__columns { grid-template-columns:1fr; gap:var(--space-6); }
+  .site-footer__channels { margin:0; max-width:300px; }
   .site-footer__bottom-inner { flex-direction:column; text-align:center; }
   .site-footer__legal, .site-footer__policies { justify-content:center; }
 }

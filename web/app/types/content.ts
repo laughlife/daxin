@@ -31,25 +31,20 @@ export interface BusinessCard {
   /** 一句话简介 */
   summary: string
   /**
-   * 成绩/数据类文案，独立成块强调显示（可选）。
+   * 成绩/数据类文案（可选）。有 href 时整段可点击跳转，便于直接查看成功案例。
    * 例如「团队处理上万起TRO侵权案件，多案达成0赔偿撤诉或极低和解金…」。
    */
   achievement?: string
+  /** achievement 中需要加粗放大的关键短语（可选），如「0赔偿撤诉」 */
+  achievementHighlight?: string
   /** 业务条目（来自需求文档，不自行发明业务方向） */
   items: string[]
   /** 图标键，由组件映射为内置 SVG 占位图标 */
   iconKey: 'scale' | 'shield' | 'document' | 'briefcase'
-  /** 入口链接 */
-  href: string
   /**
-   * 是否显示「了解详情」入口，并展示链接文案。
-   *
-   * 需求只要求首页第一块「TRO 与链接维权」跳转 TRO 成功案例，其余三块不提供该入口，
-   * 因此由数据显式声明，而不是靠组件猜。
+   * 入口链接。目前用于成绩文案的点击跳转（如指向 TRO 成功案例）。
    */
-  detailLinkLabel?: string
-  /** 是否强调样式（描边高亮） */
-  accent: boolean
+  href: string
 }
 
 /** TRO 案件类型 */

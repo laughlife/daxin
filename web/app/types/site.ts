@@ -85,6 +85,8 @@ export interface SiteConfig {
   subtitle: string
   /** 默认 SEO 描述 */
   description: string
+  /** 页脚公司简介 */
+  footerIntro: string
   /** Logo 占位配置 */
   logo: LogoConfig
   /** 联系方式占位配置 */

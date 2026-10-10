@@ -35,6 +35,30 @@ const LECTURE_IMAGES = [
 /** 我们的小伙伴：合作伙伴 logo 墙（旧站为一张拼好的九宫格图）。 */
 const PARTNER_IMAGES = [`${OSS}/e430637f-13f4-57f6-9b5d-59663cd525ce.jpg`]
 
+/**
+ * 核心业务：旧站「国内业务 / 国外业务」两张业务图。
+ *
+ * 旧站该区块本身就是图片（红底白字标题 + Our Business + 业务项），
+ * 需求要求关于我们页按旧站来（只放旧站的几张图片），因此不再复用首页的四块文字卡片。
+ */
+const BUSINESS_IMAGES = [
+  // 国内业务
+  `${OSS}/917e24fc-dcc7-54d6-a71a-04604eaef8d3.jpg`,
+  // 国外业务
+  `${OSS}/d84730a8-19d8-5590-8dd2-274e1d1d34dd.jpg`,
+]
+
+/**
+ * TRO 成功案例：旧站该区块放的是 4 张成功案例图（不是文章卡片列表）。
+ * 需求要求关于我们页按旧站来，因此这里用图片而非复用首页的文章列表。
+ */
+const SUCCESS_IMAGES = [
+  `${OSS}/12ba2d8e-c173-5c7b-b248-96adeb51f73e.jpg`,
+  `${OSS}/386f6abe-578a-5d74-8b41-5d00f9ae5ad0.jpg`,
+  `${OSS}/d0924210-220b-59db-9903-5e2a88591202.jpg`,
+  `${OSS}/d077a582-b200-5dcb-9641-8b52bb66f8ce.jpg`,
+]
+
 const dryRun = process.argv.includes('--dry-run')
 
 async function upsertJson(target, key, group, value) {
@@ -69,4 +93,6 @@ if (!target) {
   await upsertJson(target, 'about_hero_image', 'about', [TEAM_IMAGE])
   await upsertJson(target, 'about_lecture_images', 'about', LECTURE_IMAGES)
   await upsertJson(target, 'about_partner_images', 'about', PARTNER_IMAGES)
+  await upsertJson(target, 'about_success_images', 'about', SUCCESS_IMAGES)
+  await upsertJson(target, 'about_business_images', 'about', BUSINESS_IMAGES)
 }
