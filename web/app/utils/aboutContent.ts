@@ -20,6 +20,10 @@ export interface AboutContent {
   teamParagraphs: string[]
   /** 联系引导标题。 */
   contactTitle: string
+  /** 首屏右侧配图（旧站为法庭天平图），取 about_hero_image 数组首项。 */
+  heroImage: string
+  /** 团队介绍配图。 */
+  teamImages: string[]
   /** 成功案例区块标题。 */
   successTitle: string
   /** 成功案例对应的文章分类 slug。 */
@@ -83,6 +87,12 @@ export function toAboutContent(settings: PublicSettings | null | undefined): Abo
     teamTitle: readText(values, 'about_team_title', DEFAULTS.teamTitle),
     teamParagraphs: readStringList(values, 'about_team_paragraphs'),
     contactTitle: readText(values, 'about_contact_title', DEFAULTS.contactTitle),
+    // 首图既支持 json 数组（about_hero_image），也兼容单图配置（about_team_image）
+    heroImage: readStringList(values, 'about_hero_image')[0] ?? readText(values, 'about_team_image', ''),
+    teamImages: (() => {
+      const single = readText(values, 'about_team_image', '')
+      return single ? [single] : []
+    })(),
     successTitle: readText(values, 'about_success_title', DEFAULTS.successTitle),
     successCategory: readText(values, 'about_success_category', DEFAULTS.successCategory),
     lectureTitle: readText(values, 'about_lecture_title', DEFAULTS.lectureTitle),

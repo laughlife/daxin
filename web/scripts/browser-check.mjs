@@ -152,9 +152,18 @@ try {
 
   // ---------- 关于我们 ----------
   await visit('/about')
+  // 对齐旧站结构：首屏公司介绍 + 核心业务 + 成功案例 + 企业宣讲 + 我们的小伙伴
   check('关于我们包含成功案例区块', await page.locator('[aria-label="成功案例"]').count() === 1)
-  check('关于我们按旧站结构含团队介绍', await page.locator('[aria-label="团队介绍"]').count() === 1)
+  check('关于我们包含公司介绍区块', await page.locator('[aria-label="公司介绍"]').count() === 1)
+  check('关于我们包含核心业务区块', await page.locator('[aria-label="核心业务"]').count() === 1)
+  check('关于我们包含企业宣讲区块', await page.locator('[aria-label="企业宣讲"]').count() === 1)
+  check('关于我们包含我们的小伙伴区块', await page.locator('[aria-label="我们的小伙伴"]').count() === 1)
+  // 旧站该页顶部有扫码大礼包区，按需求不保留
   check('关于我们不含扫码大礼包区域', !(await page.locator('body').innerText()).includes('扫码领取'))
+  // 旧站的英文副标题
+  check('关于我们保留英文副标题', await page.locator('.section-heading__eyebrow').evaluateAll(
+    items => ['TRO SUCCESS STORIES', 'COMPANY PRESENTATION', 'OUR FRIENDS'].every(text => items.some(el => el.textContent.trim() === text))
+  ))
 
   // ---------- 页脚：业务项可点击 ----------
   await visit('/')

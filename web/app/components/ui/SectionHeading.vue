@@ -3,9 +3,14 @@ import { computed } from 'vue'
 
 /**
  * 区块标题：统一的标题 + 描述 + 装饰线。
+ *
+ * eyebrow 为标题上方的英文小字（如 TRO SUCCESS STORIES / COMPANY PRESENTATION），
+ * 旧站各区块的英文副标题就是这个位置；不传时不渲染，不影响既有调用。
  */
 const props = withDefaults(
   defineProps<{
+    /** 标题上方的英文小字（可选） */
+    eyebrow?: string
     /** 标题文本（也可通过 title 插槽传入） */
     title?: string
     /** 描述文本 */
@@ -16,6 +21,7 @@ const props = withDefaults(
     align?: 'left' | 'center'
   }>(),
   {
+    eyebrow: '',
     title: '',
     description: '',
     level: 2,
@@ -33,6 +39,7 @@ const rootClass = computed(() => [
 
 <template>
   <div :class="rootClass">
+    <p v-if="eyebrow" class="section-heading__eyebrow">{{ eyebrow }}</p>
     <component :is="headingTag" class="section-heading__title">
       <slot name="title">{{ title }}</slot>
     </component>
@@ -53,6 +60,14 @@ const rootClass = computed(() => [
 .section-heading--center {
   align-items: center;
   text-align: center;
+}
+
+.section-heading__eyebrow {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-primary);
 }
 
 .section-heading__title {
