@@ -35,6 +35,12 @@ const { user, load } = useAdminSession()
 // 后台首屏（含 SSR）就需要角色信息，才能正确禁用只读角色的写控件。
 await load()
 
+/**
+ * 后台接口必须用 useRequestFetch：SSR 期间对 /api/admin/** 的相对请求要转发用户请求头
+ * （含 HttpOnly 会话 Cookie），否则服务端取不到登录态，已登录用户首屏会看到「未登录」。
+ */
+const requestFetch = useRequestFetch()
+
 const canWrite = computed(() => canWriteContent(user.value))
 const readOnlyReason = READ_ONLY_NOTICE
 
@@ -73,7 +79,7 @@ const {
 } = await useAsyncData<ArticleListPayload>(
   listKey,
   async () => {
-    const payload = await $fetch<{
+    const payload = await requestFetch<{
       data?: AdminArticleItem[]
       meta?: Record<string, unknown>
     }>('/api/admin/articles', {
@@ -88,7 +94,7 @@ const {
     let meta = toPageMeta(payload?.meta, { page: page.value, pageSize: pageSize.value })
     // 服务端会把越界页夹到最后一页；按夹取后的页码重取一次，避免 ?page=999 显示空表。
     if (page.value > meta.totalPages && meta.totalPages >= 1) {
-      const retry = await $fetch<{ data?: AdminArticleItem[], meta?: Record<string, unknown> }>(
+      const retry = await requestFetch<{ data?: AdminArticleItem[], meta?: Record<string, unknown> }>(
         '/api/admin/articles',
         {
           query: toAdminQuery({
@@ -214,7 +220,8 @@ async function openEdit(item: AdminArticleItem) {
   slugHint.value = item.slug
   try {
     const detail = await requestAdminApi<{ article: AdminArticleDetail }>(
-      `/api/admin/articles/${item.id}`
+      `/api/admin/articles/${item.id}`,
+      { requestFetch }
     )
     const article = detail.article
     form.title = article.title
@@ -266,10 +273,10 @@ async function onSubmit() {
   if (form.slug.trim()) body.slug = form.slug.trim()
   try {
     if (editingId.value === null) {
-      await requestAdminApi<AdminWriteResult>('/api/admin/articles', { method: 'POST', body })
+      await requestAdminApi<AdminWriteResult>('/api/admin/articles', { method: 'POST', body, requestFetch })
       notice.value = '文章已新建'
     } else {
-      await requestAdminApi<AdminWriteResult>(`/api/admin/articles/${editingId.value}`, { method: 'PUT', body })
+      await requestAdminApi<AdminWriteResult>(`/api/admin/articles/${editingId.value}`, { method: 'PUT', body, requestFetch })
       notice.value = '文章已保存'
     }
     await refreshList()
@@ -288,7 +295,7 @@ async function onArchive(item: AdminArticleItem) {
   actionError.value = ''
   notice.value = ''
   try {
-    await requestAdminApi<AdminWriteResult>(`/api/admin/articles/${item.id}`, { method: 'DELETE' })
+    await requestAdminApi<AdminWriteResult>(`/api/admin/articles/${item.id}`, { method: 'DELETE', requestFetch })
     notice.value = `《${item.title}》已归档（软删除，数据仍保留）`
     await refreshList()
   } catch (error) {

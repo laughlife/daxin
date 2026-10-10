@@ -68,6 +68,9 @@ const loading = ref(false)
 const loadError = ref('')
 const keyword = ref('')
 
+/** SSR 期间转发会话 Cookie，客户端等价于普通 $fetch。 */
+const requestFetch = useRequestFetch()
+
 const hasMore = computed(() => page.value < totalPages.value)
 /** 已选中项：优先从候选里找，找不到时退回 id 展示，绝不静默显示成「未选择」 */
 const selected = computed(() => options.value.find(item => item.id === props.modelValue) ?? null)
@@ -93,7 +96,7 @@ async function load(targetPage: number, replace: boolean) {
   loading.value = true
   loadError.value = ''
   try {
-    const payload = await $fetch<{ data?: Record<string, unknown>[], meta?: Record<string, unknown> }>(props.endpoint, {
+    const payload = await requestFetch<{ data?: Record<string, unknown>[], meta?: Record<string, unknown> }>(props.endpoint, {
       query: toAdminQuery({
         keyword: keyword.value.trim(),
         page: targetPage,

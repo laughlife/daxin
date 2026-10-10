@@ -43,6 +43,12 @@ useSeoMeta({
 const { user, load } = useAdminSession()
 await load()
 
+/**
+ * 后台接口必须用 useRequestFetch：SSR 期间对 /api/admin/** 的相对请求要转发用户请求头
+ * （含 HttpOnly 会话 Cookie），否则服务端取不到登录态，已登录用户首屏会看到「未登录」。
+ */
+const requestFetch = useRequestFetch()
+
 const canWrite = computed(() => canWriteContent(user.value))
 const readOnlyReason = READ_ONLY_NOTICE
 
@@ -123,7 +129,7 @@ const listKey = computed(() =>
 )
 
 async function fetchCasePage(targetPage: number): Promise<CaseListPayload> {
-  const payload = await $fetch<{ data?: AdminCaseItem[], meta?: Record<string, unknown> }>('/api/admin/cases', {
+  const payload = await requestFetch<{ data?: AdminCaseItem[], meta?: Record<string, unknown> }>('/api/admin/cases', {
     query: toAdminQuery({
       keyword: keyword.value.trim(),
       status: publishStatus.value,
@@ -293,7 +299,7 @@ async function openEdit(item: AdminCaseItem) {
   form.status = item.status || 'open'
   originalCaseTypeSlug.value = item.caseType
   try {
-    const detail = await requestAdminApi<{ case: AdminCaseDetail }>(`/api/admin/cases/${item.id}`)
+    const detail = await requestAdminApi<{ case: AdminCaseDetail }>(`/api/admin/cases/${item.id}`, { requestFetch })
     const record = detail.case
     form.caseNumber = record.caseNumber
     form.filedAt = toDateValue(record.filedAt)
@@ -362,10 +368,10 @@ async function onSubmit() {
 
   try {
     if (isEdit) {
-      await requestAdminApi<AdminWriteResult>(`/api/admin/cases/${editingId.value}`, { method: 'PUT', body })
+      await requestAdminApi<AdminWriteResult>(`/api/admin/cases/${editingId.value}`, { method: 'PUT', body, requestFetch })
       notice.value = '案例已保存'
     } else {
-      await requestAdminApi<AdminWriteResult>('/api/admin/cases', { method: 'POST', body })
+      await requestAdminApi<AdminWriteResult>('/api/admin/cases', { method: 'POST', body, requestFetch })
       notice.value = '案例已新建'
     }
     await refreshList()
@@ -384,7 +390,7 @@ async function onArchive(item: AdminCaseItem) {
   actionError.value = ''
   notice.value = ''
   try {
-    await requestAdminApi<AdminWriteResult>(`/api/admin/cases/${item.id}`, { method: 'DELETE' })
+    await requestAdminApi<AdminWriteResult>(`/api/admin/cases/${item.id}`, { method: 'DELETE', requestFetch })
     notice.value = `案件 ${item.caseNumber} 已归档（软删除，数据仍保留）`
     await refreshList()
   } catch (error) {

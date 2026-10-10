@@ -36,6 +36,12 @@ const props = withDefaults(defineProps<{
 const { user, load } = useAdminSession()
 await load()
 
+/**
+ * 后台接口必须用 useRequestFetch：SSR 期间对 /api/admin/** 的相对请求要转发用户请求头
+ * （含 HttpOnly 会话 Cookie），否则服务端取不到登录态，已登录用户首屏会看到「未登录」。
+ */
+const requestFetch = useRequestFetch()
+
 const canWrite = computed(() => canWriteContent(user.value))
 const readOnlyReason = READ_ONLY_NOTICE
 
@@ -55,7 +61,7 @@ const listKey = computed(() =>
 )
 
 async function fetchEntityPage(targetPage: number): Promise<EntityListPayload> {
-  const payload = await $fetch<{ data?: AdminEntityItem[], meta?: Record<string, unknown> }>(props.endpoint, {
+  const payload = await requestFetch<{ data?: AdminEntityItem[], meta?: Record<string, unknown> }>(props.endpoint, {
     query: toAdminQuery({
       keyword: keyword.value.trim(),
       status: statusFilter.value,
@@ -174,7 +180,7 @@ async function openEdit(item: AdminEntityItem) {
   detailLoading.value = true
   applyDetail(item)
   try {
-    const detail = await requestAdminApi<Record<string, AdminEntityItem>>(`${props.endpoint}/${item.id}`)
+    const detail = await requestAdminApi<Record<string, AdminEntityItem>>(`${props.endpoint}/${item.id}`, { requestFetch })
     const record = detail[props.withRegion ? 'lawFirm' : 'brand'] ?? detail.entity ?? item
     applyDetail(record)
   } catch (error) {
@@ -229,10 +235,10 @@ async function onSubmit() {
 
   try {
     if (editingId.value === null) {
-      await requestAdminApi<AdminWriteResult>(props.endpoint, { method: 'POST', body })
+      await requestAdminApi<AdminWriteResult>(props.endpoint, { method: 'POST', body, requestFetch })
       notice.value = `${props.entityLabel}已新建`
     } else {
-      await requestAdminApi<AdminWriteResult>(`${props.endpoint}/${editingId.value}`, { method: 'PUT', body })
+      await requestAdminApi<AdminWriteResult>(`${props.endpoint}/${editingId.value}`, { method: 'PUT', body, requestFetch })
       notice.value = `${props.entityLabel}已保存`
     }
     await refreshList()
@@ -251,7 +257,7 @@ async function onArchive(item: AdminEntityItem) {
   actionError.value = ''
   notice.value = ''
   try {
-    await requestAdminApi<AdminWriteResult>(`${props.endpoint}/${item.id}`, { method: 'DELETE' })
+    await requestAdminApi<AdminWriteResult>(`${props.endpoint}/${item.id}`, { method: 'DELETE', requestFetch })
     notice.value = `「${item.name}」已归档（软删除，数据仍保留）`
     await refreshList()
   } catch (error) {

@@ -15,6 +15,19 @@ export const ADMIN_PAGE_SIZE = 20
 /** 后台列表请求允许的每页条数上限（服务端 clamps 到 48，这里保持同口径）。 */
 export const ADMIN_MAX_PAGE_SIZE = 48
 
+/**
+ * 通用取数签名。
+ *
+ * 不能写成 `typeof $fetch` 或 `$Fetch`：`useRequestFetch()` 在 SSR 返回的是 H3Event 的 fetch
+ * （类型为 `$Fetch | H3Event$Fetch`），与全局 `$fetch` 的类型并不完全一致，
+ * 直接相加/赋值都会报类型不兼容。这里只声明页面真正使用的能力（路径 + 可选配置 → Promise），
+ * 两种实现都能满足；返回值由调用处断言成 {@link AdminEnvelope}。
+ */
+export interface AdminFetchLike {
+  (request: string, options?: Record<string, unknown>): Promise<unknown>
+}
+
+/** 后台接口统一响应外壳。 */
 interface AdminEnvelope<T> {
   data?: T
   meta?: {
@@ -107,18 +120,29 @@ export function toAdminQuery(input: Record<string, AdminQueryValue>): Record<str
  * 调用后台接口并解包 `{ data, meta }`。
  *
  * HTTP 失败或 payload 里带 `error` 时抛中文 Error，页面用 ErrorState 展示；
- * 泛型 T 由调用方的 {@link AdminApiResult} 声明，避免在页面里写 `as`。
+ * 泛型 T 由调用方的 {@link AdminWriteResult} 声明，避免在页面里写 `as`。
+ *
+ * `requestFetch` 必须传 `useRequestFetch()` 的返回值：SSR 期间对 `/api/admin/**` 的相对请求
+ * 需要转发用户请求头（含 HttpOnly 会话 Cookie），否则服务端拿不到登录态，
+ * 已登录用户首屏会被接口判成「未登录」。客户端它等价于普通 `$fetch`。
  */
 export async function requestAdminApi<T>(
   path: string,
-  options: { method?: 'GET' | 'POST' | 'PUT' | 'DELETE', query?: Record<string, AdminQueryValue>, body?: unknown } = {},
+  options: {
+    method?: 'GET' | 'POST' | 'PUT' | 'DELETE'
+    query?: Record<string, AdminQueryValue>
+    body?: unknown
+    /** useRequestFetch() 的实例；SSR 转发 Cookie 依赖它 */
+    requestFetch?: AdminFetchLike
+  } = {},
 ): Promise<T> {
-  const { method = 'GET', query, body } = options
-  const payload = await $fetch<AdminEnvelope<T>>(path, {
+  const { method = 'GET', query, body, requestFetch } = options
+  const doFetch: AdminFetchLike = requestFetch ?? $fetch
+  const payload = await doFetch(path, {
     method,
     ...(query ? { query: toAdminQuery(query) } : {}),
     ...(body === undefined ? {} : { body }),
-  })
+  }) as AdminEnvelope<T> | null | undefined
   const failure = payload?.error
   if (failure) {
     const message = typeof failure.message === 'string' && failure.message.trim()
