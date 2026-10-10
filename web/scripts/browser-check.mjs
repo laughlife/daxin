@@ -49,10 +49,15 @@ try {
   await page.getByRole('button', { name: '复制 TRO 咨询号 kjzx88', exact: true }).click()
   check('公告一键复制精确微信号', await page.evaluate(() => navigator.clipboard.readText()) === 'kjzx88')
 
-  // 首页核心业务：只有第一块「TRO 全流程处理」可点进成功案例，其余不显示「了解详情」
+  // 首页核心业务：需求要求第一块业务跳转 TRO 成功案例并显示入口，其余核心业务不显示「了解详情」。
+  // 说明：首页业务卡片目前仍来自前端 config（web/app/config/businessContent.ts），
+  // 数据库中的 service_sections 是后台配置项的预备数据，尚未驱动首页渲染。
   const businessSection = page.locator('.business-section')
-  check('首页核心业务含 TRO 全流程处理', (await businessSection.innerText()).includes('TRO 全流程处理'))
-  check('首页核心业务仅一处了解详情', (await businessSection.getByText('了解详情', { exact: false }).count()) <= 1)
+  check('首页核心业务区块存在', await businessSection.count() === 1)
+  check('首页核心业务第一块指向 TRO 成功案例', await businessSection.locator('a[href="/tro/success-cases"]').count() > 0)
+  // 只有第一块提供入口，因此「了解详情」应恰好出现一次
+  check('首页核心业务仅第一块显示了解详情', await businessSection.locator('.business-card__detail').count() === 1)
+  check('了解详情链接指向成功案例', await businessSection.locator('.business-card__detail').getAttribute('href') === '/tro/success-cases')
 
   // 首页成功案例与推荐阅读来自真实库
   check('首页展示成功案例卡片', await page.locator('.case-preview-card').count() > 0)

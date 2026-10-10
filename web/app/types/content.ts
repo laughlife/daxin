@@ -36,6 +36,13 @@ export interface BusinessCard {
   iconKey: 'scale' | 'shield' | 'document' | 'briefcase'
   /** 入口链接 */
   href: string
+  /**
+   * 是否显示「了解详情」入口，并展示链接文案。
+   *
+   * 需求只要求首页第一块「TRO 与链接维权」跳转 TRO 成功案例，其余三块不提供该入口，
+   * 因此由数据显式声明，而不是靠组件猜。
+   */
+  detailLinkLabel?: string
   /** 是否强调样式（描边高亮） */
   accent: boolean
 }

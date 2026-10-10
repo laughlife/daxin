@@ -17,7 +17,7 @@
     "typecheck": "nuxt typecheck",
     "test": "node --test scripts/*.test.mjs ../tools/migrate-legacy/*.test.mjs",
     "check:static": "node scripts/static-check.mjs",
-    "check:browser": "node scripts/browser-check.mjs"
+    "check:browser": "node scripts/run-browser-check.mjs"
   },
   "dependencies": {
     "mysql2": "^3.24.5",

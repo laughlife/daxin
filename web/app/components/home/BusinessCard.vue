@@ -5,6 +5,9 @@ import type { BusinessCard } from '~/types/content'
  * 首页业务卡片：标题 + 简介 + 业务条目。
  * iconKey 映射为内置几何 SVG 占位图标（不使用正式素材、不伪造 Logo）。
  * hover 与 focus-visible 均有明显状态。
+ *
+ * 需求只要求首页第一块业务（TRO 与链接维权）跳转 TRO 成功案例，其余三块不提供入口，
+ * 因此「了解详情」由 card.detailLinkLabel 显式控制，而不是每块都渲染链接。
  */
 const props = defineProps<{
   card: BusinessCard
@@ -46,6 +49,13 @@ const iconPaths: Record<BusinessCard['iconKey'], string[]> = {
         {{ item }}
       </li>
     </ul>
+    <NuxtLink
+      v-if="card.detailLinkLabel"
+      class="business-card__detail"
+      :to="card.href"
+    >
+      {{ card.detailLinkLabel }}
+    </NuxtLink>
   </article>
 </template>
 
@@ -118,6 +128,19 @@ const iconPaths: Record<BusinessCard['iconKey'], string[]> = {
   flex-shrink: 0;
   border-radius: var(--radius-full);
   background-color: var(--color-primary);
+}
+
+.business-card__detail {
+  margin-top: auto;
+  align-self: flex-start;
+  padding-top: var(--space-2);
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.business-card__detail:hover {
+  text-decoration: underline;
 }
 </style>
 

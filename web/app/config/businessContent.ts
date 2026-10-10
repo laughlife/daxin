@@ -5,7 +5,9 @@ import type { BusinessCard } from '../types/content'
  *
  * 业务条目全部来自《大信团队官网需求文档》，仅做卡片化分组，不发明新业务方向；
  * 属于站点配置而非数据库内容，因此保存在 config 中。
- * href 指向当前已实现页面，业务落地页实现后再调整（见 docs/navigation-map.md）。
+ *
+ * 首页第一块「TRO 与链接维权」按需求指向 TRO 成功案例（/tro/success-cases）；
+ * 其余三块按需求不提供「了解详情」入口，href 仅作为卡片自身的跳转目标。
  */
 export const businessCards: BusinessCard[] = [
   {
@@ -15,7 +17,8 @@ export const businessCards: BusinessCard[] = [
     summary: '面向美国 TRO 临时限制令的和解、应诉、起诉全流程，以及平台链接维权下架。',
     items: ['TRO 和解', 'TRO 应诉', 'TRO 起诉', '链接维权下架'],
     iconKey: 'scale',
-    href: '/tro/cases',
+    href: '/tro/success-cases',
+    detailLinkLabel: '了解详情',
     accent: true
   },
   {
