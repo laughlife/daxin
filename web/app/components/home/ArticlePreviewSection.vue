@@ -57,30 +57,36 @@ const items = computed(() =>
               <span aria-hidden="true">→</span>
             </NuxtLink>
           </div>
-          <p v-if="item.articles.length === 0" class="article-preview-section__empty" role="status">
-            该分类暂无已发布文章。
-          </p>
-          <ul class="article-preview-section__list">
+          <ul v-if="item.articles.length > 0" class="article-preview-section__list">
             <li v-for="article in item.articles" :key="article.id">
               <article class="article-preview-card">
-                <div class="article-preview-card__meta">
-                  <span class="article-preview-card__category">{{ article.category }}</span>
-                  <span v-if="article.isFeatured" class="article-preview-card__featured">推荐</span>
-                  <time :datetime="article.publishedAt" class="article-preview-card__date">
-                    {{ article.publishedAt }}
-                  </time>
-                </div>
-                <h4 class="article-preview-card__title">
-                  <NuxtLink :to="article.href">{{ article.title }}</NuxtLink>
-                </h4>
-                <p class="article-preview-card__excerpt">{{ article.excerpt }}</p>
-                <NuxtLink :to="article.href" class="article-preview-card__link">
-                  查看详情
-                  <span aria-hidden="true">→</span>
+                <!-- 需求：每个案例在最左侧配一张图；没有配图时不渲染图片位 -->
+                <NuxtLink v-if="article.imageSrc" :to="article.href" class="article-preview-card__thumb">
+                  <img :src="article.imageSrc" :alt="article.imageAlt || article.title" loading="lazy">
                 </NuxtLink>
+                <div class="article-preview-card__body">
+                  <div class="article-preview-card__meta">
+                    <span class="article-preview-card__category">{{ article.category }}</span>
+                    <span v-if="article.isFeatured" class="article-preview-card__featured">推荐</span>
+                    <time :datetime="article.publishedAt" class="article-preview-card__date">
+                      {{ article.publishedAt }}
+                    </time>
+                  </div>
+                  <h4 class="article-preview-card__title">
+                    <NuxtLink :to="article.href">{{ article.title }}</NuxtLink>
+                  </h4>
+                  <p class="article-preview-card__excerpt">{{ article.excerpt }}</p>
+                  <NuxtLink :to="article.href" class="article-preview-card__link">
+                    查看详情
+                    <span aria-hidden="true">→</span>
+                  </NuxtLink>
+                </div>
               </article>
             </li>
           </ul>
+          <p v-else class="article-preview-section__empty" role="status">
+            该分类暂无已发布文章。
+          </p>
         </div>
       </div>
     </PageContainer>
@@ -93,11 +99,11 @@ const items = computed(() =>
   background-color: var(--color-bg-light);
 }
 
-/* 四类栏目：宽屏两列，窄屏单列 */
+/* 四个栏目上下排列（需求：不用左右两列） */
 .article-preview-section__columns {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-8);
+  grid-template-columns: 1fr;
+  gap: var(--space-10);
   margin-top: var(--space-8);
 }
 
@@ -136,8 +142,9 @@ const items = computed(() =>
 
 .article-preview-card {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  flex-direction: row;
+  align-items: stretch;
+  gap: var(--space-5);
   padding: var(--space-5);
   background-color: var(--color-bg-page);
   border: 1px solid var(--color-border);
@@ -145,6 +152,32 @@ const items = computed(() =>
   transition:
     box-shadow var(--transition-base),
     transform var(--transition-base);
+}
+
+/* 每篇最左侧的配图 */
+.article-preview-card__thumb {
+  display: block;
+  flex: 0 0 220px;
+  width: 220px;
+  align-self: stretch;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+}
+
+.article-preview-card__thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 130px;
+  object-fit: cover;
+}
+
+.article-preview-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .article-preview-card:hover,
@@ -211,14 +244,27 @@ const items = computed(() =>
 
 @media (max-width: 1023px) {
   .article-preview-section__columns {
-    grid-template-columns: 1fr;
-    gap: var(--space-6);
+    gap: var(--space-8);
   }
 }
 
 @media (max-width: 639px) {
   .article-preview-section {
     padding-block: var(--space-10);
+  }
+
+  /* 窄屏：配图缩到左侧小图，避免挤压文字 */
+  .article-preview-card {
+    gap: var(--space-3);
+  }
+
+  .article-preview-card__thumb {
+    flex: 0 0 110px;
+    width: 110px;
+  }
+
+  .article-preview-card__thumb img {
+    min-height: 90px;
   }
 }
 </style>

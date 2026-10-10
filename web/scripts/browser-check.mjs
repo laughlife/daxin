@@ -64,10 +64,11 @@ try {
   check('成绩文案可点击跳转成功案例', await businessSection.locator('a.business-card__achievement[href="/tro/success-cases"]').count() === 1)
   check('成绩关键短语加粗显示', (await businessSection.locator('.business-card__achievement-key').innerText()).trim() === '0赔偿撤诉')
 
-  // 首页成功案例与推荐阅读来自真实库
-  check('首页展示成功案例卡片', await page.locator('.case-preview-card').count() > 0)
+  // 「精选历史 TRO 案件」区块按需求（2026-10-10）移除
+  check('首页已移除精选历史 TRO 案件区块', await page.locator('.case-preview-section').count() === 0)
 
-  // 需求（2026-10-10）：案例模块分四类，每类只展示近三篇
+  // 需求（2026-10-10）：案例模块分四类、每类只展示近三篇；
+  // 四个栏目上下排列（不再左右两列）；每篇最左侧配一张图。
   // 注意：这几项必须在「还在首页」时校验，不能放到后面访问过详情页之后再查。
   check('首页案例分区为四类', await page.locator('.article-preview-section__column').count() === 4)
   check('首页案例分区标题齐全', await page.locator('.article-preview-section__column-title').evaluateAll(
@@ -79,6 +80,17 @@ try {
   check('每类案例不超过三篇', perColumnCounts.every(count => count <= 3))
   check('有内容的两类各三篇', perColumnCounts.filter(count => count === 3).length === 2)
   check('首页展示推荐阅读', await page.locator('.article-preview-card').count() > 0)
+
+  // 四个栏目上下排列：容器的计算列数应为 1
+  const columnTrackCount = await page.locator('.article-preview-section__columns').evaluate(
+    (el) => getComputedStyle(el).gridTemplateColumns.split(' ').length
+  )
+  check('案例四栏为上下单列排列', columnTrackCount === 1)
+
+  // 每篇最左侧配图：有文章的两类共 6 篇，应各有 1 张图
+  const thumbCount = await page.locator('.article-preview-card__thumb img').count()
+  const articleCount = await page.locator('.article-preview-card').count()
+  check('有文章的案例均带左侧配图', thumbCount === articleCount && thumbCount > 0)
 
   await page.getByRole('button', { name: '联系我们免费评估案件', exact: true }).click()
   check('免费评估仅显示 TRO 咨询二维码', await page.getByRole('dialog').locator('[data-qr-id]').evaluateAll(items => items.length === 1 && items[0].dataset.qrId === 'tro-consult'))

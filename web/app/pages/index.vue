@@ -26,7 +26,6 @@ const homeRightImage = computed(() => {
   return typeof value === 'string' && value.trim() ? value.trim() : ''
 })
 
-const featuredCases = computed(() => homeData.value?.featuredCases ?? [])
 const articleColumns = computed(() => homeData.value?.articleColumns ?? [])
 const homeErrorMessage = computed(() =>
   homeError.value instanceof Error && homeError.value.message
@@ -101,10 +100,10 @@ useHead({
 
     <section class="home-about" aria-label="团队介绍">
       <PageContainer>
-        <SectionHeading align="center" :title="teamIntro.title" />
-        <!-- 需求：左字右图。图片位在公司名右侧，图片来自后台配置 home_right_image -->
+        <!-- 需求：标题放在左侧正文上方居中；右侧图片与左侧文字等高对齐。 -->
         <div class="home-about__layout">
           <div class="home-about__content">
+            <SectionHeading align="center" :title="teamIntro.title" />
             <p
               v-for="(paragraph, index) in teamIntro.paragraphs"
               :key="index"
@@ -139,7 +138,6 @@ useHead({
         @retry="refreshHome"
       />
       <template v-else>
-        <CasePreviewSection :cases="featuredCases" />
         <ArticlePreviewSection :columns="articleColumns" />
       </template>
     </ContentColumns></PageContainer></section>
@@ -154,23 +152,29 @@ useHead({
   background-color: var(--color-bg-page);
 }
 
-/* 左字右图：文字居左、配图居右；窄屏改为上下排列（文字在上、图片在下） */
+/* 左字右图：标题在左侧正文上方居中；右侧图片与左侧文字等高对齐。
+   用 align-items:stretch 让右侧 figure 撑满行高，img 以 height:100% + object-fit:cover
+   填满，因此图片高度与左侧文字块一致（窄屏改为上下排列）。 */
 .home-about__layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: center;
+  align-items: stretch;
   gap: var(--space-10);
   margin-top: var(--space-6);
 }
 
 .home-about__figure {
   margin: 0;
+  display: flex;
+  align-items: center;
 }
 
 .home-about__image {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  max-height: 100%;
+  object-fit: cover;
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-md);
 }
@@ -183,10 +187,21 @@ useHead({
   text-align: left;
 }
 
+/* 标题在左侧正文上方居中 */
+.home-about__content :deep(.section-heading) {
+  align-self: stretch;
+}
+
 @media (max-width: 767px) {
   .home-about__layout {
     grid-template-columns: 1fr;
     gap: var(--space-6);
+  }
+
+  /* 窄屏下不再强制等高，避免图片被压得很扁 */
+  .home-about__image {
+    height: auto;
+    object-fit: contain;
   }
 }
 
