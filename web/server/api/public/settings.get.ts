@@ -2,7 +2,8 @@
 //
 // 站点配置：读取当前生效（is_current=1 且 status='published'）的 site_settings，
 // value_type='json' 时解码 JSON，关联 media_id 时用 media_assets.public_url 覆盖取值。
-// site_settings 目前为空表，此时必须返回中文默认值而不是报错。
+// 同时返回后台可维护的页脚数据（业务范围、导航链接、联系渠道、二维码），
+// 使页脚不再是前端写死的标签，而是可点击、可在后台编辑的内容。
 import { queryTarget } from '../../utils/db/query'
 
 /** 站点名称默认值（数据库无配置时的兜底）。 */
@@ -17,6 +18,24 @@ FROM site_settings s
 LEFT JOIN media_assets m ON m.id = s.media_id AND m.deleted_at IS NULL
 WHERE s.is_current = 1 AND s.status = 'published'
 ORDER BY s.setting_group, s.setting_key`
+
+/** 页脚业务范围（可点击）。 */
+const FOOTER_SERVICES_SQL = `SELECT item_key, title, link_path
+FROM footer_services WHERE status = 1 ORDER BY sort_order ASC, id ASC`
+
+/** 页脚导航链接。 */
+const FOOTER_LINKS_SQL = `SELECT item_key, title, link_path
+FROM footer_links WHERE status = 1 ORDER BY sort_order ASC, id ASC`
+
+/** 联系渠道（电话 / 邮箱 / 地址 / 微信号）。 */
+const CONTACT_CHANNELS_SQL = `SELECT item_key, channel_type, label, value
+FROM contact_channels WHERE status = 1 ORDER BY sort_order ASC, id ASC`
+
+/** 二维码资源；关联 media_assets.public_url 作为图片地址。 */
+const QR_ASSETS_SQL = `SELECT q.item_key, q.title, q.caption, NULLIF(m.public_url, '') AS media_url
+FROM qr_assets q
+LEFT JOIN media_assets m ON m.id = q.media_id AND m.deleted_at IS NULL
+WHERE q.status = 1 ORDER BY q.sort_order ASC, q.id ASC`
 
 interface SettingRow {
   setting_key: string | null
@@ -74,7 +93,32 @@ export default defineEventHandler(async (event) => {
       if (field) contact[field] = typeof value === 'string' ? value : String(value ?? '')
     }
 
-    return { data: { siteName, contact, settings } }
+    const footer = {
+      services: (await queryTarget<Record<string, unknown>>(FOOTER_SERVICES_SQL)).map((row) => ({
+        itemKey: String(row.item_key ?? ''),
+        title: String(row.title ?? ''),
+        linkPath: String(row.link_path ?? ''),
+      })),
+      links: (await queryTarget<Record<string, unknown>>(FOOTER_LINKS_SQL)).map((row) => ({
+        itemKey: String(row.item_key ?? ''),
+        title: String(row.title ?? ''),
+        linkPath: String(row.link_path ?? ''),
+      })),
+      channels: (await queryTarget<Record<string, unknown>>(CONTACT_CHANNELS_SQL)).map((row) => ({
+        itemKey: String(row.item_key ?? ''),
+        channelType: String(row.channel_type ?? ''),
+        label: String(row.label ?? ''),
+        value: String(row.value ?? ''),
+      })),
+      qr: (await queryTarget<Record<string, unknown>>(QR_ASSETS_SQL)).map((row) => ({
+        itemKey: String(row.item_key ?? ''),
+        title: String(row.title ?? ''),
+        caption: String(row.caption ?? ''),
+        imageUrl: row.media_url ? String(row.media_url) : '',
+      })),
+    }
+
+    return { data: { siteName, contact, settings, footer } }
   } catch (error) {
     console.error('[public-settings] 站点配置查询失败', error)
     setResponseStatus(event, 500)

@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { siteConfig } from '~/config/site'
+import { fetchSettings } from '~/repositories/settings'
+
 const qrOpen = ref(false)
 const qrGroup = ref<'tro' | 'labor'>('tro')
 function enlargeQr(group: 'tro' | 'labor') { qrGroup.value = group; qrOpen.value = true }
@@ -7,8 +9,20 @@ function enlargeQr(group: 'tro' | 'labor') { qrGroup.value = group; qrOpen.value
 /**
  * 网站 Footer：品牌信息 + 横向业务范围 + 双公众号二维码
  * + 联系方式 + ICP / 版权 / 隐私政策 / 免责声明占位。
- * 导航与联系方式数据来自 siteConfig，不硬编码。
+ *
+ * 业务范围改为读取后台维护的 footer_services（需求要求「可点击业务项」），
+ * 每项渲染为链接；服务端未返回数据时回退为 siteConfig 里的静态标签，
+ * 保证页脚不出现整块空白。
  */
+const { data: settings } = await useAsyncData('site-footer-settings', () => fetchSettings())
+
+const footerServices = computed(() => {
+  const items = settings.value?.footer?.services ?? []
+  return items.filter((item) => item.title)
+})
+
+/** 服务端暂无配置时的静态兜底（仅文案，不可点击）。 */
+const fallbackGroups = computed(() => siteConfig.footerNav)
 </script>
 
 <template>
@@ -24,16 +38,19 @@ function enlargeQr(group: 'tro' | 'labor') { qrGroup.value = group; qrOpen.value
       </div>
 
       <section class="site-footer__nav" aria-label="业务范围">
-        <div
-          v-for="group in siteConfig.footerNav"
-          :key="group.title"
-          class="site-footer__nav-group"
-        >
-          <h3 class="site-footer__section-title">{{ group.title }}</h3>
-          <ul>
-            <li v-for="item in group.items" :key="item.label">
-              <span v-if="item.label === '商标/版权/专利申请注册'">商标/版权/专利<br>申请注册</span>
-              <span v-else>{{ item.label }}</span>
+        <div class="site-footer__nav-group">
+          <h3 class="site-footer__section-title">业务范围</h3>
+          <ul v-if="footerServices.length > 0">
+            <li v-for="item in footerServices" :key="item.itemKey">
+              <NuxtLink v-if="item.linkPath" class="site-footer__service-link" :to="item.linkPath">
+                {{ item.title }}
+              </NuxtLink>
+              <span v-else>{{ item.title }}</span>
+            </li>
+          </ul>
+          <ul v-else>
+            <li v-for="group in fallbackGroups" :key="group.title">
+              <span v-for="item in group.items" :key="item.label">{{ item.label }}</span>
             </li>
           </ul>
         </div>

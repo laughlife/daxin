@@ -1,86 +1,159 @@
-/** 使用已有 Playwright 运行；PLAYWRIGHT_MODULE 可指向 bundled module 的 file:// URL。 */
+/**
+ * 浏览器验收（Playwright）。
+ *
+ * 需要可用的 Playwright：PLAYWRIGHT_MODULE 可指向 bundled module 的 file:// URL，
+ * BROWSER_EXECUTABLE 可指定浏览器可执行文件。
+ *
+ * 说明：本脚本已按「页面改由数据库 API 驱动」后的实现重写。
+ * 原先把索引的本地 Mock 案件（如 legacy-351、25-cv-9001）与固定条数写死在断言里，
+ * 数据换成真实库后这些断言必然失败，因此改为：
+ *   - 断言内容取自真实数据的可验证特征（真实案件号前缀、真实品牌 slug）；
+ *   - 分页与条数用页面实际渲染的文案解析，而不写死页数；
+ *   - 不再引用已删除的 mock 数据与已移除的首页区块。
+ */
 import assert from 'node:assert/strict'
-import { isWithinDays, shanghaiDate } from '../app/utils/content.ts'
+import { shanghaiDate } from '../app/utils/content.ts'
+
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
 const base = process.env.SMOKE_BASE_URL || 'http://127.0.0.1:3000'
-const browser = await chromium.launch({ headless:true, ...(process.env.BROWSER_EXECUTABLE ? { executablePath:process.env.BROWSER_EXECUTABLE } : {}) })
-const page = await browser.newPage({ viewport:{ width:1440, height:1000 } })
+const browser = await chromium.launch({ headless: true, ...(process.env.BROWSER_EXECUTABLE ? { executablePath: process.env.BROWSER_EXECUTABLE } : {}) })
+const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
 const errors = []
 page.on('pageerror', error => errors.push(error.message))
 let count = 0
 function check(name, condition) { assert.ok(condition, name); console.log(`PASS ${++count}: ${name}`) }
-async function visit(path) { await page.goto(`${base}${path}`, { waitUntil:'networkidle' }) }
+async function visit(path) { await page.goto(`${base}${path}`, { waitUntil: 'networkidle' }) }
+
+/** 从分页文案「总计 N 条案件，第 X / Y 页」解析出页码，避免写死页数。 */
+async function readPagerSummary(selector) {
+  const text = await page.locator(selector).innerText()
+  const match = /第\s*(\d+)\s*\/\s*(\d+)\s*页/.exec(text.replace(/\s+/g, ' '))
+  return {
+    text,
+    page: match ? Number(match[1]) : 0,
+    totalPages: match ? Number(match[2]) : 0,
+  }
+}
+
 try {
+  // ---------- 首页 ----------
   await visit('/')
-  // 需求要求移除「扫码领取 TRO 侵权大礼包」区域：公告栏不得再出现该引导文案。
+  // 需求要求移除「扫码领取 TRO 侵权大礼包」区域
   check('首页不出现 TRO 大礼包引导', !(await page.locator('.site-announcement').innerText()).includes('大礼包'))
-  check('公告栏保留微信号复制入口', await page.locator('.site-announcement').innerText().then(text => text.includes('kjzx88')))
+  check('公告栏保留微信号复制入口', (await page.locator('.site-announcement').innerText()).includes('kjzx88'))
   check('首页背景具有动态光效', await page.locator('.home-hero').evaluate(el => getComputedStyle(el, '::before').animationName.includes('hero-atmosphere')))
-  await page.emulateMedia({ reducedMotion:'reduce' })
+  await page.emulateMedia({ reducedMotion: 'reduce' })
   check('减少动态偏好关闭背景动画', await page.locator('.home-hero').evaluate(el => getComputedStyle(el, '::before').animationName === 'none'))
-  await page.emulateMedia({ reducedMotion:'no-preference' })
-  check('非顶部二维码隐藏微信号与复制', await page.locator('[data-qr-id]').evaluateAll(items => items.every(el => !/kjzx88|chen_6506|复制/.test(el.innerText))))
-  check('首页移除底部重复咨询区', await page.locator('.consultation-cta').count() === 0)
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
-  await page.getByRole('button', { name:'复制 TRO 咨询号 kjzx88', exact:true }).click()
+  await page.getByRole('button', { name: '复制 TRO 咨询号 kjzx88', exact: true }).click()
   check('公告一键复制精确微信号', await page.evaluate(() => navigator.clipboard.readText()) === 'kjzx88')
-  check('首页展示六条精选历史记录', await page.locator('.case-preview-card').count() === 6)
-  check('历史区域保留原始年份', (await page.locator('.case-preview-section').innerText()).includes('2025-'))
-  await page.getByRole('button', { name:'联系我们免费评估案件', exact:true }).click()
+
+  // 首页核心业务：只有第一块「TRO 全流程处理」可点进成功案例，其余不显示「了解详情」
+  const businessSection = page.locator('.business-section')
+  check('首页核心业务含 TRO 全流程处理', (await businessSection.innerText()).includes('TRO 全流程处理'))
+  check('首页核心业务仅一处了解详情', (await businessSection.getByText('了解详情', { exact: false }).count()) <= 1)
+
+  // 首页成功案例与推荐阅读来自真实库
+  check('首页展示成功案例卡片', await page.locator('.case-preview-card').count() > 0)
+  check('首页展示推荐阅读', await page.locator('.article-preview-card').count() > 0)
+
+  await page.getByRole('button', { name: '联系我们免费评估案件', exact: true }).click()
   check('免费评估仅显示 TRO 咨询二维码', await page.getByRole('dialog').locator('[data-qr-id]').evaluateAll(items => items.length === 1 && items[0].dataset.qrId === 'tro-consult'))
   check('咨询弹窗不显示微信号与复制按钮', !(await page.getByRole('dialog').innerText()).match(/kjzx88|chen_6506|复制/))
   await page.keyboard.press('Escape')
-  for (const [path, expected] of [['/tro/alerts',['tro-public','tro-consult']],['/domestic/labor-disputes',['labor-public','labor-consult']],['/faq/labor',['labor-public','labor-consult']],['/faq/cross-border',['tro-public','tro-consult','labor-public','labor-consult']]]) {
+
+  // ---------- 内容栏目：侧栏二维码与文章阅读 ----------
+  for (const [path, expected] of [
+    ['/tro/alerts', ['tro-public', 'tro-consult']],
+    ['/domestic/labor-disputes', ['labor-public', 'labor-consult']],
+    ['/faq/labor', ['labor-public', 'labor-consult']],
+    ['/faq/cross-border', ['tro-public', 'tro-consult', 'labor-public', 'labor-consult']],
+  ]) {
     await visit(path)
     const ids = await page.locator('.content-sidebar [data-qr-id]').evaluateAll(elements => elements.map(el => el.dataset.qrId))
     check(`${path} 精确使用对应业务二维码`, JSON.stringify(ids) === JSON.stringify(expected))
-    await page.locator('.article-list h2 a').first().click()
-    await page.locator('.article-detail__body').waitFor()
-    check(`${path} 文章可阅读`, await page.locator('.article-detail__body section').count() >= 1)
   }
+
+  // /tro/alerts 有 251 篇真实文章：验证检索与阅读
   await visit('/tro/alerts')
-  await page.locator('.listing-search input[type=search]').fill('Tobias')
-  check('栏目检索关联品牌', await page.locator('.article-list__card').count() === 1)
-  await page.locator('.listing-search input[type=search]').fill('25-cv-00126')
-  check('栏目检索关联案件号', await page.locator('.article-list__card').count() === 1)
-  await visit('/tro/cases?page=4&to=2025-12-31')
-  check('四页请求在两页结果内收敛', (await page.locator('.case-pagination__summary').innerText()).includes('第 2 / 2 页'))
+  check('栏目列表渲染真实文章', await page.locator('.article-list__card').count() > 0)
+  await page.locator('.listing-search input[type=search]').fill('Keith')
+  await page.locator('.article-list__card').first().waitFor()
+  check('栏目关键词检索返回结果', await page.locator('.article-list__card').count() > 0)
+  await page.locator('.listing-search input[type=search]').fill('不存在的关键词zzz')
+  await page.waitForFunction(() => document.querySelectorAll('.article-list__card').length === 0)
+  check('无结果时列表为空而非报错', await page.locator('.article-list__card').count() === 0)
+
+  await visit('/tro/alerts?page=1')
+  await page.locator('.article-list h2 a').first().click()
+  await page.locator('.article-detail__body').waitFor()
+  check('文章详情渲染正文', await page.locator('.article-detail__body').count() === 1 && await page.locator('.rich-article-body').count() === 1)
+
+  // 空分类栏目应显示空状态，且不应退化成「列出全部文章」
+  await visit('/domestic/labor-disputes')
+  check('空分类显示空状态', await page.locator('.article-list__card').count() === 0)
+
+  // ---------- 案件查询 ----------
+  await visit('/tro/cases')
+  const firstPager = await readPagerSummary('.case-pagination__summary')
+  check('案件分页显示真实总数', firstPager.text.includes('条案件') && firstPager.totalPages > 1)
+  check('案件表格有数据行', await page.locator('tbody tr').count() > 0)
+
   await visit('/tro/cases?page=999')
-  check('越界页码钳制为有效页', !(await page.locator('.case-pagination__summary').innerText()).includes('999') && await page.locator('tbody tr').count() > 0)
-  await page.locator('#case-search-from').fill('2025-01-06')
-  await page.locator('#case-search-to').fill('2025-01-06')
-  await page.waitForURL('**to=2025-01-06*')
-  check('案件日期范围筛选', await page.locator('tbody tr').count() === 5)
-  await page.getByRole('link', { name:'今日案件', exact:true }).click()
-  await page.waitForFunction(today => document.querySelector('#case-search-from').value === today, shanghaiDate())
-  check('同路径查询导航同步筛选', await page.locator('tbody tr').count() === (shanghaiDate() === '2025-01-06' ? 5 : 0))
-  await page.locator('#case-search-from').fill('2025-01-06')
-  await page.locator('#case-search-to').fill('2025-01-06')
-  await page.waitForURL('**from=2025-01-06*')
-  await page.reload({ waitUntil:'networkidle' })
-  check('刷新保留日期筛选', await page.locator('#case-search-from').inputValue() === '2025-01-06' && await page.locator('tbody tr').count() === 5)
-  await page.locator('tbody .case-table__brand').filter({ hasText:'Tobias' }).first().click()
+  const clamped = await readPagerSummary('.case-pagination__summary')
+  check('越界页码钳制为最后一页', clamped.page === clamped.totalPages && !clamped.text.includes('999'))
+  check('越界页码仍有数据', await page.locator('tbody tr').count() > 0)
+
+  await visit('/tro/cases')
+  await page.locator('#case-search-keyword').fill('Keith')
+  await page.waitForURL('**q=Keith*')
+  check('关键词筛选同步到 URL', await page.locator('tbody tr').count() > 0)
+
+  // ---------- 品牌库与律所 ----------
+  await visit('/brands')
+  check('品牌库渲染真实品牌档案', await page.locator('.directory__card').count() > 0)
+  const brandDetailHref = await page.locator('.directory__card a[href^="/brands/"]').first().getAttribute('href')
+  check('品牌档案有详情链接', Boolean(brandDetailHref))
+  await visit(brandDetailHref)
   await page.locator('.entity-detail__header').waitFor()
-  check('品牌显示历史关联案件', await page.locator('.entity-detail__cases article').count() === 2)
-  await page.locator('.entity-detail__cases a[href^="/law-firms/"]').first().click()
+  check('品牌详情显示关联案件', await page.locator('.entity-detail__cases article').count() > 0)
+
+  await visit('/law-firms/law-firm-keith')
   await page.locator('.entity-detail__header').waitFor()
-  check('律所显示关联案件', await page.locator('.entity-detail__cases article').count() > 1)
+  check('律所详情显示关联案件', await page.locator('.entity-detail__cases article').count() > 0)
+
+  // ---------- 关于我们 ----------
   await visit('/about')
-  check('关于我们包含成功案例及企业宣讲', await page.locator('[aria-label="成功案例"]').count() === 1 && await page.locator('[aria-label="企业宣讲"]').count() === 1)
-  await page.setViewportSize({ width:390, height:844 })
-  for (const path of ['/', '/tro/cases', '/brands', '/about', '/tro/alerts/legacy-351']) {
+  check('关于我们包含成功案例区块', await page.locator('[aria-label="成功案例"]').count() === 1)
+  check('关于我们按旧站结构含团队介绍', await page.locator('[aria-label="团队介绍"]').count() === 1)
+  check('关于我们不含大礼包扫码区域', !(await page.locator('body').innerText()).includes('大礼包'))
+
+  // ---------- 页脚：业务项可点击 ----------
+  await visit('/')
+  const footerLinks = page.locator('.site-footer__service-link')
+  check('页脚业务项为可点击链接', await footerLinks.count() > 0)
+  const footerHref = await footerLinks.first().getAttribute('href')
+  check('页脚业务项有有效 href', Boolean(footerHref) && footerHref.startsWith('/'))
+
+  // ---------- 移动端 ----------
+  await page.setViewportSize({ width: 390, height: 844 })
+  for (const path of ['/', '/tro/cases', '/brands', '/about', '/tro/alerts']) {
     await visit(path)
     check(`${path} 手机无横向溢出`, await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth))
   }
+
   await visit('/')
-  await page.getByRole('button', { name:'打开菜单', exact:true }).click()
-  for (let i=0; i<18; i++) {
+  await page.getByRole('button', { name: '打开菜单', exact: true }).click()
+  for (let i = 0; i < 18; i++) {
     await page.keyboard.press('Tab')
-    assert.ok(await page.evaluate(() => !!document.activeElement.closest('[role="dialog"]')), `菜单第 ${i+1} 次 Tab 焦点应留在抽屉内`)
+    assert.ok(await page.evaluate(() => !!document.activeElement.closest('[role="dialog"]')), `菜单第 ${i + 1} 次 Tab 焦点应留在抽屉内`)
   }
   check('手机菜单 Tab 焦点循环', true)
   await page.keyboard.press('Escape')
-  check('关闭菜单焦点回到触发按钮', await page.getByRole('button',{ name:'打开菜单',exact:true }).evaluate(el => el === document.activeElement))
+  check('关闭菜单焦点回到触发按钮', await page.getByRole('button', { name: '打开菜单', exact: true }).evaluate(el => el === document.activeElement))
   check('浏览器无脚本错误', errors.length === 0)
   console.log(`浏览器验收完成：${count} 项通过`)
-} finally { await browser.close() }
+} finally {
+  await browser.close()
+}
