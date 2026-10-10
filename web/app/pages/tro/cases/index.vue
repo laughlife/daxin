@@ -80,8 +80,9 @@ useSeoMeta({
 
       <ContentColumns group="tro">
       <nav class="cases-page__shortcuts" aria-label="日期快捷筛选">
-        <NuxtLink :to="{ path: '/tro/cases', query: { from: today, to: today } }">今日案件</NuxtLink>
-        <NuxtLink :to="{ path: '/tro/cases', query: { from: recentFrom, to: today } }">近三天案件</NuxtLink>
+        <!-- 起诉时间只保留单一条件（该日期起），因此快捷入口也只下发 from，不再带 to -->
+        <NuxtLink :to="{ path: '/tro/cases', query: { from: today } }">今日起案件</NuxtLink>
+        <NuxtLink :to="{ path: '/tro/cases', query: { from: recentFrom } }">近三天起案件</NuxtLink>
         <NuxtLink to="/tro/cases">全部历史案件</NuxtLink>
       </nav>
       <CaseSearchPanel

@@ -7,6 +7,7 @@ import type { CaseType } from '~/types/content'
  * TRO 案件查询面板：关键词搜索 + 侵权类型 / 起诉时间筛选。
  * 纯展示组件，搜索状态由 useCaseSearch 提供（filters 为 reactive 对象）。
  * 起诉州没有对应数据，已从界面移除；案件类型筛选直接下发服务端真实类型字段。
+ * 起诉时间按需求（2026-10-10）只保留**一个**选择框，不再用「从 / 至」两个框。
  */
 const props = defineProps<{
   /** 来自 useCaseSearch 的 reactive 筛选状态 */
@@ -25,10 +26,6 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
   { value: 'patent', label: CASE_TYPE_LABELS.patent },
   { value: 'copyright', label: CASE_TYPE_LABELS.copyright }
 ]
-
-const invalidDateRange = computed(() =>
-  Boolean(props.filters.dateFrom && props.filters.dateTo && props.filters.dateFrom > props.filters.dateTo)
-)
 </script>
 
 <template>
@@ -62,15 +59,16 @@ const invalidDateRange = computed(() =>
         </select>
       </div>
       <div class="case-search-panel__field">
-        <label for="case-search-from">起诉时间从</label>
-        <input id="case-search-from" v-model="filters.dateFrom" type="date" :max="filters.dateTo || undefined">
-      </div>
-      <div class="case-search-panel__field">
-        <label for="case-search-to">起诉时间至</label>
-        <input id="case-search-to" v-model="filters.dateTo" type="date" :min="filters.dateFrom || undefined">
+        <label for="case-search-date">起诉时间</label>
+        <input
+          id="case-search-date"
+          v-model="filters.date"
+          type="date"
+          aria-describedby="case-search-date-hint"
+        >
+        <span id="case-search-date-hint" class="case-search-panel__field-hint">显示该日期及之后立案的案件</span>
       </div>
     </div>
-    <p v-if="invalidDateRange" role="alert">开始日期不能晚于结束日期，请调整日期范围。</p>
     <div class="case-search-panel__actions">
       <p class="case-search-panel__hint">
         输入即时筛选，无需提交；查询条件会同步到 URL，刷新后可恢复。
@@ -111,6 +109,11 @@ const invalidDateRange = computed(() =>
 
 .case-search-panel__field--wide {
   grid-column: span 3;
+}
+
+.case-search-panel__field-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 
 .case-search-panel__field label {

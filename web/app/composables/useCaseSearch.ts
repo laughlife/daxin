@@ -7,18 +7,20 @@ import type { CaseType } from '~/types/content'
  *
  * 数据由 `~/repositories/cases` 的 fetchCases() 在服务端分页 / 筛选后返回，
  * 本组合式函数只负责维护查询条件、把条件映射成服务端查询参数，并同步到 URL query
- * （q/type/from/to/page），刷新后可恢复。取数本身由页面用 useAsyncData 完成，
+ * （q/type/from/page），刷新后可恢复。取数本身由页面用 useAsyncData 完成，
  * 并以 queryKey 作为依赖，保证筛选或翻页都会重新请求。
+ *
+ * 起诉时间：需求（2026-10-10）要求「只保留一个选择框，不用从至两个框」，
+ * 因此只保留单个日期条件 `date`，语义为「该日期起（含）」。URL 与接口沿用原来的
+ * `from` 参数名，避免已有链接和公开接口契约失效。
  */
 export interface CaseSearchFilters {
   /** 关键词：案件号 / 原告 / 品牌 / 律所（服务端按 OR 匹配这四个字段） */
   keyword: string
   /** 侵权类型筛选 */
   caseType: CaseType | ''
-  /** 起诉时间起（YYYY-MM-DD） */
-  dateFrom: string
-  /** 起诉时间止（YYYY-MM-DD） */
-  dateTo: string
+  /** 起诉时间（YYYY-MM-DD），语义为「该日期起（含）」 */
+  date: string
 }
 
 export interface UseCaseSearchOptions {
@@ -57,22 +59,20 @@ export function useCaseSearch(options: UseCaseSearchOptions = {}) {
   const filters = reactive<CaseSearchFilters>({
     keyword: queryToString(initialQuery.q),
     caseType: queryToCaseType(initialQuery.type),
-    dateFrom: queryToString(initialQuery.from),
-    dateTo: queryToString(initialQuery.to)
+    date: queryToString(initialQuery.from)
   })
 
   const page = ref(queryToPage(initialQuery.page))
 
   const hasActiveFilters = computed(() =>
-    Boolean(filters.keyword.trim() || filters.caseType || filters.dateFrom || filters.dateTo)
+    Boolean(filters.keyword.trim() || filters.caseType || filters.date)
   )
 
   /** 传给仓储的服务端查询条件；空值不下发，避免把空串塞进查询串。 */
   const apiQuery = computed<CaseQuery>(() => ({
     keyword: filters.keyword.trim() || undefined,
     caseType: filters.caseType || undefined,
-    from: filters.dateFrom || undefined,
-    to: filters.dateTo || undefined,
+    from: filters.date || undefined,
     page: page.value,
     pageSize
   }))
@@ -95,8 +95,7 @@ export function useCaseSearch(options: UseCaseSearchOptions = {}) {
   function resetFilters() {
     filters.keyword = ''
     filters.caseType = ''
-    filters.dateFrom = ''
-    filters.dateTo = ''
+    filters.date = ''
     page.value = 1
   }
 
@@ -104,8 +103,7 @@ export function useCaseSearch(options: UseCaseSearchOptions = {}) {
     const query: Record<string, string> = {}
     if (filters.keyword.trim()) query.q = filters.keyword.trim()
     if (filters.caseType) query.type = filters.caseType
-    if (filters.dateFrom) query.from = filters.dateFrom
-    if (filters.dateTo) query.to = filters.dateTo
+    if (filters.date) query.from = filters.date
     if (page.value > 1) query.page = String(page.value)
     return query
   }
@@ -114,8 +112,7 @@ export function useCaseSearch(options: UseCaseSearchOptions = {}) {
     readingQuery = true
     filters.keyword = queryToString(query.q)
     filters.caseType = queryToCaseType(query.type)
-    filters.dateFrom = queryToString(query.from)
-    filters.dateTo = queryToString(query.to)
+    filters.date = queryToString(query.from)
     page.value = queryToPage(query.page)
     readingQuery = false
   }

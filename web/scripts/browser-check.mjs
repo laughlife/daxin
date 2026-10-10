@@ -116,6 +116,14 @@ try {
   await page.waitForURL('**q=Keith*')
   check('关键词筛选同步到 URL', await page.locator('tbody tr').count() > 0)
 
+  // 需求（2026-10-10）：起诉时间只保留一个选择框，不再是从 / 至两个框
+  await visit('/tro/cases')
+  check('起诉时间只有一个日期框', await page.locator('.case-search-panel input[type=date]').count() === 1)
+  check('存在起诉时间单选字段', await page.locator('#case-search-date').count() === 1)
+  await page.locator('#case-search-date').fill('2025-01-01')
+  await page.waitForURL('**from=2025-01-01*')
+  check('起诉时间筛选同步到 URL', await page.locator('tbody tr').count() > 0)
+
   // ---------- 品牌库与律所 ----------
   await visit('/brands')
   check('品牌库渲染真实品牌档案', await page.locator('.directory__card').count() > 0)
