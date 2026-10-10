@@ -177,15 +177,51 @@ const QR_ASSETS = [
   { itemKey: 'qr-labor-consult', title: '劳动法咨询号二维码', caption: '劳动争议与企业用工咨询', sortOrder: 20 },
 ]
 
-function upsertSettingStatement(item) {
-  return `INSERT INTO site_settings (setting_key, setting_group, setting_value, value_type, version, status, is_current)
-VALUES (${quoteLiteral(item.key)}, ${quoteLiteral(item.group)}, ${quoteLiteral(item.value)}, ${quoteLiteral(item.valueType)}, 1, 'published', 1)
-ON DUPLICATE KEY UPDATE
-  setting_value = VALUES(setting_value),
-  value_type = VALUES(value_type),
-  setting_group = VALUES(setting_group),
-  version = version + 1,
-  updated_at = NOW()`
+/**
+ * site_settings 的幂等写入。
+ *
+ * 陷阱：本表的唯一键是 (setting_key, version)，**没有** setting_key 单独唯一键。
+ * 因此 `INSERT ... (version=1) ON DUPLICATE KEY UPDATE version = version + 1` 是不安全的：
+ * 第二次执行会命中 (key,1) 把已有行改成 version=2，同时**再插入一行 version=1**，
+ * 于是每个 key 出现两行 is_current=1，第三次执行再插入 version=2 时直接撞唯一键报错。
+ *
+ * 正确做法是显式二选一，一个 key 只生成一条语句：
+ *   - 已存在 is_current=1 的行 → 就地 UPDATE 并把 version 加一；
+ *   - 不存在 → INSERT，version 取该 key 现有最大 version + 1。
+ */
+async function seedSiteSettings(target, items) {
+  // 注意：queryRows 是「拼好 SQL 再执行」的轻量客户端，不支持参数绑定，
+  // 因此 IN 列表必须逐一 quoteLiteral；这些值全部来自本文件的常量表，不含外部输入。
+  const keyList = items.map((item) => quoteLiteral(item.key)).join(', ')
+  const existing = await queryRows(target, `
+SELECT setting_key, version, is_current FROM site_settings WHERE setting_key IN (${keyList})
+ORDER BY setting_key, version DESC`)
+
+  const currentByKey = new Map()
+  const maxVersionByKey = new Map()
+  for (const row of existing) {
+    const key = row[0]
+    const version = Number(row[1])
+    const isCurrent = Number(row[2]) === 1
+    if (!maxVersionByKey.has(key) || version > maxVersionByKey.get(key)) maxVersionByKey.set(key, version)
+    if (isCurrent && !currentByKey.has(key)) currentByKey.set(key, version)
+  }
+
+  const statements = items.map((item) => {
+    const current = currentByKey.get(item.key)
+    if (current !== undefined) {
+      return `UPDATE site_settings
+SET setting_value = ${quoteLiteral(item.value)}, value_type = ${quoteLiteral(item.valueType)},
+    setting_group = ${quoteLiteral(item.group)}, version = version + 1, is_current = 1, updated_at = NOW()
+WHERE setting_key = ${quoteLiteral(item.key)} AND is_current = 1`
+    }
+    const nextVersion = (maxVersionByKey.get(item.key) ?? 0) + 1
+    return `INSERT INTO site_settings (setting_key, setting_group, setting_value, value_type, version, status, is_current)
+VALUES (${quoteLiteral(item.key)}, ${quoteLiteral(item.group)}, ${quoteLiteral(item.value)}, ${quoteLiteral(item.valueType)}, ${nextVersion}, 'published', 1)`
+  })
+
+  await executeSqlBatch(target, statements)
+  return { updated: currentByKey.size, inserted: items.length - currentByKey.size }
 }
 
 function upsertSectionStatement(section) {
@@ -272,13 +308,15 @@ async function main() {
     return
   }
 
-  await executeSqlBatch(target, SITE_SETTINGS.map(upsertSettingStatement))
   await executeSqlBatch(target, SERVICE_SECTIONS.map(upsertSectionStatement))
   await executeSqlBatch(target, SERVICE_SECTIONS.flatMap((section) => section.items.map((item) => upsertServiceItemStatement(section.slug, item))))
   await executeSqlBatch(target, FOOTER_SERVICES.map(upsertFooterServiceStatement))
   await executeSqlBatch(target, FOOTER_LINKS.map(upsertFooterLinkStatement))
   await executeSqlBatch(target, CONTACT_CHANNELS.map(upsertContactStatement))
   await executeSqlBatch(target, QR_ASSETS.map(upsertQrStatement))
+
+  const settingsResult = await seedSiteSettings(target, SITE_SETTINGS)
+  console.log(`site_settings：更新 ${settingsResult.updated} 项，新增 ${settingsResult.inserted} 项`)
 
   const counts = {}
   for (const table of ['site_settings', 'service_sections', 'service_items', 'footer_services', 'footer_links', 'contact_channels', 'qr_assets']) {
