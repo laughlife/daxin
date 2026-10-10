@@ -245,6 +245,7 @@ npm install playwright-core
 
 ## 相关文档
 
+- 交付清单：`docs/delivery-checklist.md`（上线前核对项、部署步骤、验收命令与实测结果）
 - 设计规格：`docs/superpowers/specs/2026-10-09-fullstack-admin-database-oss-design.md`
 - 补全计划：`docs/静态展示补全计划.md`
 - 迁移核验报告：`docs/migration-report-2026-10-09.md`
