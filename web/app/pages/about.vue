@@ -154,9 +154,32 @@ useSeoMeta({
 </template>
 
 <style scoped>
+/*
+ * 视觉样式复刻旧站 http://yan1.qinianyun.com/about/，配色替换为本站设计令牌。
+ *
+ * 已对照旧站计算样式对齐的要点：
+ *   - 区块大标题 36px / 700 / 深灰、居中，区块标题块与内容间距约 56px；
+ *   - 英文副标题 18–20px / 500、大写、主色，两侧各有 60×2px 主色短线（在 SectionHeading 内实现）；
+ *   - 首屏为「左图右文」，右侧依次是主色底白字欢迎标签、大标题、段落、24H 联系；
+ *   - 文字类内容行高宽松（旧站约 1.7–1.8），段间距统一；
+ *   - 企业宣讲为 4 列图片网格、图片圆角；
+ *   - 我们的小伙伴为整幅合作伙伴图。
+ * 旧站的「国内业务/国外业务」红色横条分组在上一轮已按需求方确认改为四块平铺，
+ * 因此这里不再恢复该横条，仅沿用其标题与卡片视觉语言。
+ */
 .about-page {
   padding-block: var(--space-10) var(--space-16);
   background-color: var(--color-bg-light);
+}
+
+/* 旧站的区块标题尺度（36px）与标题块下间距（约 56px），仅作用于本页 */
+.about-page :deep(.section-heading__title) {
+  font-size: var(--text-4xl);
+  line-height: 1.2;
+}
+
+.about-page :deep(.section-heading) {
+  margin-bottom: var(--space-12);
 }
 
 /* 1. 首屏：旧站为「左图右文」，窄屏改为上下 */
@@ -182,25 +205,27 @@ useSeoMeta({
   border-radius: var(--radius-md);
 }
 
+/* 旧站欢迎标签为主色底白字小标签 */
 .about-page__welcome {
   display: inline-block;
-  margin-bottom: var(--space-2);
-  padding: 2px var(--space-3);
+  margin-bottom: var(--space-3);
+  padding: 3px var(--space-4);
   border-radius: var(--radius-sm);
   background-color: var(--color-primary);
   color: var(--color-text-on-primary);
-  font-size: var(--text-xs);
-  font-weight: 600;
+  font-size: var(--text-sm);
+  font-weight: 500;
 }
 
 .about-page__title {
-  font-size: var(--text-2xl);
-  line-height: 1.4;
+  font-size: var(--text-4xl);
+  font-weight: 700;
+  line-height: 1.2;
   color: var(--color-text);
 }
 
 .about-page__lead {
-  margin-top: var(--space-3);
+  margin-top: var(--space-4);
   font-weight: 600;
   line-height: var(--leading-relaxed);
   color: var(--color-text);
@@ -221,6 +246,7 @@ useSeoMeta({
 
 .about-page__contact-title {
   font-size: var(--text-base);
+  font-weight: 700;
   color: var(--color-text);
 }
 
@@ -247,7 +273,6 @@ useSeoMeta({
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-6);
-  margin-top: var(--space-8);
 }
 
 /* 4. 企业宣讲：旧站为 4 列网格 */
@@ -255,7 +280,6 @@ useSeoMeta({
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-3);
-  margin-top: var(--space-8);
   list-style: none;
   padding: 0;
 }
@@ -263,13 +287,20 @@ useSeoMeta({
 .about-page__gallery img {
   display: block;
   width: 100%;
-  height: auto;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
   border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-base), box-shadow var(--transition-base);
+}
+
+.about-page__gallery img:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 /* 5. 我们的小伙伴：旧站为一张整图，这里保持单张铺满 */
 .about-page__partners {
-  margin-top: var(--space-8);
   list-style: none;
   padding: 0;
 }
@@ -309,6 +340,20 @@ useSeoMeta({
   .about-page__gallery {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  /* 窄屏下用较小的标题尺度，避免 36px 在手机上一行放不下 */
+  .about-page :deep(.section-heading__title) {
+    font-size: var(--text-3xl);
+  }
+
+  .about-page :deep(.section-heading__eyebrow) {
+    font-size: var(--text-base);
+  }
+
+  .about-page :deep(.section-heading__eyebrow::before),
+  .about-page :deep(.section-heading__eyebrow::after) {
+    width: 32px;
+  }
 }
 
 @media (max-width: 767px) {
@@ -323,7 +368,7 @@ useSeoMeta({
   }
 
   .about-page__title {
-    font-size: var(--text-xl);
+    font-size: var(--text-3xl);
   }
 }
 </style>
