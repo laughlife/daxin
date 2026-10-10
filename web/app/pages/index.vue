@@ -16,6 +16,16 @@ const { data: homeData, error: homeError, refresh: refreshHome } = await useAsyn
   () => fetchHomeData()
 )
 
+/**
+ * 团队介绍右侧配图：来自后台站点配置的 home_right_image（经 media_assets 关联）。
+ * 未配置时不渲染图片位，避免出现空白框或假图。
+ */
+const { data: siteSettings } = await useSiteSettings()
+const homeRightImage = computed(() => {
+  const value = siteSettings.value?.settings?.home_right_image
+  return typeof value === 'string' && value.trim() ? value.trim() : ''
+})
+
 const featuredCases = computed(() => homeData.value?.featuredCases ?? [])
 const recentArticles = computed(() => homeData.value?.recentArticles ?? [])
 const homeErrorMessage = computed(() =>
@@ -92,18 +102,29 @@ useHead({
     <section class="home-about" aria-label="团队介绍">
       <PageContainer>
         <SectionHeading align="center" :title="teamIntro.title" />
-        <div class="home-about__content">
-          <p
-            v-for="(paragraph, index) in teamIntro.paragraphs"
-            :key="index"
-            class="home-about__paragraph"
-          >
-            {{ paragraph }}
-          </p>
-          <NuxtLink :to="teamIntro.moreLink.to" class="home-about__more">
-            {{ teamIntro.moreLink.label }}
-            <span aria-hidden="true">→</span>
-          </NuxtLink>
+        <!-- 需求：左字右图。图片位在公司名右侧，图片来自后台配置 home_right_image -->
+        <div class="home-about__layout">
+          <div class="home-about__content">
+            <p
+              v-for="(paragraph, index) in teamIntro.paragraphs"
+              :key="index"
+              class="home-about__paragraph"
+            >
+              {{ paragraph }}
+            </p>
+            <NuxtLink :to="teamIntro.moreLink.to" class="home-about__more">
+              {{ teamIntro.moreLink.label }}
+              <span aria-hidden="true">→</span>
+            </NuxtLink>
+          </div>
+          <figure v-if="homeRightImage" class="home-about__figure">
+            <img
+              class="home-about__image"
+              :src="homeRightImage"
+              :alt="teamIntro.title"
+              loading="lazy"
+            >
+          </figure>
         </div>
         <StatsSection class="home-about__stats" :stats="homeStats" />
       </PageContainer>
@@ -133,15 +154,40 @@ useHead({
   background-color: var(--color-bg-page);
 }
 
+/* 左字右图：文字居左、配图居右；窄屏改为上下排列（文字在上、图片在下） */
+.home-about__layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-10);
+  margin-top: var(--space-6);
+}
+
+.home-about__figure {
+  margin: 0;
+}
+
+.home-about__image {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+}
+
 .home-about__content {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-4);
-  max-width: 860px;
-  margin-inline: auto;
-  margin-top: var(--space-6);
-  text-align: center;
+  text-align: left;
+}
+
+@media (max-width: 767px) {
+  .home-about__layout {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+  }
 }
 
 .home-about__paragraph {
