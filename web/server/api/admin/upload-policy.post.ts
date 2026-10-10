@@ -172,7 +172,14 @@ export default defineEventHandler(async (event) => {
   let data: UploadPolicy
   try {
     data = toPublicPolicy(
-      createPostObjectPolicy({ config, objectKey, usageScope: request.usageScope }),
+      // 把校验通过的 MIME 固化进签名策略：提交时 Content-Type 必须与签发值完全一致，
+      // 否则 OSS 直接拒绝。防止拿合法策略改写表单类型上传 text/html 等非白名单对象。
+      createPostObjectPolicy({
+        config,
+        objectKey,
+        usageScope: request.usageScope,
+        mimeType: request.mimeType,
+      }),
       config.accessKeySecret,
     )
   } catch (error) {

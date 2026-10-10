@@ -83,9 +83,16 @@ export function isAllowedMimeType(scope: string, mimeType: string): boolean {
  * 构造合法的 OSS PostObject 策略。
  * 要点：
  *   - expiration 必须是 UTC 且以 Z 结尾（阿里云拒绝 +08:00 形式）；
- *   - conditions 固定包含 bucket、key 精确匹配、大小区间与 Content-Type 前缀；
+ *   - conditions 固定包含 bucket、key 精确匹配、大小区间与 **Content-Type 精确匹配**；
  *   - policy 为 { expiration, conditions } 文档的 base64；
  *   - signature 为 HMAC-SHA1(secret, policy) 的 base64。
+ *
+ * 为什么 Content-Type 用 eq 精确匹配而不是 starts-with 空前缀：
+ * 原先写 `['starts-with', '$Content-Type', '']`，等于对 Content-Type 不加任何约束。
+ * 浏览器可以自行改写表单里的 Content-Type，因此攻击者能拿着合法签发的策略上传
+ * 任意类型对象（例如 text/html，构成存储型 XSS；或可执行文件分发）。
+ * 登记接口的白名单是事后校验，无法撤销已经上传到桶里的对象。
+ * 现在把校验通过的 MIME 固化进签名条件，提交时类型不一致会被 OSS 直接拒绝。
  *
  * 为什么用 SHA1 而不是 SHA256：本桶实测只有 HMAC-SHA1 能通过 OSS 校验，
  * HMAC-SHA256（以及十六进制、URL 编码、补换行等变体）一律返回
@@ -97,12 +104,20 @@ export function isAllowedMimeType(scope: string, mimeType: string): boolean {
 export function createPostObjectPolicy(input: {
   config: OssConfig
   objectKey: string
+  /** 校验通过的精确 MIME 类型；未提供时回退到该用途白名单的第一项。 */
+  mimeType?: string
   maxBytes?: number
   expireSeconds?: number
   now?: Date
   usageScope?: string
 }): UploadPolicy {
   const { config, objectKey } = input
+  const usageScope = input.usageScope ?? 'general'
+  const allowed = allowedMimeTypesFor(usageScope)
+  // 策略里只允许一个精确类型：优先用调用方校验过的类型，否则退回白名单首项。
+  const mimeType = typeof input.mimeType === 'string' && input.mimeType.trim()
+    ? input.mimeType.trim().toLowerCase().split(';')[0]?.trim() ?? ''
+    : allowed[0] ?? 'application/octet-stream'
   const requestedMaxBytes = input.maxBytes
   const maxBytes = typeof requestedMaxBytes === 'number'
     && Number.isSafeInteger(requestedMaxBytes)
@@ -122,7 +137,8 @@ export function createPostObjectPolicy(input: {
     { bucket: config.bucket },
     ['eq', '$key', objectKey],
     ['content-length-range', 1, maxBytes],
-    ['starts-with', '$Content-Type', ''],
+    // 精确匹配：提交的 Content-Type 必须与签发的完全一致
+    ['eq', '$Content-Type', mimeType],
   ]
 
   // 阿里云要求的 policy 文档结构：{ expiration, conditions }。
@@ -140,7 +156,7 @@ export function createPostObjectPolicy(input: {
     accessKeyId: config.accessKeyId,
     expireAt: expireAtMs,
     maxBytes,
-    allowedMimeTypes: allowedMimeTypesFor(input.usageScope ?? 'general'),
+    allowedMimeTypes: allowed,
     publicUrl: joinPublicUrl(config, objectKey),
   }
 }

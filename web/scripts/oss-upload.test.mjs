@@ -120,7 +120,7 @@ test('对象键使用北京日期（UTC 17:00 已是次日）且扩展名小写'
 })
 
 test('PostObject 策略：UTC Z 过期时间、必要条件与独立重算签名一致', () => {
-  const policy = createPostObjectPolicy({ config, objectKey: OBJECT_KEY })
+  const policy = createPostObjectPolicy({ config, objectKey: OBJECT_KEY, mimeType: 'image/png' })
   const decoded = decodePolicy(policy.policy)
 
   assert.equal(typeof decoded.expiration, 'string')
@@ -131,7 +131,8 @@ test('PostObject 策略：UTC Z 过期时间、必要条件与独立重算签名
   assert.deepEqual(conditions[0], { bucket: config.bucket })
   assert.deepEqual(conditions[1], ['eq', '$key', OBJECT_KEY])
   assert.deepEqual(conditions[2], ['content-length-range', 1, 20971520])
-  assert.deepEqual(conditions[3], ['starts-with', '$Content-Type', ''])
+  // Content-Type 必须精确匹配：不能再用空前缀的 starts-with（等于不限制类型）
+  assert.deepEqual(conditions[3], ['eq', '$Content-Type', 'image/png'])
 
   // 阿里云 PostObject 使用 HMAC-SHA1(base64 policy)：
   // 实测该桶对 HMAC-SHA256 及十六进制/URL 编码等变体一律返回 403 SignatureDoesNotMatch，
@@ -151,8 +152,36 @@ test('PostObject 策略：UTC Z 过期时间、必要条件与独立重算签名
   assert.equal(serialized.includes(TEST_SECRET), false, '策略对象不得包含 AccessKey Secret')
   assert.equal('accessKeySecret' in policy, false)
 
-  const other = createPostObjectPolicy({ config, objectKey: `20261009/${UUID}.jpg` })
+  const other = createPostObjectPolicy({ config, objectKey: `20261009/${UUID}.jpg`, mimeType: 'image/png' })
   assert.notEqual(other.signature, policy.signature)
+})
+
+test('PostObject 策略把 MIME 固化进签名条件，类型不一致会被 OSS 拒绝', () => {
+  // 声明 png：策略里就只能是 png
+  const png = createPostObjectPolicy({ config, objectKey: OBJECT_KEY, mimeType: 'image/png' })
+  assert.deepEqual(decodePolicy(png.policy).conditions[3], ['eq', '$Content-Type', 'image/png'])
+
+  // 声明 pdf（article 用途允许）：条件随之变成 pdf，签名也不同
+  const pdf = createPostObjectPolicy({ config, objectKey: OBJECT_KEY, mimeType: 'application/pdf', usageScope: 'article' })
+  assert.deepEqual(decodePolicy(pdf.policy).conditions[3], ['eq', '$Content-Type', 'application/pdf'])
+  assert.notEqual(pdf.signature, png.signature, '不同 MIME 的策略签名必须不同')
+
+  // 大小写与 charset 参数会被归一化
+  const noisy = createPostObjectPolicy({ config, objectKey: OBJECT_KEY, mimeType: 'IMAGE/PNG; charset=binary' })
+  assert.deepEqual(decodePolicy(noisy.policy).conditions[3], ['eq', '$Content-Type', 'image/png'])
+
+  // 未提供 mimeType 时回退到该用途白名单首项，而不是放开限制
+  const fallback = createPostObjectPolicy({ config, objectKey: OBJECT_KEY })
+  assert.deepEqual(decodePolicy(fallback.policy).conditions[3], ['eq', '$Content-Type', 'image/jpeg'])
+
+  // 任何情况下都不允许出现「空前缀 starts-with」这种不限制类型的写法
+  for (const item of [png, pdf, noisy, fallback]) {
+    assert.equal(
+      JSON.stringify(decodePolicy(item.policy).conditions).includes('starts-with'),
+      false,
+      '策略不得对 Content-Type 使用 starts-with',
+    )
+  }
 })
 
 test('策略过期：过去签发的凭证已过期，默认有效期为 300 秒', () => {
