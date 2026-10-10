@@ -4,8 +4,8 @@
  * 用法：
  *   1. 先构建并启动预览：
  *        npm run generate          （或 npm run build）
- *        npm run preview           （nitro-prerender 预设默认 http://localhost:3000）
- *      或开发模式：npm run dev     （默认 http://localhost:3000）
+ *        npm run preview           （nitro-prerender 预设默认 http://localhost:3002）
+ *      或开发模式：npm run dev     （默认 http://localhost:3002）
  *   2. 另开终端运行：
  *        npm run smoke
  *      可通过环境变量覆盖地址：
@@ -14,7 +14,7 @@
  * 预期结果：全部检查项输出 PASS，进程退出码 0；任一失败输出 FAIL 并以退出码 1 结束。
  */
 
-const BASE_URL = process.env.SMOKE_BASE_URL || 'http://127.0.0.1:3000'
+const BASE_URL = process.env.SMOKE_BASE_URL || 'http://[::1]:3002'
 
 const results = []
 let failed = false

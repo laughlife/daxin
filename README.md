@@ -84,6 +84,10 @@
    npm run dev
    ```
 
+   开发服务端口固定为 **3002**（见 `web/nuxt.config.ts` 的 `devServer.port`），
+   也可用 `PORT` 环境变量覆盖；需要局域网访问时用 `npm run dev:lan`（3003）。
+   访问地址用 `http://localhost:3002/`。
+
 7. 启动生产服务（在 `web/`）：
 
    ```powershell
@@ -210,7 +214,9 @@ npm run check:browser # 浏览器验收（Playwright），需运行中的服务
 > 需要完整站点时请执行 `npm run build && npm run preview`。
 > `check:static` 会检测产物形态，遇到静态产物会直接说明原因并以退出码 2 结束，避免误判为坏链。
 
-`smoke`、`check:static` 与 `check:browser` 需要一个运行中的服务，默认 `http://127.0.0.1:3000`，可用 `SMOKE_BASE_URL` 覆盖。
+`smoke`、`check:static` 与 `check:browser` 需要一个运行中的服务，默认 `http://[::1]:3002`，可用 `SMOKE_BASE_URL` 覆盖。
+默认值用 `[::1]` 而不是 `127.0.0.1`：Nuxt 开发服务只绑定 IPv6 的 localhost，
+用 `127.0.0.1` 会连接失败。
 注意开发服务器只绑定 IPv6 localhost，因此地址应写 `http://[::1]:<端口>` 而不是 `127.0.0.1`。
 
 数据库与后台相关的验证脚本（在仓库根目录执行，需要已配置 `web/.env` 且服务已启动）：`tools/verify-admin-api.mjs`、`tools/verify-admin-config-pages.mjs`、`tools/verify-oss-upload.mjs`、`tools/check-public-api.mjs`、`tools/check-backfill.mjs`、`tools/check-review-resolution.mjs`、`tools/check-ip-types-admin.mjs` 等。

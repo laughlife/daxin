@@ -15,7 +15,7 @@ import assert from 'node:assert/strict'
 import { shanghaiDate } from '../app/utils/content.ts'
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || 'playwright')
-const base = process.env.SMOKE_BASE_URL || 'http://127.0.0.1:3000'
+const base = process.env.SMOKE_BASE_URL || 'http://[::1]:3002'
 const browser = await chromium.launch({ headless: true, ...(process.env.BROWSER_EXECUTABLE ? { executablePath: process.env.BROWSER_EXECUTABLE } : {}) })
 const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } })
 const errors = []

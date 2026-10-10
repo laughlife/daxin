@@ -12,7 +12,7 @@
  *   - 路由型 href（页面链接）：请求运行中的服务确认返回 200，不再要求预渲染文件。
  *
  * 因此需要一个运行中的服务地址：
- *   SMOKE_BASE_URL=http://[::1]:3000 npm run check:static
+ *   SMOKE_BASE_URL=http://[::1]:3002 npm run check:static
  *   （开发模式或 `npm run preview` 均可；未提供地址时脚本会直接报错说明原因。）
  */
 import assert from 'node:assert/strict'
