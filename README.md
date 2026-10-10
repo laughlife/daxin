@@ -49,13 +49,19 @@
    Copy-Item web/.env.example web/.env
    ```
 
-3. 创建数据库并应用迁移：先在本机 MySQL 8 中创建空库 `daxin`（迁移脚本不会创建业务库），然后在仓库根目录执行：
+3. 应用数据库迁移。首次在全新环境执行时，加上 `--create-database` 让脚本先创建空库
+   （它只创建、不删除；不加该参数则要求 `daxin` 已存在）：
 
    ```powershell
+   # 全新环境：先建空库再迁移
+   node tools/migrate-legacy/schema-check.mjs --apply --create-database
+
+   # 库已存在：只执行迁移
    node tools/migrate-legacy/schema-check.mjs --apply
    ```
 
-   该命令执行 `database/migrations/*.sql` 并写入 `schema_migrations` 台账，可重复执行。
+   该命令执行 `database/migrations/*.sql` 并写入 `schema_migrations` 台账，可重复执行
+   （第二次会跳过已应用的版本）。
 
 4. 写入站点配置种子（可先 `--dry-run` 查看将写入的内容）：
 

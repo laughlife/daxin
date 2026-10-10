@@ -110,6 +110,86 @@ Task 2 验收通过：站点壳层（公告栏、Header、桌面/移动端导航
 Task 3 验收通过：首页第一版（需求文档文案 + Mock 数据）、多渠道联系配置、红色临时主题、TRO 案件查询 MVP（搜索/筛选/分页/详情/URL 恢复）、/about 与 /infringement-check、可访问性与 SEO、Smoke 检查与文档全部完成；全部验证命令通过；未连接任何后端；零新增依赖。
 
 
+## 2026-10-10 — 全栈接入收尾：OSS、公开 API、后台与页面还原
+
+承接 2026-10-09 的数据库与鉴权改造，本轮完成 Task 5–9 的主体工作。
+
+### Task 5 OSS 表单直传与媒体入库
+
+- 新增 `web/server/utils/oss/{config,policy,validation}.ts` 与
+  `web/server/api/admin/{upload-policy.post,media.post,media.get,media/[id].delete}.ts`，
+  以及 `web/app/composables/useOssUpload.ts`、`web/app/pages/admin/media.vue`。
+- **关键修复**：PostObject 签名必须用 HMAC-SHA1(base64 policy)，原先按 SHA256 实现会被
+  OSS 直接拒绝（403 SignatureDoesNotMatch）。诊断过程：同一 AccessKey 的 Signature V1
+  ListObjects 与 PutObject 均 200（证明凭据有效且有写权限），而 SHA256 的 policy 签名失败；
+  另排除精确 key/前缀条件、success_action_status、file 的 Content-Type、手工 multipart、
+  十六进制与 URL 编码签名等变体。改为 SHA1 后直传成功。
+- 真实验收 `tools/verify-oss-upload.mjs` 13/13 通过（未登录 401、非法 MIME 400、
+  超 20MB 400、策略不含密钥、直传 200、HEAD 校验登记 200、公网可访问、
+  伪造对象与路径穿越 400、重复登记幂等）。
+
+### 旧站图片回填 OSS
+
+- `tools/backfill-legacy-media.mjs`：3684 张被引用图片全部上传成功（0 失败），
+  `media_assets.public_url` 由 0 变为 **3684/3684**，宽高解析 3020 条，
+  272 篇文章正文里的 `res/` 路径改写为 OSS 地址，正文残留 `src="res/` 为 0。
+- 对象 key 用 **UUIDv5(DNS 命名空间, 旧路径)** 确定性生成，满足 `YYYYMMDD/{uuid}.{ext}`
+  且脚本可安全重跑、不产生重复对象。
+
+### Task 6 公开 API 与页面切换到数据库
+
+- 新增 10 个公开接口（cases/cases[id]/brands/brands[slug]/law-firms/law-firms[slug]/
+  articles/articles[slug]/home/settings）与 `web/app/repositories/*` 仓储层。
+- 分页夹取：`page>=1`、`pageSize` 上限 48、越界页返回空并夹到最后一页，
+  实测 `page=999` 得到 `meta.page=70`，杜绝 `999/3`、`4/3` 这类越界显示。
+- 列表接口不返回 `legacy_*`、`migration_batch_id`、`verified_at` 等内部字段。
+- 删除已被数据库取代的 mock 数据层（`web/app/data`）与 `repositories/articleContent.ts`，
+  联系方式等真实配置迁到 `web/app/config/`；新增测试禁止 pages/components 再引用 mock。
+- 页面切换中发现并修复：`nuxt.config.ts` 仍用 mock 推导预渲染路由（会把演示案件预渲染进产物）；
+  以及 `NODE_ENV=production` 下 root 账号检查导致预渲染失败并把数据库错误烘焙进静态页面。
+- `npm run check:static` 因详情页改为 SSR 而失效，重写为 SSG/SSR 分级判定：
+  预渲染页面查产物、资源引用查文件、路由链接请求真实服务确认 200。
+  实测 8 个页面、305 处资源、1019 处路由链接（360 个唯一路径）全部可访问。
+
+### Task 7 后台配置与内容管理
+
+- 新增站点配置（8 类 kind）、内容 CRUD（文章/案例/品牌/律所各 5 个 handler）、
+  媒体列表与软删除、核验队列、侵权类型字典等接口，以及九个后台页面。
+- 权限 UI：viewer 在后台页面看到只读提示且写控件禁用（实测九个页面 disabled 合计 748，
+  admin 会话为 74）；权威鉴权仍在服务端。
+- 合并了三个代理各自复制的角色判定模块（`adminPermission.ts`/`adminPermissions.ts`/
+  `adminAccess.ts`），现在只有 `web/app/utils/adminPermission.ts` 一份。
+- `tools/seed-site-config.mjs` 写入站点配置初始数据；修复其幂等缺陷：
+  `site_settings` 唯一键是 `(setting_key, version)`，原先的
+  `INSERT ... version=1 ON DUPLICATE KEY UPDATE version=version+1` 会每次保存都新增一行；
+  改为「存在 is_current=1 就地 UPDATE，否则 INSERT」，并用迁移 004 修复已产生的重复行。
+- 后台接口端到端验收 33/33（真实 admin/viewer/editor 三个账号）。
+
+### Task 8 页面结构与需求还原
+
+- 移除前台「扫码领取 TRO 侵权大礼包」引导（实测旧站该区域的唯一前台出现处是顶部公告栏），
+  并在 smoke 中加断言禁止其回归。
+- 关于我们按旧站真实结构（抓取 `http://yan1.qinianyun.com/about/`）重排为：
+  欢迎标题 + 公司介绍 → 团队介绍 → 24H/7 联系引导 → TRO 成功案例 → 企业宣讲 → 我们的小伙伴；
+  全部改为读取数据库配置（about 组 16 个键），图片数组留空待后台上传。
+- 页脚 9 个业务项原先 `link_path` 全为空、不可点击，现映射到已有栏目并渲染为链接
+  （实测 nav 区块内 `<a>` 9 个、`<span>` 0 个）。
+- 修正迁移的分类错误：旧库 `project_id=11` 栏目名「干货知识」，但 9 篇文章全部是劳动法主题，
+  迁移 006 按来源 ID 精确改到 `labor-case`。
+- 重写 `browser-check.mjs`：原断言写在 mock 驱动时期（引用已删除的 `legacy-351`、
+  写死条数、用已改名的表单字段），已按当前实现与真实数据重写。
+  注意：本机无 Playwright，只能语法检查与断言核对，未实际执行。
+
+### 已知限制（详见 README 与 docs/task7-acceptance.md）
+
+- 劳动法案例与货代案例两个分类**没有已发布文章**：旧库对应文章正文长度为 0，
+  迁移时按规则标为 draft；经用户确认接受这两栏暂时为空。
+- 832 个案件的侵权类型统一显示「待确认类型」：旧站没有侵权类型字段，不能据此推导。
+- 关于我们与企业宣讲图片需在后台「站点设置」上传后才显示。
+- 首页核心业务文案仍是前端 config，未改为数据库驱动（经用户确认暂不做）。
+- 密码哈希使用 scrypt 而非 design 要求的 Argon2id（无原生依赖），已保留算法前缀以便升级。
+
+
 ## 2026-10-09 — 全栈改造：数据库、旧库迁移与后台鉴权
 
 ### 改动
@@ -154,9 +234,10 @@ Task 3 验收通过：首页第一版（需求文档文案 + Mock 数据）、�
 ### 遗留
 
 - 34 项人工核验、19 个低置信案件号、30 个重复案件号归属需后台核验。
-- 3684 个旧站图片尚未上传 OSS（Task 5）。
 - 密码哈希当前使用 scrypt 而非 design 要求的 Argon2id；已保留算法前缀以便平滑升级。
-- OSS 真实参数（Region、Bucket、Endpoint、AccessKey）仍需用户提供。
+
+> 上述两项中的 OSS 与图片相关遗留已在 2026-10-10 的条目中处理完毕：
+> OSS 参数已由用户提供并验证可直传，3684 张旧站图片已全部上传并回填 `public_url`。
 
 ## 2026-10-07 — 首页展示与精准咨询入口调整
 

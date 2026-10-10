@@ -547,6 +547,27 @@ export async function createTestDatabase(connection, database) {
   await runMysqlWrite(connection, '', `CREATE DATABASE IF NOT EXISTS \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`)
 }
 
+/** 数据库标识符白名单：只允许字母、数字、下划线、连字符，避免拼接注入。 */
+function assertSafeDatabaseName(database) {
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(database)) {
+    throw new Error(`数据库名称不合法：${database}（只允许字母、数字、下划线与连字符）`)
+  }
+}
+
+/**
+ * 建立目标业务库。
+ *
+ * 迁移执行器本身只建表、不建库，因此全新环境（库还不存在）需要先创建空库。
+ * 这里刻意做成显式开关（CLI 的 --create-database），而不是自动建库：
+ * 自动建库会在库名配错时悄悄建出一个空库，让人误以为迁移成功。
+ *
+ * 只创建、不删除、不改动已存在的库（IF NOT EXISTS）。
+ */
+export async function createTargetDatabase(connection, database) {
+  assertSafeDatabaseName(database)
+  await runMysqlWrite(connection, '', `CREATE DATABASE IF NOT EXISTS \`${database}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`)
+}
+
 /** 读取指定库的表、列和索引。 */
 export async function readDatabaseSchema(connection, database = connection.database) {
   const where = `TABLE_SCHEMA = ${quoteLiteral(database)}`
@@ -801,12 +822,13 @@ export function isTestDatabaseName(database) {
 }
 
 function parseCliArgs(argv) {
-  const options = { apply: false, drop: false, force: false, json: false, help: false, database: '' }
+  const options = { apply: false, drop: false, force: false, createDatabase: false, json: false, help: false, database: '' }
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     if (arg === '--apply') options.apply = true
     else if (arg === '--drop') options.drop = true
     else if (arg === '--force') options.force = true
+    else if (arg === '--create-database') options.createDatabase = true
     else if (arg === '--json') options.json = true
     else if (arg === '--help' || arg === '-h') options.help = true
     else if (arg === '--database') options.database = argv[++index] ?? ''
@@ -822,6 +844,7 @@ const USAGE = `用法：node tools/migrate-legacy/schema-check.mjs [选项]
   --apply            执行 database/migrations/*.sql 并写入 schema_migrations 台账
   --drop             执行 --apply 前删除目标测试库（仅允许 *_dev、*_test）
   --force            忽略 schema_migrations 台账，重新执行全部迁移（DDL 必须幂等）
+  --create-database  目标库不存在时先创建空库（只创建、不删除；用于全新环境初始化）
   --json             以 JSON 输出结果
   -h, --help         显示本帮助
 `
@@ -875,6 +898,10 @@ async function main() {
   if (connection && options.apply && report.errors.length === 0) {
     if (isTestDatabaseName(database)) {
       await createTestDatabase(connection, database)
+    } else if (options.createDatabase) {
+      // 显式开关：全新环境先建空库。不做默认行为，避免库名配错时悄悄建库。
+      await createTargetDatabase(connection, database)
+      console.log(`已确保目标库存在：${database}`)
     }
     const result = await applyMigrations(connection, { database, force: options.force })
     report.applied = result.applied
