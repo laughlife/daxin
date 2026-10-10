@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { siteConfig } from '~/config/site'
-import { fetchSettings } from '~/repositories/settings'
 
 const qrOpen = ref(false)
 const qrGroup = ref<'tro' | 'labor'>('tro')
@@ -14,7 +13,7 @@ function enlargeQr(group: 'tro' | 'labor') { qrGroup.value = group; qrOpen.value
  * 每项渲染为链接；服务端未返回数据时回退为 siteConfig 里的静态标签，
  * 保证页脚不出现整块空白。
  */
-const { data: settings } = await useAsyncData('site-footer-settings', () => fetchSettings())
+const { data: settings } = await useSiteSettings()
 
 const footerServices = computed(() => {
   const items = settings.value?.footer?.services ?? []

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { fetchArticles } from '~/repositories/articles'
-import { fetchSettings } from '~/repositories/settings'
 import { toAboutContent } from '~/utils/aboutContent'
 
 /**
@@ -15,10 +14,7 @@ import { toAboutContent } from '~/utils/aboutContent'
  * 未配置时不显示假图，也不显示占位图片。
  * TRO 成功案例来自公开文章接口，分类由配置项 about_success_category 指定。
  */
-const { data: settings, error: settingsError, refresh: refreshSettings } = await useAsyncData(
-  'about-settings',
-  () => fetchSettings()
-)
+const { data: settings, error: settingsError, refresh: refreshSettings } = await useSiteSettings()
 
 const about = computed(() => toAboutContent(settings.value))
 

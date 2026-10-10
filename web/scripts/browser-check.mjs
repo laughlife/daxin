@@ -38,9 +38,10 @@ async function readPagerSummary(selector) {
 try {
   // ---------- 首页 ----------
   await visit('/')
-  // 需求要求移除「扫码领取 TRO 侵权大礼包」区域
-  check('首页不出现 TRO 大礼包引导', !(await page.locator('.site-announcement').innerText()).includes('大礼包'))
-  check('公告栏保留微信号复制入口', (await page.locator('.site-announcement').innerText()).includes('kjzx88'))
+  // 需求（2026-10-10 修订）：首页顶部保留「联系我们可领取 TRO 侵权大礼包」公告与微信号复制入口。
+  const announcementText = await page.locator('.site-announcement').innerText()
+  check('首页显示 TRO 侵权大礼包公告', announcementText.includes('TRO 侵权大礼包'))
+  check('公告栏保留微信号复制入口', announcementText.includes('kjzx88'))
   check('首页背景具有动态光效', await page.locator('.home-hero').evaluate(el => getComputedStyle(el, '::before').animationName.includes('hero-atmosphere')))
   await page.emulateMedia({ reducedMotion: 'reduce' })
   check('减少动态偏好关闭背景动画', await page.locator('.home-hero').evaluate(el => getComputedStyle(el, '::before').animationName === 'none'))
@@ -132,7 +133,7 @@ try {
   await visit('/about')
   check('关于我们包含成功案例区块', await page.locator('[aria-label="成功案例"]').count() === 1)
   check('关于我们按旧站结构含团队介绍', await page.locator('[aria-label="团队介绍"]').count() === 1)
-  check('关于我们不含大礼包扫码区域', !(await page.locator('body').innerText()).includes('大礼包'))
+  check('关于我们不含扫码大礼包区域', !(await page.locator('body').innerText()).includes('扫码领取'))
 
   // ---------- 页脚：业务项可点击 ----------
   await visit('/')

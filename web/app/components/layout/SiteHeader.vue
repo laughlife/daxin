@@ -3,8 +3,12 @@ import { ref } from 'vue'
 import { siteConfig } from '~/config/site'
 
 /**
- * 网站 Header：Logo 占位 + 网站名称 + 桌面导航 + CTA + 移动端菜单按钮。
+ * 网站 Header：品牌 Logo + 网站名称 + 桌面导航 + CTA + 移动端菜单按钮。
  * sticky 定位在视口顶部；窄屏下隐藏桌面导航与 CTA，只显示品牌与菜单按钮。
+ *
+ * Logo 优先取后台站点配置的 `site_logo`（图片存入 media_assets，公开接口用 public_url 覆盖取值），
+ * 未配置时才回退到前端静态 logo 或文字占位。
+ * 配置读取走 useSiteSettings，与页脚/关于我们共用同一份请求。
  */
 const mobileNavOpen = ref(false)
 
@@ -15,6 +19,16 @@ function toggleMobileNav() {
 function closeMobileNav() {
   mobileNavOpen.value = false
 }
+
+const { data: settings } = await useSiteSettings()
+
+/** 从配置里取 site_logo；服务端在未配置时回传空串。 */
+const logoFromSettings = computed(() => {
+  const value = settings.value?.settings?.site_logo
+  return typeof value === 'string' && value.trim() ? value.trim() : ''
+})
+
+const logoSrc = computed(() => logoFromSettings.value || siteConfig.logo.src)
 </script>
 
 <template>
@@ -22,9 +36,9 @@ function closeMobileNav() {
     <PageContainer class="site-header__inner">
       <NuxtLink to="/" class="site-header__brand" aria-label="返回首页">
         <img
-          v-if="siteConfig.logo.src"
+          v-if="logoSrc"
           class="site-header__logo-img"
-          :src="siteConfig.logo.src"
+          :src="logoSrc"
           :alt="siteConfig.logo.alt"
         >
         <span v-else class="site-header__logo" aria-hidden="true">
