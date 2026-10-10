@@ -1,4 +1,4 @@
-// 首页仓储：推荐阅读与成功案例预览。
+// 首页仓储：四类案例分享与成功案例预览。
 //
 // 只读取公开接口，失败时抛出中文 Error 交给页面展示错误状态；不回退 Mock 数据。
 // stats 由页面既有的本地常量兜底（接口暂不提供统计项），这里固定返回空数组。
@@ -6,17 +6,26 @@ import type { ArticleRecord, CaseRecord } from '../types/content'
 import { requestPublicApi, unwrapPublicApiData } from '../utils/publicApi'
 import type { ArticleSummary } from './articles'
 
+/** 首页案例分享的一个栏目（一类最多 3 篇）。 */
+export interface HomeArticleColumn {
+  /** 分类 slug，如 tro-alert */
+  slug: string
+  /** 所属业务线：tro / labor / freight */
+  section: string
+  articles: ArticleRecord[]
+}
+
 export interface HomeData {
   stats: unknown[]
   /** 首页成功案例预览，最多 6 条 */
   featuredCases: CaseRecord[]
-  /** 推荐阅读，最多 6 条 */
-  recentArticles: ArticleRecord[]
+  /** 四类案例分享，每类最多 3 篇；空分类的 articles 为空数组 */
+  articleColumns: HomeArticleColumn[]
 }
 
 interface HomePayload {
   featuredCases?: CaseRecord[]
-  recentArticles?: ArticleSummary[]
+  articleColumns?: Array<{ slug?: string, section?: string, articles?: ArticleSummary[] }>
 }
 
 const HOME_ENDPOINT = '/api/public/home'
@@ -27,12 +36,22 @@ function toArticleRecord(article: ArticleSummary): ArticleRecord {
   return { ...article, isFeatured: false }
 }
 
+/** 归一化接口返回的栏目：缺字段时补空值，避免前端解构炸掉。 */
+function normalizeColumns(value: HomePayload['articleColumns']): HomeArticleColumn[] {
+  if (!Array.isArray(value)) return []
+  return value.map((column) => ({
+    slug: String(column?.slug ?? ''),
+    section: String(column?.section ?? ''),
+    articles: Array.isArray(column?.articles) ? column.articles.map(toArticleRecord) : [],
+  }))
+}
+
 export async function fetchHomeData(): Promise<HomeData> {
   const payload = await requestPublicApi<HomePayload>(HOME_ENDPOINT)
   const data = unwrapPublicApiData(payload, HOME_FAILURE_MESSAGE)
   return {
     stats: [],
     featuredCases: Array.isArray(data.featuredCases) ? data.featuredCases : [],
-    recentArticles: Array.isArray(data.recentArticles) ? data.recentArticles.map(toArticleRecord) : [],
+    articleColumns: normalizeColumns(data.articleColumns),
   }
 }

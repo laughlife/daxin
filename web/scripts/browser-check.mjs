@@ -61,7 +61,20 @@ try {
   check('了解详情链接指向成功案例', await businessSection.locator('.business-card__detail').getAttribute('href') === '/tro/success-cases')
 
   // 首页成功案例与推荐阅读来自真实库
+  // 首页成功案例与推荐阅读来自真实库
   check('首页展示成功案例卡片', await page.locator('.case-preview-card').count() > 0)
+
+  // 需求（2026-10-10）：案例模块分四类，每类只展示近三篇
+  // 注意：这几项必须在「还在首页」时校验，不能放到后面访问过详情页之后再查。
+  check('首页案例分区为四类', await page.locator('.article-preview-section__column').count() === 4)
+  check('首页案例分区标题齐全', await page.locator('.article-preview-section__column-title').evaluateAll(
+    items => ['TRO 案件预警', 'TRO 成功案例', '劳动法案例', '货代案例'].every(title => items.some(el => el.textContent.trim() === title))
+  ))
+  const perColumnCounts = await page.locator('.article-preview-section__column').evaluateAll(
+    columns => columns.map(column => column.querySelectorAll('.article-preview-card').length)
+  )
+  check('每类案例不超过三篇', perColumnCounts.every(count => count <= 3))
+  check('有内容的两类各三篇', perColumnCounts.filter(count => count === 3).length === 2)
   check('首页展示推荐阅读', await page.locator('.article-preview-card').count() > 0)
 
   await page.getByRole('button', { name: '联系我们免费评估案件', exact: true }).click()

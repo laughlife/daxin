@@ -1,31 +1,39 @@
 <script setup lang="ts">
-import type { ArticleRecord } from '~/types/content'
+import type { HomeArticleColumn } from '~/repositories/home'
 
 /**
- * 首页“案例分享”区域。
- * 文章数据由首页 useAsyncData 调用 fetchHomeData() 取得后传入；
- * 按 href 前缀分流到 TRO / 劳动法两栏，保留原始发布日期。
+ * 首页「案例分享」区域。
+ *
+ * 需求：案例模块分四类、每类只展示近三篇。
+ * 栏目数据由接口按分类各取近 3 篇后传入（保证是「每类最近三篇」，
+ * 而不是「最近 6 篇里恰好属于该类的」）；空分类显示空状态。
  */
 const props = defineProps<{
-  articles: ArticleRecord[]
+  columns: HomeArticleColumn[]
 }>()
 
-const columns = computed(() => [
-  {
-    id: 'tro',
-    title: 'TRO 案例预警',
-    moreLabel: '更多 TRO 文章',
-    moreHref: '/tro/alerts',
-    articles: props.articles.filter(article => article.href.startsWith('/tro/')).slice(0, 3)
-  },
-  {
-    id: 'labor',
-    title: '劳动法案例分享',
-    moreLabel: '更多劳动法文章',
-    moreHref: '/domestic/labor-disputes',
-    articles: props.articles.filter(article => article.href.startsWith('/domestic/')).slice(0, 3)
-  }
-])
+/** 各分类的展示标题与「更多」入口。 */
+const CATEGORY_META: Record<string, { title: string, moreLabel: string, moreHref: string }> = {
+  'tro-alert': { title: 'TRO 案件预警', moreLabel: '更多 TRO 预警', moreHref: '/tro/alerts' },
+  'tro-success': { title: 'TRO 成功案例', moreLabel: '更多成功案例', moreHref: '/tro/success-cases' },
+  'labor-case': { title: '劳动法案例', moreLabel: '更多劳动法文章', moreHref: '/domestic/labor-disputes' },
+  'freight-case': { title: '货代案例', moreLabel: '更多货代案例', moreHref: '/domestic/freight-cases' },
+}
+
+/** 合并接口栏目与展示元数据；未知分类按 slug 原样展示，不隐藏数据。 */
+const items = computed(() =>
+  props.columns.map((column) => {
+    const meta = CATEGORY_META[column.slug]
+    return {
+      slug: column.slug,
+      title: meta?.title ?? column.slug,
+      moreLabel: meta?.moreLabel ?? '更多文章',
+      moreHref: meta?.moreHref ?? '/tro/alerts',
+      // 接口已按分类限流；这里再兜一层，确保「每类最多三篇」
+      articles: column.articles.slice(0, 3)
+    }
+  })
+)
 </script>
 
 <template>
@@ -33,25 +41,27 @@ const columns = computed(() => [
     <PageContainer>
       <SectionHeading
         align="center"
-        title="TRO 与劳动法案例分享"
-        description="精选案例分享文章，保留原始发布日期。"
+        title="案例分享"
+        description="按 TRO 预警、TRO 成功案例、劳动法案例与货代案例四类展示，每类保留最近三篇。"
       />
       <div class="article-preview-section__columns">
         <div
-          v-for="column in columns"
-          :key="column.id"
+          v-for="item in items"
+          :key="item.slug"
           class="article-preview-section__column"
         >
           <div class="article-preview-section__column-head">
-            <h3 class="article-preview-section__column-title">{{ column.title }}</h3>
-            <NuxtLink :to="column.moreHref" class="article-preview-section__more">
-              {{ column.moreLabel }}
+            <h3 class="article-preview-section__column-title">{{ item.title }}</h3>
+            <NuxtLink :to="item.moreHref" class="article-preview-section__more">
+              {{ item.moreLabel }}
               <span aria-hidden="true">→</span>
             </NuxtLink>
           </div>
-          <p v-if="!column.articles.length" role="status">该栏目暂无最新文章，点击更多文章查看历史内容。</p>
+          <p v-if="item.articles.length === 0" class="article-preview-section__empty" role="status">
+            该分类暂无已发布文章。
+          </p>
           <ul class="article-preview-section__list">
-            <li v-for="article in column.articles" :key="article.id">
+            <li v-for="article in item.articles" :key="article.id">
               <article class="article-preview-card">
                 <div class="article-preview-card__meta">
                   <span class="article-preview-card__category">{{ article.category }}</span>
@@ -83,9 +93,10 @@ const columns = computed(() => [
   background-color: var(--color-bg-light);
 }
 
+/* 四类栏目：宽屏两列，窄屏单列 */
 .article-preview-section__columns {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-8);
   margin-top: var(--space-8);
 }
@@ -107,6 +118,14 @@ const columns = computed(() => [
   font-size: var(--text-sm);
   color: var(--color-primary);
   white-space: nowrap;
+}
+
+.article-preview-section__empty {
+  padding: var(--space-4);
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
 }
 
 .article-preview-section__list {

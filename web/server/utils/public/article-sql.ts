@@ -136,3 +136,29 @@ LIMIT ?`,
     [limit],
   )
 }
+
+/**
+ * 按分类各取最近若干篇（首页「案例分享」四类栏目）。
+ *
+ * 需求：案例模块分四类、每类只展示近三篇。
+ * 用窗口函数按分类分区取前 N，避免为每个分类各发一次查询（4 次往返）。
+ * 只返回已发布且有发布时间的文章，与列表接口同口径。
+ */
+export async function queryRecentArticleRowsByCategory(
+  categorySlugs: string[],
+  perCategory: number,
+): Promise<ArticleRow[]> {
+  if (categorySlugs.length === 0 || perCategory <= 0) return []
+  const placeholders = categorySlugs.map(() => '?').join(', ')
+  return queryTarget<ArticleRow>(
+    `SELECT * FROM (
+  SELECT ${ARTICLE_COLUMNS},
+    ROW_NUMBER() OVER (PARTITION BY c.slug ORDER BY a.published_at DESC, a.id DESC) AS rn
+  FROM ${ARTICLE_FROM}
+  WHERE ${ARTICLE_BASE_CONDITIONS} AND c.slug IN (${placeholders})
+) ranked
+WHERE ranked.rn <= ?
+ORDER BY ranked.category_slug, ranked.rn`,
+    [...categorySlugs, perCategory],
+  )
+}

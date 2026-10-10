@@ -27,7 +27,7 @@ const homeRightImage = computed(() => {
 })
 
 const featuredCases = computed(() => homeData.value?.featuredCases ?? [])
-const recentArticles = computed(() => homeData.value?.recentArticles ?? [])
+const articleColumns = computed(() => homeData.value?.articleColumns ?? [])
 const homeErrorMessage = computed(() =>
   homeError.value instanceof Error && homeError.value.message
     ? homeError.value.message
@@ -140,7 +140,7 @@ useHead({
       />
       <template v-else>
         <CasePreviewSection :cases="featuredCases" />
-        <ArticlePreviewSection :articles="recentArticles" />
+        <ArticlePreviewSection :columns="articleColumns" />
       </template>
     </ContentColumns></PageContainer></section>
 
