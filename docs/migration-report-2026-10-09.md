@@ -1,5 +1,7 @@
 # 旧库迁移核验报告（2026-10-09）
 
+> 本报告在 2026-10-10 补充了 Task 9 的端到端验收结果，见文末第 10 节。
+
 ## 1. 基本信息
 
 | 项目 | 内容 |
@@ -162,5 +164,49 @@ UPDATE migration_batches SET status = 'rolled_back' WHERE id = 1;
 - [x] 目标库结构与迁移版本一致
 - [x] 数量核对一致，重复导入无重复数据
 - [x] 待人工核验项已登记
-- [ ] 媒体资源上传 OSS（Task 5）
+- [x] 媒体资源已上传 OSS 并回填 `public_url`（见第 6 节）
 - [x] 回滚步骤已确认
+
+## 10. Task 9 端到端验收（2026-10-10 补充）
+
+脚本：`tools/e2e-data-flow.mjs`（纯 Node 内置依赖，可重复运行）。
+命令：`node tools/e2e-data-flow.mjs --base http://[::1]:4411`
+
+**结果：40/40 通过，退出码 0**；把 `--base` 指向死端口时退出码 1（负路径有效）。
+
+| 分节 | 通过 | 关键观测 |
+| --- | --- | --- |
+| 登录身份 | 2/2 | admin 登录 200；`/api/admin/me` 返回 roles=admin |
+| 配置读取 | 6/6 | kind=site/home/about 项数 8/11/16；三个种子值与预期一致 |
+| OSS 媒体链路 | 6/6 | policy 200 且**不含** `accessKeySecret`；表单直传 200；登记 200 并返回 `publicUrl`；HEAD `publicUrl` 200；DELETE 200；`includeDeleted=1` 仍能读到该行（确认为软删除） |
+| 配置写→公开读 | 7/7 | 写入 `site_logo` 的 `mediaId` 后，`/api/public/settings` 能看到对应地址；随后还原并确认公开值回退 |
+| 迁移数据案件 | 4/4 | `meta.total`=832；行含 caseNumber/filedAt/lawFirm/plaintiffName/plaintiffBrand/caseType；**不含** `legacy_source_table`/`legacy_source_id`/`migration_batch_id`/`verified_at`；详情 `25-cv-00126` 200 |
+| 分页夹取 | 1/1 | `?page=99999&pageSize=999` → `page` 夹到 `totalPages`（18/18）、`pageSize` 夹到 48、本页 0 条，页码不超过总页数 |
+| 品牌 / 律所 | 4/4 | `brand-anagram-international` 关联 18 个案件；`law-firm-keith` 关联 133 个案件 |
+| 文章与首页 | 3/3 | 文章 `imageSrc` 均为 `https://`；首页 featuredCases=6、recentArticles=6；文章详情 HTML 无 `<script`、无 `on*=`、无 `res/` |
+| 角色权限 | 6/6 | viewer 写配置 403、创建文章 403、读文章 200；editor 空 items → 400（证明已通过鉴权，而非 403） |
+| 审计记录 | 1/1 | 只读查库确认写入后 `admin_audit_logs` 的 `settings_update` 记录新增（27→29，max id 104→114） |
+
+### 验收后的状态复原（已用只读 SQL 独立复核）
+
+| 对象 | 状态 |
+| --- | --- |
+| `site_logo` | 值 / `media_id` / 状态精确还原（就地 UPDATE，version 递增 13→15，未新增行） |
+| 验收创建的媒体行 | 软删除（行保留可追溯） |
+| 验收上传的 OSS 对象 | 已用 `tools/cleanup-verify-media.mjs` 从桶中删除并复查 HEAD 404 |
+| `articles` | 总数 288 未变，未创建任何测试文章 |
+| `admin_audit_logs` | 仅新增，未改未删 |
+| `web/.env` | 从未作为写入目标；全程未打印密码、令牌或 OSS 签名 |
+
+### 复核用命令
+
+```powershell
+node tools/check-backfill.mjs        # 媒体回填与正文改写
+node tools/check-public-api.mjs      # 公开接口字段与图片
+node tools/check-about-config.mjs    # 关于我们配置与页脚可点击性
+node tools/check-site-settings-state.mjs  # site_settings 不变式（每个 key 恰好 1 行 is_current）
+node tools/check-review-resolution.mjs    # 核验项回填的可解析性
+node tools/verify-admin-api.mjs      # 后台接口 33 项（含角色权限）
+node tools/verify-oss-upload.mjs     # OSS 直传 13 项
+```
+
