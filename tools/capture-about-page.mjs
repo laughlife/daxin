@@ -4,7 +4,7 @@ const { chromium } = await import(process.env.PLAYWRIGHT_MODULE)
 const browser = await chromium.launch({ headless: true, executablePath: process.env.BROWSER_EXECUTABLE })
 const page = await browser.newPage({ viewport: { width: 1440, height: 1200 } })
 try {
-  await page.goto(process.env.CAPTURE_URL ?? 'http://[::1]:3002/about', { waitUntil: 'networkidle', timeout: 120000 })
+  await page.goto(process.env.CAPTURE_URL ?? 'http://127.0.0.1:3002/about', { waitUntil: 'networkidle', timeout: 120000 })
   await page.waitForTimeout(2000)
   // 先滚到底再回顶部：触发 loading="lazy" 的图片加载，
   // 否则整页截图里首屏以外的图片会显示为空白（截图假象，不是加载失败）。

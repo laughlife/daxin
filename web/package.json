@@ -8,8 +8,9 @@
   },
   "scripts": {
     "build": "node scripts/nuxt-build.mjs build",
-    "dev": "nuxt dev",
+    "dev": "nuxt dev --host 0.0.0.0 --port 3002",
     "dev:lan": "nuxt dev --host 0.0.0.0 --port 3003",
+    "dev:local": "nuxt dev --port 3002",
     "generate": "node scripts/nuxt-build.mjs generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",

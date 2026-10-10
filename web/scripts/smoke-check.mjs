@@ -14,7 +14,7 @@
  * 预期结果：全部检查项输出 PASS，进程退出码 0；任一失败输出 FAIL 并以退出码 1 结束。
  */
 
-const BASE_URL = process.env.SMOKE_BASE_URL || 'http://[::1]:3002'
+const BASE_URL = process.env.SMOKE_BASE_URL || 'http://127.0.0.1:3002'
 
 const results = []
 let failed = false

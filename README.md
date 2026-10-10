@@ -84,9 +84,17 @@
    npm run dev
    ```
 
-   开发服务端口固定为 **3002**（见 `web/nuxt.config.ts` 的 `devServer.port`），
-   也可用 `PORT` 环境变量覆盖；需要局域网访问时用 `npm run dev:lan`（3003）。
-   访问地址用 `http://localhost:3002/`。
+   开发服务端口固定为 **3002**，且默认绑定 `0.0.0.0`，因此局域网内其它设备可以直接访问：
+
+   - 本机：`http://localhost:3002/` 或 `http://127.0.0.1:3002/`
+   - 局域网：`http://<本机IP>:3002/`（例如 `http://192.168.100.242:3002/`）
+
+   端口在 `web/nuxt.config.ts` 的 `devServer.port`，也可用 `PORT` 环境变量覆盖。
+   `npm run dev:lan` 用 3003 端口；`npm run dev:local` 只绑定本机回环、不对外暴露。
+
+   > 局域网无法访问时先查绑定地址：`Get-NetTCPConnection -LocalPort 3002 -State Listen`。
+   > 若显示 `::1` 或 `127.0.0.1` 说明只绑了回环，需用带 `--host 0.0.0.0` 的启动命令；
+   > 另外还需防火墙放行该端口（本机已有「大信网站局域网预览 TCP 3002」入站规则）。
 
 7. 启动生产服务（在 `web/`）：
 
@@ -214,9 +222,10 @@ npm run check:browser # 浏览器验收（Playwright），需运行中的服务
 > 需要完整站点时请执行 `npm run build && npm run preview`。
 > `check:static` 会检测产物形态，遇到静态产物会直接说明原因并以退出码 2 结束，避免误判为坏链。
 
-`smoke`、`check:static` 与 `check:browser` 需要一个运行中的服务，默认 `http://[::1]:3002`，可用 `SMOKE_BASE_URL` 覆盖。
-默认值用 `[::1]` 而不是 `127.0.0.1`：Nuxt 开发服务只绑定 IPv6 的 localhost，
-用 `127.0.0.1` 会连接失败。
+`smoke`、`check:static` 与 `check:browser` 需要一个运行中的服务，默认 `http://127.0.0.1:3002`，可用 `SMOKE_BASE_URL` 覆盖。
+注意地址形态取决于服务的绑定方式：开发服务默认 `--host 0.0.0.0`（仅 IPv4），
+此时用 `127.0.0.1`；若只绑回环（`npm run dev:local`），Nuxt 监听的是 IPv6 的 `::1`，
+则需用 `http://[::1]:3002`。
 注意开发服务器只绑定 IPv6 localhost，因此地址应写 `http://[::1]:<端口>` 而不是 `127.0.0.1`。
 
 数据库与后台相关的验证脚本（在仓库根目录执行，需要已配置 `web/.env` 且服务已启动）：`tools/verify-admin-api.mjs`、`tools/verify-admin-config-pages.mjs`、`tools/verify-oss-upload.mjs`、`tools/check-public-api.mjs`、`tools/check-backfill.mjs`、`tools/check-review-resolution.mjs`、`tools/check-ip-types-admin.mjs` 等。

@@ -65,7 +65,7 @@ if (!process.env.BROWSER_EXECUTABLE) {
 
 console.log(`Playwright 模块：${process.env.PLAYWRIGHT_MODULE}`)
 console.log(`浏览器可执行文件：${process.env.BROWSER_EXECUTABLE}`)
-console.log(`被测服务：${process.env.SMOKE_BASE_URL || 'http://[::1]:3002'}`)
+console.log(`被测服务：${process.env.SMOKE_BASE_URL || 'http://127.0.0.1:3002'}`)
 console.log('')
 
 await import(pathToFileURL(resolve('scripts/browser-check.mjs')).href)
