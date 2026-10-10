@@ -233,6 +233,8 @@ const state = {
   preExistingMediaId: null,
   siteLogoBefore: null,
   siteLogoAfterRestore: null,
+  /** 修改前公开接口返回的 site_logo 值（已考虑 media_url 覆盖取值） */
+  siteLogoPublicBefore: '',
 }
 
 /** 读取后台配置项；找不到返回 null。 */
@@ -431,7 +433,13 @@ async function main() {
       status: item.status,
       mediaUrl: item.mediaUrl ?? '',
     }
-    return `mediaId=${item.mediaId} valueType=${item.valueType} mediaUrl=${item.mediaUrl || '(空)'}`
+    // 公开接口在配置关联了媒体时用 media_url 覆盖取值，因此「原值」不能只看 value：
+    // 必须记下修改前公开接口实际返回的值，还原后与它比对才是正确口径。
+    // （site_logo 已配置官方 logo，mediaUrl 非空，只比 value 会误判为未回退。）
+    const publicResponse = await publicClient.request('/api/public/settings')
+    expectStatus(publicResponse, 200)
+    state.siteLogoPublicBefore = String(publicResponse.json?.data?.settings?.site_logo ?? '')
+    return `mediaId=${item.mediaId} valueType=${item.valueType} mediaUrl=${item.mediaUrl || '(空)'} 公开值=${state.siteLogoPublicBefore ? '非空' : '(空)'}`
   })
 
   let preExistingMedia = null
@@ -518,8 +526,12 @@ async function main() {
   await check('还原后公开配置中的 site_logo 同步回退', async () => {
     const response = await publicClient.request('/api/public/settings')
     expectStatus(response, 200)
-    const value = response.json?.data?.settings?.site_logo
-    assert(String(value ?? '') === state.siteLogoBefore.value, `公开值 ${JSON.stringify(value)} 未回退到原值 ${JSON.stringify(state.siteLogoBefore.value)}`)
+    const value = String(response.json?.data?.settings?.site_logo ?? '')
+    // 与「修改前公开接口返回的值」比对（该值已考虑 media_url 覆盖取值的语义）
+    assert(
+      value === state.siteLogoPublicBefore,
+      `公开值 ${JSON.stringify(value)} 未回退到原值 ${JSON.stringify(state.siteLogoPublicBefore)}`,
+    )
     return `site_logo=${JSON.stringify(value)}`
   })
 
@@ -655,13 +667,26 @@ async function main() {
     return `本页 ${rows.length} 篇，首篇 slug=${articleSlug}`
   })
 
-  await check('GET /api/public/home 返回 200 且 featuredCases/recentArticles 非空', async () => {
+  await check('GET /api/public/home 返回 200 且四个案例分类栏目结构正确', async () => {
     const response = await publicClient.request('/api/public/home')
     expectStatus(response, 200)
     const data = response.json?.data
     assert(Array.isArray(data?.featuredCases) && data.featuredCases.length > 0, 'featuredCases 为空')
-    assert(Array.isArray(data?.recentArticles) && data.recentArticles.length > 0, 'recentArticles 为空')
-    return `featuredCases=${data.featuredCases.length} recentArticles=${data.recentArticles.length}`
+    // 首页案例模块为四类、每类最多三篇（需求 2026-10-10），字段是 articleColumns
+    const columns = data?.articleColumns
+    assert(Array.isArray(columns) && columns.length === 4, `articleColumns 应为 4 类，实际 ${JSON.stringify(columns?.length)}`)
+    const slugs = columns.map((column) => column.slug)
+    assert(
+      JSON.stringify(slugs) === JSON.stringify(['tro-alert', 'tro-success', 'labor-case', 'freight-case']),
+      `分类顺序不符：${JSON.stringify(slugs)}`,
+    )
+    for (const column of columns) {
+      assert(Array.isArray(column.articles), `${column.slug} 的 articles 不是数组`)
+      assert(column.articles.length <= 3, `${column.slug} 超过三篇：${column.articles.length}`)
+    }
+    const total = columns.reduce((sum, column) => sum + column.articles.length, 0)
+    assert(total > 0, '四类栏目合计没有任何文章')
+    return `featuredCases=${data.featuredCases.length} 分类=${slugs.join('/')} 各篇数=${columns.map((c) => c.articles.length).join(',')}`
   })
 
   await check('GET /api/public/articles/{slug} 的 html 无 script / on* 事件 / res 路径', async () => {
