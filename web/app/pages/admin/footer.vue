@@ -2,7 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import type { ContactItem, FooterItem, QrItem } from '~/types/adminSettings'
 import { apiErrorMessage, httpStatusOf } from '~/utils/publicApi'
-import { SETTINGS_READ_ONLY_NOTICE, canWriteSettings, nextUniqueSlug } from '~/utils/adminPermissions'
+import { SETTINGS_READ_ONLY_NOTICE, canWriteSettings, nextUniqueSlug } from '~/utils/adminPermission'
 
 /**
  * 页脚配置：页脚业务项、页脚导航链接、联系渠道、二维码。

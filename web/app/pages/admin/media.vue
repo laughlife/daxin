@@ -8,7 +8,7 @@ import {
   toPageMeta,
   type AdminPageMeta
 } from '~/utils/adminApi'
-import { MEDIA_READ_ONLY_NOTICE, canWriteMedia } from '~/utils/adminAccess'
+import { MEDIA_READ_ONLY_NOTICE, canWriteMedia } from '~/utils/adminPermission'
 import {
   SOFT_DELETE_CONFIRM,
   SOFT_DELETE_NOTICE,

@@ -2,7 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import type { ServiceChildItem, ServiceSection } from '~/types/adminSettings'
 import { apiErrorMessage, httpStatusOf } from '~/utils/publicApi'
-import { SETTINGS_READ_ONLY_NOTICE, canWriteSettings, nextUniqueSlug } from '~/utils/adminPermissions'
+import { SETTINGS_READ_ONLY_NOTICE, canWriteSettings, nextUniqueSlug } from '~/utils/adminPermission'
 
 /**
  * 核心业务板块（首页「核心业务」四块）。

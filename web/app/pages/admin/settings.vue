@@ -2,7 +2,7 @@
 import { computed, reactive, ref } from 'vue'
 import type { HomeStatEntry, SettingItem } from '~/types/adminSettings'
 import { apiErrorMessage, httpStatusOf } from '~/utils/publicApi'
-import { SETTINGS_READ_ONLY_NOTICE, canWriteSettings } from '~/utils/adminPermissions'
+import { SETTINGS_READ_ONLY_NOTICE, canWriteSettings } from '~/utils/adminPermission'
 
 /**
  * 站点设置：站点 / 首页 / 关于 / SEO 四类 key-value 文案配置。

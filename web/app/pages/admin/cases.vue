@@ -79,36 +79,60 @@ interface IpTypeOption {
 /**
  * 侵权类型选项。
  *
- * `ip_types` 只有 trademark / copyright / patent / unknown 四条（迁移脚本 seed，sort_order 10/20/30/90），
- * 公开与后台接口都只回传 slug，**没有**任何接口能列出这张小字典与其 id。
- * 因此这里按 seed 顺序给出 id 1..4 的初始映射，并在打开案件详情时用（ipTypeId, caseType）
- * 这对观测值持续校正：见过的新 id 一律按 slug 归位，冲突时以最新观测为准。
- * 「待确认类型」（unknown）始终保留为合法选项。
+ * 首选从后台字典接口 `GET /api/admin/ip-types` 读取真实的 id↔slug↔名称，
+ * 不再依赖「按 seed 顺序猜测 id」——那是个无法验证的假设：一旦自增顺序与预期不同，
+ * 下拉就会把商标标成专利。
+ *
+ * 字典接口不可用时退回到「只保底一个待确认类型」，并用案件详情里观测到的
+ * （ipTypeId, caseType）持续校正/补齐选项，保证旧数据也不会被显示成错误类型。
  */
-const IP_TYPE_SEED: { slug: string, label: string }[] = [
-  { slug: 'trademark', label: caseTypeLabel('trademark') },
-  { slug: 'copyright', label: caseTypeLabel('copyright') },
-  { slug: 'patent', label: caseTypeLabel('patent') },
-  { slug: 'unknown', label: UNKNOWN_CASE_TYPE_LABEL }
-]
+const FALLBACK_IP_TYPE_SLUG = 'unknown'
+const ipTypes = ref<IpTypeOption[]>([])
 
-const ipTypes = ref<IpTypeOption[]>(IP_TYPE_SEED.map((item, index) => ({ id: index + 1, ...item })))
+/** 按 slug 生成中文标签；未知 slug 直接原样展示，不猜类型。 */
+function labelForIpTypeSlug(slug: string): string {
+  if (!slug) return UNKNOWN_CASE_TYPE_LABEL
+  return slug === FALLBACK_IP_TYPE_SLUG ? UNKNOWN_CASE_TYPE_LABEL : caseTypeLabel(slug)
+}
+
+/** 拉取侵权类型字典；失败时只保留「待确认类型」并提示上层。 */
+async function loadIpTypes() {
+  try {
+    const response = await requestFetch<{ data?: { id: number, slug: string, name: string }[] }>('/api/admin/ip-types')
+    const items = response?.data ?? []
+    if (items.length > 0) {
+      ipTypes.value = items.map(item => ({
+        id: Number(item.id),
+        slug: String(item.slug ?? ''),
+        label: labelForIpTypeSlug(String(item.slug ?? '')),
+      }))
+      return true
+    }
+  } catch {
+    // 落到下面的保底分支
+  }
+  // 保底：只保留待确认类型，避免用猜测的 id 展示具体类型
+  ipTypes.value = [{ id: 0, slug: FALLBACK_IP_TYPE_SLUG, label: UNKNOWN_CASE_TYPE_LABEL }]
+  return false
+}
 
 /** 用（id, slug）观测校正 id↔slug 映射；slug 未知时只补齐 id，不改标签。 */
 function syncIpTypeFromObservation(id: number | null, slug: string) {
   if (id === null || !Number.isInteger(id) || id <= 0) return
-  const known = IP_TYPE_SEED.find(item => item.slug === slug)
   const existing = ipTypes.value.find(item => item.id === id)
-  if (!known) {
+  if (!slug) {
     if (!existing) ipTypes.value = [...ipTypes.value, { id, slug: '', label: `未知类型（#${id}）` }]
     return
   }
-  const clash = ipTypes.value.find(item => item.slug === known.slug && item.id !== id)
+  const label = labelForIpTypeSlug(slug)
+  const clash = ipTypes.value.find(item => item.slug === slug && item.id !== id && slug !== FALLBACK_IP_TYPE_SLUG)
   let next = clash ? ipTypes.value.filter(item => item.id !== clash.id) : [...ipTypes.value]
+  // 保底占位（id=0）在拿到真实观测后移除
+  next = next.filter(item => item.id !== 0)
   if (next.some(item => item.id === id)) {
-    next = next.map(item => (item.id === id ? { ...item, slug: known.slug, label: known.label } : item))
+    next = next.map(item => (item.id === id ? { ...item, slug, label } : item))
   } else {
-    next = [...next, { id, slug: known.slug, label: known.label }]
+    next = [...next, { id, slug, label }]
   }
   ipTypes.value = next.sort((a, b) => a.id - b.id)
 }
@@ -170,6 +194,9 @@ function defaultListPayload(): CaseListPayload {
     meta: { page: page.value, pageSize: pageSize.value, total: 0, totalPages: 1 }
   }
 }
+
+// 侵权类型字典与案件列表并行加载：字典来自后台只读接口，不依赖列表结果。
+const { error: ipTypeError } = await useAsyncData('admin-cases:ip-types', async () => loadIpTypes())
 
 const items = computed(() => listData.value.items)
 const meta = computed<AdminPageMeta>(() => listData.value.meta)

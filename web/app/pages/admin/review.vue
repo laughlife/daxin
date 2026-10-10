@@ -7,7 +7,7 @@ import {
   toPageMeta,
   type AdminPageMeta
 } from '~/utils/adminApi'
-import { REVIEW_READ_ONLY_NOTICE, canWriteReview } from '~/utils/adminAccess'
+import { REVIEW_READ_ONLY_NOTICE, canWriteReview } from '~/utils/adminPermission'
 import {
   APPLY_CASE_FIELD_LABELS,
   APPLY_CONFLICT_EXPLANATION,
