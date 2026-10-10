@@ -20,12 +20,6 @@ const footerServices = computed(() => {
   return items.filter((item) => item.title)
 })
 
-/** 相关链接：后台维护的导航链接（页脚第三栏）。 */
-const footerLinks = computed(() => {
-  const items = settings.value?.footer?.links ?? []
-  return items.filter((item) => item.title && item.linkPath)
-})
-
 /** 页脚 logo：优先用后台站点配置的 site_logo（新 logo）。 */
 const logoSrc = computed(() => {
   const value = settings.value?.settings?.site_logo
@@ -47,9 +41,9 @@ const fallbackGroups = computed(() => siteConfig.footerNav)
 <template>
   <footer class="site-footer">
     <PageContainer class="site-footer__main">
-      <!-- 上：公司 logo（新 logo）+ 简介 + 双公众号二维码 -->
-      <div class="site-footer__brand">
-        <div class="site-footer__brand-main">
+      <!-- 三列竖排：①公司介绍 + logo + 两个公众号二维码 ②业务范围 ③联系我们 -->
+      <div class="site-footer__columns">
+        <section class="site-footer__column site-footer__column--brand" aria-label="公司介绍">
           <div class="site-footer__identity">
             <img
               v-if="logoSrc"
@@ -60,12 +54,16 @@ const fallbackGroups = computed(() => siteConfig.footerNav)
             <p v-else class="site-footer__name">{{ siteConfig.name }}</p>
           </div>
           <p class="site-footer__subtitle">{{ siteConfig.footerIntro }}</p>
-        </div>
-        <ContactQrGrid kind="public" zoomable class="site-footer__channels" @zoom="enlargeQr" />
-      </div>
+          <!-- 二维码下方只保留名称，不显示「扫码关注 · 获取资讯」 -->
+          <ContactQrGrid
+            kind="public"
+            zoomable
+            hide-note
+            class="site-footer__channels"
+            @zoom="enlargeQr"
+          />
+        </section>
 
-      <!-- 下：三项竖排（业务范围 / 联系我们 / 二维码或导航），业务范围可点击跳转 -->
-      <div class="site-footer__columns">
         <section class="site-footer__column" aria-label="业务范围">
           <h3 class="site-footer__section-title">业务范围</h3>
           <ul v-if="footerServices.length > 0" class="site-footer__list">
@@ -92,17 +90,6 @@ const fallbackGroups = computed(() => siteConfig.footerNav)
             <div><dt>地址</dt><dd>{{ siteConfig.contact.address }}</dd></div>
           </dl>
         </section>
-
-        <section class="site-footer__column" aria-label="相关链接">
-          <h3 class="site-footer__section-title">相关链接</h3>
-          <ul v-if="footerLinks.length > 0" class="site-footer__list">
-            <li v-for="item in footerLinks" :key="item.itemKey">
-              <NuxtLink class="site-footer__service-link" :to="item.linkPath">
-                {{ item.title }}
-              </NuxtLink>
-            </li>
-          </ul>
-        </section>
       </div>
     </PageContainer>
 
@@ -128,15 +115,16 @@ const fallbackGroups = computed(() => siteConfig.footerNav)
 
 <style scoped>
 .site-footer { background:var(--color-bg-dark); color:var(--color-text-inverse); font-size:var(--text-sm); }
-.site-footer__main { display:flex; flex-direction:column; gap:var(--space-8); padding-block:var(--space-8); }
+.site-footer__main { display:flex; flex-direction:column; gap:var(--space-6); padding-block:var(--space-8); }
 
-/* 上：logo + 简介（左）与双公众号二维码（右） */
-.site-footer__brand { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:start; gap:var(--space-8); }
-.site-footer__brand-main { display:flex; flex-direction:column; gap:var(--space-4); min-width:0; }
+/* 三列竖排：品牌（logo + 简介 + 二维码）/ 业务范围 / 联系我们 */
+.site-footer__columns { display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1.2fr); gap:var(--space-8); }
+.site-footer__column { display:flex; flex-direction:column; gap:var(--space-4); min-width:0; }
+.site-footer__column--brand { gap:var(--space-5); }
 .site-footer__identity { display:flex; align-items:center; gap:var(--space-3); }
 .site-footer__logo-img { height:52px; width:auto; }
 .site-footer__name { font-size:var(--text-2xl); font-weight:700; }
-.site-footer__subtitle { margin:0; max-width:820px; line-height:var(--leading-relaxed); color:rgb(255 255 255 / 65%); }
+.site-footer__subtitle { margin:0; max-width:460px; line-height:var(--leading-relaxed); color:rgb(255 255 255 / 65%); }
 
 /* 下：三项竖排 */
 .site-footer__columns { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:var(--space-8); padding-top:var(--space-6); border-top:1px solid rgb(255 255 255 / 15%); }
@@ -161,10 +149,9 @@ const fallbackGroups = computed(() => siteConfig.footerNav)
 .site-footer__bottom-inner { display:flex; align-items:center; justify-content:space-between; gap:var(--space-4); flex-wrap:wrap; color:rgb(255 255 255 / 55%); }
 .site-footer__legal, .site-footer__policies { display:flex; gap:var(--space-4); flex-wrap:wrap; }
 @media (max-width:1023px) {
-  /* 窄屏：上区块改为上下排列；三项由三列降为单列堆叠 */
-  .site-footer__brand { grid-template-columns:1fr; gap:var(--space-6); }
+  /* 窄屏：三列降为单列堆叠 */
   .site-footer__columns { grid-template-columns:1fr; gap:var(--space-6); }
-  .site-footer__channels { margin:0; max-width:300px; }
+  .site-footer__channels { max-width:280px; }
   .site-footer__bottom-inner { flex-direction:column; text-align:center; }
   .site-footer__legal, .site-footer__policies { justify-content:center; }
 }

@@ -155,18 +155,26 @@ try {
 
   // ---------- 关于我们 ----------
   await visit('/about')
-  // 对齐旧站结构：首屏公司介绍 + 核心业务 + 成功案例 + 企业宣讲 + 我们的小伙伴
-  check('关于我们包含成功案例区块', await page.locator('[aria-label="成功案例"]').count() === 1)
-  check('关于我们包含公司介绍区块', await page.locator('[aria-label="公司介绍"]').count() === 1)
-  check('关于我们包含核心业务区块', await page.locator('[aria-label="核心业务"]').count() === 1)
-  check('关于我们包含企业宣讲区块', await page.locator('[aria-label="企业宣讲"]').count() === 1)
-  check('关于我们包含我们的小伙伴区块', await page.locator('[aria-label="我们的小伙伴"]').count() === 1)
+  // 对齐旧站结构：首屏公司介绍 + 核心业务 + 成功案例 + 企业宣讲 + 我们的小伙伴。
+  // 注意：断言范围限定在 .about-page 内，因为页脚也有 aria-label="公司介绍"，
+  // 不限定范围会把页脚的区块也算进来。
+  const aboutPage = page.locator('.about-page')
+  check('关于我们包含成功案例区块', await aboutPage.locator('[aria-label="成功案例"]').count() === 1)
+  check('关于我们包含公司介绍区块', await aboutPage.locator('[aria-label="公司介绍"]').count() === 1)
+  check('关于我们包含核心业务区块', await aboutPage.locator('[aria-label="核心业务"]').count() === 1)
+  check('关于我们包含企业宣讲区块', await aboutPage.locator('[aria-label="企业宣讲"]').count() === 1)
+  check('关于我们包含我们的小伙伴区块', await aboutPage.locator('[aria-label="我们的小伙伴"]').count() === 1)
   // 旧站该页顶部有扫码大礼包区，按需求不保留
   check('关于我们不含扫码大礼包区域', !(await page.locator('body').innerText()).includes('扫码领取'))
   // 旧站的英文副标题
-  check('关于我们保留英文副标题', await page.locator('.section-heading__eyebrow').evaluateAll(
+  check('关于我们保留英文副标题', await aboutPage.locator('.section-heading__eyebrow').evaluateAll(
     items => ['TRO SUCCESS STORIES', 'COMPANY PRESENTATION', 'OUR FRIENDS'].every(text => items.some(el => el.textContent.trim() === text))
   ))
+  // 核心业务与成功案例用旧站图片，不再复用首页卡片与文章列表
+  check('关于我们核心业务用旧站图片', await aboutPage.locator('.about-page__business-gallery img').count() === 2)
+  check('关于我们成功案例用旧站图片', await aboutPage.locator('.about-page__success-gallery img').count() === 4)
+  check('关于我们不再复用首页业务卡片', await aboutPage.locator('.business-card').count() === 0)
+  check('关于我们不再用文章列表做成功案例', await aboutPage.locator('.article-list__card').count() === 0)
 
   // ---------- 页脚：业务项可点击 ----------
   await visit('/')
@@ -175,11 +183,17 @@ try {
   const footerHref = await footerLinks.first().getAttribute('href')
   check('页脚业务项有有效 href', Boolean(footerHref) && footerHref.startsWith('/'))
 
-  // 需求（2026-10-10）：页脚改为三项竖排；页脚用新 logo，去掉原文字占位；
-  // 页头已放 logo，不再并列显示「大信法务」文字与副标题。
-  check('页脚为三项竖排布局', await page.locator('.site-footer__column').count() === 3)
-  check('页脚使用 logo 图片', await page.locator('.site-footer__logo-img').count() === 1)
-  check('页脚不再有文字方块占位', await page.locator('.site-footer__logo').count() === 0)
+  // 需求（2026-10-10）：页脚三列竖排——①公司介绍 + logo + 两个公众号二维码 ②业务范围 ③联系我们；
+  // 页脚用新 logo（不再有文字占位）；二维码下方只保留名称，不显示「扫码关注 · 获取资讯」；
+  // 页头已放 logo，不再并列显示站名与副标题。
+  const footer = page.locator('.site-footer')
+  check('页脚为三列竖排布局', await footer.locator('.site-footer__column').count() === 3)
+  check('页脚首列为公司介绍', await footer.locator('.site-footer__column--brand').count() === 1)
+  check('页脚首列含两个公众号二维码', await footer.locator('.site-footer__channels figure').count() === 2)
+  check('页脚二维码只需要名称', await footer.locator('.contact-qr-grid__note').count() === 0)
+  check('页脚不再有相关链接栏', !(await footer.innerText()).includes('相关链接'))
+  check('页脚使用 logo 图片', await footer.locator('.site-footer__logo-img').count() === 1)
+  check('页脚不再有文字方块占位', await footer.locator('.site-footer__logo').count() === 0)
   check('页头使用 logo 图片', await page.locator('.site-header__logo-img').count() === 1)
   check('页头不再并列显示站名文字', await page.locator('.site-header__logo-text').count() === 0)
   check('页头不出现站名副标题文本', !(await page.locator('.site-header__inner').innerText()).includes('跨境电商与国际物流法律服务'))
