@@ -61,17 +61,32 @@ const SITE_SETTINGS = [
   { key: 'home_consultation_description', group: 'home', value: '无论 TRO 案件、物流纠纷还是劳动用工问题，均可通过电话、邮箱或微信咨询号联系我们，获取免费初步评估。', valueType: 'text' },
   { key: 'home_consultation_button', group: 'home', value: '微信二维码咨询', valueType: 'text' },
 
-  // about：关于我们
-  { key: 'about_team_title', group: 'about', value: 'About US · 大信法务团队', valueType: 'text' },
+  // about：关于我们（结构按旧站 http://yan1.qinianyun.com/about/ 恢复）
+  // 旧站结构依次为：欢迎标题 + 公司介绍 → [大礼包扫码区，已按需求删除] → 团队介绍 →
+  // 24H 联系引导 → TRO 成功案例 → 企业宣讲 → 我们的小伙伴。
+  { key: 'about_hero_title', group: 'about', value: '深圳市大信法务咨询有限公司', valueType: 'text' },
+  { key: 'about_hero_welcome', group: 'about', value: '欢迎您来访 大信法务', valueType: 'text' },
+  { key: 'about_hero_paragraph', group: 'about', value: '大信法务团队为深耕跨境赛道的专业跨境电商、国际物流律师团队。主营海运、空运全链路法律业务，面向国际物流、跨境服务商、出海卖家提供法律顾问服务；同步覆盖用工劳动合规、TRO、合同风控、海关合规，可代理各类纠纷诉讼，高效处理货损、欠款、维权等各类争议。', valueType: 'text' },
+  { key: 'about_team_title', group: 'about', value: '团队介绍', valueType: 'text' },
   {
     key: 'about_team_paragraphs',
     group: 'about',
     valueType: 'json',
     value: JSON.stringify([
-      '大信法务团队成立于 2019 年，深耕法律行业多年，拥有经验丰富的国内外实力律师。',
-      '主营海运、空运全链路法律业务，面向国际物流、跨境服务商、出海卖家提供法律顾问服务；同步覆盖 TRO 知识产权、CPSC 召回、美国加州 65 号法案、用工劳动合规、合同风控、海关合规，可代理各类纠纷诉讼，高效处理货损、欠款、维权等各类争议。',
+      '大信法务团队成立于2019年，深耕法律行业多年，拥有经验丰富的国内外实力律师；',
+      '专注于为跨境电商从业者提供各类法律服务，不但可以帮助客户解决国内的权益纠纷，如劳资关系、合同债权、股权架构、国际货代、公司及个人法律顾问等，也可以解决海外各国的法律纠纷，如知识产权侵权、加州65号法案等的解决方案。',
+      '大信法务团队始终坚持以维护客户利益为导向，在充分运用自身丰富的法律服务经验「因时制宜」「因地制宜」地为客户提供高质量法律建议的同时，更注重结合客户需求为其提供创新性的服务。',
     ]),
   },
+  { key: 'about_contact_title', group: 'about', value: '如果您有任何需求和问题，24H/7 联系我们的法务团队', valueType: 'text' },
+  // 图片类：由后台上传后写入 media_id；这里给空数组/空值，不预置假图片
+  { key: 'about_honors_images', group: 'about', valueType: 'json', value: JSON.stringify([]) },
+  { key: 'about_lecture_images', group: 'about', valueType: 'json', value: JSON.stringify([]) },
+  { key: 'about_partner_images', group: 'about', valueType: 'json', value: JSON.stringify([]) },
+  { key: 'about_lecture_title', group: 'about', value: '企业宣讲', valueType: 'text' },
+  { key: 'about_partner_title', group: 'about', value: '我们的小伙伴', valueType: 'text' },
+  { key: 'about_success_title', group: 'about', value: 'TRO 成功案例', valueType: 'text' },
+  { key: 'about_success_category', group: 'about', value: 'tro-success', valueType: 'text' },
   { key: 'about_more_label', group: 'about', value: '了解更多关于我们', valueType: 'text' },
   { key: 'about_more_link', group: 'about', value: '/about', valueType: 'text' },
 
@@ -145,11 +160,25 @@ const SERVICE_SECTIONS = [
   },
 ]
 
-/** footer_services：页脚业务范围（全部来自 site.ts 的 footerNav.items） */
+/**
+ * footer_services：页脚业务范围。
+ *
+ * 需求：「页脚竖排和可点击业务项」。旧站把业务范围做成指向各自详情页的链接
+ * （http://yan1.qinianyun.com/business_scope/...）。新站尚无这些落地页，
+ * 因此这里映射到已有的相近栏目（TRO 案件查询 / 品牌库 / 关于我们 / FAQ），
+ * 保证「可点击」而不是死链；落地页建好后由后台改成正式地址。
+ */
 const FOOTER_SERVICES = [
-  'TRO应诉和解', '亚马逊申诉/投诉', '不侵权报告', '商标/版权/专利申请注册', 'CPSC召回',
-  '劳动争议', '货代民商纠纷', '企业法律顾问', '跨境纠纷',
-].map((title, index) => ({ itemKey: `footer-service-${index + 1}`, title, sortOrder: (index + 1) * 10 }))
+  { title: 'TRO应诉和解', linkPath: '/tro/cases' },
+  { title: '亚马逊申诉/投诉', linkPath: '/tro/guides' },
+  { title: '不侵权报告', linkPath: '/infringement-check' },
+  { title: '商标/版权/专利申请注册', linkPath: '/tro/guides' },
+  { title: 'CPSC召回', linkPath: '/tro/cpsc-recalls' },
+  { title: '劳动争议', linkPath: '/domestic/labor-disputes' },
+  { title: '货代民商纠纷', linkPath: '/domestic/freight-cases' },
+  { title: '企业法律顾问', linkPath: '/about' },
+  { title: '跨境纠纷', linkPath: '/faq/cross-border' },
+].map((item, index) => ({ itemKey: `footer-service-${index + 1}`, ...item, sortOrder: (index + 1) * 10 }))
 
 /** footer_links：页脚导航（取自 siteConfig.mainNav 的扁平化结果） */
 const FOOTER_LINKS = [
@@ -245,8 +274,9 @@ ON DUPLICATE KEY UPDATE
 
 function upsertFooterServiceStatement(item) {
   return `INSERT INTO footer_services (item_key, title, link_path, sort_order, status)
-VALUES (${quoteLiteral(item.itemKey)}, ${quoteLiteral(item.title)}, '', ${item.sortOrder}, 1)
-ON DUPLICATE KEY UPDATE title = VALUES(title), sort_order = VALUES(sort_order), updated_at = NOW()`
+VALUES (${quoteLiteral(item.itemKey)}, ${quoteLiteral(item.title)}, ${quoteLiteral(item.linkPath ?? '')}, ${item.sortOrder}, 1)
+ON DUPLICATE KEY UPDATE title = VALUES(title), link_path = VALUES(link_path),
+  sort_order = VALUES(sort_order), updated_at = NOW()`
 }
 
 function upsertFooterLinkStatement(item) {
