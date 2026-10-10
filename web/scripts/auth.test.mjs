@@ -163,3 +163,27 @@ test('登录后跳转路径按角色区分，且拒绝后台外部路径', () =>
 test('角色常量与设计文档一致', () => {
   assert.deepEqual([...ROLE_CODES].sort(), ['admin', 'editor', 'viewer'])
 })
+
+test('任何角色都不能只有写权限而没有对应的读权限', () => {
+  // 后台的列表与详情接口要求 :read；若只给 :write，角色登录后连列表都打不开，
+  // 实际不可用。这正是 admin_roles 种子数据曾经写错的地方（editor 只有 write）。
+  const offenders = []
+  for (const role of ROLE_CODES) {
+    for (const permission of permissionsForRoles([role])) {
+      if (!permission.endsWith(':write')) continue
+      const readPermission = `${permission.replace(/:write$/, '')}:read`
+      if (!permissionsForRoles([role]).includes(readPermission)) {
+        offenders.push(`${role} 有 ${permission} 但缺少 ${readPermission}`)
+      }
+    }
+  }
+  assert.deepEqual(offenders, [], offenders.join('；'))
+})
+
+test('viewer 不得拥有任何写权限，editor 不得拥有账号管理权限', () => {
+  const viewerWrite = permissionsForRoles(['viewer']).filter((permission) => permission.endsWith(':write'))
+  assert.deepEqual(viewerWrite, [], `viewer 不应有写权限：${viewerWrite.join(', ')}`)
+
+  const editorAdmin = permissionsForRoles(['editor']).filter((permission) => permission.startsWith('admin:'))
+  assert.deepEqual(editorAdmin, [], `editor 不应有账号管理权限：${editorAdmin.join(', ')}`)
+})
