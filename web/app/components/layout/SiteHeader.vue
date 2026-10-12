@@ -29,6 +29,13 @@ const logoFromSettings = computed(() => {
 })
 
 const logoSrc = computed(() => logoFromSettings.value || siteConfig.logo.src)
+
+/**
+ * 站点名与副标题改为「后台配置优先、config 兜底」。
+ * 当前 logo 已配置，文字块仅在无 logo 时作为占位显示（需求 2026-10-10），
+ * 但取值口径仍与页脚保持一致，避免后台改了名称而某处不生效。
+ */
+const identity = useSiteIdentity()
 </script>
 
 <template>
@@ -44,8 +51,8 @@ const logoSrc = computed(() => logoFromSettings.value || siteConfig.logo.src)
         <!-- 未配置 logo 图片时才回退为文字占位；
              已放 logo 时不再并列显示「大信法务」名称与副标题（需求 2026-10-10）。 -->
         <span v-else class="site-header__logo-text">
-          <span class="site-header__name">{{ siteConfig.name }}</span>
-          <span class="site-header__subtitle">{{ siteConfig.subtitle }}</span>
+          <span class="site-header__name">{{ identity.name }}</span>
+          <span class="site-header__subtitle">{{ identity.subtitle }}</span>
         </span>
       </NuxtLink>
 

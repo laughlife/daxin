@@ -21,6 +21,11 @@ const { data: homeData, error: homeError, refresh: refreshHome } = await useAsyn
  * 未配置时不渲染图片位，避免出现空白框或假图。
  */
 const { data: siteSettings } = await useSiteSettings()
+/**
+ * 站点身份与联系方式：后台「站点信息」优先，为空回退 config。
+ * 结构化数据（schema.org）里的名称与联系方式也走这里，保证与页脚一致。
+ */
+const identity = useSiteIdentity()
 const homeRightImage = computed(() => {
   const value = siteSettings.value?.settings?.home_right_image
   return typeof value === 'string' && value.trim() ? value.trim() : ''
@@ -100,8 +105,8 @@ useHead({
       innerHTML: JSON.stringify({
         '@context': 'https://schema.org',
         '@type': 'LegalService',
-        name: siteConfig.name,
-        description: homeHero.subtitle,
+        name: identity.value.name,
+        description: identity.value.description,
         foundingDate: '2019',
         areaServed: ['US', 'CN'],
         knowsAbout: [
@@ -116,15 +121,15 @@ useHead({
         contactPoint: [
           {
             '@type': 'ContactPoint',
-            telephone: siteConfig.contact.phone,
-            email: siteConfig.contact.email,
+            telephone: identity.value.phone,
+            email: identity.value.email,
             contactType: 'customer service',
             availableLanguage: ['zh-CN']
           }
         ],
         address: {
           '@type': 'PostalAddress',
-          streetAddress: siteConfig.contact.address,
+          streetAddress: identity.value.address,
           addressLocality: '深圳市',
           addressCountry: 'CN'
         }

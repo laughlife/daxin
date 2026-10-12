@@ -36,6 +36,12 @@ const laborWechat = computed(() => {
 
 /** 服务端暂无配置时的静态兜底（仅文案，不可点击）。 */
 const fallbackGroups = computed(() => siteConfig.footerNav)
+
+/**
+ * 站点名称与联系方式改为「后台配置优先、config 兜底」，
+ * 后台「站点信息」里填了电话/邮箱/地址就会立即生效，不再是改了不生效。
+ */
+const identity = useSiteIdentity()
 </script>
 
 <template>
@@ -49,9 +55,9 @@ const fallbackGroups = computed(() => siteConfig.footerNav)
               v-if="logoSrc"
               class="site-footer__logo-img"
               :src="logoSrc"
-              :alt="siteConfig.name"
+              :alt="identity.name"
             >
-            <p v-else class="site-footer__name">{{ siteConfig.name }}</p>
+            <p v-else class="site-footer__name">{{ identity.name }}</p>
           </div>
           <p class="site-footer__subtitle">{{ siteConfig.footerIntro }}</p>
           <!-- 二维码下方只保留名称，不显示「扫码关注 · 获取资讯」 -->
@@ -85,9 +91,9 @@ const fallbackGroups = computed(() => siteConfig.footerNav)
           <h3 class="site-footer__section-title">联系我们</h3>
           <dl class="site-footer__contact-list">
             <div><dt>微信</dt><dd>{{ laborWechat }}</dd></div>
-            <div><dt>电话</dt><dd><a :href="`tel:${siteConfig.contact.phone}`">{{ siteConfig.contact.phone }}</a></dd></div>
-            <div><dt>邮箱</dt><dd><a :href="`mailto:${siteConfig.contact.email}`">{{ siteConfig.contact.email }}</a></dd></div>
-            <div><dt>地址</dt><dd>{{ siteConfig.contact.address }}</dd></div>
+            <div><dt>电话</dt><dd><a :href="`tel:${identity.phone}`">{{ identity.phone }}</a></dd></div>
+            <div><dt>邮箱</dt><dd><a :href="`mailto:${identity.email}`">{{ identity.email }}</a></dd></div>
+            <div><dt>地址</dt><dd>{{ identity.address }}</dd></div>
           </dl>
         </section>
       </div>
