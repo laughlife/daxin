@@ -40,6 +40,6 @@ test('站点设置不再提供 SEO 标签页', () => {
 })
 
 test('后台导航开放用户与权限模块且仅限管理员', () => {
-  assert.match(adminHomePage, /label: ['\"]用户与权限['\"]/) 
+  assert.match(adminHomePage, /label: ['\"]用户与权限['\"]/)
   assert.match(adminHomePage, /to: ['\"]\/admin\/users['\"][\s\S]*?roles: \[['\"]admin['\"]\]/)
 })
