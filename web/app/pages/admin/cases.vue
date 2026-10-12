@@ -217,6 +217,13 @@ const detailLoading = ref(false)
 const detailError = ref('')
 
 /**
+ * 表单容器引用 + 打开表单后滚动到表单区域。
+ * 列表在上、表单在下，不滚动的话点「编辑」后视口仍停在列表，看起来像没反应。
+ */
+const editorRef = ref<HTMLElement | null>(null)
+const { scrollToEditor } = useScrollToEditor(editorRef)
+
+/**
  * 关联字段的「未触碰」追踪：只有被触碰过的关联才会出现在请求体里。
  * 接口语义：字段缺省 = 保留现状；显式 null = 清除关联。二者在界面上必须能区分。
  */
@@ -229,7 +236,6 @@ interface CaseForm {
   caseNumber: string
   filedAt: string
   plaintiff: string
-  court: string
   title: string
   summary: string
   status: string
@@ -243,7 +249,6 @@ const form = reactive<CaseForm>({
   caseNumber: '',
   filedAt: '',
   plaintiff: '',
-  court: '',
   title: '',
   summary: '',
   status: 'open',
@@ -288,7 +293,6 @@ function resetForm() {
   form.caseNumber = ''
   form.filedAt = ''
   form.plaintiff = ''
-  form.court = ''
   form.title = ''
   form.summary = ''
   form.status = 'open'
@@ -302,18 +306,20 @@ function resetForm() {
   touched.ipTypeId = false
 }
 
-function openCreate() {
+async function openCreate() {
   editingId.value = null
   resetForm()
   saveError.value = ''
   detailError.value = ''
   editorOpen.value = true
+  await scrollToEditor()
 }
 
 async function openEdit(item: AdminCaseItem) {
   editorOpen.value = true
   editingId.value = item.id
   resetForm()
+  await scrollToEditor()
   saveError.value = ''
   detailError.value = ''
   detailLoading.value = true
@@ -321,7 +327,6 @@ async function openEdit(item: AdminCaseItem) {
   form.caseNumber = item.caseNumber
   form.filedAt = toDateValue(item.filedAt)
   form.plaintiff = item.plaintiff
-  form.court = item.court
   form.publishStatus = item.publishStatus || 'draft'
   form.status = item.status || 'open'
   originalCaseTypeSlug.value = item.caseType
@@ -331,7 +336,6 @@ async function openEdit(item: AdminCaseItem) {
     form.caseNumber = record.caseNumber
     form.filedAt = toDateValue(record.filedAt)
     form.plaintiff = record.plaintiff
-    form.court = record.court
     form.title = record.title
     form.summary = record.summary
     form.status = record.status || 'open'
@@ -361,6 +365,45 @@ function clearRelation(field: 'brandId' | 'lawFirmId') {
   touched[field] = true
 }
 
+/** 品牌新建中（避免重复点击提交两次）。 */
+const creatingBrand = ref(false)
+
+/**
+ * 用输入的名称新建品牌，并把当前案件关联到它。
+ *
+ * 需求：涉案品牌要能输入及搜索，搜不出来直接用输入的品牌，同时品牌表增加该品牌。
+ *
+ * 为什么在这里就落库、而不是「先记住名字、保存案件时一起建」：
+ *   案件上有多个关联字段（品牌 / 律所 / 侵权类型），各自都可能新建。
+ *   若都攒到保存时处理，一次失败就要回滚多个新建，用户也难以判断到底建成了什么。
+ *   即时新建让每次操作结果都是确定的，且成功后能立刻拿到 id 正常关联。
+ *   slug 由服务端按名称生成并保证唯一，这里不需要操心。
+ */
+async function createBrand(name: string) {
+  const trimmed = name.trim()
+  if (!trimmed) return
+  creatingBrand.value = true
+  saveError.value = ''
+  notice.value = ''
+  try {
+    const created = await requestAdminApi<{ id: number, slug: string }>(
+      '/api/admin/brands',
+      { method: 'POST', body: { name: trimmed }, requestFetch },
+    )
+    const id = Number(created?.id)
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new Error('品牌创建成功但未返回有效 id')
+    }
+    form.brandId = id
+    touched.brandId = true
+    notice.value = `已新建品牌「${trimmed}」并关联到当前案件`
+  } catch (error) {
+    saveError.value = adminRequestErrorMessage(error, '品牌新建失败，请稍后重试')
+  } finally {
+    creatingBrand.value = false
+  }
+}
+
 /** 保存：新建走 POST，编辑走 PUT；只有被触碰过的关联字段才会出现在请求体里。 */
 async function onSubmit() {
   if (!canWrite.value) {
@@ -380,7 +423,6 @@ async function onSubmit() {
     caseNumber: form.caseNumber.trim(),
     filedAt: form.filedAt || '',
     plaintiff: form.plaintiff,
-    court: form.court,
     title: form.title,
     summary: form.summary,
     status: form.status,
@@ -555,12 +597,15 @@ function onPageSize(next: number) {
       </template>
     </section>
 
-    <BaseCard
-      v-if="editorOpen"
-      class="admin-cases__editor"
-      :title="editingId === null ? '新建案例' : `编辑案例 #${editingId}`"
-      :title-level="2"
-    >
+    <!--
+      ref 必须挂在原生元素上，不能挂在 BaseCard 这类组件上：
+      组件上的 ref 拿到的是组件实例（没有 scrollIntoView），滚动静默失效。
+    -->
+    <div v-if="editorOpen" ref="editorRef" class="admin-cases__editor">
+      <BaseCard
+        :title="editingId === null ? '新建案例' : `编辑案例 #${editingId}`"
+        :title-level="2"
+      >
       <p v-if="detailLoading" class="admin-cases__loading" role="status">正在加载案例详情…</p>
       <p v-if="detailError" class="admin-cases__error" role="alert">{{ detailError }}</p>
 
@@ -598,11 +643,6 @@ function onPageSize(next: number) {
           <div class="admin-cases__field">
             <label class="admin-cases__label" for="case-plaintiff">原告</label>
             <input id="case-plaintiff" v-model="form.plaintiff" class="admin-cases__input" type="text" maxlength="255" :disabled="!canWrite">
-          </div>
-
-          <div class="admin-cases__field">
-            <label class="admin-cases__label" for="case-court">受理法院</label>
-            <input id="case-court" v-model="form.court" class="admin-cases__input" type="text" maxlength="191" :disabled="!canWrite">
           </div>
         </div>
 
@@ -659,10 +699,13 @@ function onPageSize(next: number) {
             label="涉案品牌"
             label-key="name"
             hint-key="nameEn"
-            empty-hint="没有匹配的品牌，请更换关键词后重试"
+            empty-hint="没有匹配的品牌，可直接用输入的名称新建"
             :model-value="form.brandId"
             :disabled="!canWrite"
+            allow-create
+            :creating="creatingBrand"
             @update:model-value="form.brandId = $event; touched.brandId = true"
+            @create="createBrand"
             @error="saveError = $event"
           >
             <BaseButton
@@ -741,7 +784,8 @@ function onPageSize(next: number) {
           <BaseButton variant="secondary" :disabled="saving" @click="closeEditor">取消</BaseButton>
         </div>
       </form>
-    </BaseCard>
+      </BaseCard>
+    </div>
 
   </PageContainer>
 </template>

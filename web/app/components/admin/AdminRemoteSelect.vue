@@ -47,17 +47,33 @@ const props = withDefaults(defineProps<{
   hintKey?: string
   /** 每页条数，服务端上限 48 */
   pageSize?: number
+  /**
+   * 允许「搜不到就直接用输入的名字新建」。
+   *
+   * 需求：涉案品牌要能输入及搜索，搜不出来直接用输入的品牌，同时品牌表增加该品牌。
+   * 开启后搜索无结果时会出现「用「xxx」新建」按钮。
+   */
+  allowCreate?: boolean
+  /** 新建按钮文案模板，{name} 会被替换为输入的名称 */
+  createLabel?: string
+  /** 新建进行中（由父组件控制，避免重复提交） */
+  creating?: boolean
 }>(), {
   emptyHint: '没有匹配的候选项',
   disabled: false,
   hintKey: '',
-  pageSize: 20
+  pageSize: 20,
+  allowCreate: false,
+  createLabel: '用「{name}」新建',
+  creating: false
 })
 
 const emit = defineEmits<{
   'update:modelValue': [value: number | null]
   /** 请求失败时抛出中文消息，供父组件展示 */
   error: [message: string]
+  /** 请求用输入的名称新建一项（父组件负责调接口并在成功后回填 id） */
+  create: [name: string]
 }>()
 
 const options = ref<RemoteOption[]>([])
@@ -137,6 +153,33 @@ function onSelect(event: Event) {
   emit('update:modelValue', value === '' ? null : Number(value))
 }
 
+/**
+ * 用当前输入框里的名称新建一项。
+ *
+ * 只在 allowCreate 且关键词非空时可用——空名称建出来的是无意义记录。
+ * 命名交给父组件：它才知道该调哪个接口、成功后如何回填 id。
+ */
+function onCreateFromKeyword() {
+  if (!props.allowCreate || props.disabled || props.creating) return
+  const name = keyword.value.trim()
+  if (!name) return
+  emit('create', name)
+}
+
+/** 搜索无结果且允许新建时，提示可以直接新建。 */
+const canCreateFromKeyword = computed(() => (
+  props.allowCreate
+  && !props.disabled
+  && !loading.value
+  && !props.creating
+  && keyword.value.trim().length > 0
+))
+
+/** 新建按钮文案（把 {name} 换成实际名称）。 */
+const createButtonLabel = computed(() => (
+  props.createLabel.replace('{name}', keyword.value.trim())
+))
+
 /** 首次挂载时只拉一页候选，不预取全量。 */
 void load(1, true)
 
@@ -206,6 +249,19 @@ watch(keyword, (next, previous) => {
       <p v-if="!options.length && !loading" class="admin-remote-select__empty">{{ emptyHint }}</p>
     </div>
 
+    <!-- 搜索无结果且允许新建：直接用输入的名称建一条，避免先去别的页面建好再回来选 -->
+    <div v-if="allowCreate && canCreateFromKeyword" class="admin-remote-select__create">
+      <BaseButton
+        variant="secondary"
+        size="sm"
+        :disabled="disabled || creating"
+        @click="onCreateFromKeyword"
+      >
+        {{ creating ? '新建中…' : createButtonLabel }}
+      </BaseButton>
+      <span class="admin-remote-select__create-hint">搜不到就新建，并把当前记录关联到它</span>
+    </div>
+
     <div v-if="$slots.default" class="admin-remote-select__extra">
       <slot />
     </div>
@@ -225,6 +281,18 @@ watch(keyword, (next, previous) => {
   font-size: var(--text-sm);
   font-weight: 600;
   color: var(--color-text);
+}
+
+.admin-remote-select__create {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.admin-remote-select__create-hint {
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
 }
 
 .admin-remote-select__search {

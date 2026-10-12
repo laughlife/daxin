@@ -95,7 +95,14 @@ function resetFilter() {
 </script>
 
 <template>
-  <section class="admin-sidebar">
+  <!--
+    与其他后台页面一致：用 PageContainer 提供左右留白与最大宽度。
+    本页最初直接用 <section> 作根元素，没有容器包裹，
+    结果内容在 1440px 视口下贴住屏幕左右边缘、上下也没有间距，看起来像样式错乱。
+    后台布局（layouts/admin.vue）只提供品牌栏与 slot，不负责内容留白，
+    所以留白必须由页面自己给。
+  -->
+  <PageContainer class="admin-sidebar" size="wide">
     <header class="admin-sidebar__head">
       <div>
         <h1>侧边栏管理</h1>
@@ -174,11 +181,17 @@ function resetFilter() {
         @update:page="page = $event"
       />
     </template>
-  </section>
+  </PageContainer>
 </template>
 
 <style scoped>
-.admin-sidebar { display:flex; flex-direction:column; gap:var(--space-5); }
+.admin-sidebar {
+  /* 与其它后台页面保持一致的上/下留白（settings/articles 用的是同一组数值） */
+  padding-block: var(--space-8) var(--space-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
 .admin-sidebar__head { display:flex; align-items:flex-start; justify-content:space-between; gap:var(--space-4); flex-wrap:wrap; }
 .admin-sidebar__head h1 { font-size:var(--text-2xl); }
 .admin-sidebar__head p { margin-top:var(--space-2); max-width:60ch; color:var(--color-text-muted); font-size:var(--text-sm); }

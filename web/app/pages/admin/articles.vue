@@ -153,6 +153,13 @@ const editingId = ref<number | null>(null)
 const saving = ref(false)
 const saveError = ref('')
 
+/**
+ * 表单容器引用 + 打开表单后滚动到表单区域。
+ * 列表在上、表单在下，不滚动的话点「编辑」后视口仍停在列表，看起来像没反应。
+ */
+const editorRef = ref<HTMLElement | null>(null)
+const { scrollToEditor } = useScrollToEditor(editorRef)
+
 interface ArticleForm {
   title: string
   slug: string
@@ -190,7 +197,7 @@ const slugError = computed(() => (form.slug.trim() && !/^[a-z0-9-]+$/i.test(form
 const formValid = computed(() => !titleError.value && !slugError.value)
 
 /** 打开新建表单 */
-function openCreate() {
+async function openCreate() {
   editingId.value = null
   slugHint.value = ''
   form.title = ''
@@ -203,6 +210,7 @@ function openCreate() {
   form.isFeatured = false
   saveError.value = ''
   editorOpen.value = true
+  await scrollToEditor()
 }
 
 /** 打开编辑表单：按 id 取详情（含原始 contentHtml） */
@@ -212,6 +220,7 @@ async function openEdit(item: AdminArticleItem) {
   saveError.value = ''
   detailError.value = ''
   detailLoading.value = true
+  await scrollToEditor()
   form.title = item.title
   form.slug = item.slug
   form.categoryId = item.categoryId === null ? '' : String(item.categoryId)
@@ -483,12 +492,16 @@ if (import.meta.client) {
       </template>
     </section>
 
-    <BaseCard
-      v-if="editorOpen"
-      class="admin-articles__editor"
-      :title="editingId === null ? '新建文章' : `编辑文章 #${editingId}`"
-      :title-level="2"
-    >
+    <!--
+      ref 必须挂在原生元素上，不能挂在 BaseCard 这类组件上：
+      组件上的 ref 拿到的是组件实例（没有 scrollIntoView），
+      上次就是因为把 ref 放在组件上导致滚动静默失效。
+    -->
+    <div v-if="editorOpen" ref="editorRef" class="admin-articles__editor">
+      <BaseCard
+        :title="editingId === null ? '新建文章' : `编辑文章 #${editingId}`"
+        :title-level="2"
+      >
       <p v-if="detailLoading" class="admin-articles__loading" role="status">正在加载文章详情…</p>
       <p v-if="detailError" class="admin-articles__error" role="alert">{{ detailError }}</p>
 
@@ -646,7 +659,8 @@ if (import.meta.client) {
           <BaseButton variant="secondary" :disabled="saving" @click="closeEditor">取消</BaseButton>
         </div>
       </form>
-    </BaseCard>
+      </BaseCard>
+    </div>
 
   </PageContainer>
 </template>
