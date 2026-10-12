@@ -38,3 +38,8 @@ test('站点设置不再提供 SEO 标签页', () => {
   assert.doesNotMatch(settingsPage, /kind:\s*['\"]seo['\"]/, '站点设置不应再注册 SEO 标签页')
   assert.doesNotMatch(settingsPage, /admin-settings-seo|refreshSeo|seoError/, '站点设置不应再加载 SEO 编辑面板')
 })
+
+test('后台导航开放用户与权限模块且仅限管理员', () => {
+  assert.match(adminHomePage, /label: ['\"]用户与权限['\"]/) 
+  assert.match(adminHomePage, /to: ['\"]\/admin\/users['\"][\s\S]*?roles: \[['\"]admin['\"]\]/)
+})

@@ -57,7 +57,7 @@ interface AdminNavItem {
  * 需求（2026-10-10）要求「只保留以下模块」：案例管理、文章管理、律所模块、
  * 侧边栏管理、站点设置。
  *
- * 因此品牌管理、媒体库、内容审核、用户与权限**从导航中移除**，
+ * 因此品牌管理、媒体库、内容审核从导航中移除，
  * 但它们的页面与接口仍然保留（不删除已完成的功能，需要时可直接访问路径恢复）。
  * 如需彻底移除这些模块，请明确告知后另行处理。
  */
@@ -66,7 +66,8 @@ const navItems: AdminNavItem[] = [
   { label: '文章管理', to: '/admin/articles', description: '富文本文章与图片发布维护', roles: ['admin', 'editor', 'viewer'] },
   { label: '侧边栏管理', to: '/admin/sidebar', description: '首页侧栏推荐阅读内容维护', roles: ['admin', 'editor', 'viewer'] },
   { label: '案例管理', to: '/admin/cases', description: 'TRO 案件数据的添加与维护', roles: ['admin', 'editor', 'viewer'] },
-  { label: '律所管理', to: '/admin/law-firms', description: '代理律所资料与简介维护', roles: ['admin', 'editor', 'viewer'] }
+  { label: '律所管理', to: '/admin/law-firms', description: '代理律所资料与简介维护', roles: ['admin', 'editor', 'viewer'] },
+  { label: '用户与权限', to: '/admin/users', description: '管理后台账号、角色分配与访问权限', roles: ['admin'] }
 ]
 
 const navSections = computed(() =>
