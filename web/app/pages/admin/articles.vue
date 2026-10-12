@@ -71,6 +71,7 @@ const listKey = computed(() =>
   `admin-articles:${keyword.value.trim()}:${status.value}:${page.value}:${pageSize.value}`
 )
 
+
 const {
   data: listData,
   status: listStatus,
@@ -161,6 +162,7 @@ interface ArticleForm {
   publishedAt: string
   status: string
   isFeatured: boolean
+  showInSidebar: boolean
 }
 
 const form = reactive<ArticleForm>({
@@ -171,7 +173,8 @@ const form = reactive<ArticleForm>({
   contentHtml: '',
   publishedAt: '',
   status: 'draft',
-  isFeatured: false
+  isFeatured: false,
+  showInSidebar: false
 })
 
 /** 正在编辑的文章标识；新建时为「（保存后由服务端生成）」 */
@@ -214,6 +217,7 @@ async function openEdit(item: AdminArticleItem) {
   form.categoryId = item.categoryId === null ? '' : String(item.categoryId)
   form.status = item.status || 'draft'
   form.isFeatured = item.isFeatured
+  form.showInSidebar = item.showInSidebar === true
   form.publishedAt = toDateTimeLocal(item.publishedAt)
   form.summary = item.summary
   form.contentHtml = ''
@@ -232,6 +236,7 @@ async function openEdit(item: AdminArticleItem) {
     form.publishedAt = toDateTimeLocal(article.publishedAt)
     form.status = article.status || 'draft'
     form.isFeatured = article.isFeatured
+    form.showInSidebar = article.showInSidebar === true
     slugHint.value = article.slug
   } catch (error) {
     detailError.value = adminRequestErrorMessage(error, '文章详情加载失败，请稍后重试')
@@ -268,7 +273,8 @@ async function onSubmit() {
     categoryId: form.categoryId ? Number(form.categoryId) : null,
     publishedAt: form.publishedAt || '',
     status: form.status,
-    isFeatured: form.isFeatured
+    isFeatured: form.isFeatured,
+    showInSidebar: form.showInSidebar
   }
   if (form.slug.trim()) body.slug = form.slug.trim()
   try {
@@ -307,6 +313,45 @@ async function onArchive(item: AdminArticleItem) {
 function onPageSize(next: number) {
   pageSize.value = next
   page.value = 1
+}
+/**
+ * 深链支持：/admin/articles?id=<文章ID> 直接打开该文章的编辑表单。
+ *
+ * 侧边栏管理页的「编辑内容」就是跳到这里，因此必须支持从 URL 打开；
+ * 只靠列表点击的话，跨页面跳转进去会停在列表页，编辑意图丢失。
+ * 客户端与服务端都执行，保证 SSR 首次渲染就是编辑态。
+ */
+async function openFromQuery() {
+  const route = useRoute()
+  const raw = route.query.id
+  const id = Number.parseInt(String(Array.isArray(raw) ? raw[0] : raw ?? ''), 10)
+  if (!Number.isSafeInteger(id) || id <= 0) return
+  const existing = items.value.find((entry) => entry.id === id)
+  if (existing) {
+    await openEdit(existing)
+    return
+  }
+  // 目标文章不在当前列表页（例如被筛选掉了）：按最小字段直接进入编辑态，
+  // openEdit 会立即用详情接口覆盖这些占位值。
+  await openEdit({
+    id,
+    slug: '',
+    title: '',
+    summary: '',
+    categoryId: null,
+    categoryName: '',
+    publishedAt: '',
+    status: '',
+    isFeatured: false,
+    showInSidebar: false,
+    updatedAt: ''
+  } as AdminArticleItem)
+}
+
+if (import.meta.client) {
+  await openFromQuery()
+} else {
+  await openFromQuery()
 }
 </script>
 
@@ -522,19 +567,24 @@ function onPageSize(next: number) {
         </div>
 
         <div class="admin-articles__field">
-          <label class="admin-articles__label" for="article-content">正文（HTML 原文，未清洗）</label>
+          <label class="admin-articles__label" for="article-content">正文</label>
           <p class="admin-articles__warning" role="note">
-            正文以 HTML 原文入库，公开站点渲染前会由服务端做白名单清洗；这里看到的是未清洗的存储内容，
-            请只填写可信来源的 HTML，避免粘贴带脚本的代码。
+            支持加粗、标题、列表、链接等排版；「插入图片」会上传到 OSS，
+            并把 OSS 访问地址写进正文。保存时整篇 HTML 入库，
+            公开站点渲染前仍会由服务端做白名单清洗。
           </p>
-          <textarea
-            id="article-content"
-            v-model="form.contentHtml"
-            class="admin-articles__textarea admin-articles__textarea--code"
-            rows="16"
-            spellcheck="false"
-            :disabled="!canWrite"
-          />
+          <AdminRichTextEditor v-model="form.contentHtml" :disabled="!canWrite" />
+          <details class="admin-articles__source">
+            <summary>查看／编辑 HTML 原文（高级）</summary>
+            <textarea
+              id="article-content"
+              v-model="form.contentHtml"
+              class="admin-articles__textarea admin-articles__textarea--code"
+              rows="14"
+              spellcheck="false"
+              :disabled="!canWrite"
+            />
+          </details>
         </div>
 
         <div class="admin-articles__grid">
@@ -569,6 +619,16 @@ function onPageSize(next: number) {
               :disabled="!canWrite"
             >
             <label class="admin-articles__label" for="article-featured">设为推荐（isFeatured）</label>
+          </div>
+
+          <div class="admin-articles__field admin-articles__field--check">
+            <input
+              id="article-sidebar"
+              v-model="form.showInSidebar"
+              type="checkbox"
+              :disabled="!canWrite"
+            >
+            <label class="admin-articles__label" for="article-sidebar">在侧边栏显示（首页「推荐阅读」）</label>
           </div>
         </div>
 
@@ -851,4 +911,10 @@ function onPageSize(next: number) {
   margin-top: var(--space-6);
   font-size: var(--text-sm);
 }
+
+/* 富文本源码折叠区 */
+.admin-articles__source { margin-top: var(--space-3); }
+.admin-articles__source summary { cursor: pointer; font-size: var(--text-sm); color: var(--color-text-muted); }
+.admin-articles__source summary:hover { color: var(--color-primary); }
+.admin-articles__source textarea { margin-top: var(--space-2); }
 </style>
