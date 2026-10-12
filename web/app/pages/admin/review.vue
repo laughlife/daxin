@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import {
   ADMIN_PAGE_SIZE,
+  ADMIN_PAGE_SIZE_OPTIONS,
   adminRequestErrorMessage,
   toAdminQuery,
   toPageMeta,
@@ -473,7 +474,7 @@ function resetFilters() {
         :total="meta.total"
         :page-size="meta.pageSize"
         noun="条核验项"
-        :page-sizes="[20, 48]"
+        :page-sizes="[...ADMIN_PAGE_SIZE_OPTIONS]"
         @update:page="page = $event"
         @update:page-size="pageSize = $event"
       />

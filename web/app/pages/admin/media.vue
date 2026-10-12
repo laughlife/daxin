@@ -3,6 +3,7 @@ import { computed, reactive, ref, watch } from 'vue'
 import type { MediaAsset, UploadError } from '~/composables/useOssUpload'
 import {
   ADMIN_PAGE_SIZE,
+  ADMIN_PAGE_SIZE_OPTIONS,
   adminRequestErrorMessage,
   toAdminQuery,
   toPageMeta,
@@ -571,7 +572,7 @@ async function showNewestMedia() {
           :total="listMeta.total"
           :page-size="listMeta.pageSize"
           noun="个媒体资源"
-          :page-sizes="[20, 48]"
+          :page-sizes="[...ADMIN_PAGE_SIZE_OPTIONS]"
           @update:page="page = $event"
           @update:page-size="pageSize = $event"
         />
