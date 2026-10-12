@@ -32,6 +32,15 @@ const homeRightImage = computed(() => {
 })
 
 /**
+ * 首页 Banner 图片，由后台「图片管理」维护。
+ * 未配置时返回空串，模板据此不渲染该区块。
+ */
+const homeBannerImage = computed(() => {
+  const value = siteSettings.value?.settings?.home_banner_image
+  return typeof value === 'string' && value.trim() ? value.trim() : ''
+})
+
+/**
  * 首页首屏文案：优先取后台「站点设置 → 首页文案」，留空时回退到
  * config/homeContent 的静态文案。
  *
@@ -145,6 +154,21 @@ useHead({
       v-bind="heroFromSettings"
       @open-contact="openContactModal"
     />
+
+    <!--
+      首页 Banner：由后台「图片管理」维护（site_settings.home_banner_image）。
+      未配置时不渲染该区块，避免出现空白框或占位图。
+    -->
+    <section v-if="homeBannerImage" class="home-banner" aria-label="首页横幅">
+      <PageContainer>
+        <img
+          class="home-banner__img"
+          :src="homeBannerImage"
+          alt="大信法务"
+          loading="eager"
+        >
+      </PageContainer>
+    </section>
 
     <section class="home-about" aria-label="团队介绍">
       <PageContainer>
@@ -290,4 +314,12 @@ useHead({
 .home-content :deep(.case-preview-section), .home-content :deep(.article-preview-section) { padding:0 0 28px; background:transparent; }
 .home-content :deep(.case-preview-section > .page-container), .home-content :deep(.article-preview-section > .page-container) { padding:0; }
 .home-content :deep(.case-preview-section__grid) { grid-template-columns:1fr; }
+
+/* 首页 Banner：整幅图片，宽度撑满容器并保持原始比例 */
+.home-banner { padding-block:32px; }
+.home-banner__img { display:block; width:100%; height:auto; border-radius:var(--radius-lg); }
+@media (max-width: 767px) {
+  .home-banner { padding-block:20px; }
+  .home-banner__img { border-radius:var(--radius-md); }
+}
 </style>

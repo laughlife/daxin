@@ -26,14 +26,6 @@ const logoSrc = computed(() => {
   return typeof value === 'string' && value.trim() ? value.trim() : ''
 })
 
-/** 劳动法咨询微信号，从联系渠道读取，取不到时回退静态配置。 */
-const laborWechat = computed(() => {
-  const channel = (settings.value?.footer?.channels ?? []).find((item) => item.itemKey === 'contact-wechat-labor')
-  return channel?.value
-    || siteConfig.contact.wechatAccounts.find((item) => item.id === 'labor')?.wechatId
-    || ''
-})
-
 /** 服务端暂无配置时的静态兜底（仅文案，不可点击）。 */
 const fallbackGroups = computed(() => siteConfig.footerNav)
 
@@ -90,10 +82,10 @@ const identity = useSiteIdentity()
         <section class="site-footer__column" aria-label="联系我们">
           <h3 class="site-footer__section-title">联系我们</h3>
           <dl class="site-footer__contact-list">
-            <div><dt>微信</dt><dd>{{ laborWechat }}</dd></div>
             <div><dt>电话</dt><dd><a :href="`tel:${identity.phone}`">{{ identity.phone }}</a></dd></div>
             <div><dt>邮箱</dt><dd><a :href="`mailto:${identity.email}`">{{ identity.email }}</a></dd></div>
             <div><dt>地址</dt><dd>{{ identity.address }}</dd></div>
+            <div><dt>微信</dt><dd>{{ identity.wechat }}</dd></div>
           </dl>
         </section>
       </div>

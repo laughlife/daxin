@@ -14,7 +14,11 @@
  */
 import { computed } from 'vue'
 import { siteConfig } from '~/config/site'
-import { contactInfo } from '~/config/contact'
+import { contactInfo, wechatChannels } from '~/config/contact'
+
+/** config 中作为兜底的微信号（TRO 咨询号）。 */
+const FALLBACK_WECHAT =
+  wechatChannels.find(channel => channel.id === 'tro')?.wechatId ?? ''
 
 /** 取出后台配置里的非空字符串；非字符串或全空白按「未配置」处理。 */
 function readSetting(settings: Record<string, unknown> | undefined, key: string): string {
@@ -49,5 +53,7 @@ export function useSiteIdentity() {
     email: readSetting(settings.value, 'contact_email') || contactInfo.email,
     /** 联系地址 */
     address: readSetting(settings.value, 'contact_address') || contactInfo.address,
+    /** 联系微信（需求：general 增加一个微信，页脚「联系我们」四项都引用配置） */
+    wechat: readSetting(settings.value, 'contact_wechat') || FALLBACK_WECHAT,
   }))
 }
