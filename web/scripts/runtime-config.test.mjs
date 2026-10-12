@@ -5,6 +5,7 @@ import { test } from 'node:test'
 const config = await readFile(new URL('../nuxt.config.ts', import.meta.url), 'utf8')
 const settingsPage = await readFile(new URL('../app/pages/admin/settings.vue', import.meta.url), 'utf8')
 const adminHomePage = await readFile(new URL('../app/pages/admin/index.vue', import.meta.url), 'utf8')
+const usersPage = await readFile(new URL('../app/pages/admin/users.vue', import.meta.url), 'utf8')
 
 test('依赖数据库的页面不进入 Nuxt 生产预渲染清单', () => {
   const dynamicRoutes = ['/', '/about', '/tro/cases', '/brands', '/law-firms']
@@ -42,4 +43,14 @@ test('站点设置不再提供 SEO 标签页', () => {
 test('后台导航开放用户与权限模块且仅限管理员', () => {
   assert.match(adminHomePage, /label: ['\"]用户与权限['\"]/)
   assert.match(adminHomePage, /to: ['\"]\/admin\/users['\"][\s\S]*?roles: \[['\"]admin['\"]\]/)
+})
+
+test('用户管理页面接入账号 CRUD 且不包含邮箱字段', () => {
+  assert.match(usersPage, /\/api\/admin\/users/)
+  assert.match(usersPage, /method:\s*['\"]POST['\"]/)
+  assert.match(usersPage, /method:\s*['\"]PUT['\"]/)
+  assert.match(usersPage, /method:\s*['\"]DELETE['\"]/)
+  assert.match(usersPage, /admin[\s\S]*editor[\s\S]*viewer/)
+  assert.match(usersPage, /active[\s\S]*disabled/)
+  assert.doesNotMatch(usersPage, /AdminPlaceholder|email/i)
 })
