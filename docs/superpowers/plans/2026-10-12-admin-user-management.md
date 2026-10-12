@@ -132,4 +132,3 @@
 - [ ] **Step 3: Commit any verification-only fixes**
 
   Only if checks expose a real issue, add a focused fix commit using the project’s Chinese commit convention.
-
