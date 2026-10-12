@@ -76,3 +76,9 @@ test('后台登录页复用官网 Logo', () => {
   assert.match(adminLoginPage, /site_logo/)
   assert.doesNotMatch(adminLoginPage, /class="admin-login__brand"[^>]*>\s*大信法务/)
 })
+
+test('后台两个返回入口使用纯文字样式', () => {
+  assert.match(adminLayout, /\.admin-shell__home\s*\{[\s\S]*border:\s*0[;\s]/)
+  assert.match(adminLayout, /\.admin-shell__home\s*\{[\s\S]*background(?:-color)?:\s*transparent[;\s]/)
+  assert.match(adminLayout, /\.admin-shell__home\s*\{[\s\S]*box-shadow:\s*none[;\s]/)
+})

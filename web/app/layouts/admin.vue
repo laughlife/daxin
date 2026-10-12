@@ -73,11 +73,11 @@ const logoSrc = computed(() => {
   align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
-  padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background-color: var(--color-bg-page);
-  box-shadow: var(--shadow-sm);
+  padding: var(--space-1) 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   color: var(--color-primary);
   font-size: var(--text-sm);
   font-weight: 600;
@@ -85,8 +85,8 @@ const logoSrc = computed(() => {
 }
 
 .admin-shell__home:hover {
-  background-color: var(--color-primary-light);
-  text-decoration: none;
+  color: var(--color-primary-dark);
+  text-decoration: underline;
 }
 
 .admin-shell__home:focus-visible {
