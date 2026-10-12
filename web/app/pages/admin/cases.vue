@@ -743,9 +743,6 @@ function onPageSize(next: number) {
       </form>
     </BaseCard>
 
-    <p class="admin-cases__back">
-      <NuxtLink to="/admin">返回后台首页</NuxtLink>
-    </p>
   </PageContainer>
 </template>
 
@@ -975,8 +972,4 @@ function onPageSize(next: number) {
   gap: var(--space-3);
 }
 
-.admin-cases__back {
-  margin-top: var(--space-6);
-  font-size: var(--text-sm);
-}
 </style>

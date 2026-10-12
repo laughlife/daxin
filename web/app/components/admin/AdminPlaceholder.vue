@@ -43,9 +43,6 @@ const isReadOnly = computed(() => {
       </p>
     </BaseCard>
 
-    <p class="admin-placeholder__back">
-      <NuxtLink to="/admin">返回后台首页</NuxtLink>
-    </p>
   </PageContainer>
 </template>
 
@@ -75,8 +72,4 @@ const isReadOnly = computed(() => {
   font-size: var(--text-sm);
 }
 
-.admin-placeholder__back {
-  margin-top: var(--space-6);
-  font-size: var(--text-sm);
-}
 </style>

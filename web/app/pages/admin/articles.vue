@@ -648,9 +648,6 @@ if (import.meta.client) {
       </form>
     </BaseCard>
 
-    <p class="admin-articles__back">
-      <NuxtLink to="/admin">返回后台首页</NuxtLink>
-    </p>
   </PageContainer>
 </template>
 
@@ -907,10 +904,6 @@ if (import.meta.client) {
   gap: var(--space-3);
 }
 
-.admin-articles__back {
-  margin-top: var(--space-6);
-  font-size: var(--text-sm);
-}
 
 /* 富文本源码折叠区 */
 .admin-articles__source { margin-top: var(--space-3); }

@@ -958,9 +958,6 @@ const STATUS_OPTIONS = [
       </template>
     </BaseCard>
 
-    <p class="admin-footer__back">
-      <NuxtLink to="/admin">返回后台首页</NuxtLink>
-    </p>
   </PageContainer>
 </template>
 
@@ -1112,8 +1109,4 @@ const STATUS_OPTIONS = [
   font-size: var(--text-sm);
 }
 
-.admin-footer__back {
-  margin-top: var(--space-8);
-  font-size: var(--text-sm);
-}
 </style>

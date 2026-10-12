@@ -792,9 +792,6 @@ const STATUS_OPTIONS = [
       </BaseCard>
     </section>
 
-    <p class="admin-settings__back">
-      <NuxtLink to="/admin">返回后台首页</NuxtLink>
-    </p>
   </PageContainer>
 </template>
 
@@ -1045,8 +1042,4 @@ const STATUS_OPTIONS = [
   border-radius: var(--radius-md);
 }
 
-.admin-settings__back {
-  margin-top: var(--space-8);
-  font-size: var(--text-sm);
-}
 </style>

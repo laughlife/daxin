@@ -578,9 +578,6 @@ async function showNewestMedia() {
       </template>
     </BaseCard>
 
-    <p class="admin-media__back">
-      <NuxtLink to="/admin">返回后台首页</NuxtLink>
-    </p>
   </PageContainer>
 </template>
 
@@ -915,10 +912,6 @@ async function showNewestMedia() {
   font-weight: 600;
 }
 
-.admin-media__back {
-  margin-top: var(--space-6);
-  font-size: var(--text-sm);
-}
 
 @media (max-width: 1023px) {
   .admin-media__row {

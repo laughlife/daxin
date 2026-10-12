@@ -13,6 +13,10 @@
     <a class="skip-link" href="#admin-main">跳到主要内容</a>
     <header class="admin-shell__bar">
       <PageContainer class="admin-shell__inner" size="wide">
+        <NuxtLink to="/admin" class="admin-shell__home">
+          <span aria-hidden="true">←</span>
+          返回后台首页
+        </NuxtLink>
         <NuxtLink to="/admin" class="admin-shell__brand">
           <span class="admin-shell__logo" aria-hidden="true">信</span>
           <span class="admin-shell__title">大信法务 · 后台管理</span>
@@ -32,10 +36,14 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  padding-top: var(--header-height);
   background-color: var(--color-bg-light);
 }
 
 .admin-shell__bar {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: var(--z-header);
   background-color: var(--color-bg-page);
   border-bottom: 1px solid var(--color-border);
   box-shadow: var(--shadow-sm);
@@ -46,7 +54,33 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  min-height: var(--header-height);
+  height: var(--header-height);
+}
+
+.admin-shell__home {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-bg-page);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-shell__home:hover {
+  background-color: var(--color-primary-light);
+  text-decoration: none;
+}
+
+.admin-shell__home:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
 }
 
 .admin-shell__brand {
@@ -54,6 +88,7 @@
   align-items: center;
   gap: var(--space-3);
   color: var(--color-text);
+  margin-right: auto;
 }
 
 .admin-shell__brand:hover {
@@ -81,6 +116,8 @@
 
 .admin-shell__back {
   font-size: var(--text-sm);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .admin-shell__main {
@@ -88,7 +125,7 @@
 }
 
 .skip-link {
-  position: absolute;
+  position: fixed;
   top: -100px;
   left: var(--space-4);
   z-index: calc(var(--z-mobile-panel) + 1);
@@ -104,5 +141,10 @@
 .skip-link:focus-visible {
   top: 0;
   outline-color: var(--color-text-inverse);
+}
+
+@media (max-width: 767px) {
+  .admin-shell__inner { gap: var(--space-2); }
+  .admin-shell__title { display: none; }
 }
 </style>
