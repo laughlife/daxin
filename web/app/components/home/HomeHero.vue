@@ -5,10 +5,39 @@ import { homeHero } from '~/config/homeContent'
  * 首页 Hero 首屏。
  * 动效为纯 CSS 背景光效 / 网格 / 缓慢漂浮装饰图形，无外部视频与远程图片；
  * prefers-reduced-motion 时关闭背景动画。
+ *
+ * 文案可由后台「站点设置 → 首页文案」维护：
+ * 这里接收父页面传入的值，**未传或为空时回退到 config/homeContent 的静态文案**，
+ * 因此既有调用方式（不传 props）与后台改文案两种用法都能工作。
  */
+const props = withDefaults(defineProps<{
+  badge?: string
+  title?: string
+  subtitle?: string
+  primaryLabel?: string
+  primaryLink?: string
+  secondaryLabel?: string
+}>(), {
+  badge: '',
+  title: '',
+  subtitle: '',
+  primaryLabel: '',
+  primaryLink: '',
+  secondaryLabel: '',
+})
+
 const emit = defineEmits<{
   openContact: []
 }>()
+
+const text = computed(() => ({
+  badge: props.badge?.trim() || homeHero.badge,
+  title: props.title?.trim() || homeHero.title,
+  subtitle: props.subtitle?.trim() || homeHero.subtitle,
+  primaryLabel: props.primaryLabel?.trim() || homeHero.primaryCta.label,
+  primaryLink: props.primaryLink?.trim() || homeHero.primaryCta.to,
+  secondaryLabel: props.secondaryLabel?.trim() || homeHero.secondaryCta.label,
+}))
 </script>
 
 <template>
@@ -19,15 +48,15 @@ const emit = defineEmits<{
       <span class="home-hero__line" />
     </div>
     <PageContainer class="home-hero__inner">
-      <p class="home-hero__badge">{{ homeHero.badge }}</p>
-      <h1 class="home-hero__title">{{ homeHero.title }}</h1>
-      <p class="home-hero__subtitle">{{ homeHero.subtitle }}</p>
+      <p class="home-hero__badge">{{ text.badge }}</p>
+      <h1 class="home-hero__title">{{ text.title }}</h1>
+      <p class="home-hero__subtitle">{{ text.subtitle }}</p>
       <div class="home-hero__actions">
-        <BaseButton :to="homeHero.primaryCta.to" variant="primary" size="lg">
-          {{ homeHero.primaryCta.label }}
+        <BaseButton :to="text.primaryLink" variant="primary" size="lg">
+          {{ text.primaryLabel }}
         </BaseButton>
         <BaseButton variant="secondary" size="lg" class="home-hero__secondary" @click="emit('openContact')">
-          {{ homeHero.secondaryCta.label }}
+          {{ text.secondaryLabel }}
         </BaseButton>
       </div>
       <p class="home-hero__hint">免费初步评估 · 7×24 小时响应 · 跨法域协作</p>

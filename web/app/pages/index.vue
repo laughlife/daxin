@@ -26,6 +26,46 @@ const homeRightImage = computed(() => {
   return typeof value === 'string' && value.trim() ? value.trim() : ''
 })
 
+/**
+ * 首页首屏文案：优先取后台「站点设置 → 首页文案」，留空时回退到
+ * config/homeContent 的静态文案。
+ *
+ * 原先这里直接用 config，导致后台首页文案分页签改了没有效果；
+ * 现在把可编辑字段接到页面上，后台改动才会真正生效。
+ * `readSettingText` 只接受字符串并按空格判断空值，避免把 undefined/数字塞进模板。
+ */
+function readSettingText(key: string): string {
+  const value = siteSettings.value?.settings?.[key]
+  return typeof value === 'string' && value.trim() ? value.trim() : ''
+}
+
+const heroFromSettings = computed(() => ({
+  badge: readSettingText('home_hero_badge'),
+  title: readSettingText('home_hero_title'),
+  subtitle: readSettingText('home_hero_subtitle'),
+  primaryLabel: readSettingText('home_hero_primary_label'),
+  primaryLink: readSettingText('home_hero_primary_link'),
+  secondaryLabel: readSettingText('home_hero_secondary_label'),
+}))
+
+/** 数据概览：配置里是 JSON 数组，非数组时回退静态配置。 */
+const statsFromSettings = computed(() => {
+  const value = siteSettings.value?.settings?.home_stats
+  if (!Array.isArray(value) || value.length === 0) return homeStats
+  const items = value
+    .map((item) => {
+      const record = (item ?? {}) as Record<string, unknown>
+      return {
+        value: String(record.value ?? ''),
+        label: String(record.label ?? ''),
+        description: String(record.description ?? ''),
+        emphasis: record.emphasis === true,
+      }
+    })
+    .filter((item) => item.value || item.label)
+  return items.length > 0 ? items : homeStats
+})
+
 const articleColumns = computed(() => homeData.value?.articleColumns ?? [])
 const homeErrorMessage = computed(() =>
   homeError.value instanceof Error && homeError.value.message
@@ -96,7 +136,10 @@ useHead({
 
 <template>
   <div>
-    <HomeHero @open-contact="openContactModal" />
+    <HomeHero
+      v-bind="heroFromSettings"
+      @open-contact="openContactModal"
+    />
 
     <section class="home-about" aria-label="团队介绍">
       <PageContainer>
@@ -125,7 +168,7 @@ useHead({
             >
           </figure>
         </div>
-        <StatsSection class="home-about__stats" :stats="homeStats" />
+        <StatsSection class="home-about__stats" :stats="statsFromSettings" />
       </PageContainer>
     </section>
 
