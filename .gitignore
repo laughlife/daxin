@@ -37,3 +37,7 @@ Thumbs.db
 
 # 迁移 dry-run 生成物：随时可用 tools/migrate-legacy/legacy-migrate.mjs --dry-run 重新生成
 /docs/migration-dry-run.json
+
+# 临时抓取/校验产物，不入库
+.tmp-check/
+
