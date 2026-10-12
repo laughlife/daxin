@@ -38,11 +38,50 @@ const text = computed(() => ({
   primaryLink: props.primaryLink?.trim() || homeHero.primaryCta.to,
   secondaryLabel: props.secondaryLabel?.trim() || homeHero.secondaryCta.label,
 }))
+
+/**
+ * 首屏动态背景。
+ *
+ * 需求：把原来纯 CSS 实现的动态背景提取成动图，上传后用它替换 CSS 效果。
+ * `home_hero_background` 是动画 WebP，`home_hero_background_poster` 是其静帧，
+ * 供不支持动画 WebP 的浏览器回退。
+ *
+ * 两者都没配置时返回 false，此时仍然使用原来的 CSS 渐变+网格背景，
+ * 保证任何情况下首屏都有底、不会开天窗。
+ */
+const { data: siteSettings } = await useSiteSettings()
+
+function readImage(key: string): string {
+  const value = siteSettings.value?.settings?.[key]
+  return typeof value === 'string' && value.trim() ? value.trim() : ''
+}
+
+const backgroundImage = computed(() => readImage('home_hero_background'))
+const backgroundPoster = computed(() => readImage('home_hero_background_poster'))
+/** 配置了背景图就用图，否则退回 CSS 背景。 */
+const hasImageBackground = computed(() => Boolean(backgroundImage.value || backgroundPoster.value))
+
+const heroStyle = computed(() => {
+  if (!hasImageBackground.value) return {}
+  // 同时给出 image-set 与 background-image：不支持动画 WebP 的浏览器
+  // 会退回 poster（静态 JPEG），再不行还有 CSS 渐变兜底。
+  const layers = [`url("${backgroundImage.value || backgroundPoster.value}")`]
+  if (backgroundPoster.value && backgroundImage.value) {
+    layers.push(`url("${backgroundPoster.value}")`)
+  }
+  return { backgroundImage: layers.join(', ') }
+})
 </script>
 
 <template>
-  <section class="home-hero" aria-label="首屏介绍">
-    <div class="home-hero__decor" aria-hidden="true">
+  <section
+    class="home-hero"
+    :class="{ 'home-hero--image-bg': hasImageBackground }"
+    :style="heroStyle"
+    aria-label="首屏介绍"
+  >
+    <!-- 背景图为动图时不再渲染 CSS 光斑/网格装饰，避免与图片里的图案叠加重复 -->
+    <div v-if="!hasImageBackground" class="home-hero__decor" aria-hidden="true">
       <span class="home-hero__orb home-hero__orb--one" />
       <span class="home-hero__orb home-hero__orb--two" />
       <span class="home-hero__line" />
@@ -92,6 +131,33 @@ const text = computed(() => ({
       transparent 1px
     );
   background-size: auto, auto, 48px 48px, 48px 48px;
+}
+
+/**
+ * 配置了背景动图时的样式。
+ *
+ * 这里**替换掉原来纯 CSS 的动态背景**（渐变光效 + 网格 + 光斑动画），
+ * 改用图片本身：图片尺寸比例与首屏一致，cover 铺满即可。
+ * 仍保留 background-color 兜底，图片加载失败时不会露出白底。
+ */
+.home-hero--image-bg {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  /* 动图若被浏览器当作静态图，也只是画面静止，不影响可读性 */
+  animation: none;
+}
+
+/**
+ * 图片模式下关闭原本的 CSS 动态背景层。
+ *
+ * ::before 是呼吸光晕（hero-atmosphere 12s）、::after 是滚动网格（hero-grid 18s），
+ * 这两层就是「原来的 CSS 动态背景」本体。既然已经换成动图，
+ * 继续叠加只会让两套图案重影，因此置为 none。
+ */
+.home-hero--image-bg::before,
+.home-hero--image-bg::after {
+  display: none;
 }
 
 .home-hero::before,

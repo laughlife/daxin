@@ -83,6 +83,50 @@ function readImageSize(buffer, extension) {
     }
     return null
   }
+  if (extension === '.webp') {
+    // RIFF 容器：'RIFF' + 文件长度(4) + 'WEBP' + 若干 chunk
+    if (buffer.length < 30) return null
+    if (buffer.toString('ascii', 0, 4) !== 'RIFF') return null
+    if (buffer.toString('ascii', 8, 12) !== 'WEBP') return null
+
+    let offset = 12
+    while (offset + 8 <= buffer.length) {
+      const fourCC = buffer.toString('ascii', offset, offset + 4)
+      const chunkSize = buffer.readUInt32LE(offset + 4)
+
+      if (fourCC === 'VP8X') {
+        // 扩展格式（含动画）：画布尺寸存为「值减一」的 24 位小端
+        const data = offset + 8
+        if (data + 10 > buffer.length) return null
+        const width = 1 + (buffer[data + 4] | (buffer[data + 5] << 8) | (buffer[data + 6] << 16))
+        const height = 1 + (buffer[data + 7] | (buffer[data + 8] << 8) | (buffer[data + 9] << 16))
+        return { width, height }
+      }
+      if (fourCC === 'VP8 ') {
+        // 有损：帧头里是 14 位宽高
+        const data = offset + 8
+        if (data + 10 > buffer.length) return null
+        return {
+          width: buffer.readUInt16LE(data + 6) & 0x3fff,
+          height: buffer.readUInt16LE(data + 8) & 0x3fff,
+        }
+      }
+      if (fourCC === 'VP8L') {
+        // 无损：14 位宽高打包在 4 字节里
+        const data = offset + 8
+        if (data + 5 > buffer.length) return null
+        const bits = buffer.readUInt32LE(data + 1)
+        return {
+          width: 1 + (bits & 0x3fff),
+          height: 1 + ((bits >> 14) & 0x3fff),
+        }
+      }
+
+      // chunk 按偶数字节对齐
+      offset += 8 + chunkSize + (chunkSize % 2)
+    }
+    return null
+  }
   return null
 }
 
