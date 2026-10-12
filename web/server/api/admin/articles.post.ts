@@ -79,6 +79,8 @@ export default defineEventHandler(async (event) => {
   const summary = toText(body.summary)
   const contentHtml = typeof body.contentHtml === 'string' ? body.contentHtml : ''
   const isFeatured = toBooleanFlag(body.isFeatured)
+  // 侧边栏管理：勾选后该文章进入首页侧栏「推荐阅读」
+  const showInSidebar = toBooleanFlag(body.showInSidebar)
 
   try {
     if (categoryId !== null) {
@@ -100,12 +102,12 @@ export default defineEventHandler(async (event) => {
     const publishedAtExpression = autoPublishAt ? 'NOW()' : '?'
     const insertParams: unknown[] = [slug, title, summary, contentHtml, categoryId]
     if (!autoPublishAt) insertParams.push(publishedAt)
-    insertParams.push(status, isFeatured)
+    insertParams.push(status, isFeatured, showInSidebar)
 
     const result = await executeWrite(
       `INSERT INTO articles
-         (slug, title, summary, content_html, category_id, published_at, status, is_featured, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ${publishedAtExpression}, ?, ?, NOW(), NOW())`,
+         (slug, title, summary, content_html, category_id, published_at, status, is_featured, show_in_sidebar, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ${publishedAtExpression}, ?, ?, ?, NOW(), NOW())`,
       insertParams,
     )
 

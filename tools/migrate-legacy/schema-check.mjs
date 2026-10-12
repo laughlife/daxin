@@ -500,7 +500,16 @@ CREATE TABLE IF NOT EXISTS ${MIGRATION_LEDGER_TABLE} (
     const version = file.name.replace(/\.sql$/i, '')
     const checksum = createHash('sha256').update(file.content).digest('hex')
     if (ledgerMap.has(version) && !force) {
-      skipped.push({ version, checksumMatches: ledgerMap.get(version) === checksum })
+      const checksumMatches = ledgerMap.get(version) === checksum
+      skipped.push({ version, checksumMatches })
+      // 已应用但文件内容变了：说明迁移在应用后被修改过。
+      // 这时数据库不会被更新（本函数直接跳过），文件与库会静默不一致，
+      // 因此必须显式告警，让操作者决定是补一个新迁移还是核对现状。
+      if (!checksumMatches) {
+        console.warn(`[schema-check] 警告：迁移 ${version} 已应用，但文件内容与台账记录不一致；`
+          + '数据库不会被更新。请新增一个迁移来做变更，或确认数据库已符合最新文件后用 '
+          + 'tools/check-migration-ledger.mjs --fix 同步台账。')
+      }
       continue
     }
     const { cleaned, conditional } = splitConditionalIndexBlocks(file.content)

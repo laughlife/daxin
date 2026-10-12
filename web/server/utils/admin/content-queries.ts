@@ -500,6 +500,8 @@ export function pickChangedFields(
 /** articles 可写列；view_count、legacy_*、migration_batch_id 等一律不可写。 */
 export const ARTICLE_WRITABLE_COLUMNS: readonly string[] = Object.freeze([
   'slug', 'title', 'summary', 'content_html', 'category_id', 'published_at', 'status', 'is_featured',
+  // 侧边栏管理：标记该文章是否进入首页侧栏「推荐阅读」
+  'show_in_sidebar',
 ])
 
 /** cases 可写列；legacy_*、migration_batch_id、verified_at 一律不可写。 */
@@ -771,7 +773,7 @@ export const ADMIN_ARTICLE_COLUMNS = `a.id, a.slug, a.title, COALESCE(a.summary,
   a.category_id,
   c.name AS category_name,
   DATE_FORMAT(a.published_at, '%Y-%m-%d %H:%i:%s') AS published_at,
-  a.status, a.is_featured,
+  a.status, a.is_featured, a.show_in_sidebar,
   DATE_FORMAT(a.updated_at, '%Y-%m-%d %H:%i:%s') AS updated_at`
 
 const ADMIN_ARTICLE_FROM = `articles a
@@ -907,6 +909,8 @@ export interface AdminArticleItem {
   publishedAt: string
   status: ContentStatus | ''
   isFeatured: boolean
+  /** 是否在首页侧栏「推荐阅读」中显示（后台侧边栏管理用它筛选） */
+  showInSidebar: boolean
   updatedAt: string
 }
 
@@ -920,6 +924,7 @@ export interface AdminArticleRow {
   published_at?: unknown
   status?: unknown
   is_featured?: unknown
+  show_in_sidebar?: unknown
   updated_at?: unknown
   content_html?: unknown
 }
@@ -936,6 +941,7 @@ export function mapAdminArticleRow(row: AdminArticleRow): AdminArticleItem {
     publishedAt: toDateTimeText(row.published_at),
     status: readContentStatus(row.status),
     isFeatured: toBooleanFlag(row.is_featured),
+    showInSidebar: toBooleanFlag(row.show_in_sidebar),
     updatedAt: toDateTimeText(row.updated_at),
   }
 }

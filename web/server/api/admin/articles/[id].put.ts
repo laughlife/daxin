@@ -1,7 +1,7 @@
 // PUT /api/admin/articles/[id]
 //
 // 更新文章。约定：
-//   - 只接受白名单字段（title / slug / summary / contentHtml / categoryId / publishedAt / status / isFeatured），
+//   - 只接受白名单字段（title / slug / summary / contentHtml / categoryId / publishedAt / status / isFeatured / showInSidebar），
 //     请求体里的其它键（view_count、legacy_source_* 等）一律忽略；
 //   - 只改请求里显式给出的字段，未提供的保持不变；显式传 null 表示清空（发布日期、分类）；
 //   - 「不静默重算任何字段」：除了「发布时补当前发布时间」（见下）之外不做任何隐含推导；
@@ -51,6 +51,7 @@ interface CurrentArticleRow {
   published_at: string | null
   status: string | null
   is_featured: number | string | null
+  show_in_sidebar: number | string | null
 }
 
 export default defineEventHandler(async (event) => {
@@ -71,7 +72,7 @@ export default defineEventHandler(async (event) => {
       `SELECT slug, title, COALESCE(summary, '') AS summary, COALESCE(content_html, '') AS content_html,
          category_id,
          DATE_FORMAT(published_at, '%Y-%m-%d %H:%i:%s') AS published_at,
-         status, is_featured
+         status, is_featured, show_in_sidebar
        FROM articles WHERE id = ? LIMIT 1`,
       [id],
     )
@@ -99,6 +100,8 @@ export default defineEventHandler(async (event) => {
       changes.content_html = typeof body.contentHtml === 'string' ? body.contentHtml : ''
     }
     if (hasOwn(body, 'isFeatured')) changes.is_featured = toBooleanFlag(body.isFeatured) ? 1 : 0
+    // 侧边栏管理：是否进入首页侧栏「推荐阅读」
+    if (hasOwn(body, 'showInSidebar')) changes.show_in_sidebar = toBooleanFlag(body.showInSidebar) ? 1 : 0
 
     if (hasOwn(body, 'categoryId')) {
       let categoryId: number | null = null
@@ -151,6 +154,7 @@ export default defineEventHandler(async (event) => {
       published_at: current.published_at,
       status: current.status,
       is_featured: current.is_featured,
+      show_in_sidebar: current.show_in_sidebar,
     }
 
     const statement = buildUpdateStatement('articles', id, changes, ARTICLE_WRITABLE_COLUMNS)

@@ -1,0 +1,55 @@
+feat: 后台模块清查、侧边栏标记字段与富文本入库支持
+
+## 数据库结构分析与变更
+
+分析结论（详见 docs/admin-modules-2026-10-10.md）：
+- **多数需求无需改结构**：`articles.content_html`（longtext）已存在，
+  富文本可直接入库；`articles.cover_media_id` 已支持 OSS 封面；
+  `law_firms.summary` 已可用于律所简介；`cases` 字段已够添加与维护。
+- **需要新增一项**：`articles.show_in_sidebar`。
+  不复用 `is_featured` 的原因：后者语义是「推荐」，前台已用它显示推荐角标，
+  复用会让两个语义纠缠（想上侧边栏就必须同时被标为推荐）。
+- 另补一个配置项 `home_banner_image`（图片管理要维护首页 Banner，原先缺该键）。
+
+## 迁移 007
+
+新增 `database/migrations/007_add_article_sidebar_flag.sql`：
+- `ADD COLUMN show_in_sidebar TINYINT(1) NOT NULL DEFAULT 0`（AFTER is_featured）；
+- 索引按项目约定放进 `@if-index-missing` 条件块
+  （首版直接写 CREATE INDEX，被既有的「DDL 可重复执行」测试拦下，已修正）；
+- 幂等由迁移台账保证，并在注释里写明 `--force` 重放会因列已存在而报错是刻意行为。
+
+已应用并验证：列与索引均存在，288 篇文章 show_in_sidebar 全为 0。
+
+## 顺带修复一个静默漂移问题
+
+`applyMigrations` 在版本已存在台账记录时直接跳过，**不比较 checksum**，
+因此在迁移应用后修改文件会造成「文件与数据库静默不一致」。
+排查中发现 `003`（更早会话改过内容）与 `007`（本次改过）都存在该情况。
+
+- 本会话新增 `tools/check-migration-ledger.mjs`：核对每个迁移文件的 sha256
+  与台账记录，支持 `--fix` 在确认库已符合最新文件后同步台账；
+- `applyMigrations` 现在对 checksum 不一致的已应用迁移输出明确警告；
+- 已核对 `003` 的库内状态与文件目标一致（品牌 228、律所 94 有 case_count，
+  832 条案例标记 unknown），`007` 的列与索引亦已存在，因此用 `--fix` 同步台账。
+  现在 7 个迁移 checksum 全部一致。
+
+## 接口支持
+
+- `ARTICLE_WRITABLE_COLUMNS` 增加 `show_in_sidebar`；
+- 文章详情/列表 SQL 与行映射增加 `show_in_sidebar` → `showInSidebar`；
+- 创建与更新接口接受 `showInSidebar`（复用 `toBooleanFlag`），并写入审计 before/after；
+- 富文本 `contentHtml` 原样入库（既有实现已正确，本次补充端到端验证）。
+
+## 验证
+
+新增 `tools/verify-sidebar-flag.mjs`，实测 7/7：
+登录取 Cookie → 创建带 showInSidebar 的文章 → 列表与详情均返回该字段 →
+更新为 false 生效 → **富文本 HTML（含 img 的 OSS 地址）原样入库** → 清理测试文章。
+
+清理说明：删除接口是软删除（status='archived'），探针行会留下痕迹，
+因此已直接把该测试文章硬删除，文章总数恢复 288（published 273 + draft 15），
+未触碰任何既有文章。
+
+其余：typecheck 退出码 0；单元测试 170/170；迁移静态与真实结构校验通过；
+运行中的站点（http://192.168.100.242:3002/ 与 /about）仍返回 200 且内容正常。
