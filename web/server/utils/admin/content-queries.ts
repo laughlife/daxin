@@ -699,6 +699,14 @@ export function buildArticleAdminFilterSql(input: Record<string, unknown> = {}):
     params.push(status)
   }
 
+  // 侧边栏管理：sidebar=1 只看侧边栏文章，sidebar=0 只看非侧边栏文章。
+  // 其它取值（含空串）一律忽略，避免误传参数把列表筛空。
+  const sidebar = normalizeText(input.sidebar)
+  if (sidebar === '1' || sidebar === '0') {
+    clauses.push('a.show_in_sidebar = ?')
+    params.push(Number(sidebar))
+  }
+
   return { sql: clauses.map(clause => `\n  AND ${clause}`).join(''), params }
 }
 
