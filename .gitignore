@@ -41,3 +41,7 @@ Thumbs.db
 # 临时抓取/校验产物，不入库
 .tmp-check/
 
+
+# upload-assets.mjs 的上传结果清单（每次运行都会重写，不入库）
+/uploaded-assets.json
+
