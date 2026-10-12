@@ -158,7 +158,10 @@ const saveError = ref('')
  * 列表在上、表单在下，不滚动的话点「编辑」后视口仍停在列表，看起来像没反应。
  */
 const editorRef = ref<HTMLElement | null>(null)
-const { scrollToEditor } = useScrollToEditor(editorRef)
+const { requestScrollToEditor, scrollToEditor } = useScrollToEditor(editorRef, { selector: '[data-scroll-target="article-editor"]' })
+
+/** 当前路由：用于支持 /admin/articles?id=N 深链（侧边栏管理跳过来时定位到该文章）。 */
+const route = useRoute()
 
 interface ArticleForm {
   title: string
@@ -210,7 +213,8 @@ async function openCreate() {
   form.isFeatured = false
   saveError.value = ''
   editorOpen.value = true
-  await scrollToEditor()
+  // 不阻塞：等滚动完成会拖住 setup，见 requestScrollToEditor 的说明
+  requestScrollToEditor()
 }
 
 /** 打开编辑表单：按 id 取详情（含原始 contentHtml） */
@@ -220,7 +224,6 @@ async function openEdit(item: AdminArticleItem) {
   saveError.value = ''
   detailError.value = ''
   detailLoading.value = true
-  await scrollToEditor()
   form.title = item.title
   form.slug = item.slug
   form.categoryId = item.categoryId === null ? '' : String(item.categoryId)
@@ -252,6 +255,20 @@ async function openEdit(item: AdminArticleItem) {
   } finally {
     detailLoading.value = false
   }
+  /*
+   * 详情到位后再滚一次。
+   *
+   * 前面那次滚动发生在编辑态刚打开时，此时：
+   *   - 通过深链（从侧边栏点「编辑内容」跳过来）进入时，setup 阶段 DOM 还没渲染，
+   *     editorRef 为 null，滚动直接 return，什么都没发生；
+   *   - 即便 DOM 已在，表单高度还会随详情内容变化，滚动位置随之偏掉。
+   * 因此在内容填好之后再滚一次。
+   *
+   * 必须用不阻塞的 requestScrollToEditor：滚动内部要等元素出现并等动画停下，
+   * 若在这里 await，openEdit 会迟迟不返回，深链场景下组件挂载被拖住，
+   * 表单反而完全不渲染（实测出现过）。
+   */
+  requestScrollToEditor()
 }
 
 function closeEditor() {
@@ -331,7 +348,6 @@ function onPageSize(next: number) {
  * 客户端与服务端都执行，保证 SSR 首次渲染就是编辑态。
  */
 async function openFromQuery() {
-  const route = useRoute()
   const raw = route.query.id
   const id = Number.parseInt(String(Array.isArray(raw) ? raw[0] : raw ?? ''), 10)
   if (!Number.isSafeInteger(id) || id <= 0) return
@@ -356,6 +372,29 @@ async function openFromQuery() {
     updatedAt: ''
   } as AdminArticleItem)
 }
+
+/**
+ * 编辑表单出现后滚动到它。
+ *
+ * 为什么监听 editorOpen 而不是 route.query.id：
+ *   深链场景下表单要等详情请求回来才渲染，在 setup 早期触发滚动时元素还不存在，
+ *   「等元素出现」会一路等到超时；editorOpen 变为 true 才是表单确实要出现的信号。
+ *
+ * 为什么 flush: 'post'：
+ *   让回调在 DOM 更新之后执行，此时元素已挂上，配合 composable 里的
+ *   waitForElement（ref + data-scroll-target 查询兜底）即可稳定拿到元素。
+ *
+ * 为什么不 await：
+ *   这仍在 setup 挂载流程里，等待滚动完成会拖住挂载（实测会导致表单完全不渲染）。
+ */
+watch(
+  editorOpen,
+  (open) => {
+    if (!open) return
+    requestScrollToEditor()
+  },
+  { immediate: true, flush: 'post' },
+)
 
 if (import.meta.client) {
   await openFromQuery()
@@ -497,7 +536,7 @@ if (import.meta.client) {
       组件上的 ref 拿到的是组件实例（没有 scrollIntoView），
       上次就是因为把 ref 放在组件上导致滚动静默失效。
     -->
-    <div v-if="editorOpen" ref="editorRef" class="admin-articles__editor">
+    <div v-if="editorOpen" ref="editorRef" data-scroll-target="article-editor" class="admin-articles__editor">
       <BaseCard
         :title="editingId === null ? '新建文章' : `编辑文章 #${editingId}`"
         :title-level="2"

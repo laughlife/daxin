@@ -9,11 +9,20 @@ import { apiErrorMessage, httpStatusOf } from './publicApi'
  *   3. 收敛 `$fetch` 的返回结构，避免页面里散落 `as` 断言。
  */
 
-/** 后台内容列表默认每页条数（服务端默认 20、上限 48）。 */
-export const ADMIN_PAGE_SIZE = 20
+/** 后台内容列表默认每页条数（服务端默认 20、上限 48；按需求取 10 条）。 */
+export const ADMIN_PAGE_SIZE = 10
 
 /** 后台列表请求允许的每页条数上限（服务端 clamps 到 48，这里保持同口径）。 */
 export const ADMIN_MAX_PAGE_SIZE = 48
+
+/**
+ * 每页条数可选档位。
+ *
+ * 集中定义的原因：此前 AdminPager 的默认档位是 [20, 48]，
+ * 而 media / review 又在各自页面里重复写了一组 [20, 48]——
+ * 三处各写一份，改默认值时就容易漏掉，出现「默认是 10 但下拉里选不到 10」的错位。
+ */
+export const ADMIN_PAGE_SIZE_OPTIONS: readonly number[] = Object.freeze([10, 20, 48])
 
 /**
  * 通用取数签名。

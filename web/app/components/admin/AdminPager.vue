@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { ADMIN_PAGE_SIZE_OPTIONS } from '~/utils/adminApi'
 
 /**
  * 后台列表分页条。
@@ -26,7 +27,7 @@ const props = withDefaults(defineProps<{
   disabled?: boolean
 }>(), {
   noun: '条记录',
-  pageSizes: () => [20, 48],
+  pageSizes: () => [...ADMIN_PAGE_SIZE_OPTIONS],
   disabled: false
 })
 

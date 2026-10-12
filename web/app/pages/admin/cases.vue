@@ -221,7 +221,7 @@ const detailError = ref('')
  * 列表在上、表单在下，不滚动的话点「编辑」后视口仍停在列表，看起来像没反应。
  */
 const editorRef = ref<HTMLElement | null>(null)
-const { scrollToEditor } = useScrollToEditor(editorRef)
+const { requestScrollToEditor } = useScrollToEditor(editorRef, { selector: '[data-scroll-target="case-editor"]' })
 
 /**
  * 关联字段的「未触碰」追踪：只有被触碰过的关联才会出现在请求体里。
@@ -312,14 +312,14 @@ async function openCreate() {
   saveError.value = ''
   detailError.value = ''
   editorOpen.value = true
-  await scrollToEditor()
+  requestScrollToEditor()
 }
 
 async function openEdit(item: AdminCaseItem) {
   editorOpen.value = true
   editingId.value = item.id
   resetForm()
-  await scrollToEditor()
+  requestScrollToEditor()
   saveError.value = ''
   detailError.value = ''
   detailLoading.value = true
@@ -367,6 +367,8 @@ function clearRelation(field: 'brandId' | 'lawFirmId') {
 
 /** 品牌新建中（避免重复点击提交两次）。 */
 const creatingBrand = ref(false)
+/** 律所新建中（同上）。 */
+const creatingLawFirm = ref(false)
 
 /**
  * 用输入的名称新建品牌，并把当前案件关联到它。
@@ -401,6 +403,36 @@ async function createBrand(name: string) {
     saveError.value = adminRequestErrorMessage(error, '品牌新建失败，请稍后重试')
   } finally {
     creatingBrand.value = false
+  }
+}
+
+/**
+ * 用输入的名称新建律所，并把当前案件关联到它。
+ * 需求：代理律所的填写搜索逻辑按涉案品牌来——即可搜索、搜不到直接新建。
+ * 实现与 createBrand 对称，只有接口与字段不同。
+ */
+async function createLawFirm(name: string) {
+  const trimmed = name.trim()
+  if (!trimmed) return
+  creatingLawFirm.value = true
+  saveError.value = ''
+  notice.value = ''
+  try {
+    const created = await requestAdminApi<{ id: number, slug: string }>(
+      '/api/admin/law-firms',
+      { method: 'POST', body: { name: trimmed }, requestFetch },
+    )
+    const id = Number(created?.id)
+    if (!Number.isInteger(id) || id <= 0) {
+      throw new Error('律所创建成功但未返回有效 id')
+    }
+    form.lawFirmId = id
+    touched.lawFirmId = true
+    notice.value = `已新建律所「${trimmed}」并关联到当前案件`
+  } catch (error) {
+    saveError.value = adminRequestErrorMessage(error, '律所新建失败，请稍后重试')
+  } finally {
+    creatingLawFirm.value = false
   }
 }
 
@@ -601,7 +633,7 @@ function onPageSize(next: number) {
       ref 必须挂在原生元素上，不能挂在 BaseCard 这类组件上：
       组件上的 ref 拿到的是组件实例（没有 scrollIntoView），滚动静默失效。
     -->
-    <div v-if="editorOpen" ref="editorRef" class="admin-cases__editor">
+    <div v-if="editorOpen" ref="editorRef" data-scroll-target="case-editor" class="admin-cases__editor">
       <BaseCard
         :title="editingId === null ? '新建案例' : `编辑案例 #${editingId}`"
         :title-level="2"
@@ -728,10 +760,13 @@ function onPageSize(next: number) {
             label="代理律所"
             label-key="name"
             hint-key="nameEn"
-            empty-hint="没有匹配的律所，请更换关键词后重试"
+            empty-hint="没有匹配的律所，可直接用输入的名称新建"
             :model-value="form.lawFirmId"
             :disabled="!canWrite"
+            allow-create
+            :creating="creatingLawFirm"
             @update:model-value="form.lawFirmId = $event; touched.lawFirmId = true"
+            @create="createLawFirm"
             @error="saveError = $event"
           >
             <BaseButton

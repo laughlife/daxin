@@ -163,12 +163,21 @@ function resetForm() {
   originalSlug.value = ''
 }
 
-function openCreate() {
+/**
+ * 表单容器引用 + 打开表单后滚动到表单区域。
+ * 列表在上、表单在下，不滚动的话点「编辑」后视口仍停在列表，看起来像没反应。
+ * ref 必须挂在原生元素上（组件上的 ref 拿到的是组件实例，没有 scrollIntoView）。
+ */
+const editorRef = ref<HTMLElement | null>(null)
+const { requestScrollToEditor } = useScrollToEditor(editorRef, { selector: '[data-scroll-target="entity-editor"]' })
+
+async function openCreate() {
   editingId.value = null
   resetForm()
   saveError.value = ''
   detailError.value = ''
   editorOpen.value = true
+  requestScrollToEditor()
 }
 
 async function openEdit(item: AdminEntityItem) {
@@ -179,6 +188,7 @@ async function openEdit(item: AdminEntityItem) {
   detailError.value = ''
   detailLoading.value = true
   applyDetail(item)
+  requestScrollToEditor()
   try {
     const detail = await requestAdminApi<Record<string, AdminEntityItem>>(`${props.endpoint}/${item.id}`, { requestFetch })
     const record = detail[props.withRegion ? 'lawFirm' : 'brand'] ?? detail.entity ?? item
@@ -395,12 +405,12 @@ function onPageSize(next: number) {
       </template>
     </section>
 
-    <BaseCard
-      v-if="editorOpen"
-      class="admin-entity__editor"
-      :title="editingId === null ? `新建${entityLabel}` : `编辑${entityLabel} #${editingId}`"
-      :title-level="2"
-    >
+    <!-- ref 挂在原生元素上：组件上的 ref 是组件实例，没有 scrollIntoView -->
+    <div v-if="editorOpen" ref="editorRef" data-scroll-target="entity-editor" class="admin-entity__editor">
+      <BaseCard
+        :title="editingId === null ? `新建${entityLabel}` : `编辑${entityLabel} #${editingId}`"
+        :title-level="2"
+      >
       <p v-if="detailLoading" class="admin-entity__loading" role="status">正在加载{{ entityLabel }}详情…</p>
       <p v-if="detailError" class="admin-entity__error" role="alert">{{ detailError }}</p>
 
@@ -501,7 +511,8 @@ function onPageSize(next: number) {
           <BaseButton variant="secondary" :disabled="saving" @click="closeEditor">取消</BaseButton>
         </div>
       </form>
-    </BaseCard>
+      </BaseCard>
+    </div>
 
   </PageContainer>
 </template>

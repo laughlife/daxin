@@ -135,6 +135,119 @@ if (login.status !== 200) {
         await page.screenshot({ path: `${outDir}\\case-brand-created.png` })
       }
     }
+    // ---------- 5) 侧边栏管理「编辑内容」→ 文章页应定位到该文章表单
+    await page.goto(`${base}/admin/sidebar`, { waitUntil: 'networkidle', timeout: 120000 })
+    await page.waitForTimeout(2000)
+    // 先确保侧边栏至少有一篇文章，否则没有「编辑内容」可点
+    const sidebarProbe = await page.evaluate(async () => {
+      const response = await fetch('/api/admin/articles?sidebar=1&pageSize=1')
+      const payload = await response.json()
+      return payload?.data?.[0]?.id ?? null
+    })
+    if (sidebarProbe === null) {
+      // 后台没有侧边栏文章时，直接构造深链验证同样的滚动路径
+      const listResponse = await fetch(`${base}/api/admin/articles?pageSize=1`, {
+        headers: { cookie: cookies.map((c) => `${c.name}=${c.value}`).join('; ') },
+        signal: AbortSignal.timeout(30000),
+      })
+      const listPayload = await listResponse.json()
+      const fallbackId = listPayload?.data?.[0]?.id
+      check('侧边栏：可取得文章 id 用于深链验证', Boolean(fallbackId), `id=${fallbackId}`)
+      if (fallbackId) {
+        await page.goto(`${base}/admin/articles?id=${fallbackId}`, { waitUntil: 'networkidle', timeout: 120000 })
+        await page.waitForTimeout(3000)
+        const deepLink = await page.evaluate(() => {
+          const editor = document.querySelector('.admin-articles__editor')
+          if (!editor) return { found: false }
+          const rect = editor.getBoundingClientRect()
+          return {
+            found: true,
+            inViewport: rect.top < window.innerHeight && rect.bottom > 0,
+            top: Math.round(rect.top),
+            scrollY: Math.round(window.scrollY),
+          }
+        })
+        check('文章：深链 ?id= 进入后表单滚入视口', deepLink.found && deepLink.inViewport, JSON.stringify(deepLink))
+      }
+    }
+
+    // ---------- 6) 律所管理：新建/编辑后表单滚入视口
+    await page.goto(`${base}/admin/law-firms`, { waitUntil: 'networkidle', timeout: 120000 })
+    await page.waitForTimeout(2500)
+    const firmCreate = page.locator('button:has-text("新建")').first()
+    if (await firmCreate.count() === 0) {
+      check('律所页存在新建按钮', false)
+    } else {
+      await firmCreate.click()
+      await page.waitForTimeout(2500)
+      const firmScroll = await page.evaluate(() => {
+        const editor = document.querySelector('.admin-entity__editor')
+        if (!editor) return { found: false }
+        const rect = editor.getBoundingClientRect()
+        return {
+          found: true,
+          inViewport: rect.top < window.innerHeight && rect.bottom > 0,
+          top: Math.round(rect.top),
+          scrollY: Math.round(window.scrollY),
+        }
+      })
+      check('律所：点新建后表单滚入视口', firmScroll.found && firmScroll.inViewport, JSON.stringify(firmScroll))
+      await page.screenshot({ path: `${outDir}\\law-firm-create-after.png` })
+    }
+
+    // ---------- 6b) 代理律所字段：与涉案品牌同一套「可搜索 + 搜不到直接新建」
+    //      （这两个控件都在案例页的编辑表单里，不在律所管理页）
+    await page.goto(`${base}/admin/cases`, { waitUntil: 'networkidle', timeout: 120000 })
+    await page.waitForTimeout(2500)
+    const caseCreate2 = page.locator('button:has-text("新建案例"), button:has-text("新建")').first()
+    if (await caseCreate2.count() > 0) {
+      await caseCreate2.click()
+      await page.waitForTimeout(2000)
+    }
+    const firmSearch = page.locator('#case-law-firm-keyword')
+    if (await firmSearch.count() === 0) {
+      check('案例页存在代理律所搜索框', false)
+    } else {
+      check('案例页存在代理律所搜索框', true)
+      const firmName = `测试律所${Date.now().toString().slice(-6)}`
+      await firmSearch.fill(firmName)
+      await firmSearch.press('Enter')
+      await page.waitForTimeout(2500)
+
+      const firmCreateButton = await page.locator(`button:has-text("${firmName}")`).count()
+      check('律所：搜不到时出现新建按钮', firmCreateButton > 0, `buttons=${firmCreateButton}`)
+
+      if (firmCreateButton > 0) {
+        await page.locator(`button:has-text("${firmName}")`).first().click()
+        await page.waitForTimeout(3000)
+        const firmAfter = await page.evaluate(() => {
+          const select = document.querySelector('#case-law-firm')
+          return {
+            selectedValue: select ? select.value : null,
+            noticeText: document.body.textContent?.includes('已新建律所') ?? false,
+          }
+        })
+        check('律所：新建后自动关联', Boolean(firmAfter.selectedValue), JSON.stringify(firmAfter))
+        await page.screenshot({ path: `${outDir}\\case-law-firm-created.png` })
+      }
+    }
+
+    // ---------- 7) 分页默认每页 10 条（下拉档位含 10，且当前选中 10）
+    await page.goto(`${base}/admin/articles`, { waitUntil: 'networkidle', timeout: 120000 })
+    await page.waitForTimeout(2500)
+    const pagerInfo = await page.evaluate(() => {
+      const pager = document.querySelector('.admin-pager')
+      const selects = [...document.querySelectorAll('.admin-pager select, select')]
+      const pageSizeSelect = selects.find((el) => [...el.options].some((o) => /条/.test(o.textContent || '')))
+      return {
+        pagerExists: Boolean(pager),
+        pageSizeValue: pageSizeSelect ? pageSizeSelect.value : null,
+        options: pageSizeSelect ? [...pageSizeSelect.options].map((o) => o.value) : [],
+      }
+    })
+    check('分页存在每页条数下拉', pagerInfo.pagerExists && pagerInfo.options.length > 0, JSON.stringify(pagerInfo))
+    check('分页默认选中 10 条', pagerInfo.pageSizeValue === '10', `value=${pagerInfo.pageSizeValue}`)
+    check('分页档位包含 10 条', pagerInfo.options.includes('10'), `options=${pagerInfo.options.join(',')}`)
   } finally {
     await browser.close()
   }
