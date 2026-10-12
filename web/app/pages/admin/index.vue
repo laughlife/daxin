@@ -147,16 +147,6 @@ async function onLogout() {
         </li>
       </ul>
     </section>
-
-    <section class="admin-home__section" aria-labelledby="admin-todo-title">
-      <h2 id="admin-todo-title" class="admin-home__section-title">功能状态</h2>
-      <BaseCard>
-        <p>
-          以上栏目为后台框架已预留的入口，具体业务页面（文章、案例、品牌、律所、媒体、审核、用户）
-          将陆续上线。当前版本仅提供登录、会话保持与后台导航外壳。
-        </p>
-      </BaseCard>
-    </section>
   </PageContainer>
 </template>
 
