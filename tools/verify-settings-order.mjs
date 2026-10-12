@@ -49,7 +49,7 @@ const EXPECTED = {
   ],
   site: [
     'site_name', 'site_logo', 'site_subtitle', 'site_description',
-    'contact_phone', 'contact_email', 'contact_address', 'contact_wechat',
+    'contact_wechat', 'contact_phone', 'contact_email', 'contact_address',
   ],
 }
 
