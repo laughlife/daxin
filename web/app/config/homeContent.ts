@@ -69,11 +69,3 @@ export const homeStats: HomeStat[] = [
     emphasis: false
   }
 ]
-
-/** 底部咨询 CTA */
-export const consultationCta = {
-  title: '24H/7 联系法务团队',
-  description:
-    '无论 TRO 案件、物流纠纷还是劳动用工问题，均可通过电话、邮箱或微信咨询号联系我们，获取免费初步评估。',
-  openModalLabel: '微信二维码咨询'
-} as const

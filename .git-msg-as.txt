@@ -1,0 +1,15 @@
+chore: 删除未被使用的 ConsultationCta 组件与其配置
+
+核对「已删除的配置是否还有代码在引用」时发现：
+
+- `ConsultationCta.vue` 没有任何页面或组件引用它（全仓库检索只命中
+  Nuxt 自动生成的 .nuxt/components.d.ts，那是按文件名生成的类型声明，
+  不代表被使用）；
+- `config/homeContent.ts` 的 `consultationCta` 也只在它自己的定义处出现。
+
+也就是说「底部咨询 CTA」这一整块是死代码，而它正是
+home_consultation_title / description / button 三个配置键的「对应区块」。
+上一轮删掉那三个键时判断该组件未渲染，本次把组件与配置一并清掉，
+避免留下一个永远不会显示的模块。
+
+删除后：typecheck 退出码 0；单元测试 170/170；smoke 47/47；浏览器验收 73/73。
