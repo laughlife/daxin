@@ -68,7 +68,9 @@ useSeoMeta({
           <header class="entity-detail__header">
             <p>{{ kind === 'brand' ? '品牌档案 · BRAND PROFILE' : '代理律所 · LAW FIRM PROFILE' }}</p>
             <h1>{{ summary.name }}</h1>
-            <p>{{ summary.description || '简介资料整理后补充。' }}</p>
+            <!-- 需求：律所有简介才显示简介，没有就只显示律所名字，
+                 不显示「简介资料整理后补充」这类占位文案。 -->
+            <p v-if="summary.description">{{ summary.description }}</p>
             <div class="entity-detail__stats">
               <span><strong>{{ summary.caseCount }}</strong> 条关联案件</span>
               <span v-if="typeLabels">{{ typeLabels }}</span>
