@@ -40,7 +40,7 @@ const SETTINGS_SQL = `SELECT s.setting_key, s.setting_value, s.value_type, s.med
   FROM site_settings s
   LEFT JOIN media_assets m ON m.id = s.media_id AND m.deleted_at IS NULL
  WHERE s.setting_group = ? AND s.is_current = 1
- ORDER BY s.setting_key`
+ ORDER BY s.sort_order, s.setting_key`
 
 const SERVICE_SECTIONS_SQL = `SELECT id, slug, title, subtitle, summary, icon_key, link_path, show_detail_link, sort_order, status
   FROM service_sections ORDER BY sort_order, id`

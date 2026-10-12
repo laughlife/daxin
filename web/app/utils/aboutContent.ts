@@ -30,8 +30,6 @@ export interface AboutContent {
   successTitle: string
   /** 成功案例图片（旧站该区块为图片，不是文章卡片列表）。 */
   successImages: string[]
-  /** 成功案例对应的文章分类 slug。 */
-  successCategory: string
   /** 企业宣讲标题。 */
   lectureTitle: string
   /** 企业宣讲图片（media 地址数组）。 */
@@ -50,7 +48,6 @@ const DEFAULTS = {
   teamTitle: '团队介绍',
   contactTitle: '如果您有任何需求和问题，24H/7 联系我们的法务团队',
   successTitle: 'TRO 成功案例',
-  successCategory: 'tro-success',
   lectureTitle: '企业宣讲',
   partnerTitle: '我们的小伙伴',
 }
@@ -100,7 +97,6 @@ export function toAboutContent(settings: PublicSettings | null | undefined): Abo
     businessImages: readStringList(values, 'about_business_images'),
     successTitle: readText(values, 'about_success_title', DEFAULTS.successTitle),
     successImages: readStringList(values, 'about_success_images'),
-    successCategory: readText(values, 'about_success_category', DEFAULTS.successCategory),
     lectureTitle: readText(values, 'about_lecture_title', DEFAULTS.lectureTitle),
     lectureImages,
     partnerTitle: readText(values, 'about_partner_title', DEFAULTS.partnerTitle),
