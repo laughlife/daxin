@@ -1,4 +1,14 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { siteConfig } from '~/config/site'
+
+const route = useRoute()
+const showAdminHomeLink = computed(() => route.path !== '/admin')
+const { data: settings } = await useSiteSettings()
+const logoSrc = computed(() => {
+  const value = settings.value?.settings?.site_logo
+  return typeof value === 'string' && value.trim() ? value.trim() : siteConfig.logo.src
+})
 /**
  * 后台专用布局：只保留最小的后台壳层（品牌栏 + 主内容区）。
  *
@@ -13,15 +23,18 @@
     <a class="skip-link" href="#admin-main">跳到主要内容</a>
     <header class="admin-shell__bar">
       <PageContainer class="admin-shell__inner" size="wide">
-        <NuxtLink to="/admin" class="admin-shell__home">
-          <span aria-hidden="true">←</span>
-          返回后台首页
-        </NuxtLink>
         <NuxtLink to="/admin" class="admin-shell__brand">
-          <span class="admin-shell__logo" aria-hidden="true">信</span>
+          <img v-if="logoSrc" class="admin-shell__logo-img" :src="logoSrc" :alt="siteConfig.logo.alt">
+          <span v-else class="admin-shell__logo" aria-hidden="true">信</span>
           <span class="admin-shell__title">大信法务 · 后台管理</span>
         </NuxtLink>
-        <NuxtLink to="/" class="admin-shell__back">返回官网首页</NuxtLink>
+        <div class="admin-shell__actions">
+          <NuxtLink v-if="showAdminHomeLink" to="/admin" class="admin-shell__home">
+            <span aria-hidden="true">←</span>
+            返回后台首页
+          </NuxtLink>
+          <NuxtLink to="/" class="admin-shell__back">返回官网首页</NuxtLink>
+        </div>
       </PageContainer>
     </header>
 
@@ -109,6 +122,14 @@
   font-weight: 700;
 }
 
+.admin-shell__logo-img {
+  display: block;
+  width: auto;
+  height: 40px;
+  max-width: 180px;
+  object-fit: contain;
+}
+
 .admin-shell__title {
   font-size: var(--text-base);
   font-weight: 700;
@@ -118,6 +139,19 @@
   font-size: var(--text-sm);
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.admin-shell__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.admin-shell__actions .admin-shell__home,
+.admin-shell__actions .admin-shell__back {
+  line-height: 1.2;
 }
 
 .admin-shell__main {

@@ -6,6 +6,7 @@ const config = await readFile(new URL('../nuxt.config.ts', import.meta.url), 'ut
 const settingsPage = await readFile(new URL('../app/pages/admin/settings.vue', import.meta.url), 'utf8')
 const adminHomePage = await readFile(new URL('../app/pages/admin/index.vue', import.meta.url), 'utf8')
 const usersPage = await readFile(new URL('../app/pages/admin/users.vue', import.meta.url), 'utf8')
+const adminLayout = await readFile(new URL('../app/layouts/admin.vue', import.meta.url), 'utf8')
 
 test('依赖数据库的页面不进入 Nuxt 生产预渲染清单', () => {
   const dynamicRoutes = ['/', '/about', '/tro/cases', '/brands', '/law-firms']
@@ -53,4 +54,12 @@ test('用户管理页面接入账号 CRUD 且不包含邮箱字段', () => {
   assert.match(usersPage, /admin[\s\S]*editor[\s\S]*viewer/)
   assert.match(usersPage, /active[\s\S]*disabled/)
   assert.doesNotMatch(usersPage, /AdminPlaceholder|email/i)
+})
+
+test('后台统一返回入口固定在右侧并复用官网 Logo', () => {
+  assert.match(adminLayout, /route\.path\s*!==\s*['\"]\/admin['\"]/)
+  assert.match(adminLayout, /position:\s*fixed/)
+  assert.match(adminLayout, /useSiteSettings\(\)/)
+  assert.match(adminLayout, /site_logo/)
+  assert.match(adminLayout, /flex-direction:\s*column/)
 })
