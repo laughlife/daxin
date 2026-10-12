@@ -7,6 +7,7 @@ const settingsPage = await readFile(new URL('../app/pages/admin/settings.vue', i
 const adminHomePage = await readFile(new URL('../app/pages/admin/index.vue', import.meta.url), 'utf8')
 const usersPage = await readFile(new URL('../app/pages/admin/users.vue', import.meta.url), 'utf8')
 const adminLayout = await readFile(new URL('../app/layouts/admin.vue', import.meta.url), 'utf8')
+const adminLoginPage = await readFile(new URL('../app/pages/admin/login.vue', import.meta.url), 'utf8')
 
 test('依赖数据库的页面不进入 Nuxt 生产预渲染清单', () => {
   const dynamicRoutes = ['/', '/about', '/tro/cases', '/brands', '/law-firms']
@@ -62,4 +63,16 @@ test('后台统一返回入口固定在右侧并复用官网 Logo', () => {
   assert.match(adminLayout, /useSiteSettings\(\)/)
   assert.match(adminLayout, /site_logo/)
   assert.match(adminLayout, /flex-direction:\s*column/)
+})
+
+test('后台布局不显示 Logo 旁的后台文案且两个返回入口样式一致', () => {
+  assert.doesNotMatch(adminLayout, /大信法务 · 后台管理/)
+  assert.match(adminLayout, /class="admin-shell__home"[^>]*>\s*返回后台首页\s*<\/NuxtLink>/)
+  assert.match(adminLayout, /class="admin-shell__home"[^>]*>\s*返回官网首页\s*<\/NuxtLink>/)
+})
+
+test('后台登录页复用官网 Logo', () => {
+  assert.match(adminLoginPage, /useSiteSettings\(\)/)
+  assert.match(adminLoginPage, /site_logo/)
+  assert.doesNotMatch(adminLoginPage, /class="admin-login__brand"[^>]*>\s*大信法务/)
 })

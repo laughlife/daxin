@@ -1,5 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { siteConfig } from '~/config/site'
+
+const { data: settings } = await useSiteSettings()
+const logoSrc = computed(() => {
+  const value = settings.value?.settings?.site_logo
+  return typeof value === 'string' && value.trim() ? value.trim() : siteConfig.logo.src
+})
 
 /**
  * 后台登录页。
@@ -88,7 +95,8 @@ onMounted(() => {
   <div class="admin-login">
     <main class="admin-login__panel">
       <header class="admin-login__head">
-        <p class="admin-login__brand">大信法务</p>
+        <img v-if="logoSrc" class="admin-login__logo" :src="logoSrc" :alt="siteConfig.logo.alt">
+        <span v-else class="admin-login__brand" aria-hidden="true">信</span>
         <h1 class="admin-login__title">后台管理登录</h1>
         <p class="admin-login__subtitle">请使用管理员分配的账号登录后台管理系统。</p>
       </header>
@@ -190,11 +198,26 @@ onMounted(() => {
   text-align: center;
 }
 
+.admin-login__logo {
+  display: block;
+  width: auto;
+  height: 56px;
+  max-width: 220px;
+  margin: 0 auto;
+  object-fit: contain;
+}
+
 .admin-login__brand {
-  font-size: var(--text-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md);
+  background-color: var(--color-primary);
+  color: var(--color-text-on-primary);
+  font-size: var(--text-xl);
   font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--color-primary);
 }
 
 .admin-login__title {

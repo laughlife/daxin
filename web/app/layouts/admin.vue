@@ -26,14 +26,12 @@ const logoSrc = computed(() => {
         <NuxtLink to="/admin" class="admin-shell__brand">
           <img v-if="logoSrc" class="admin-shell__logo-img" :src="logoSrc" :alt="siteConfig.logo.alt">
           <span v-else class="admin-shell__logo" aria-hidden="true">信</span>
-          <span class="admin-shell__title">大信法务 · 后台管理</span>
         </NuxtLink>
         <div class="admin-shell__actions">
           <NuxtLink v-if="showAdminHomeLink" to="/admin" class="admin-shell__home">
-            <span aria-hidden="true">←</span>
             返回后台首页
           </NuxtLink>
-          <NuxtLink to="/" class="admin-shell__back">返回官网首页</NuxtLink>
+          <NuxtLink to="/" class="admin-shell__home">返回官网首页</NuxtLink>
         </div>
       </PageContainer>
     </header>
@@ -75,7 +73,7 @@ const logoSrc = computed(() => {
   align-items: center;
   gap: var(--space-2);
   flex-shrink: 0;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-1) var(--space-3);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background-color: var(--color-bg-page);
@@ -130,17 +128,6 @@ const logoSrc = computed(() => {
   object-fit: contain;
 }
 
-.admin-shell__title {
-  font-size: var(--text-base);
-  font-weight: 700;
-}
-
-.admin-shell__back {
-  font-size: var(--text-sm);
-  flex-shrink: 0;
-  white-space: nowrap;
-}
-
 .admin-shell__actions {
   display: flex;
   flex-direction: column;
@@ -149,8 +136,7 @@ const logoSrc = computed(() => {
   flex-shrink: 0;
 }
 
-.admin-shell__actions .admin-shell__home,
-.admin-shell__actions .admin-shell__back {
+.admin-shell__actions .admin-shell__home {
   line-height: 1.2;
 }
 
@@ -179,6 +165,5 @@ const logoSrc = computed(() => {
 
 @media (max-width: 767px) {
   .admin-shell__inner { gap: var(--space-2); }
-  .admin-shell__title { display: none; }
 }
 </style>
