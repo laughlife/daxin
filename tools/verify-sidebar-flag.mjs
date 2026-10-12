@@ -87,10 +87,14 @@ try {
   check('富文本 HTML 原样入库', afterHtml.json?.data?.article?.contentHtml === html,
     `长度=${String(afterHtml.json?.data?.article?.contentHtml ?? '').length}`)
 } finally {
-  // 清理：只删自己创建的那条
+  // 清理：删除接口是软删除（status='archived'），行会留在库里污染文章数，
+  // 因此这里改为直接从数据库硬删除自己创建的那条探针。
   if (createdId !== null) {
-    const removed = await call(`/api/admin/articles/${createdId}`, { method: 'DELETE' })
-    check('清理测试文章', removed.status === 200 || removed.status === 204, `HTTP ${removed.status}`)
+    const { executeSql, resolveTargetConnection } = await import('./migrate-legacy/mysql-client.mjs')
+    const target = resolveTargetConnection()
+    await executeSql(target, `DELETE FROM article_images WHERE article_id = ${createdId}`)
+    await executeSql(target, `DELETE FROM articles WHERE id = ${createdId}`)
+    check('清理测试文章（硬删除）', true, `已删除 id=${createdId}`)
   }
 }
 
