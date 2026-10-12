@@ -5,11 +5,11 @@ import { adminRequestErrorMessage } from '~/utils/adminApi'
 /**
  * 图片管理（/admin/images）。
  *
- * 按需求「只显示数据库里配置的首页 Banner 图片、团队介绍右侧图片、业务板块图片、
- * 关于我们简介左侧图片，这几条配置记录，可编辑上传新的图片来替换」。
+ * 按需求只显示数据库里配置的团队介绍右侧图片、业务板块图片、关于我们简介左侧图片，
+ * 这些配置可编辑上传新的图片来替换。
  *
  * 实现要点：
- *   - 只呈现这 4 条配置，不列出其它配置项；
+ *   - 只呈现这 3 条配置，不列出其它配置项；
  *   - 每条都按「显示当前图片 + 选择文件」的方式（复用 SettingImageField，
  *     与站点信息里的 logo 完全同一套交互）；
  *   - 选中文件后立即走「申请凭证 → 直传 OSS → 登记媒体 → 写配置」，
@@ -24,7 +24,7 @@ definePageMeta({
 
 useSeoMeta({
   title: '图片管理',
-  description: '维护首页 Banner、团队介绍右侧、业务板块与关于我们简介左侧图片。',
+  description: '维护团队介绍右侧、业务板块与关于我们简介左侧图片。',
   robots: 'noindex, nofollow'
 })
 
@@ -48,11 +48,10 @@ interface RawSettingItem {
 }
 
 /**
- * 图片管理只关心这 4 条。
+ * 图片管理只关心这 3 条。
  * `json` 类型说明该配置在库里是数组，取数组首项作为当前图片。
  */
 const MANAGED_IMAGES = [
-  { key: 'home_banner_image', label: '首页 Banner 图片', kind: 'home', json: false },
   { key: 'home_right_image', label: '团队介绍右侧图片', kind: 'home', json: false },
   { key: 'about_hero_image', label: '关于我们简介左侧图片', kind: 'about', json: true },
   { key: 'about_business_images', label: '业务板块图片', kind: 'about', json: true },

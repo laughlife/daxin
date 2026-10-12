@@ -67,7 +67,7 @@ const navItems: AdminNavItem[] = [
   { label: '侧边栏管理', to: '/admin/sidebar', description: '首页侧栏推荐阅读内容维护', roles: ['admin', 'editor', 'viewer'] },
   { label: '案例管理', to: '/admin/cases', description: 'TRO 案件数据的添加与维护', roles: ['admin', 'editor', 'viewer'] },
   { label: '律所管理', to: '/admin/law-firms', description: '代理律所资料与简介维护', roles: ['admin', 'editor', 'viewer'] },
-  { label: '图片管理', to: '/admin/images', description: '首页 Banner、团队右侧、业务板块与关于我们配图', roles: ['admin', 'editor', 'viewer'] }
+  { label: '图片管理', to: '/admin/images', description: '团队右侧、业务板块与关于我们配图', roles: ['admin', 'editor', 'viewer'] }
 ]
 
 const navSections = computed(() =>
