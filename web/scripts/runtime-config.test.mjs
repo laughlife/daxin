@@ -33,3 +33,8 @@ test('后台图片管理模块已从导航和页面中移除', async () => {
     '图片管理页面文件不应继续保留'
   )
 })
+
+test('站点设置不再提供 SEO 标签页', () => {
+  assert.doesNotMatch(settingsPage, /kind:\s*['\"]seo['\"]/, '站点设置不应再注册 SEO 标签页')
+  assert.doesNotMatch(settingsPage, /admin-settings-seo|refreshSeo|seoError/, '站点设置不应再加载 SEO 编辑面板')
+})

@@ -5,9 +5,9 @@ import { apiErrorMessage, httpStatusOf } from '~/utils/publicApi'
 import { SETTINGS_READ_ONLY_NOTICE, canWriteSettings } from '~/utils/adminPermission'
 
 /**
- * 站点设置：站点 / 首页 / 关于 / SEO 四类 key-value 文案配置。
+ * 站点设置：站点 / 首页 / 关于三类 key-value 文案配置。
  *
- * 数据来源：GET /api/admin/settings?kind=<site|home|about|seo>
+ * 数据来源：GET /api/admin/settings?kind=<site|home|about>
  * 保存：PUT /api/admin/settings（body { kind, items }，每个 kind 一个保存按钮）
  *
  * 关键约定（见 docs/superpowers/task7-admin-contract.md 第一节）：
@@ -25,12 +25,12 @@ definePageMeta({
 
 useSeoMeta({
   title: '站点设置',
-  description: '维护站点基础信息、首页文案、关于我们与 SEO 配置。',
+  description: '维护站点基础信息、首页文案与关于我们配置。',
   robots: 'noindex, nofollow'
 })
 
-/** 四类文案配置 */
-type GroupKind = 'site' | 'home' | 'about' | 'seo'
+/** 三类文案配置 */
+type GroupKind = 'site' | 'home' | 'about'
 
 interface GroupPayload {
   items: SettingItem[]
@@ -42,8 +42,7 @@ const { user } = useAdminSession()
 const TABS: { kind: GroupKind, label: string, description: string }[] = [
   { kind: 'site', label: '站点信息', description: '站点名称、描述、联系方式与站点 Logo。' },
   { kind: 'home', label: '首页文案', description: '首页首屏、数据概览、咨询区的文案与配图。' },
-  { kind: 'about', label: '关于我们', description: '团队介绍标题、段落与配图。' },
-  { kind: 'seo', label: 'SEO', description: '首页 SEO 标题与描述。' }
+  { kind: 'about', label: '关于我们', description: '团队介绍标题、段落与配图。' }
 ]
 
 /** 默认展开第一个 tab */
@@ -53,12 +52,11 @@ const writable = computed(() => canWriteSettings(user.value?.roles))
 const readOnlyNotice = SETTINGS_READ_ONLY_NOTICE
 const controlsDisabled = computed(() => !writable.value)
 
-/** 四类配置的本地编辑态 */
+/** 三类配置的本地编辑态 */
 const editItems = {
   site: ref<SettingItem[]>([]),
   home: ref<SettingItem[]>([]),
   about: ref<SettingItem[]>([]),
-  seo: ref<SettingItem[]>([])
 }
 
 /** 已下线的历史配置不进入后台编辑态，避免继续暴露给管理员。 */
@@ -68,8 +66,7 @@ const HIDDEN_HOME_KEYS = new Set(['home_banner_image'])
 const baseline = reactive<Record<GroupKind, string>>({
   site: '',
   home: '',
-  about: '',
-  seo: ''
+  about: ''
 })
 
 /** 结构化编辑器状态 */
@@ -84,8 +81,8 @@ const uploadedUrls = reactive<Record<string, string>>({})
 const uploadingKeys = ref<string[]>([])
 
 const savingKind = ref<GroupKind | ''>('')
-const saveError = reactive<Record<GroupKind, string>>({ site: '', home: '', about: '', seo: '' })
-const saveSuccess = reactive<Record<GroupKind, string>>({ site: '', home: '', about: '', seo: '' })
+const saveError = reactive<Record<GroupKind, string>>({ site: '', home: '', about: '' })
+const saveSuccess = reactive<Record<GroupKind, string>>({ site: '', home: '', about: '' })
 
 // ---------------------------------------------------------------------------
 // 取数与本地态
@@ -248,7 +245,7 @@ function applyGroup(kind: GroupKind, payload: { data: GroupPayload }) {
   return items
 }
 
-/** 四类数据分别用稳定的 key 取数；四个面板都渲染，切换不会丢失未保存的编辑。 */
+/** 三类数据分别用稳定的 key 取数；三个面板都渲染，切换不会丢失未保存的编辑。 */
 const { error: siteError, refresh: refreshSite } = await useAsyncData(
   'admin-settings-site',
   () => requestFetch<{ data: GroupPayload }>('/api/admin/settings', { query: { kind: 'site' } }),
@@ -264,17 +261,10 @@ const { error: aboutError, refresh: refreshAbout } = await useAsyncData(
   () => requestFetch<{ data: GroupPayload }>('/api/admin/settings', { query: { kind: 'about' } }),
   { transform: payload => applyGroup('about', payload) }
 )
-const { error: seoError, refresh: refreshSeo } = await useAsyncData(
-  'admin-settings-seo',
-  () => requestFetch<{ data: GroupPayload }>('/api/admin/settings', { query: { kind: 'seo' } }),
-  { transform: payload => applyGroup('seo', payload) }
-)
-
 const groupErrors = computed<Record<GroupKind, unknown>>(() => ({
   site: siteError.value,
   home: homeError.value,
-  about: aboutError.value,
-  seo: seoError.value
+  about: aboutError.value
 }))
 
 // ---------------------------------------------------------------------------
@@ -284,8 +274,7 @@ const groupErrors = computed<Record<GroupKind, unknown>>(() => ({
 const dirty = computed<Record<GroupKind, boolean>>(() => ({
   site: snapshot('site') !== baseline.site,
   home: snapshot('home') !== baseline.home,
-  about: snapshot('about') !== baseline.about,
-  seo: snapshot('seo') !== baseline.seo
+  about: snapshot('about') !== baseline.about
 }))
 
 /** 该 kind 是否存在阻断保存的问题（JSON 解析失败等） */
@@ -327,8 +316,7 @@ function loadErrorMessage(error: unknown, label: string): string {
 async function retry(kind: GroupKind) {
   if (kind === 'site') await refreshSite()
   else if (kind === 'home') await refreshHome()
-  else if (kind === 'about') await refreshAbout()
-  else await refreshSeo()
+  else await refreshAbout()
 }
 
 /** 组装提交给接口的 items：JSON 项序列化、图片项带上 mediaId */
@@ -493,7 +481,7 @@ const STATUS_OPTIONS = [
     <header class="admin-settings__head">
       <h1 class="admin-settings__title">站点设置</h1>
       <p class="admin-settings__desc">
-        维护站点基础信息、首页文案、关于我们与 SEO 配置。每类配置单独保存，保存成功后立即生效。
+        维护站点基础信息、首页文案与关于我们配置。每类配置单独保存，保存成功后立即生效。
       </p>
     </header>
 
