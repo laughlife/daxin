@@ -152,6 +152,71 @@ function snapshot(kind: GroupKind): string {
   return JSON.stringify(items)
 }
 
+const IMAGE_LIST_KEYS = [
+  'about_hero_image',
+  'about_business_images',
+  'about_success_images',
+  'about_lecture_images',
+  'about_partner_images',
+  'about_honors_images',
+] as const
+
+function isImageListKey(key: string): boolean {
+  return (IMAGE_LIST_KEYS as readonly string[]).includes(key)
+}
+
+/** key → 当前图片 URL 数组（多图字段的编辑态） */
+const imageLists = reactive<Record<string, string[]>>({})
+
+/**
+ * 解析多图字段。
+ * 兼容两种历史写法：纯 URL 字符串数组，或 { url } / { mediaUrl } 对象数组。
+ * 解析失败时登记阻断错误，禁止保存以免覆盖原始数据（与其它 JSON 字段同一策略）。
+ */
+function parseImageList(items: SettingItem[], key: string): string[] {
+  const item = items.find(entry => entry.key === key)
+  if (!item) return []
+  let parsed: unknown
+  try {
+    parsed = item.value ? JSON.parse(item.value) : []
+  } catch {
+    blockingErrors[`about:${key}`] = `库中已有的 ${key} 不是合法 JSON，无法用图片控件编辑。为避免覆盖原始数据，已禁止保存，请先在数据库中修复该配置。`
+    return []
+  }
+  if (!Array.isArray(parsed)) {
+    blockingErrors[`about:${key}`] = `库中已有的 ${key} 不是数组，无法用图片控件编辑。为避免覆盖原始数据，已禁止保存，请先在数据库中修复该配置。`
+    return []
+  }
+  const urls: string[] = []
+  for (const entry of parsed) {
+    if (typeof entry === 'string') {
+      if (entry.trim()) urls.push(entry.trim())
+      continue
+    }
+    if (entry && typeof entry === 'object') {
+      const record = entry as Record<string, unknown>
+      const url = record.url ?? record.mediaUrl ?? record.imageUrl
+      if (typeof url === 'string' && url.trim()) urls.push(url.trim())
+    }
+  }
+  return urls
+}
+
+/** 多图字段变化：写回编辑态，由保存按钮统一提交。 */
+function onImagesChanged(key: string, value: string[]) {
+  imageLists[key] = value
+}
+
+/** 多图上传中同样禁止保存，避免提交半截数据。 */
+function onImagesUploading(key: string, value: boolean) {
+  const token = `about:${key}`
+  if (value) {
+    if (!uploadingKeys.value.includes(token)) uploadingKeys.value.push(token)
+  } else {
+    uploadingKeys.value = uploadingKeys.value.filter(entry => entry !== token)
+  }
+}
+
 /**
  * 把接口返回的 items 落到本地编辑态并重建 baseline。
  * 只由 useAsyncData 的 transform 调用，因此必须与 DOM 无关。
@@ -166,7 +231,12 @@ function applyGroup(kind: GroupKind, payload: { data: GroupPayload }) {
     if (key.startsWith(prefix)) delete uploadedUrls[key]
   }
   if (kind === 'home') homeStats.value = parseHomeStats(items)
-  if (kind === 'about') aboutParagraphs.value = parseParagraphs(items)
+  if (kind === 'about') {
+    aboutParagraphs.value = parseParagraphs(items)
+    for (const key of IMAGE_LIST_KEYS) {
+      imageLists[key] = parseImageList(items, key)
+    }
+  }
   editItems[kind].value = items
   baseline[kind] = snapshot(kind)
   return items
@@ -264,6 +334,10 @@ function buildPayload(kind: GroupKind) {
     }
     if (kind === 'about' && item.key === 'about_team_paragraphs') {
       value = JSON.stringify(aboutParagraphs.value)
+    }
+    // 多图字段：把图片控件里的 URL 数组序列化回 json 字符串
+    if (kind === 'about' && isImageListKey(item.key)) {
+      value = JSON.stringify(imageLists[item.key] ?? [])
     }
     return {
       key: item.key,
@@ -387,6 +461,15 @@ function isJsonEditor(kind: GroupKind, key: string): boolean {
     || (kind === 'about' && key === 'about_team_paragraphs')
 }
 
+/**
+ * 多图字段：在库中是 URL 字符串数组（value_type=json），
+ * 改用 AdminImageListField 编辑，交互与 logo 一致（显示图片 + 每张后面选择文件）。
+ *
+ * 为什么不能把它们改成 value_type='image'：
+ * image 只关联一个 media_id，装不下多图（lecture 有 14 张），改类型会直接丢图。
+ */
+
+
 /** 长文本（> 80 字）用 textarea，短文本用单行输入 */
 function useTextarea(value: string): boolean {
   return value.length > 80
@@ -476,6 +559,25 @@ const STATUS_OPTIONS = [
                   :usage-scope="imageScope(tab.kind)"
                   @uploaded="payload => onImageUploaded(tab.kind, item.key, payload)"
                   @uploading="value => onImageUploading(`${tab.kind}:${item.key}`, value)"
+                />
+              </template>
+
+              <!-- 多图字段：逐张显示 + 每张后面选择文件（与 logo 同一交互方式） -->
+              <template v-else-if="isImageListKey(item.key)">
+                <div v-if="blockingErrors[`${tab.kind}:${item.key}`]" class="admin-settings__json-block">
+                  <p class="admin-settings__hint">
+                    图片控件已停用：库中原始值无法解析，请参考上方错误提示处理。
+                  </p>
+                </div>
+                <AdminImageListField
+                  v-else
+                  :input-id="`setting-images-${tab.kind}-${item.key}`"
+                  :label="item.key"
+                  :images="imageLists[item.key] ?? []"
+                  :disabled="controlsDisabled || savingKind !== ''"
+                  usage-scope="about"
+                  @update:images="onImagesChanged(item.key, $event)"
+                  @uploading="value => onImagesUploading(item.key, value)"
                 />
               </template>
 
