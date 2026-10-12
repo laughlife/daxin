@@ -1,87 +1,86 @@
 # 站点设置字段清单（2026-10-10）
 
-用于圈定「哪些字段现在不用了」。共 **41 个字段 / 4 组**。
+现行字段 **34 个 / 3 组**（迁移 008 之后）。
+由 `tools/list-setting-fields.mjs` 导出；「引用」一列由
+`tools/check-setting-usage.mjs` 扫描全部前端与服务端源码得出。
 
-「使用情况」一列由 `tools/check-setting-usage.mjs` 扫描 176 个源码文件得出，
-指该 key 是否出现在代码里；「前端可见」指当前前台页面是否真的会渲染该值。
+## 本轮清理结果
+
+**已删除 8 个无引用字段**（迁移 008，软删除 `is_current = 0`，可恢复）：
+
+| 字段 | 删除原因 |
+| --- | --- |
+| `about_more_label` / `about_more_link` | 关于我们页用的是页面内硬编码链接 |
+| `contact_notice` | 页脚与联系区都不再展示提示文案 |
+| `home_consultation_title` | 对应组件 `ConsultationCta` 未被任何页面引用（该组件已一并删除） |
+| `home_consultation_description` | 同上 |
+| `home_consultation_button` | 同上 |
+| `seo_home_title` / `seo_home_description` | 各页 SEO 走 `useSeoMeta` 与 `site_description` |
+
+**新增 1 个**：`contact_wechat`（general，初始值取当前页脚展示的 TRO 咨询号）。
+
+`seo` 组因此已为空。后台设置页会按数据库内容自动渲染，不再出现这些键。
 
 ## general（站点信息，8 个）
 
-| 字段 | 类型 | 当前值 | 使用情况 |
+| 字段 | 类型 | 当前值 | 前台使用 |
 | --- | --- | --- | --- |
-| `site_name` | text | 大信法务 | ✅ 公开接口读取 |
-| `site_subtitle` | text | 跨境电商与国际物流法律服务 | ⚪ 代码未引用（页头副标题已按需求去掉） |
-| `site_description` | text | 大信法务团队，为跨境电商与国际物流企业提供… | ⚪ 代码未引用 |
-| `site_logo` | image | mediaId=3714（官方 logo） | ✅ 页头/页脚展示 |
-| `contact_phone` | text | 15918796817 | ✅ 公开接口读取 |
-| `contact_email` | text | xiaohua131400@126.com | ⚪ 代码未引用（联系信息走 config/contact.ts） |
-| `contact_address` | text | 深圳市龙岗区…TOWER12 | ⚪ 代码未引用（同上） |
-| `contact_notice` | text | （空） | ⚪ 代码未引用 |
+| `site_name` | text | 大信法务 | ✅ 页脚、页头占位、结构化数据 |
+| `site_subtitle` | text | 跨境电商与国际物流法律服务 | ✅ 页头（无 logo 时的占位副标题） |
+| `site_description` | text | 大信法务团队，为跨境电商与国际物流企业提供… | ✅ 首页结构化数据 |
+| `site_logo` | image | mediaId=3714 | ✅ 页头与页脚 |
+| `contact_phone` | text | 15918796817 | ✅ 页脚「联系我们」 |
+| `contact_email` | text | xiaohua131400@126.com | ✅ 页脚「联系我们」 |
+| `contact_address` | text | 深圳市龙岗区…TOWER12 | ✅ 页脚「联系我们」 |
+| `contact_wechat` | text | kjzx88 | ✅ 页脚「联系我们」（本轮新增） |
 
-## home（首页文案，12 个）
+四项联系方式统一经 `useSiteIdentity()` 读取：**后台配置优先、config 兜底**。
+后台改完立即生效，不再是改了不生效。
 
-| 字段 | 类型 | 当前值 | 使用情况 |
+## home（首页文案，9 个）
+
+| 字段 | 类型 | 当前值 | 前台使用 |
 | --- | --- | --- | --- |
-| `home_hero_badge` | text | 跨境电商 · 全链路法律服务 | ✅ 本轮接入首页首屏 |
-| `home_hero_title` | text | 跨境有我，法律无忧 | ✅ 本轮接入 |
-| `home_hero_subtitle` | text | 专注于为跨境电商企业、品牌卖家… | ✅ 本轮接入 |
-| `home_hero_primary_label` | text | 查询 TRO 案件 | ✅ 本轮接入 |
-| `home_hero_primary_link` | text | /tro/cases | ✅ 本轮接入 |
-| `home_hero_secondary_label` | text | 联系我们免费评估案件 | ✅ 本轮接入 |
-| `home_stats` | json | 5 条数据（7 年 / 1000+ / 10000+ / 95% / 24 小时） | ✅ 本轮接入 |
-| `home_right_image` | image | mediaId=3721（团队著作图） | ✅ 团队介绍右侧 |
-| `home_banner_image` | image | （空） | ⚠️ 本轮新增；图片管理页可上传，**前台尚未使用** |
-| `home_consultation_title` | text | 24H/7 联系法务团队 | ⚪ 代码未引用（对应组件未渲染） |
-| `home_consultation_description` | text | 无论 TRO 案件、物流纠纷还是劳动用工问题… | ⚪ 代码未引用 |
-| `home_consultation_button` | text | 微信二维码咨询 | ⚪ 代码未引用 |
+| `home_hero_badge` | text | 跨境电商 · 全链路法律服务 | ✅ 首屏 |
+| `home_hero_title` | text | 跨境有我，法律无忧 | ✅ 首屏 |
+| `home_hero_subtitle` | text | 专注于为跨境电商企业、品牌卖家… | ✅ 首屏 |
+| `home_hero_primary_label` | text | 查询 TRO 案件 | ✅ 首屏按钮 |
+| `home_hero_primary_link` | text | /tro/cases | ✅ 首屏按钮链接 |
+| `home_hero_secondary_label` | text | 联系我们免费评估案件 | ✅ 首屏按钮 |
+| `home_stats` | json | 5 条数据 | ✅ 团队介绍区 |
+| `home_right_image` | image | mediaId=3721 | ✅ 团队介绍右侧 |
+| `home_banner_image` | image | （空） | ✅ **已接入首页**：首屏之后整幅 Banner，未配置时完全不渲染 |
 
-## about（关于我们，19 个）
+## about（关于我们，17 个）
 
-| 字段 | 类型 | 当前值 | 使用情况 |
+| 字段 | 类型 | 当前值 | 前台使用 |
 | --- | --- | --- | --- |
-| `about_hero_welcome` | text | 欢迎您来访 大信法务 | ✅ 首页/关于我们 |
+| `about_hero_welcome` | text | 欢迎您来访 大信法务 | ✅ |
 | `about_hero_title` | text | 深圳市大信法务咨询有限公司 | ✅ |
 | `about_hero_paragraph` | text | 大信法务团队为深耕跨境赛道的… | ✅ |
-| `about_hero_image` | json | 1 张（法庭天平图） | ✅ 关于我们简介左侧 |
+| `about_hero_image` | json | 1 张 | ✅ 简介左侧 |
 | `about_team_title` | text | 团队介绍 | ✅ |
 | `about_team_paragraphs` | json | 3 段 | ✅ |
-| `about_team_image` | image | （空） | ⚪ 与 `about_hero_image` 重复，仅作兼容回退 |
-| `about_contact_title` | text | 如果您有任何需求和问题，24H/7 联系… | ✅ |
-| `about_business_images` | json | 2 张（国内/国外业务图） | ✅ 核心业务 |
+| `about_team_image` | image | （空） | ⚪ 未渲染，作为 `about_hero_image` 的兼容回退仍被读取 |
+| `about_contact_title` | text | 如果您有任何需求和问题… | ✅ |
+| `about_business_images` | json | 2 张 | ✅ 核心业务 |
 | `about_success_title` | text | TRO 成功案例 | ✅ |
-| `about_success_images` | json | 4 张案例图 | ✅ |
-| `about_success_category` | text | tro-success | ⚪ 代码未引用（成功案例已改为图片，不再按分类取文章） |
+| `about_success_images` | json | 4 张 | ✅ |
+| `about_success_category` | text | tro-success | ⚪ 未渲染（成功案例已改为图片） |
 | `about_lecture_title` | text | 企业宣讲 | ✅ |
 | `about_lecture_images` | json | 14 张 | ✅ |
 | `about_partner_title` | text | 我们的小伙伴 | ✅ |
-| `about_partner_images` | json | 1 张（伙伴 logo 墙） | ✅ |
-| `about_honors_images` | json | `[]`（空） | ⚪ **前台无对应区块**（荣誉与资质未实现） |
-| `about_more_label` | text | 了解更多关于我们 | ⚪ 无引用（首页链接文案来自 config） |
-| `about_more_link` | text | /about | ⚪ 无引用 |
+| `about_partner_images` | json | 1 张 | ✅ |
+| `about_honors_images` | json | `[]` | ⚪ 无对应区块（预留） |
 
-## seo（2 个）
+`about_team_image`、`about_success_category`、`about_honors_images` 三项
+虽然前台未渲染，但 `aboutContent.ts` 仍在读取（兼容或预留），
+按「**未引用**才删」的口径保留。如需彻底删除请明确告知。
 
-| 字段 | 类型 | 当前值 | 使用情况 |
-| --- | --- | --- | --- |
-| `seo_home_title` | text | 大信法务 · 跨境电商与国际物流法律服务 | ⚪ 代码未引用（页面 SEO 走各页 useSeoMeta） |
-| `seo_home_description` | text | 大信法务团队，为跨境电商与国际物流企业提供… | ⚪ 代码未引用 |
+## 图片字段的交互
 
-## 我的建议
+全部图片字段统一为「显示图片 + 选择文件」：
 
-**建议删除（确实无用途、且不会丢内容）**
-- `about_more_label`、`about_more_link`：关于我们页用的是页面内硬编码链接。
-- `about_team_image`：与 `about_hero_image` 重复，属早期兼容键。
-- `about_success_category`：成功案例已按旧站改为图片，不再按文章分类取数。
-
-**建议先确认再接线的（不是「不用了」，而是「改了不生效」）**
-- `site_subtitle`、`site_description`、`contact_email`、`contact_address`、`contact_notice`：
-  这些是真实站点信息，只是当前前台读 `config/site.ts` 与 `config/contact.ts`。
-  要么删掉避免两处维护，要么把前台接到数据库（推荐后者，后台才真正可维护）。
-- `seo_home_title`、`seo_home_description`：同上，可接到首页 `useSeoMeta`。
-- `home_consultation_*`：对应的咨询区组件当前未渲染。要么恢复该区块，要么删除这三项。
-
-**建议保留**
-- `home_banner_image`：首页 Banner 位已由图片管理页维护，前台接入待做。
-- `about_honors_images`：留空占位，等「荣誉与资质」区块确认后再用。
-
-请直接告诉我删除哪些、以及哪些要接到前台，我按你说的处理。
+- 单图（`value_type = image`）：`SettingImageField`，写 `media_id`；
+- 多图（`value_type = json`，URL 数组）：`AdminImageListField`，
+  逐张显示且每张后面跟选择文件，支持替换、删除、上移下移、追加。
