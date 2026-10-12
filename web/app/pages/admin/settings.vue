@@ -61,6 +61,9 @@ const editItems = {
   seo: ref<SettingItem[]>([])
 }
 
+/** 已下线的历史配置不进入后台编辑态，避免继续暴露给管理员。 */
+const HIDDEN_HOME_KEYS = new Set(['home_banner_image'])
+
 /** baseline 快照（JSON 字符串）：用于判断是否有未保存的修改 */
 const baseline = reactive<Record<GroupKind, string>>({
   site: '',
@@ -222,7 +225,10 @@ function onImagesUploading(key: string, value: boolean) {
  * 只由 useAsyncData 的 transform 调用，因此必须与 DOM 无关。
  */
 function applyGroup(kind: GroupKind, payload: { data: GroupPayload }) {
-  const items = payload?.data?.items ?? []
+  const sourceItems = payload?.data?.items ?? []
+  const items = kind === 'home'
+    ? sourceItems.filter(item => !HIDDEN_HOME_KEYS.has(item.key))
+    : sourceItems
   const prefix = `${kind}:`
   for (const key of Object.keys(blockingErrors)) {
     if (key.startsWith(prefix)) delete blockingErrors[key]

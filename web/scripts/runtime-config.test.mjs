@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
+import { access, readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 
 const config = await readFile(new URL('../nuxt.config.ts', import.meta.url), 'utf8')
-const imagesPage = await readFile(new URL('../app/pages/admin/images.vue', import.meta.url), 'utf8')
+const settingsPage = await readFile(new URL('../app/pages/admin/settings.vue', import.meta.url), 'utf8')
+const adminHomePage = await readFile(new URL('../app/pages/admin/index.vue', import.meta.url), 'utf8')
 
 test('依赖数据库的页面不进入 Nuxt 生产预渲染清单', () => {
   const dynamicRoutes = ['/', '/about', '/tro/cases', '/brands', '/law-firms']
@@ -20,7 +21,15 @@ test('保留隐私、免责声明等不依赖数据库的静态页面预渲染',
   assert.match(routesBlock, /['\"]\/infringement-check['\"]/)
 })
 
-test('后台图片管理不再提供首页 Banner 配置项', () => {
-  assert.doesNotMatch(imagesPage, /key:\s*['\"]home_banner_image['\"]/, '图片管理列表不应再暴露 home_banner_image')
-  assert.doesNotMatch(imagesPage, /首页 Banner 图片/, '图片管理文案不应再出现首页 Banner 配置')
+test('后台站点设置不再展示首页 Banner 配置项', () => {
+  assert.match(settingsPage, /kind === 'home'[\s\S]*?filter\(/, '首页配置应在进入编辑态前过滤已移除项')
+  assert.match(settingsPage, /home_banner_image/, '过滤逻辑应明确覆盖 home_banner_image')
+})
+
+test('后台图片管理模块已从导航和页面中移除', async () => {
+  assert.doesNotMatch(adminHomePage, /\/admin\/images|图片管理/)
+  await assert.rejects(
+    access(new URL('../app/pages/admin/images.vue', import.meta.url)),
+    '图片管理页面文件不应继续保留'
+  )
 })
