@@ -1,0 +1,40 @@
+feat: 上传首页 Banner 图片（由首屏背景图导出）
+
+需求：Banner 图片是否可以将现在首页使用的背景图上传。
+
+## 关键事实：首页首屏背景是「纯 CSS」，没有图片文件
+
+HomeHero 的背景由 radial-gradient 光效 + 48px 网格 + 漂浮光斑组成，
+全部在 CSS 里生成（组件注释也写明「纯 CSS 网格 + 光效，无远程资源」），
+仓库里并不存在对应的图片文件。因此「把背景图上传」只能先实机渲染再截图。
+
+## 做法
+
+1. 新增 `tools/capture-hero-background.mjs`：用 Playwright 截取 Hero 区块，
+   输出两张——`hero-full.png`（含标题按钮）与 `hero-bg-only.png`（隐藏文字，
+   仅保留光效/网格）。以 2x 倍率截图，得到 3200x1042 的清晰底图。
+2. 选用「仅背景」那张（Banner 上不该再叠一层文字）。
+   用 Pillow 缩放至 2000 宽并存为渐进式 JPEG：**1.7MB → 57.8KB**，体积降 97%。
+3. 走既有 `tools/upload-assets.mjs` 上传 OSS（object_key 由 uuidv5 确定性生成，
+   重复执行不会产生重复媒体），登记进 media_assets（id=3733，2000x651）。
+4. 新增 `tools/set-home-banner.mjs` 把 media_id 与地址写入 `home_banner_image`。
+   **就地更新 is_current=1 的现行行**，不用 INSERT ... version+1——
+   那样会造成同一 key 多个现行行（正是迁移 004 修过的问题）。脚本末尾会核对
+   现行行数必须为 1。
+
+## 验证
+
+- 新增 `tools/check-home-banner.mjs`：首页已渲染 `.home-banner__img`，
+  地址即本次上传的 OSS 地址；
+- Playwright 实测渲染：naturalWidth=2000、naturalHeight=651、
+  complete=true，页面上以 1152x375 显示；
+- 已截图人工确认视觉效果；
+- typecheck 退出码 0；单元测试 170/170；smoke 47/47；浏览器验收 73/73；
+  迁移台账 10 个文件 checksum 全部一致。
+
+## 已知观感问题（如实记录）
+
+Banner 用的是首屏背景的同款图案，而它就紧挨在首屏下方，
+因此视觉上像是「首屏背景重复了一次」，有冗余感。
+已在交付说明中向用户提出，并给出替换、更换图片或移除三个选项，
+等用户确认后再调整——不擅自改变版式。
