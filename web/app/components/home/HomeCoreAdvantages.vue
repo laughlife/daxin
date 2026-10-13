@@ -121,10 +121,12 @@ function segments(item: CoreAdvantage) {
             <span class="home-core-advantages__title">{{ displayTitle(item.title) }}</span>
           </button>
           <p v-if="expandedIndex === index" class="home-core-advantages__description">
-            <template v-for="(segment, segmentIndex) in segments(item)" :key="segmentIndex">
-              <strong v-if="segment.emphasis" class="home-core-advantages__emphasis">{{ segment.text }}</strong>
-              <span v-else>{{ segment.text }}</span>
-            </template>
+            <span class="home-core-advantages__description-copy">
+              <template v-for="(segment, segmentIndex) in segments(item)" :key="segmentIndex">
+                <strong v-if="segment.emphasis" class="home-core-advantages__emphasis">{{ segment.text }}</strong>
+                <span v-else>{{ segment.text }}</span>
+              </template>
+            </span>
           </p>
         </article>
       </div>
@@ -197,14 +199,24 @@ function segments(item: CoreAdvantage) {
 }
 
 .home-core-advantages__description {
+  display: flex;
   flex: 1;
   min-height: 0;
+  align-items: center;
+  justify-content: center;
   margin: 0;
   padding: 0 var(--space-6) var(--space-6);
   color: var(--color-text-muted);
   font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
   overflow: visible;
+}
+
+.home-core-advantages__description-copy {
+  display: block;
+  max-width: 26ch;
+  margin-inline: auto;
+  text-align: center;
 }
 
 .home-core-advantages__emphasis {
