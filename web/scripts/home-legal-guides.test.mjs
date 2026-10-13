@@ -5,6 +5,7 @@ import { readFile, access } from 'node:fs/promises'
 const indexSource = await readFile(new URL('../app/pages/index.vue', import.meta.url), 'utf8')
 const guidesSource = await readFile(new URL('../app/components/home/HomeLegalGuides.vue', import.meta.url), 'utf8')
 const contentSettingsSource = await readFile(new URL('../app/utils/contentSettings.ts', import.meta.url), 'utf8')
+const adminSettingsSource = await readFile(new URL('../app/pages/admin/settings.vue', import.meta.url), 'utf8')
 
 test('homepage places the three-book legal guide carousel below core advantages', () => {
   const advantagesPosition = indexSource.indexOf('<HomeCoreAdvantages')
@@ -39,4 +40,13 @@ test('carousel reads editable slides and QR images from shared public settings',
   assert.match(contentSettingsSource, /员工法律意识提升后离职时集中仲裁/)
   await access(new URL('../public/images/guides/tro.png', import.meta.url))
   await access(new URL('../public/images/guides/labor-law.png', import.meta.url))
+})
+
+test('admin can select one of the four maintained QR assets for the logistics guide', () => {
+  assert.match(adminSettingsSource, /guide\.slug === 'logistics'/)
+  assert.match(adminSettingsSource, /qr-tro-public/)
+  assert.match(adminSettingsSource, /qr-tro-consult/)
+  assert.match(adminSettingsSource, /qr-labor-public/)
+  assert.match(adminSettingsSource, /qr-labor-consult/)
+  assert.match(adminSettingsSource, /不显示二维码/)
 })

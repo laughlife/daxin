@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import {
   normalizeSiteTheme,
   SITE_THEME_PRESETS,
   siteThemeCssVariables,
 } from '../app/utils/siteTheme.ts'
+
+const adminSettingsSource = await readFile(new URL('../app/pages/admin/settings.vue', import.meta.url), 'utf8')
 
 test('site theme presets use the approved brand palettes', () => {
   assert.deepEqual(SITE_THEME_PRESETS, {
@@ -47,4 +50,14 @@ test('site theme exposes only controlled primary and accent CSS variables', () =
     '--color-primary': '#0A2B4C',
     '--color-accent': '#C9A45C',
   })
+})
+
+test('admin settings edits site_theme as structured data and blocks invalid custom colors', () => {
+  assert.match(adminSettingsSource, /isValidSiteThemeHex\(/)
+  assert.match(adminSettingsSource, /item\.key === 'site_theme'/)
+  assert.match(adminSettingsSource, /JSON\.stringify\(siteTheme\.value\)/)
+  assert.match(adminSettingsSource, /SITE_THEME_PRESETS/)
+  assert.match(adminSettingsSource, /v-for="\(preset, key\) in SITE_THEME_PRESETS"/)
+  assert.match(adminSettingsSource, /type="color"/)
+  assert.match(adminSettingsSource, /#RRGGBB/)
 })

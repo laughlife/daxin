@@ -7,6 +7,15 @@ import {
   type ContentSidebarConfig,
   type LegalGuideSlide,
 } from '~/utils/contentSettings'
+import {
+  DEFAULT_SITE_THEME,
+  SITE_THEME_PRESETS,
+  isValidSiteThemeHex,
+  normalizeSiteTheme,
+  siteThemeCssVariables,
+  type SiteTheme,
+  type SiteThemePreset,
+} from '~/utils/siteTheme'
 import { apiErrorMessage, httpStatusOf } from '~/utils/publicApi'
 import { SETTINGS_READ_ONLY_NOTICE, canWriteSettings } from '~/utils/adminPermission'
 import AdminSitePublishingSettings from '~/components/admin/SitePublishingSettings.vue'
@@ -98,6 +107,15 @@ const aboutParagraphs = ref<string[]>([])
 const coreAdvantages = ref<CoreAdvantageEditorEntry[]>([])
 const contentSidebar = ref<ContentSidebarConfig>(normalizeContentSidebar(null))
 const legalGuides = ref<LegalGuideSlide[]>(normalizeLegalGuideSlides(null))
+const siteTheme = ref<SiteTheme>(normalizeSiteTheme(null))
+const siteThemePreview = computed(() => siteThemeCssVariables(siteTheme.value))
+const siteThemeInputError = computed(() => siteTheme.value.preset === 'custom' && !isValidSiteThemeHex(siteTheme.value.primary))
+const GUIDE_QR_OPTIONS = [
+  { key: 'qr-tro-public', label: 'TRO 公众号' },
+  { key: 'qr-tro-consult', label: 'TRO 咨询号' },
+  { key: 'qr-labor-public', label: '劳动法公众号' },
+  { key: 'qr-labor-consult', label: '劳动法咨询号' },
+] as const
 /** 解析失败等阻断保存的原因：`kind:key` → 中文说明 */
 const blockingErrors = reactive<Record<string, string>>({})
 
@@ -201,6 +219,17 @@ function parseContentSidebar(items: SettingItem[]): ContentSidebarConfig {
   }
 }
 
+function parseSiteTheme(items: SettingItem[]): SiteTheme {
+  const item = items.find(entry => entry.key === 'site_theme')
+  if (!item || !item.value.trim()) return normalizeSiteTheme(null)
+  try {
+    return normalizeSiteTheme(JSON.parse(item.value))
+  } catch {
+    blockingErrors['site:site_theme'] = '库中已有的 site_theme 不是合法 JSON，已暂时使用大信经典红；为避免覆盖原始数据，请先在数据库中修复该配置。'
+    return normalizeSiteTheme(null)
+  }
+}
+
 function parseLegalGuides(items: SettingItem[]): LegalGuideSlide[] {
   const item = items.find(entry => entry.key === 'home_legal_guides')
   if (!item || !item.value.trim()) return normalizeLegalGuideSlides(null)
@@ -231,6 +260,9 @@ function snapshot(kind: GroupKind): string {
     }
     if (kind === 'site' && item.key === 'content_sidebar') {
       return { ...item, value: JSON.stringify(contentSidebar.value) }
+    }
+    if (kind === 'site' && item.key === 'site_theme') {
+      return { ...item, value: JSON.stringify(siteTheme.value) }
     }
     if (kind === 'home' && item.key === 'home_legal_guides') {
       return { ...item, value: JSON.stringify(legalGuides.value) }
@@ -324,6 +356,7 @@ function applyGroup(kind: GroupKind, payload: { data: GroupPayload }) {
   if (kind === 'home') homeStats.value = parseHomeStats(items)
   if (kind === 'home') coreAdvantages.value = parseCoreAdvantages(items)
   if (kind === 'site') contentSidebar.value = parseContentSidebar(items)
+  if (kind === 'site') siteTheme.value = parseSiteTheme(items)
   if (kind === 'home') legalGuides.value = parseLegalGuides(items)
   if (kind === 'about') {
     aboutParagraphs.value = parseParagraphs(items)
@@ -382,6 +415,7 @@ function canSave(kind: GroupKind): boolean {
     && uploadingKeys.value.length === 0
     && dirty.value[kind]
     && !blockReason(kind)
+    && !(kind === 'site' && siteThemeInputError.value)
 }
 
 /** 保存按钮文案（禁用原因直接写在按钮上，避免用户误以为按钮失灵） */
@@ -389,6 +423,7 @@ function saveLabel(kind: GroupKind): string {
   if (savingKind.value === kind) return '保存中…'
   if (!writable.value) return '保存（只读角色不可用）'
   if (blockReason(kind)) return '保存（请先修复解析错误）'
+  if (kind === 'site' && siteThemeInputError.value) return '保存（颜色需为六位 HEX）'
   if (!dirty.value[kind]) return '保存（暂无修改）'
   return '保存'
 }
@@ -422,6 +457,9 @@ function buildPayload(kind: GroupKind) {
     }
     if (kind === 'site' && item.key === 'content_sidebar') {
       value = JSON.stringify(contentSidebar.value)
+    }
+    if (kind === 'site' && item.key === 'site_theme') {
+      value = JSON.stringify(siteTheme.value)
     }
     if (kind === 'home' && item.key === 'home_legal_guides') {
       value = JSON.stringify(legalGuides.value)
@@ -596,8 +634,28 @@ function isJsonEditor(kind: GroupKind, key: string): boolean {
   return (kind === 'home' && key === 'home_stats')
     || (kind === 'home' && key === 'home_core_advantages')
     || (kind === 'site' && key === 'content_sidebar')
+    || (kind === 'site' && key === 'site_theme')
     || (kind === 'home' && key === 'home_legal_guides')
     || (kind === 'about' && key === 'about_team_paragraphs')
+}
+
+function onSiteThemePresetChange(event: Event) {
+  const preset = (event.target as HTMLSelectElement).value as SiteThemePreset
+  if (preset === 'custom') {
+    siteTheme.value = {
+      preset,
+      primary: isValidSiteThemeHex(siteTheme.value.primary) ? siteTheme.value.primary.toUpperCase() : DEFAULT_SITE_THEME.primary,
+    }
+  } else if (preset in SITE_THEME_PRESETS) {
+    const selected = SITE_THEME_PRESETS[preset as keyof typeof SITE_THEME_PRESETS]
+    siteTheme.value = { preset, primary: selected.primary }
+  }
+  saveSuccess.site = ''
+}
+
+function onSiteThemePrimaryInput(value: string) {
+  siteTheme.value = { preset: 'custom', primary: value }
+  saveSuccess.site = ''
 }
 
 /**
@@ -681,7 +739,7 @@ const STATUS_OPTIONS = [
             <div class="admin-settings__field">
               <div class="admin-settings__field-head">
                 <label class="admin-settings__label" :for="`setting-${tab.kind}-${item.key}`">
-                  {{ item.key === 'content_sidebar' ? '常见问题' : item.key }}
+                  {{ item.key === 'content_sidebar' ? '常见问题' : item.key === 'site_theme' ? '全站配色' : item.key }}
                 </label>
                 <span class="admin-settings__badge">{{ item.valueType }}</span>
               </div>
@@ -727,6 +785,54 @@ const STATUS_OPTIONS = [
                   <p class="admin-settings__hint">
                     结构化编辑区已停用：库中原始值无法解析，请参考上方错误提示处理。
                   </p>
+                </div>
+
+                <!-- site_theme：全站主色预设与自定义 HEX -->
+                <div v-else-if="item.key === 'site_theme'" class="admin-settings__rows">
+                  <p class="admin-settings__hint">选择公开页面的整体主色风格，保存后立即生效。自定义颜色只接受六位 HEX 格式。</p>
+                  <div class="admin-settings__cell">
+                    <label class="admin-settings__cell-label" for="site-theme-preset">配色风格</label>
+                    <select
+                      id="site-theme-preset"
+                      :value="siteTheme.preset"
+                      class="admin-settings__select"
+                      :disabled="controlsDisabled || savingKind !== ''"
+                      @change="onSiteThemePresetChange"
+                    >
+                      <option v-for="(preset, key) in SITE_THEME_PRESETS" :key="key" :value="key">{{ preset.label }}</option>
+                      <option value="custom">自定义颜色</option>
+                    </select>
+                  </div>
+                  <div class="admin-settings__cell admin-settings__cell--inline">
+                    <template v-if="siteTheme.preset === 'custom'">
+                      <label class="admin-settings__cell-label" for="site-theme-primary">自定义主色 HEX</label>
+                      <input
+                        id="site-theme-primary"
+                        :value="siteThemeInputError ? DEFAULT_SITE_THEME.primary : siteTheme.primary"
+                        type="color"
+                        :disabled="controlsDisabled || savingKind !== ''"
+                        @input="onSiteThemePrimaryInput(($event.target as HTMLInputElement).value)"
+                      >
+                      <input
+                        :value="siteTheme.primary"
+                        class="admin-settings__input"
+                        type="text"
+                        inputmode="text"
+                        maxlength="7"
+                        placeholder="#B91C1C"
+                        aria-describedby="site-theme-color-hint"
+                        :disabled="controlsDisabled || savingKind !== ''"
+                        @input="onSiteThemePrimaryInput(($event.target as HTMLInputElement).value)"
+                      >
+                    </template>
+                    <template v-else>
+                      <span class="admin-settings__cell-label">当前主色</span>
+                      <span class="admin-settings__theme-swatch" :style="siteThemePreview" aria-hidden="true" />
+                      <code>{{ siteTheme.primary }}</code>
+                    </template>
+                  </div>
+                  <p id="site-theme-color-hint" class="admin-settings__hint">#RRGGBB，例如 #B91C1C。点缀色按预设风格搭配。</p>
+                  <p v-if="siteThemeInputError" class="admin-settings__alert" role="alert">颜色格式无效，请输入 #RRGGBB 六位 HEX 值。</p>
                 </div>
 
                 <!-- content_sidebar：FAQ 顺序、显示状态与两类二维码标题 -->
@@ -1045,8 +1151,18 @@ const STATUS_OPTIONS = [
                       <BaseButton variant="secondary" size="sm" :disabled="controlsDisabled || savingKind !== ''" @click="addGuideParagraph(guide)">新增正文段落</BaseButton>
                     </div>
                     <div class="admin-settings__status">
-                      <span class="admin-settings__cell-label">咨询二维码</span>
-                      <span>{{ guide.qrItemKey || '暂未配置' }}（在“站点信息 → 常见问题”下方管理二维码图片）</span>
+                      <template v-if="guide.slug === 'logistics'">
+                        <label class="admin-settings__cell-label" for="guide-logistics-qr">领取二维码</label>
+                        <select id="guide-logistics-qr" v-model="guide.qrItemKey" class="admin-settings__select" :disabled="controlsDisabled || savingKind !== ''">
+                          <option value="">不显示二维码</option>
+                          <option v-for="option in GUIDE_QR_OPTIONS" :key="option.key" :value="option.key">{{ option.label }}</option>
+                        </select>
+                        <span>填写领取说明且所选二维码已配置图片后，首页显示“添加领取”。</span>
+                      </template>
+                      <template v-else>
+                        <span class="admin-settings__cell-label">咨询二维码</span>
+                        <span>{{ guide.qrItemKey }}（在“站点信息 → 常见问题”下方管理二维码图片）</span>
+                      </template>
                     </div>
                   </fieldset>
                   <div class="admin-settings__status">
@@ -1367,6 +1483,14 @@ const STATUS_OPTIONS = [
   align-items: center;
   gap: var(--space-2);
   grid-column: span 2;
+}
+
+.admin-settings__theme-swatch {
+  width: 32px;
+  height: 24px;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
 }
 
 .admin-settings__inline-option {
