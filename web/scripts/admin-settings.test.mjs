@@ -27,6 +27,8 @@ import {
 } from '../server/utils/admin/settings-queries.ts'
 
 const ADMIN_API_DIR = fileURLToPath(new URL('../server/api/admin/', import.meta.url))
+const ADMIN_SETTINGS_PAGE = fileURLToPath(new URL('../app/pages/admin/settings.vue', import.meta.url))
+const JSON_IMAGE_FIELD = fileURLToPath(new URL('../app/components/admin/JsonImageField.vue', import.meta.url))
 
 /** 统计 SQL 里的占位符个数，用于断言参数与问号一一对应。 */
 function placeholderCount(sql) {
@@ -400,4 +402,30 @@ test('静态守卫：web/server/api/admin/** 的每个接口文件都必须调�
       assert.ok(guardIndex < callIndex, `${relative} 在访问数据库之前没有先鉴权`)
     }
   }
+})
+
+test('站点设置页把 content_sidebar 与 home_legal_guides 接入结构化 JSON 状态与保存', () => {
+  const source = readFileSync(ADMIN_SETTINGS_PAGE, 'utf8')
+
+  for (const key of ['content_sidebar', 'home_legal_guides']) {
+    assert.ok(source.includes(`item.key === '${key}'`), `${key} 有专用编辑器`)
+    assert.ok(source.includes(`JSON.stringify(${key === 'content_sidebar' ? 'contentSidebar' : 'legalGuides'}.value)`), `${key} 进入 JSON 快照/保存`)
+    assert.ok(source.includes(`'${key}'`), `${key} 被结构化解析并纳入错误保护`)
+  }
+  assert.match(source, /function parseContentSidebar/)
+  assert.match(source, /function parseLegalGuides/)
+  assert.match(source, /kind === 'site' && item\.key === 'content_sidebar'/)
+  assert.match(source, /kind === 'home' && item\.key === 'home_legal_guides'/)
+  assert.match(source, /uploadingKeys\.value\.length === 0/)
+  assert.match(source, /home_legal_guides:[^`]*uploading|onImageUploading\(/)
+})
+
+test('JSON 配置图片控件上传后返回图片 URL 并在上传期间发出禁用状态', () => {
+  const source = readFileSync(JSON_IMAGE_FIELD, 'utf8')
+  assert.match(source, /useOssUpload\(/)
+  assert.match(source, /update:modelValue/)
+  assert.match(source, /publicUrl/)
+  assert.match(source, /emit\('uploading', true\)/)
+  assert.match(source, /emit\('uploading', false\)/)
+  assert.match(source, /usageScope: 'general'/)
 })

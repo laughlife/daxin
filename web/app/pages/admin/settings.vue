@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import type { HomeStatEntry, SettingItem } from '~/types/adminSettings'
+import {
+  normalizeContentSidebar,
+  normalizeLegalGuideSlides,
+  type ContentSidebarConfig,
+  type LegalGuideSlide,
+} from '~/utils/contentSettings'
 import { apiErrorMessage, httpStatusOf } from '~/utils/publicApi'
 import { SETTINGS_READ_ONLY_NOTICE, canWriteSettings } from '~/utils/adminPermission'
 
@@ -51,8 +57,8 @@ const requestFetch = useRequestFetch()
 const { user } = useAdminSession()
 
 const TABS: { kind: GroupKind, label: string, description: string }[] = [
-  { kind: 'site', label: '站点信息', description: '站点名称、描述、联系方式与站点 Logo。' },
-  { kind: 'home', label: '首页文案', description: '首页首屏、数据概览、咨询区的文案与配图。' },
+  { kind: 'site', label: '站点信息', description: '站点名称、描述、联系方式、站点 Logo 与内容页侧栏。' },
+  { kind: 'home', label: '首页文案', description: '首页首屏、数据概览、普法干货轮播及咨询区文案。' },
   { kind: 'about', label: '关于我们', description: '团队介绍标题、段落与配图。' }
 ]
 
@@ -89,6 +95,8 @@ const baseline = reactive<Record<GroupKind, string>>({
 const homeStats = ref<HomeStatEntry[]>([])
 const aboutParagraphs = ref<string[]>([])
 const coreAdvantages = ref<CoreAdvantageEditorEntry[]>([])
+const contentSidebar = ref<ContentSidebarConfig>(normalizeContentSidebar(null))
+const legalGuides = ref<LegalGuideSlide[]>(normalizeLegalGuideSlides(null))
 /** 解析失败等阻断保存的原因：`kind:key` → 中文说明 */
 const blockingErrors = reactive<Record<string, string>>({})
 
@@ -181,6 +189,28 @@ function parseCoreAdvantages(items: SettingItem[]): CoreAdvantageEditorEntry[] {
   }).filter(entry => entry.title || entry.description)
 }
 
+function parseContentSidebar(items: SettingItem[]): ContentSidebarConfig {
+  const item = items.find(entry => entry.key === 'content_sidebar')
+  if (!item || !item.value.trim()) return normalizeContentSidebar(null)
+  try {
+    return normalizeContentSidebar(JSON.parse(item.value))
+  } catch {
+    blockingErrors['site:content_sidebar'] = '库中已有的 content_sidebar 不是合法 JSON，无法结构化编辑。为避免覆盖原始数据，已停用该编辑区并禁止保存，请先在数据库中修复该配置。'
+    return normalizeContentSidebar(null)
+  }
+}
+
+function parseLegalGuides(items: SettingItem[]): LegalGuideSlide[] {
+  const item = items.find(entry => entry.key === 'home_legal_guides')
+  if (!item || !item.value.trim()) return normalizeLegalGuideSlides(null)
+  try {
+    return normalizeLegalGuideSlides(JSON.parse(item.value))
+  } catch {
+    blockingErrors['home:home_legal_guides'] = '库中已有的 home_legal_guides 不是合法 JSON，无法结构化编辑。为避免覆盖原始数据，已停用该编辑区并禁止保存，请先在数据库中修复该配置。'
+    return normalizeLegalGuideSlides(null)
+  }
+}
+
 function serializeCoreAdvantages() {
   return coreAdvantages.value.map(entry => ({
     title: entry.title,
@@ -197,6 +227,12 @@ function snapshot(kind: GroupKind): string {
     }
     if (kind === 'home' && item.key === 'home_core_advantages') {
       return { ...item, value: JSON.stringify(serializeCoreAdvantages()) }
+    }
+    if (kind === 'site' && item.key === 'content_sidebar') {
+      return { ...item, value: JSON.stringify(contentSidebar.value) }
+    }
+    if (kind === 'home' && item.key === 'home_legal_guides') {
+      return { ...item, value: JSON.stringify(legalGuides.value) }
     }
     if (kind === 'about' && item.key === 'about_team_paragraphs') {
       return { ...item, value: JSON.stringify(aboutParagraphs.value) }
@@ -286,6 +322,8 @@ function applyGroup(kind: GroupKind, payload: { data: GroupPayload }) {
   }
   if (kind === 'home') homeStats.value = parseHomeStats(items)
   if (kind === 'home') coreAdvantages.value = parseCoreAdvantages(items)
+  if (kind === 'site') contentSidebar.value = parseContentSidebar(items)
+  if (kind === 'home') legalGuides.value = parseLegalGuides(items)
   if (kind === 'about') {
     aboutParagraphs.value = parseParagraphs(items)
     for (const key of IMAGE_LIST_KEYS) {
@@ -380,6 +418,12 @@ function buildPayload(kind: GroupKind) {
     }
     if (kind === 'home' && item.key === 'home_core_advantages') {
       value = JSON.stringify(serializeCoreAdvantages())
+    }
+    if (kind === 'site' && item.key === 'content_sidebar') {
+      value = JSON.stringify(contentSidebar.value)
+    }
+    if (kind === 'home' && item.key === 'home_legal_guides') {
+      value = JSON.stringify(legalGuides.value)
     }
     if (kind === 'about' && item.key === 'about_team_paragraphs') {
       value = JSON.stringify(aboutParagraphs.value)
@@ -486,6 +530,20 @@ function removeParagraph(index: number) {
   saveSuccess.about = ''
 }
 
+function addGuideParagraph(guide: LegalGuideSlide) {
+  guide.paragraphs.push('')
+  saveSuccess.home = ''
+}
+
+function removeGuideParagraph(guide: LegalGuideSlide, index: number) {
+  guide.paragraphs.splice(index, 1)
+  saveSuccess.home = ''
+}
+
+function onGuideImageUploading(slug: string, value: boolean) {
+  onImageUploading(`home:home_legal_guides:${slug}`, value)
+}
+
 function moveParagraph(index: number, delta: number) {
   const target = index + delta
   if (target < 0 || target >= aboutParagraphs.value.length) return
@@ -536,6 +594,8 @@ function onImageUploading(key: string, value: boolean) {
 function isJsonEditor(kind: GroupKind, key: string): boolean {
   return (kind === 'home' && key === 'home_stats')
     || (kind === 'home' && key === 'home_core_advantages')
+    || (kind === 'site' && key === 'content_sidebar')
+    || (kind === 'home' && key === 'home_legal_guides')
     || (kind === 'about' && key === 'about_team_paragraphs')
 }
 
@@ -665,6 +725,78 @@ const STATUS_OPTIONS = [
                   <p class="admin-settings__hint">
                     结构化编辑区已停用：库中原始值无法解析，请参考上方错误提示处理。
                   </p>
+                </div>
+
+                <!-- content_sidebar：FAQ 顺序、显示状态与两类二维码标题 -->
+                <div v-else-if="item.key === 'content_sidebar'" class="admin-settings__rows">
+                  <p class="admin-settings__hint">维护内容页侧栏的常见问题入口和两类二维码标题。FAQ 地址固定为站内链接。</p>
+                  <div class="admin-settings__cell">
+                    <label class="admin-settings__cell-label" for="sidebar-faq-title">常见问题标题</label>
+                    <input
+                      id="sidebar-faq-title"
+                      v-model="contentSidebar.faqTitle"
+                      class="admin-settings__input"
+                      type="text"
+                      :disabled="controlsDisabled || savingKind !== ''"
+                    >
+                  </div>
+                  <div class="admin-settings__cell">
+                    <label class="admin-settings__cell-label" for="sidebar-public-heading">公众号二维码标题</label>
+                    <input
+                      id="sidebar-public-heading"
+                      v-model="contentSidebar.publicHeading"
+                      class="admin-settings__input"
+                      type="text"
+                      :disabled="controlsDisabled || savingKind !== ''"
+                    >
+                  </div>
+                  <div class="admin-settings__cell">
+                    <label class="admin-settings__cell-label" for="sidebar-consult-heading">咨询号二维码标题</label>
+                    <input
+                      id="sidebar-consult-heading"
+                      v-model="contentSidebar.consultHeading"
+                      class="admin-settings__input"
+                      type="text"
+                      :disabled="controlsDisabled || savingKind !== ''"
+                    >
+                  </div>
+                  <fieldset
+                    v-for="link in contentSidebar.faqLinks"
+                    :key="`sidebar-link-${link.key}`"
+                    class="admin-settings__row"
+                  >
+                    <legend class="admin-settings__row-legend">{{ link.key === 'tro' ? 'TRO 常见问题' : link.key === 'labor' ? '劳动争议' : '跨境干货' }}</legend>
+                    <div class="admin-settings__row-grid">
+                      <div class="admin-settings__cell">
+                        <label class="admin-settings__cell-label" :for="`sidebar-link-${link.key}-label`">显示名称</label>
+                        <input
+                          :id="`sidebar-link-${link.key}-label`"
+                          v-model="link.label"
+                          class="admin-settings__input"
+                          type="text"
+                          :disabled="controlsDisabled || savingKind !== ''"
+                        >
+                      </div>
+                      <div class="admin-settings__cell">
+                        <label class="admin-settings__cell-label" :for="`sidebar-link-${link.key}-path`">站内地址</label>
+                        <input :id="`sidebar-link-${link.key}-path`" class="admin-settings__input" type="text" :value="link.path" disabled>
+                      </div>
+                      <div class="admin-settings__cell admin-settings__cell--inline">
+                        <input :id="`sidebar-link-${link.key}-enabled`" v-model="link.enabled" type="checkbox" :disabled="controlsDisabled || savingKind !== ''">
+                        <label class="admin-settings__cell-label" :for="`sidebar-link-${link.key}-enabled`">显示此入口</label>
+                      </div>
+                      <div class="admin-settings__cell">
+                        <label class="admin-settings__cell-label" :for="`sidebar-link-${link.key}-order`">排序值</label>
+                        <input :id="`sidebar-link-${link.key}-order`" v-model.number="link.sortOrder" class="admin-settings__input" type="number" min="0" max="9999" :disabled="controlsDisabled || savingKind !== ''">
+                      </div>
+                    </div>
+                  </fieldset>
+                  <div class="admin-settings__status">
+                    <label class="admin-settings__cell-label" :for="`status-${tab.kind}-${item.key}`">状态</label>
+                    <select :id="`status-${tab.kind}-${item.key}`" v-model="item.status" class="admin-settings__select" :disabled="controlsDisabled || savingKind !== ''">
+                      <option v-for="option in STATUS_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
+                    </select>
+                  </div>
                 </div>
 
                 <!-- home_stats：数组 of { value, label, description, emphasis } -->
@@ -864,6 +996,63 @@ const STATUS_OPTIONS = [
                   >
                     新增一项优势
                   </BaseButton>
+                </div>
+
+                <!-- home_legal_guides：固定的 TRO、劳动法和国际物流三个主题 -->
+                <div v-else-if="item.key === 'home_legal_guides'" class="admin-settings__rows">
+                  <p class="admin-settings__hint">固定三个轮播主题；可维护标题、正文、封面、领取说明和主题颜色，主题顺序保持不变。</p>
+                  <fieldset v-for="guide in legalGuides" :key="`guide-${guide.slug}`" class="admin-settings__row">
+                    <legend class="admin-settings__row-legend">{{ guide.slug === 'tro' ? 'TRO 跨境' : guide.slug === 'labor' ? '劳动法' : '国际物流' }}</legend>
+                    <div class="admin-settings__row-grid">
+                      <div class="admin-settings__cell">
+                        <label class="admin-settings__cell-label" :for="`guide-${guide.slug}-category`">主题名称</label>
+                        <input :id="`guide-${guide.slug}-category`" v-model="guide.category" class="admin-settings__input" type="text" :disabled="controlsDisabled || savingKind !== ''">
+                      </div>
+                      <div class="admin-settings__cell">
+                        <label class="admin-settings__cell-label" :for="`guide-${guide.slug}-title`">书本标题</label>
+                        <input :id="`guide-${guide.slug}-title`" v-model="guide.title" class="admin-settings__input" type="text" :disabled="controlsDisabled || savingKind !== ''">
+                      </div>
+                    </div>
+                    <div class="admin-settings__cell">
+                      <label class="admin-settings__cell-label" :for="`guide-${guide.slug}-image-alt`">图片说明</label>
+                      <input :id="`guide-${guide.slug}-image-alt`" v-model="guide.imageAlt" class="admin-settings__input" type="text" :disabled="controlsDisabled || savingKind !== ''">
+                    </div>
+                    <JsonImageField
+                      :model-value="guide.image"
+                      :label="`${guide.category}封面`"
+                      :disabled="controlsDisabled || savingKind !== ''"
+                      @update:model-value="value => { guide.image = value; saveSuccess.home = '' }"
+                      @uploading="value => onGuideImageUploading(guide.slug, value)"
+                    />
+                    <div class="admin-settings__cell">
+                      <label class="admin-settings__cell-label" :for="`guide-${guide.slug}-benefit`">领取说明</label>
+                      <input :id="`guide-${guide.slug}-benefit`" v-model="guide.benefit" class="admin-settings__input" type="text" :disabled="controlsDisabled || savingKind !== ''">
+                    </div>
+                    <div class="admin-settings__cell admin-settings__cell--inline">
+                      <label class="admin-settings__cell-label" :for="`guide-${guide.slug}-accent`">主题色</label>
+                      <input :id="`guide-${guide.slug}-accent`" v-model="guide.accent" type="color" :disabled="controlsDisabled || savingKind !== ''">
+                      <code>{{ guide.accent }}</code>
+                    </div>
+                    <div class="admin-settings__cell">
+                      <span class="admin-settings__cell-label">正文</span>
+                      <div v-for="(paragraph, index) in guide.paragraphs" :key="`${guide.slug}-paragraph-${index}`" class="admin-settings__row">
+                        <label class="admin-settings__cell-label" :for="`guide-${guide.slug}-paragraph-${index}`">第 {{ index + 1 }} 段</label>
+                        <textarea :id="`guide-${guide.slug}-paragraph-${index}`" v-model="guide.paragraphs[index]" class="admin-settings__textarea" rows="4" :disabled="controlsDisabled || savingKind !== ''" />
+                        <BaseButton variant="ghost" size="sm" :disabled="controlsDisabled || savingKind !== ''" @click="removeGuideParagraph(guide, index)">删除本段</BaseButton>
+                      </div>
+                      <BaseButton variant="secondary" size="sm" :disabled="controlsDisabled || savingKind !== ''" @click="addGuideParagraph(guide)">新增正文段落</BaseButton>
+                    </div>
+                    <div class="admin-settings__status">
+                      <span class="admin-settings__cell-label">咨询二维码</span>
+                      <span>{{ guide.qrItemKey || '暂未配置' }}（在“页脚与联系方式”管理二维码图片）</span>
+                    </div>
+                  </fieldset>
+                  <div class="admin-settings__status">
+                    <label class="admin-settings__cell-label" :for="`status-${tab.kind}-${item.key}`">状态</label>
+                    <select :id="`status-${tab.kind}-${item.key}`" v-model="item.status" class="admin-settings__select" :disabled="controlsDisabled || savingKind !== ''">
+                      <option v-for="option in STATUS_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
+                    </select>
+                  </div>
                 </div>
 
                 <!-- about_team_paragraphs：字符串数组 -->
