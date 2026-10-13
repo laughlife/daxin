@@ -15,10 +15,22 @@ test('TRO case search defaults to 50 and removes date shortcut navigation', () =
   assert.doesNotMatch(pageSource, />\s*(今日起案件|近三天起案件|全部历史案件)\s*</)
 })
 
-test('all three filters use equal full-width rows', () => {
-  assert.match(panelSource, /grid-template-columns: minmax\(0, 1fr\)/)
-  assert.match(panelSource, /case-search-panel__field--full/)
-  assert.doesNotMatch(panelSource, /grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/)
+test('keyword spans a full row and the type/date filters share the next row', () => {
+  assert.match(panelSource, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/)
+  assert.match(panelSource, /case-search-panel__field--keyword[\s\S]*?grid-column: 1 \/ -1/)
+  assert.match(panelSource, /case-search-panel__field--type/)
+  assert.match(panelSource, /case-search-panel__field--date/)
+  assert.match(panelSource, /@media \(max-width: 639px\)[\s\S]*?grid-template-columns: minmax\(0, 1fr\)/)
+  assert.doesNotMatch(panelSource, /case-search-panel__field--full/)
+})
+
+test('home service cards use the supplied red 3D icons by service category', async () => {
+  const servicesSource = await readFile(new URL('../app/components/home/HomeTeamServices.vue', import.meta.url), 'utf8')
+  assert.match(servicesSource, /service-tro\.png/)
+  assert.match(servicesSource, /service-ip\.png/)
+  assert.match(servicesSource, /service-dispute\.png/)
+  assert.match(servicesSource, /service-cross-border\.png/)
+  assert.match(servicesSource, /:src="iconFor\(section\)"/)
 })
 
 test('TRO cases API supports 50 rows without changing the shared article/admin cap', () => {

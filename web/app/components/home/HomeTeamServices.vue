@@ -4,13 +4,32 @@ import type { HomeTeamServiceSection } from '~/repositories/home'
 defineProps<{
   sections: HomeTeamServiceSection[]
 }>()
+
+function iconFor(section: HomeTeamServiceSection): string {
+  const title = section.title.toLowerCase()
+
+  if (title.includes('tro')) return '/images/services/service-tro.png'
+  if (title.includes('知识产权') || title.includes('亚马逊')) return '/images/services/service-ip.png'
+  if (title.includes('涉外')) return '/images/services/service-dispute.png'
+  if (title.includes('跨境') || title.includes('劳动')) return '/images/services/service-cross-border.png'
+  return ''
+}
 </script>
 
 <template>
   <section v-if="sections.length" class="home-team-services" aria-label="跨境法律服务">
     <div class="home-team-services__grid">
       <article v-for="section in sections" :key="section.slug" class="home-team-services__card">
-        <h3 class="home-team-services__title">{{ section.title }}</h3>
+        <div class="home-team-services__heading">
+          <img
+            v-if="iconFor(section)"
+            class="home-team-services__icon"
+            :src="iconFor(section)"
+            alt=""
+            aria-hidden="true"
+          >
+          <h3 class="home-team-services__title">{{ section.title }}</h3>
+        </div>
         <ul class="home-team-services__items">
           <li v-for="item in section.items" :key="`${section.slug}-${item.title}`">
             <span aria-hidden="true">✦</span>
@@ -55,6 +74,22 @@ defineProps<{
   color: var(--color-text);
   font-size: var(--text-lg);
   line-height: 1.35;
+  margin: 0;
+}
+
+.home-team-services__heading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 64px;
+}
+
+.home-team-services__icon {
+  display: block;
+  flex: 0 0 64px;
+  width: 64px;
+  height: 64px;
+  object-fit: contain;
 }
 
 .home-team-services__items {
@@ -93,6 +128,16 @@ defineProps<{
 @media (max-width: 639px) {
   .home-team-services__grid {
     grid-template-columns: 1fr;
+  }
+
+  .home-team-services__heading {
+    min-height: 48px;
+  }
+
+  .home-team-services__icon {
+    flex-basis: 48px;
+    width: 48px;
+    height: 48px;
   }
 }
 </style>

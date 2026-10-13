@@ -36,7 +36,7 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
     @submit.prevent
   >
     <div class="case-search-panel__grid">
-      <div class="case-search-panel__field case-search-panel__field--full">
+      <div class="case-search-panel__field case-search-panel__field--keyword">
         <label for="case-search-keyword">关键词</label>
         <input
           id="case-search-keyword"
@@ -46,7 +46,7 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
           autocomplete="off"
         >
       </div>
-      <div class="case-search-panel__field case-search-panel__field--full">
+      <div class="case-search-panel__field case-search-panel__field--type">
         <label for="case-search-type">侵权类型</label>
         <select id="case-search-type" v-model="filters.caseType">
           <option
@@ -58,7 +58,7 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
           </option>
         </select>
       </div>
-      <div class="case-search-panel__field case-search-panel__field--full">
+      <div class="case-search-panel__field case-search-panel__field--date">
         <label for="case-search-date">起诉时间</label>
         <input
           id="case-search-date"
@@ -96,7 +96,7 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
 
 .case-search-panel__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
 }
 
@@ -107,7 +107,7 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
   min-width: 0;
 }
 
-.case-search-panel__field--full {
+.case-search-panel__field--keyword {
   grid-column: 1 / -1;
 }
 
@@ -172,5 +172,8 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
     padding: var(--space-4);
   }
 
+  .case-search-panel__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 </style>
