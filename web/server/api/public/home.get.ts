@@ -7,8 +7,8 @@ import { queryRecentArticleRowsByCategory } from '../../utils/public/article-sql
 import { toArticleSummary, type ArticleSummary } from '../../utils/public/article-query'
 import { mapCaseRecord } from '../../utils/public/case-mapper'
 import type { CaseRecord } from '../../../app/types/content'
-// @ts-ignore 公开接口与前端仓储共享无副作用的归一化函数。
-import { normalizeCoreAdvantages, normalizeTeamServices } from '../../../app/utils/homeData.mjs'
+// Nuxt alias keeps this shared helper resolvable in both Vite dev and Nitro's generated entry.
+import { normalizeCoreAdvantages, normalizeTeamServices } from '~/utils/homeData.mjs'
 
 /** 首页成功案例预览条数。 */
 const HOME_CASE_LIMIT = 6

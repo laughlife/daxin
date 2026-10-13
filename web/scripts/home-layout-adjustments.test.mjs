@@ -45,6 +45,8 @@ test('team business configuration is discoverable and configured icons reach the
   assert.match(homeRepositorySource, /iconKey: String\(section\?\.iconKey/)
   assert.match(teamServicesSource, /SERVICE_ICONS\[section\.iconKey\]/)
   assert.match(adminServicesSource, /ICON_OPTIONS/)
+  assert.match(homeApiSource, /from '~\/utils\/homeData\.mjs'/)
+  assert.doesNotMatch(homeApiSource, /from '\.\.\/\.\.\/\.\.\/app\/utils\/homeData\.mjs'/)
 })
 
 test('all homepage metrics get a subtle selected hover state', () => {
