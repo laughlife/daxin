@@ -115,7 +115,7 @@ function segments(item: CoreAdvantage) {
             @focus="setHovered(index)"
             @blur="clearHovered(index)"
           >
-            <svg class="home-core-advantages__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg v-if="expandedIndex !== index" class="home-core-advantages__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path :d="iconPath(item.title)" />
             </svg>
             <span class="home-core-advantages__title">{{ displayTitle(item.title) }}</span>
@@ -184,6 +184,11 @@ function segments(item: CoreAdvantage) {
   color: var(--color-primary);
 }
 
+.home-core-advantages__card--expanded .home-core-advantages__trigger {
+  flex: 0 0 auto;
+  padding-block: var(--space-4) var(--space-2);
+}
+
 .home-core-advantages__title {
   font-size: var(--text-lg);
   font-weight: 700;
@@ -199,7 +204,7 @@ function segments(item: CoreAdvantage) {
   color: var(--color-text-muted);
   font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
-  overflow-y: auto;
+  overflow: visible;
 }
 
 .home-core-advantages__emphasis {

@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import type { HomeTeamServiceSection } from '~/repositories/home'
 
-const redundantItemTitles = new Set(['和解', '起诉', '应诉'])
-
 defineProps<{
   sections: HomeTeamServiceSection[]
 }>()
@@ -14,7 +12,7 @@ defineProps<{
       <article v-for="section in sections" :key="section.slug" class="home-team-services__card">
         <h3 class="home-team-services__title">{{ section.title }}</h3>
         <ul class="home-team-services__items">
-          <li v-for="item in section.items.filter(item => !redundantItemTitles.has(item.title.trim()))" :key="`${section.slug}-${item.title}`">
+          <li v-for="item in section.items" :key="`${section.slug}-${item.title}`">
             <span aria-hidden="true">✦</span>
             <span>{{ item.title }}</span>
           </li>

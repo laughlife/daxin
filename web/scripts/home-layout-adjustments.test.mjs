@@ -25,10 +25,10 @@ test('team introduction centers About US and keeps the copy compact beside the s
   assert.match(indexSource, /teamDisplayTitle = computed/)
 })
 
-test('service cards omit redundant summaries and TRO process items, with a subtle hover state', () => {
+test('service cards omit redundant summaries but keep all configured items, with a subtle hover state', () => {
   assert.doesNotMatch(teamServicesSource, /section\.description/)
-  assert.match(teamServicesSource, /section\.items\.filter/)
-  assert.match(teamServicesSource, /和解|起诉|应诉/)
+  assert.match(teamServicesSource, /v-for="item in section\.items"/)
+  assert.doesNotMatch(teamServicesSource, /redundantItemTitles/)
   assert.match(teamServicesSource, /:hover/)
   assert.match(teamServicesSource, /scale\(1\.0\d+\)/)
 })
@@ -46,6 +46,8 @@ test('core advantages omit numeric prefixes, keep a stable card height, and wide
   assert.match(advantagesSource, /height:\s*\d+px/)
   assert.match(advantagesSource, /gridTemplateColumns/)
   assert.match(advantagesSource, /home-core-advantages__icon/)
+  assert.match(advantagesSource, /v-if="expandedIndex !== index"/)
+  assert.doesNotMatch(advantagesSource, /overflow-y:\s*auto/)
   assert.match(advantagesSource, /flex-direction:\s*column/)
   assert.match(advantagesSource, /align-items:\s*center/)
 })
