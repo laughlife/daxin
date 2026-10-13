@@ -116,6 +116,7 @@ const items = computed(() =>
 }
 
 .article-preview-section__column-title {
+  margin: 0;
   font-size: var(--text-lg);
   color: var(--color-text);
 }
@@ -219,7 +220,9 @@ const items = computed(() =>
 }
 
 .article-preview-card__title {
+  margin: 0;
   font-size: var(--text-base);
+  line-height: 1.4;
 }
 
 .article-preview-card__title a {
@@ -231,6 +234,7 @@ const items = computed(() =>
 }
 
 .article-preview-card__excerpt {
+  margin: 0;
   font-size: var(--text-sm);
   color: var(--color-text-muted);
   display: -webkit-box;
