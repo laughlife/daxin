@@ -1,12 +1,18 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useSiteSettings } from '~/composables/useSiteSettings'
+import { siteThemeCssVariables } from '~/utils/siteTheme'
+
 /**
  * 默认布局：顶部公告栏 + Header + 主内容区（slot） + Footer。
  * 布局仅负责结构组合，具体实现位于 components/layout/ 下的各个组件。
  */
+const { data: siteSettings } = await useSiteSettings()
+const siteThemeStyle = computed(() => siteThemeCssVariables(siteSettings.value?.settings?.site_theme))
 </script>
 
 <template>
-  <div class="site-shell">
+  <div class="site-shell" :style="siteThemeStyle">
     <a class="skip-link" href="#main-content">跳到主要内容</a>
     <SiteAnnouncement />
     <SiteHeader />
@@ -19,6 +25,8 @@
 
 <style scoped>
 .site-shell {
+  --color-primary-dark: color-mix(in srgb, var(--color-primary) 78%, black);
+  --color-primary-light: color-mix(in srgb, var(--color-primary) 10%, white);
   display: flex;
   flex-direction: column;
   min-height: 100vh;

@@ -8,6 +8,8 @@ import {
 } from '../app/utils/siteTheme.ts'
 
 const adminSettingsSource = await readFile(new URL('../app/pages/admin/settings.vue', import.meta.url), 'utf8')
+const publicLayoutSource = await readFile(new URL('../app/layouts/default.vue', import.meta.url), 'utf8')
+const adminLayoutSource = await readFile(new URL('../app/layouts/admin.vue', import.meta.url), 'utf8')
 
 test('site theme presets use the approved brand palettes', () => {
   assert.deepEqual(SITE_THEME_PRESETS, {
@@ -60,4 +62,13 @@ test('admin settings edits site_theme as structured data and blocks invalid cust
   assert.match(adminSettingsSource, /v-for="\(preset, key\) in SITE_THEME_PRESETS"/)
   assert.match(adminSettingsSource, /type="color"/)
   assert.match(adminSettingsSource, /#RRGGBB/)
+})
+
+test('public layout applies normalized theme tokens while admin keeps its own theme', () => {
+  assert.match(publicLayoutSource, /useSiteSettings\(/)
+  assert.match(publicLayoutSource, /siteThemeCssVariables\(/)
+  assert.match(publicLayoutSource, /class="site-shell"\s+:style="siteThemeStyle"/)
+  assert.match(publicLayoutSource, /--color-primary-dark:\s*color-mix/)
+  assert.match(publicLayoutSource, /--color-primary-light:\s*color-mix/)
+  assert.doesNotMatch(adminLayoutSource, /siteThemeCssVariables|site_theme/)
 })
