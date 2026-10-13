@@ -196,6 +196,7 @@ useHead({
     </section>
 
     <HomeCoreAdvantages :items="coreAdvantages" />
+    <HomeLegalGuides />
     <section class="home-content"><PageContainer>
       <ErrorState
         v-if="homeError"
