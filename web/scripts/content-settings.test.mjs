@@ -66,6 +66,17 @@ test('legal guide settings preserve three fixed themes and merge editable copy w
   assert.equal(result[2].qrItemKey, '')
 })
 
+test('legal guide settings preserve every paragraph added in the admin editor', () => {
+  const paragraphs = Array.from({ length: 9 }, (_, index) => `正文第${index + 1}段`)
+  const result = normalizeLegalGuideSlides([
+    { slug: 'tro', paragraphs },
+    { slug: 'labor' },
+    { slug: 'logistics' },
+  ])
+
+  assert.deepEqual(result[0].paragraphs, paragraphs)
+})
+
 test('invalid or incomplete legal guide arrays fall back to all original themes', () => {
   const defaults = normalizeLegalGuideSlides(undefined)
 

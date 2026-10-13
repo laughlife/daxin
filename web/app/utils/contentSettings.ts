@@ -190,7 +190,7 @@ export function normalizeLegalGuideSlides(value: unknown): LegalGuideSlide[] {
   return defaults.map((fallback) => {
     const candidate = bySlug.get(fallback.slug)!
     const paragraphs = Array.isArray(candidate.paragraphs)
-      ? candidate.paragraphs.filter((paragraph): paragraph is string => typeof paragraph === 'string').map(paragraph => paragraph.trim()).filter(Boolean).slice(0, 8)
+      ? candidate.paragraphs.filter((paragraph): paragraph is string => typeof paragraph === 'string').map(paragraph => paragraph.trim()).filter(Boolean)
       : fallback.paragraphs
     return {
       ...fallback,
