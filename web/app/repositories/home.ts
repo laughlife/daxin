@@ -15,17 +15,39 @@ export interface HomeArticleColumn {
   articles: ArticleRecord[]
 }
 
+export interface HomeTeamServiceItem {
+  title: string
+  description: string
+}
+
+export interface HomeTeamServiceSection {
+  slug: string
+  title: string
+  description: string
+  items: HomeTeamServiceItem[]
+}
+
+export interface CoreAdvantage {
+  title: string
+  description: string
+  highlights: string[]
+}
+
 export interface HomeData {
   stats: unknown[]
   /** 首页成功案例预览，最多 6 条 */
   featuredCases: CaseRecord[]
   /** 四类案例分享，每类最多 3 篇；空分类的 articles 为空数组 */
   articleColumns: HomeArticleColumn[]
+  teamServices: HomeTeamServiceSection[]
+  coreAdvantages: CoreAdvantage[]
 }
 
 interface HomePayload {
   featuredCases?: CaseRecord[]
   articleColumns?: Array<{ slug?: string, section?: string, articles?: ArticleSummary[] }>
+  teamServices?: HomeTeamServiceSection[]
+  coreAdvantages?: CoreAdvantage[]
 }
 
 const HOME_ENDPOINT = '/api/public/home'
@@ -46,6 +68,34 @@ function normalizeColumns(value: HomePayload['articleColumns']): HomeArticleColu
   }))
 }
 
+function normalizeTeamServices(value: HomePayload['teamServices']): HomeTeamServiceSection[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map(section => ({
+      slug: String(section?.slug ?? ''),
+      title: String(section?.title ?? ''),
+      description: String(section?.description ?? ''),
+      items: Array.isArray(section?.items)
+        ? section.items.map(item => ({
+          title: String(item?.title ?? ''),
+          description: String(item?.description ?? ''),
+        })).filter(item => item.title)
+        : [],
+    }))
+    .filter(section => section.slug && section.title && section.items.length > 0)
+}
+
+function normalizeCoreAdvantages(value: HomePayload['coreAdvantages']): CoreAdvantage[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .map(item => ({
+      title: String(item?.title ?? ''),
+      description: String(item?.description ?? ''),
+      highlights: Array.isArray(item?.highlights) ? item.highlights.map(value => String(value ?? '')).filter(Boolean) : [],
+    }))
+    .filter(item => item.title && item.description)
+}
+
 export async function fetchHomeData(): Promise<HomeData> {
   const payload = await requestPublicApi<HomePayload>(HOME_ENDPOINT)
   const data = unwrapPublicApiData(payload, HOME_FAILURE_MESSAGE)
@@ -53,5 +103,7 @@ export async function fetchHomeData(): Promise<HomeData> {
     stats: [],
     featuredCases: Array.isArray(data.featuredCases) ? data.featuredCases : [],
     articleColumns: normalizeColumns(data.articleColumns),
+    teamServices: normalizeTeamServices(data.teamServices),
+    coreAdvantages: normalizeCoreAdvantages(data.coreAdvantages),
   }
 }

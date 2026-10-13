@@ -7,6 +7,8 @@ import { queryRecentArticleRowsByCategory } from '../../utils/public/article-sql
 import { toArticleSummary, type ArticleSummary } from '../../utils/public/article-query'
 import { mapCaseRecord } from '../../utils/public/case-mapper'
 import type { CaseRecord } from '../../../app/types/content'
+// @ts-ignore 公开接口与前端仓储共享无副作用的归一化函数。
+import { normalizeCoreAdvantages, normalizeTeamServices } from '../../../app/utils/homeData.mjs'
 
 /** 首页成功案例预览条数。 */
 const HOME_CASE_LIMIT = 6
@@ -24,6 +26,19 @@ export const HOME_ARTICLE_CATEGORIES = [
 
 /** 每类取近 3 篇。 */
 const HOME_ARTICLES_PER_CATEGORY = 3
+
+const HOME_TEAM_SERVICES_SQL = `SELECT ss.slug, ss.title, ss.summary, ss.sort_order AS section_sort_order, ss.status AS section_status,
+  si.title AS item_title, si.summary AS item_summary, si.sort_order AS item_sort_order, si.status AS item_status
+FROM service_sections ss
+LEFT JOIN service_items si ON si.section_id = ss.id
+WHERE ss.status = 1
+ORDER BY ss.sort_order, ss.id, si.sort_order, si.id`
+
+const HOME_CORE_ADVANTAGES_SQL = `SELECT setting_value
+FROM site_settings
+WHERE setting_key = 'home_core_advantages' AND is_current = 1 AND status = 'published'
+ORDER BY version DESC, id DESC
+LIMIT 1`
 
 /**
  * 首页案件预览：优先 filed_at 最新的已发布案件（NULL 排最后）。
@@ -70,12 +85,52 @@ interface HomeCaseRow {
   ip_slug: string | null
 }
 
+interface HomeTeamServiceRow {
+  slug: string | null
+  title: string | null
+  summary: string | null
+  section_sort_order: number | string | null
+  section_status: number | string | null
+  item_title: string | null
+  item_summary: string | null
+  item_sort_order: number | string | null
+  item_status: number | string | null
+}
+
+interface HomeCoreAdvantagesRow {
+  setting_value: string | null
+}
+
 function toFeaturedCase(row: HomeCaseRow): CaseRecord {
   return mapCaseRecord(row, {
     brandNames: row.brand_name ? [row.brand_name] : [],
     lawFirmNames: row.firm_name ? [row.firm_name] : [],
     ipTypeSlugs: row.ip_slug ? [row.ip_slug] : [],
   })
+}
+
+function toTeamServices(rows: HomeTeamServiceRow[]) {
+  const sections = new Map<string, { slug: string, title: string, description: string, status: number, items: Array<{ title: string, description: string, status: number }> }>()
+  for (const row of rows) {
+    const slug = String(row.slug ?? '').trim()
+    if (!slug) continue
+    const section = sections.get(slug) ?? {
+      slug,
+      title: String(row.title ?? '').trim(),
+      description: String(row.summary ?? '').trim(),
+      status: Number(row.section_status ?? 1),
+      items: [],
+    }
+    if (row.item_title && Number(row.item_status ?? 1) === 1) {
+      section.items.push({
+        title: String(row.item_title).trim(),
+        description: String(row.item_summary ?? '').trim(),
+        status: Number(row.item_status ?? 1),
+      })
+    }
+    sections.set(slug, section)
+  }
+  return normalizeTeamServices([...sections.values()])
 }
 
 /** 首页案例分享的一个栏目。 */
@@ -88,9 +143,11 @@ export interface HomeArticleColumn {
 export default defineEventHandler(async (event) => {
   try {
     const categorySlugs = HOME_ARTICLE_CATEGORIES.map((item) => item.slug)
-    const [articleRows, caseRows] = await Promise.all([
+    const [articleRows, caseRows, teamServiceRows, coreAdvantageRows] = await Promise.all([
       queryRecentArticleRowsByCategory(categorySlugs, HOME_ARTICLES_PER_CATEGORY),
       queryTarget<HomeCaseRow>(HOME_CASE_SQL, [HOME_CASE_LIMIT]),
+      queryTarget<HomeTeamServiceRow>(HOME_TEAM_SERVICES_SQL),
+      queryTarget<HomeCoreAdvantagesRow>(HOME_CORE_ADVANTAGES_SQL),
     ])
 
     // 行已按 分类、名次 排序；这里按分类归组，并保证四类都出现（空分类也返回空数组）。
@@ -113,6 +170,8 @@ export default defineEventHandler(async (event) => {
           section: category.section,
           articles: byCategory.get(category.slug) ?? [],
         })),
+        teamServices: toTeamServices(teamServiceRows),
+        coreAdvantages: normalizeCoreAdvantages(coreAdvantageRows[0]?.setting_value ?? null),
       },
     }
   } catch (error) {

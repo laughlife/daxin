@@ -36,6 +36,17 @@ interface GroupPayload {
   items: SettingItem[]
 }
 
+interface CoreAdvantageHighlightOption {
+  text: string
+  enabled: boolean
+}
+
+interface CoreAdvantageEditorEntry {
+  title: string
+  description: string
+  highlights: CoreAdvantageHighlightOption[]
+}
+
 const requestFetch = useRequestFetch()
 const { user } = useAdminSession()
 
@@ -60,7 +71,12 @@ const editItems = {
 }
 
 /** 已下线的历史配置不进入后台编辑态，避免继续暴露给管理员。 */
-const HIDDEN_HOME_KEYS = new Set(['home_banner_image'])
+const HIDDEN_SETTING_KEYS = new Set([
+  'home_banner_image',
+  'home_right_image',
+  'about_hero_paragraph',
+  'about_business_images',
+])
 
 /** baseline 快照（JSON 字符串）：用于判断是否有未保存的修改 */
 const baseline = reactive<Record<GroupKind, string>>({
@@ -72,6 +88,7 @@ const baseline = reactive<Record<GroupKind, string>>({
 /** 结构化编辑器状态 */
 const homeStats = ref<HomeStatEntry[]>([])
 const aboutParagraphs = ref<string[]>([])
+const coreAdvantages = ref<CoreAdvantageEditorEntry[]>([])
 /** 解析失败等阻断保存的原因：`kind:key` → 中文说明 */
 const blockingErrors = reactive<Record<string, string>>({})
 
@@ -138,11 +155,48 @@ function parseParagraphs(items: SettingItem[]): string[] {
   return parsed as string[]
 }
 
+/** 解析 home_core_advantages，重点片段通过勾选控制是否写入 highlights。 */
+function parseCoreAdvantages(items: SettingItem[]): CoreAdvantageEditorEntry[] {
+  const item = items.find(entry => entry.key === 'home_core_advantages')
+  if (!item) return []
+  let parsed: unknown
+  try {
+    parsed = item.value ? JSON.parse(item.value) : []
+  } catch {
+    blockingErrors['home:home_core_advantages'] = '库中已有的 home_core_advantages 不是合法 JSON，无法结构化编辑。为避免覆盖原始数据，已停用该编辑区并禁止保存，请先在数据库中修复该配置。'
+    return []
+  }
+  if (!Array.isArray(parsed)) {
+    blockingErrors['home:home_core_advantages'] = '库中已有的 home_core_advantages 不是数组，无法结构化编辑。为避免覆盖原始数据，已停用该编辑区并禁止保存，请先在数据库中修复该配置。'
+    return []
+  }
+  return parsed.map((entry) => {
+    const record = (entry && typeof entry === 'object' ? entry : {}) as Record<string, unknown>
+    const highlights = Array.isArray(record.highlights) ? record.highlights.filter(value => typeof value === 'string' && value.trim()) as string[] : []
+    return {
+      title: toText(record.title),
+      description: toText(record.description),
+      highlights: highlights.map(text => ({ text, enabled: true }))
+    }
+  }).filter(entry => entry.title || entry.description)
+}
+
+function serializeCoreAdvantages() {
+  return coreAdvantages.value.map(entry => ({
+    title: entry.title,
+    description: entry.description,
+    highlights: entry.highlights.filter(option => option.enabled && option.text.trim()).map(option => option.text.trim())
+  }))
+}
+
 /** 当前编辑态的标准化快照：与 baseline 比较，同时固定提交时的 JSON 序列化形式 */
 function snapshot(kind: GroupKind): string {
   const items = editItems[kind].value.map((item) => {
     if (kind === 'home' && item.key === 'home_stats') {
       return { ...item, value: JSON.stringify(homeStats.value) }
+    }
+    if (kind === 'home' && item.key === 'home_core_advantages') {
+      return { ...item, value: JSON.stringify(serializeCoreAdvantages()) }
     }
     if (kind === 'about' && item.key === 'about_team_paragraphs') {
       return { ...item, value: JSON.stringify(aboutParagraphs.value) }
@@ -154,7 +208,6 @@ function snapshot(kind: GroupKind): string {
 
 const IMAGE_LIST_KEYS = [
   'about_hero_image',
-  'about_business_images',
   'about_success_images',
   'about_lecture_images',
   'about_partner_images',
@@ -223,9 +276,7 @@ function onImagesUploading(key: string, value: boolean) {
  */
 function applyGroup(kind: GroupKind, payload: { data: GroupPayload }) {
   const sourceItems = payload?.data?.items ?? []
-  const items = kind === 'home'
-    ? sourceItems.filter(item => !HIDDEN_HOME_KEYS.has(item.key))
-    : sourceItems
+  const items = sourceItems.filter(item => !HIDDEN_SETTING_KEYS.has(item.key))
   const prefix = `${kind}:`
   for (const key of Object.keys(blockingErrors)) {
     if (key.startsWith(prefix)) delete blockingErrors[key]
@@ -234,6 +285,7 @@ function applyGroup(kind: GroupKind, payload: { data: GroupPayload }) {
     if (key.startsWith(prefix)) delete uploadedUrls[key]
   }
   if (kind === 'home') homeStats.value = parseHomeStats(items)
+  if (kind === 'home') coreAdvantages.value = parseCoreAdvantages(items)
   if (kind === 'about') {
     aboutParagraphs.value = parseParagraphs(items)
     for (const key of IMAGE_LIST_KEYS) {
@@ -326,6 +378,9 @@ function buildPayload(kind: GroupKind) {
     if (kind === 'home' && item.key === 'home_stats') {
       value = JSON.stringify(homeStats.value)
     }
+    if (kind === 'home' && item.key === 'home_core_advantages') {
+      value = JSON.stringify(serializeCoreAdvantages())
+    }
     if (kind === 'about' && item.key === 'about_team_paragraphs') {
       value = JSON.stringify(aboutParagraphs.value)
     }
@@ -377,6 +432,34 @@ function addStat() {
 
 function removeStat(index: number) {
   homeStats.value.splice(index, 1)
+  saveSuccess.home = ''
+}
+
+function addCoreAdvantage() {
+  coreAdvantages.value.push({ title: '', description: '', highlights: [] })
+  saveSuccess.home = ''
+}
+
+function removeCoreAdvantage(index: number) {
+  coreAdvantages.value.splice(index, 1)
+  saveSuccess.home = ''
+}
+
+function moveCoreAdvantage(index: number, delta: number) {
+  const target = index + delta
+  if (target < 0 || target >= coreAdvantages.value.length) return
+  const [moved] = coreAdvantages.value.splice(index, 1)
+  if (moved) coreAdvantages.value.splice(target, 0, moved)
+  saveSuccess.home = ''
+}
+
+function addCoreHighlight(entry: CoreAdvantageEditorEntry) {
+  entry.highlights.push({ text: '', enabled: true })
+  saveSuccess.home = ''
+}
+
+function removeCoreHighlight(entry: CoreAdvantageEditorEntry, index: number) {
+  entry.highlights.splice(index, 1)
   saveSuccess.home = ''
 }
 
@@ -452,6 +535,7 @@ function onImageUploading(key: string, value: boolean) {
 /** 结构化编辑器：home_stats 与 about_team_paragraphs 各有一套专用编辑区 */
 function isJsonEditor(kind: GroupKind, key: string): boolean {
   return (kind === 'home' && key === 'home_stats')
+    || (kind === 'home' && key === 'home_core_advantages')
     || (kind === 'about' && key === 'about_team_paragraphs')
 }
 
@@ -673,6 +757,112 @@ const STATUS_OPTIONS = [
                     @click="addStat"
                   >
                     新增一项
+                  </BaseButton>
+                </div>
+
+                <!-- home_core_advantages：核心优势与可选重点片段 -->
+                <div v-else-if="item.key === 'home_core_advantages'" class="admin-settings__rows">
+                  <p class="admin-settings__hint">
+                    共 {{ coreAdvantages.length }} 项核心优势。描述中的重点片段勾选后，官网将以加粗黑色显示。
+                  </p>
+                  <fieldset
+                    v-for="(advantage, index) in coreAdvantages"
+                    :key="`advantage-${index}`"
+                    class="admin-settings__row"
+                  >
+                    <legend class="admin-settings__row-legend">第 {{ index + 1 }} 项优势</legend>
+                    <div class="admin-settings__cell">
+                      <label class="admin-settings__cell-label" :for="`advantage-${index}-title`">标题</label>
+                      <input
+                        :id="`advantage-${index}-title`"
+                        v-model="advantage.title"
+                        class="admin-settings__input"
+                        type="text"
+                        :disabled="controlsDisabled || savingKind !== ''"
+                      >
+                    </div>
+                    <div class="admin-settings__cell">
+                      <label class="admin-settings__cell-label" :for="`advantage-${index}-description`">展开说明</label>
+                      <textarea
+                        :id="`advantage-${index}-description`"
+                        v-model="advantage.description"
+                        class="admin-settings__textarea"
+                        rows="3"
+                        :disabled="controlsDisabled || savingKind !== ''"
+                      />
+                    </div>
+                    <div class="admin-settings__cell">
+                      <span class="admin-settings__cell-label">重点片段</span>
+                      <label
+                        v-for="(highlight, highlightIndex) in advantage.highlights"
+                        :key="`advantage-${index}-highlight-${highlightIndex}`"
+                        class="admin-settings__inline-option"
+                      >
+                        <input
+                          v-model="highlight.enabled"
+                          type="checkbox"
+                          :disabled="controlsDisabled || savingKind !== ''"
+                        >
+                        <input
+                          v-model="highlight.text"
+                          class="admin-settings__input"
+                          type="text"
+                          placeholder="例如：30、8年、上万起TRO"
+                          :disabled="controlsDisabled || savingKind !== ''"
+                        >
+                        <BaseButton
+                          variant="ghost"
+                          size="sm"
+                          :disabled="controlsDisabled || savingKind !== ''"
+                          @click="removeCoreHighlight(advantage, highlightIndex)"
+                        >
+                          删除
+                        </BaseButton>
+                      </label>
+                      <BaseButton
+                        variant="ghost"
+                        size="sm"
+                        :disabled="controlsDisabled || savingKind !== ''"
+                        @click="addCoreHighlight(advantage)"
+                      >
+                        新增重点片段
+                      </BaseButton>
+                    </div>
+                    <div class="admin-settings__row-actions">
+                      <BaseButton
+                        variant="ghost"
+                        size="sm"
+                        :disabled="controlsDisabled || savingKind !== '' || index === 0"
+                        @click="moveCoreAdvantage(index, -1)"
+                      >
+                        上移
+                      </BaseButton>
+                      <BaseButton
+                        variant="ghost"
+                        size="sm"
+                        :disabled="controlsDisabled || savingKind !== '' || index === coreAdvantages.length - 1"
+                        @click="moveCoreAdvantage(index, 1)"
+                      >
+                        下移
+                      </BaseButton>
+                      <BaseButton
+                        variant="ghost"
+                        size="sm"
+                        :disabled="controlsDisabled || savingKind !== ''"
+                        @click="removeCoreAdvantage(index)"
+                      >
+                        删除
+                      </BaseButton>
+                    </div>
+                  </fieldset>
+                  <p v-if="coreAdvantages.length === 0" class="admin-settings__hint">暂无核心优势。</p>
+                  <BaseButton
+                    variant="secondary"
+                    size="sm"
+                    :disabled="controlsDisabled || savingKind !== ''"
+                    @click="addCoreAdvantage"
+                  >
+                    新增一项优势
                   </BaseButton>
                 </div>
 
@@ -984,6 +1174,17 @@ const STATUS_OPTIONS = [
   align-items: center;
   gap: var(--space-2);
   grid-column: span 2;
+}
+
+.admin-settings__inline-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.admin-settings__inline-option .admin-settings__input {
+  flex: 1;
 }
 
 .admin-settings__cell-label {
