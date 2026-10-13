@@ -6,13 +6,34 @@ const sidebarSource = await readFile(new URL('../app/components/layout/ContentSi
 const footerSource = await readFile(new URL('../app/components/layout/SiteFooter.vue', import.meta.url), 'utf8')
 const qrSource = await readFile(new URL('../app/components/contact/ContactQrGrid.vue', import.meta.url), 'utf8')
 
-test('content sidebar keeps contact and FAQ but removes recommended reading', () => {
-  assert.doesNotMatch(sidebarSource, /fetchArticles/)
+test('content sidebar keeps FAQ before the two configurable QR sections', () => {
+  const faqPosition = sidebarSource.indexOf('sidebarConfig.faqTitle')
+  const publicPosition = sidebarSource.indexOf('sidebarConfig.publicHeading')
+  const consultPosition = sidebarSource.indexOf('sidebarConfig.consultHeading')
+
+  assert.ok(faqPosition >= 0 && publicPosition > faqPosition && consultPosition > publicPosition)
+  assert.match(sidebarSource, /normalizeContentSidebar\(/)
+  assert.match(sidebarSource, /useSiteSettings\(/)
+  assert.match(sidebarSource, /:hide-name="true"/)
+  assert.match(sidebarSource, /:hide-note="true"/)
+  assert.doesNotMatch(sidebarSource, /电话咨询|sidebar-card__intro|sidebar-card__phone/)
   assert.doesNotMatch(sidebarSource, /推荐阅读/)
-  assert.match(sidebarSource, /常见问题/)
 })
 
-test('footer uses configurable intro and independent QR source overrides', () => {
+test('sidebar uses configured link labels/order and only the matching public/consult QR pair', () => {
+  assert.match(sidebarSource, /sidebarConfig\.value\.faqLinks/)
+  assert.match(sidebarSource, /link\.enabled/)
+  assert.match(sidebarSource, /props\.group === 'labor' \? 'labor' : 'tro'/)
+  assert.match(sidebarSource, /footer_qr_primary/)
+  assert.match(sidebarSource, /footer_qr_secondary/)
+  assert.match(sidebarSource, /qr-tro-consult/)
+  assert.match(sidebarSource, /qr-labor-consult/)
+  assert.match(sidebarSource, /kind="public"/)
+  assert.match(sidebarSource, /kind="consult"/)
+  assert.match(qrSource, /kind\?: 'all' \| 'public' \| 'consult'/)
+})
+
+test('footer keeps configurable intro and independent QR source overrides', () => {
   assert.match(footerSource, /footer_intro/)
   assert.match(footerSource, /footer_qr_primary/)
   assert.match(footerSource, /footer_qr_secondary/)
