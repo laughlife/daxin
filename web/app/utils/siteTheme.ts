@@ -23,7 +23,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === 'object' && !Array.isArray(value))
 }
 
-function isHexColor(value: unknown): value is string {
+export function isValidSiteThemeHex(value: unknown): value is string {
   return typeof value === 'string' && /^#[\da-f]{6}$/i.test(value.trim())
 }
 
@@ -32,7 +32,7 @@ export function normalizeSiteTheme(value: unknown): SiteTheme {
 
   const preset = value.preset
   if (preset === 'custom') {
-    if (!isHexColor(value.primary)) return { ...DEFAULT_SITE_THEME }
+    if (!isValidSiteThemeHex(value.primary)) return { ...DEFAULT_SITE_THEME }
     return { preset, primary: value.primary.trim().toUpperCase() }
   }
 
@@ -41,7 +41,7 @@ export function normalizeSiteTheme(value: unknown): SiteTheme {
   }
 
   return {
-    preset,
+    preset: preset as keyof typeof SITE_THEME_PRESETS,
     primary: SITE_THEME_PRESETS[preset as keyof typeof SITE_THEME_PRESETS].primary,
   }
 }
