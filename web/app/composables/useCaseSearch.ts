@@ -24,7 +24,7 @@ export interface CaseSearchFilters {
 }
 
 export interface UseCaseSearchOptions {
-  /** 每页条数，默认 8 */
+  /** 每页条数，默认 50 */
   pageSize?: number
   /** 是否同步查询状态到 URL query，默认 true */
   syncQuery?: boolean
@@ -48,7 +48,7 @@ function queryToPage(value: unknown): number {
 }
 
 export function useCaseSearch(options: UseCaseSearchOptions = {}) {
-  const { pageSize = 8, syncQuery = true } = options
+  const { pageSize = 50, syncQuery = true } = options
 
   const route = useRoute()
   const router = useRouter()

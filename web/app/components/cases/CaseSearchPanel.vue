@@ -36,7 +36,7 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
     @submit.prevent
   >
     <div class="case-search-panel__grid">
-      <div class="case-search-panel__field case-search-panel__field--wide">
+      <div class="case-search-panel__field case-search-panel__field--full">
         <label for="case-search-keyword">关键词</label>
         <input
           id="case-search-keyword"
@@ -46,7 +46,7 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
           autocomplete="off"
         >
       </div>
-      <div class="case-search-panel__field">
+      <div class="case-search-panel__field case-search-panel__field--full">
         <label for="case-search-type">侵权类型</label>
         <select id="case-search-type" v-model="filters.caseType">
           <option
@@ -58,7 +58,7 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
           </option>
         </select>
       </div>
-      <div class="case-search-panel__field">
+      <div class="case-search-panel__field case-search-panel__field--full">
         <label for="case-search-date">起诉时间</label>
         <input
           id="case-search-date"
@@ -96,7 +96,7 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
 
 .case-search-panel__grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
 }
 
@@ -107,8 +107,8 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
   min-width: 0;
 }
 
-.case-search-panel__field--wide {
-  grid-column: span 3;
+.case-search-panel__field--full {
+  grid-column: 1 / -1;
 }
 
 .case-search-panel__field-hint {
@@ -167,27 +167,10 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
   background-color: var(--color-primary-light);
 }
 
-@media (max-width: 1023px) {
-  .case-search-panel__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .case-search-panel__field--wide {
-    grid-column: span 2;
-  }
-}
-
 @media (max-width: 639px) {
   .case-search-panel {
     padding: var(--space-4);
   }
 
-  .case-search-panel__grid {
-    grid-template-columns: 1fr;
-  }
-
-  .case-search-panel__field--wide {
-    grid-column: span 1;
-  }
 }
 </style>

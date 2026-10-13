@@ -73,8 +73,16 @@ test('每页条数夹取：显式 0 / 负数落到 1，上限 48，缺省 12', (
   assert.equal(normalizePageSize(1), 1)
   assert.equal(normalizePageSize(2.9), 2)
   assert.equal(normalizePageSize(48), 48)
+  assert.equal(normalizePageSize(50), 48)
   assert.equal(normalizePageSize(999), MAX_PAGE_SIZE)
   assert.equal(normalizePageSize('1000'), MAX_PAGE_SIZE)
+})
+
+test('TRO 案件分页允许 50 条，其他公开列表默认仍限制为 48 条', () => {
+  const caseQuery = parseCaseQuery({ pageSize: 50 })
+  assert.equal(caseQuery.pageSize, 50)
+  assert.equal(resolvePageWindow(120, 1, caseQuery.pageSize, 50).pageSize, 50)
+  assert.equal(resolvePageWindow(120, 1, 50).pageSize, 48)
 })
 
 test('分页窗口：正常页给出正确的 offset 与总页数', () => {
@@ -130,7 +138,7 @@ test('分页窗口：total=0 时返回稳定的第 1 页且不越界', () => {
 test('分页窗口：任何输入都不会出现 page > totalPages（total > 0）', () => {
   for (const total of [1, 11, 12, 13, 100, 832]) {
     for (const page of [-3, 0, 1, 2, 7, 9999, 'abc', 2.5]) {
-      for (const pageSize of [0, 1, 12, 48, 999]) {
+      for (const pageSize of [0, 1, 12, 48, 50, 999]) {
         const window = resolvePageWindow(total, page, pageSize)
         assert.ok(window.page <= window.totalPages, `${total}/${page}/${pageSize} → ${window.page}/${window.totalPages}`)
         assert.ok(window.pageSize >= 1 && window.pageSize <= MAX_PAGE_SIZE)

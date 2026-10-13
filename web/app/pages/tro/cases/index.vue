@@ -2,9 +2,6 @@
 import { useCaseSearch } from '~/composables/useCaseSearch'
 import { fetchCases } from '~/repositories/cases'
 
-const { today } = useContentDate()
-const recentFrom = computed(() => { const date = new Date(`${today.value}T00:00:00Z`); date.setUTCDate(date.getUTCDate() - 2); return date.toISOString().slice(0, 10) })
-
 /**
  * TRO 案件查询页。
  * 搜索 / 筛选 / 分页全部由服务端完成：页面用 useAsyncData 调用 fetchCases()，
@@ -18,7 +15,7 @@ const {
   hasActiveFilters,
   setPage,
   resetFilters
-} = useCaseSearch({ pageSize: 8 })
+} = useCaseSearch({ pageSize: 50 })
 
 const { data, status, error, refresh } = await useAsyncData(
   () => `tro-cases:${queryKey.value}`,
@@ -34,7 +31,7 @@ const { data, status, error, refresh } = await useAsyncData(
   { default: () => null, watch: [queryKey] }
 )
 
-const result = computed(() => data.value ?? { items: [], total: 0, page: 1, pageSize: 8, totalPages: 1 })
+const result = computed(() => data.value ?? { items: [], total: 0, page: 1, pageSize: 50, totalPages: 1 })
 const isPending = computed(() => status.value === 'pending')
 const hasResults = computed(() => result.value.items.length > 0)
 const errorMessage = computed(() =>
@@ -79,12 +76,6 @@ useSeoMeta({
       </header>
 
       <ContentColumns group="tro">
-      <nav class="cases-page__shortcuts" aria-label="日期快捷筛选">
-        <!-- 起诉时间只保留单一条件（该日期起），因此快捷入口也只下发 from，不再带 to -->
-        <NuxtLink :to="{ path: '/tro/cases', query: { from: today } }">今日起案件</NuxtLink>
-        <NuxtLink :to="{ path: '/tro/cases', query: { from: recentFrom } }">近三天起案件</NuxtLink>
-        <NuxtLink to="/tro/cases">全部历史案件</NuxtLink>
-      </nav>
       <CaseSearchPanel
         :filters="filters"
         :has-active-filters="hasActiveFilters"
@@ -226,7 +217,3 @@ useSeoMeta({
 }
 </style>
 
-<style scoped>
-.cases-page__shortcuts { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
-.cases-page__shortcuts a { font-size:14px; padding:8px 14px; border:1px solid var(--color-border); border-radius:8px; background:white; }
-</style>

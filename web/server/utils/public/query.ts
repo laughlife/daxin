@@ -9,6 +9,8 @@ import type { CaseType } from '~/types/content'
 export const DEFAULT_PAGE_SIZE = 12
 /** 服务端每页条数上限，避免一次拉取过多数据。 */
 export const MAX_PAGE_SIZE = 48
+/** TRO 案件查询页按产品要求每页最多展示 50 条。 */
+export const MAX_CASE_PAGE_SIZE = 50
 
 /** CaseRecord.caseType 支持的取值，与 web/app/types/content.ts 保持一致。 */
 export const SUPPORTED_CASE_TYPES: readonly CaseType[] = ['trademark', 'patent', 'copyright']
@@ -42,13 +44,13 @@ export function normalizePage(value: unknown): number {
 
 /**
  * 每页条数：缺省 / 非法（空串、"abc"）回落为 12；显式给出的 0、负数按下限 1 处理；
- * 超过 48 一律夹到 48。
+ * 超过对应上限后会夹取（普通公开列表为 48，TRO 案件列表为 50）。
  */
-export function normalizePageSize(value: unknown): number {
+export function normalizePageSize(value: unknown, maxPageSize = MAX_PAGE_SIZE): number {
   const parsed = parseInteger(pick(value))
   if (parsed === null) return DEFAULT_PAGE_SIZE
   if (parsed < 1) return 1
-  return Math.min(parsed, MAX_PAGE_SIZE)
+  return Math.min(parsed, maxPageSize)
 }
 
 /** 文本归一化：合并连续空白并去掉首尾空白；非字符串返回空串。 */
@@ -100,7 +102,7 @@ export function parseCaseQuery(input?: Record<string, unknown> | null): Normaliz
     from: normalizeDateOnly(source.from),
     to: normalizeDateOnly(source.to),
     page: normalizePage(source.page),
-    pageSize: normalizePageSize(source.pageSize),
+    pageSize: normalizePageSize(source.pageSize, MAX_CASE_PAGE_SIZE),
   }
 }
 
@@ -124,8 +126,8 @@ export interface PageWindow {
  * - 请求页超过最后一页时返回空数据的窗口：page 夹到最后一页，beyondLastPage=true；
  * - 因此永远不会出现 page > totalPages。
  */
-export function resolvePageWindow(total: number, page: unknown, pageSize: unknown): PageWindow {
-  const normalizedSize = normalizePageSize(pageSize)
+export function resolvePageWindow(total: number, page: unknown, pageSize: unknown, maxPageSize = MAX_PAGE_SIZE): PageWindow {
+  const normalizedSize = normalizePageSize(pageSize, maxPageSize)
   const requestedPage = normalizePage(page)
   const safeTotal = typeof total === 'number' && Number.isFinite(total) && total > 0 ? Math.trunc(total) : 0
 
