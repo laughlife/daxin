@@ -6,12 +6,13 @@ defineProps<{ articles: ArticleSummary[]; hideExcerpt?: boolean }>()
   <div class="article-list"><article v-for="article in articles" :key="article.id" class="article-list__card"><div class="article-list__meta"><span>{{ article.category }}</span><time :datetime="article.publishedAt">{{ article.publishedAt }}</time></div><NuxtLink v-if="article.imageSrc" :to="article.href" class="article-list__cover"><img :src="article.imageSrc" :alt="article.imageAlt" loading="lazy"></NuxtLink><h2><NuxtLink :to="article.href">{{ article.title }}</NuxtLink></h2><p v-if="!hideExcerpt">{{ article.excerpt }}</p><NuxtLink :to="article.href">阅读全文 →</NuxtLink></article><p v-if="!articles.length" class="article-list__empty" role="status">此条件下暂无内容，请调整关键词或日期范围。</p></div>
 </template>
 <style scoped>
-.article-list { display:flex; flex-direction:column; gap:18px; }
-.article-list__card { padding:26px; background:white; border:1px solid var(--color-border); border-radius:12px; }
-.article-list__cover { display:block; margin-bottom:18px; } .article-list__cover img { display:block; width:100%; max-height:240px; object-fit:contain; background:var(--color-bg-light); border-radius:8px; }
-.article-list__meta { display:flex; justify-content:space-between; gap:12px; font-size:12px; color:var(--color-text-muted); margin-bottom:12px; }
+.article-list { display:flex; flex-direction:column; gap:var(--space-5); }
+.article-list__card { padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); transition:border-color var(--transition-base),box-shadow var(--transition-base),transform var(--transition-base); }
+.article-list__card:hover { border-color:color-mix(in srgb,var(--color-primary) 28%,var(--color-border)); box-shadow:var(--shadow-md); transform:translateY(-2px); }
+.article-list__cover { display:block; margin-bottom:var(--space-5); } .article-list__cover img { display:block; width:100%; max-height:280px; border-radius:var(--radius-md); background:var(--color-bg-light); object-fit:contain; }
+.article-list__meta { display:flex; justify-content:space-between; gap:var(--space-3); margin-bottom:var(--space-3); color:var(--color-text-muted); font-size:var(--text-xs); }
 .article-list__meta span { color:var(--color-primary); }
-h2 { font-size:20px; } h2 a { color:var(--color-text); } p { margin:12px 0 16px; color:var(--color-text-muted); line-height:1.8; } .article-list__card > a { font-size:14px; font-weight:600; }
-.article-list__empty { background:white; border-radius:12px; padding:32px; text-align:center; }
-@media(max-width:639px) { .article-list__card { padding:20px; } h2 { font-size:18px; } }
+h2 { font-size:var(--heading-3); } h2 a { color:var(--color-text); } p { margin:var(--space-3) 0 var(--space-4); color:var(--color-text-muted); line-height:var(--leading-relaxed); } .article-list__card > a { font-size:var(--text-sm); font-weight:600; }
+.article-list__empty { padding:var(--space-8); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); text-align:center; }
+@media(max-width:639px) { .article-list__card { padding:var(--space-5); } }
 </style>

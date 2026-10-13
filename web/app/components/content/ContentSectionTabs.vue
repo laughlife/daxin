@@ -17,7 +17,7 @@ const tabs = computed(() => {
 </template>
 
 <style scoped>
-.section-tabs { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
-.section-tabs a { padding:8px 14px; border-radius:8px; background:white; color:var(--color-text); font-size:14px; border:1px solid var(--color-border); }
+.section-tabs { display:flex; gap:var(--space-3); flex-wrap:wrap; margin-bottom:var(--space-6); }
+.section-tabs a { padding:var(--space-2) var(--space-4); border:1px solid var(--color-border); border-radius:var(--radius-full); background:var(--color-bg-page); color:var(--color-text); font-size:var(--text-sm); transition:background-color var(--transition-base),border-color var(--transition-base),color var(--transition-base); }
 .section-tabs a[aria-current=page] { background:var(--color-primary); color:white; border-color:var(--color-primary); }
 </style>

@@ -172,9 +172,15 @@ const eyebrow = computed(() => props.section.path.startsWith('/tro') ? 'TRO SERV
 </template>
 
 <style scoped>
-.listing-page { padding:40px 0 64px; background:var(--color-bg-light); }
-.listing-page__head { margin-bottom:28px; } .listing-page__eyebrow { color:var(--color-primary); font-size:12px; font-weight:700; letter-spacing:2px; margin-bottom:12px; }
-.listing-search { display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:12px; padding:18px; border-radius:12px; background:white; border:1px solid var(--color-border); }
-label { display:flex; flex-direction:column; gap:6px; font-size:12px; min-width:0; } input { width:100%; padding:9px; border:1px solid var(--color-border); border-radius:6px; font:inherit; min-width:0; } button { align-self:end; padding:9px; color:var(--color-primary); } .listing-notice { font-size:13px; color:var(--color-text-muted); margin:16px 0; }
-@media(max-width:639px) { .listing-search { grid-template-columns:1fr 1fr; } label:first-child { grid-column:1/-1; } }
+.listing-page { padding-block:var(--space-section); background:var(--color-bg-light); }
+.listing-page__head { margin-bottom:var(--space-8); }
+.listing-page__eyebrow { margin-bottom:var(--space-3); color:var(--color-primary); font-size:var(--text-sm); font-weight:700; letter-spacing:.12em; }
+.listing-search { display:grid; grid-template-columns:minmax(0,2fr) minmax(140px,1fr) minmax(140px,1fr) auto; gap:var(--space-4); padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
+label { display:flex; min-width:0; flex-direction:column; gap:var(--space-2); font-size:var(--text-sm); color:var(--color-text-muted); }
+input { width:100%; min-width:0; }
+button { align-self:end; min-height:48px; padding:var(--space-3) var(--space-5); border:1px solid var(--color-primary); border-radius:var(--radius-control); background:var(--color-primary); color:var(--color-text-on-primary); font-weight:600; transition:background-color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base); }
+button:hover { background:var(--color-primary-dark); box-shadow:var(--shadow-sm); transform:translateY(-1px); }
+.listing-notice { margin:var(--space-5) 0; color:var(--color-text-muted); font-size:var(--text-sm); }
+@media(max-width:767px) { .listing-search { grid-template-columns:repeat(2,minmax(0,1fr)); } label:first-child { grid-column:1/-1; } }
+@media(max-width:639px) { .listing-search { gap:var(--space-3); padding:var(--space-4); } }
 </style>

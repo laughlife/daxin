@@ -3,7 +3,7 @@ withDefaults(defineProps<{ group?: 'tro' | 'labor' | 'all' }>(), { group: 'all' 
 </script>
 <template><div class="content-columns"><div class="content-columns__main"><slot /></div><ContentSidebar :group="group" /></div></template>
 <style scoped>
-.content-columns { display:grid; grid-template-columns:minmax(0,1fr) 288px; gap:28px; align-items:start; }
+.content-columns { display:grid; grid-template-columns:minmax(0,1fr) 320px; gap:var(--space-8); align-items:start; }
 .content-columns__main { min-width:0; }
 /* 侧栏在顶部停留，并由两栏容器底边自然推离视口；上滚时自动反向恢复。 */
 @media(min-width:1024px) {
@@ -13,5 +13,5 @@ withDefaults(defineProps<{ group?: 'tro' | 'labor' | 'all' }>(), { group: 'all' 
     align-self:start;
   }
 }
-@media(max-width:1023px) { .content-columns { grid-template-columns:1fr; gap:28px; } }
+@media(max-width:1023px) { .content-columns { grid-template-columns:1fr; gap:var(--space-8); } }
 </style>

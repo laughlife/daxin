@@ -69,7 +69,14 @@ const related = computed(() =>
 </template>
 
 <style scoped>
-.article-detail { padding:32px 0 64px; background:var(--color-bg-light); } .article-detail__crumb { font-size:13px; margin-bottom:24px; color:var(--color-text-muted); }
-.article-detail__body { padding:36px; background:white; border:1px solid var(--color-border); border-radius:12px; } .article-detail__meta { color:var(--color-text-muted); font-size:13px; margin-bottom:16px; } h1 { font-size:30px; line-height:1.5; } .article-detail__lead { padding:18px; border-left:3px solid var(--color-primary); background:var(--color-bg-light); margin-top:24px; } .article-detail__cover { display:block; width:100%; max-height:420px; object-fit:contain; margin-top:20px; border-radius:8px; background:var(--color-bg-light); } .article-detail__empty { margin-top:24px; color:var(--color-text-muted); } .article-detail__back { margin-top:32px; display:flex; gap:18px; flex-wrap:wrap; font-size:14px; }
-@media(max-width:639px) { .article-detail__body { padding:22px; } h1 { font-size:24px; } }
+.article-detail { padding-block:var(--space-section-compact) var(--space-section); background:var(--color-bg-light); }
+.article-detail__crumb { margin-bottom:var(--space-6); color:var(--color-text-muted); font-size:var(--text-sm); }
+.article-detail__body { padding:var(--space-8); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
+.article-detail__meta { margin-bottom:var(--space-4); color:var(--color-text-muted); font-size:var(--text-sm); }
+h1 { font-size:var(--heading-1); line-height:var(--leading-tight); }
+.article-detail__lead { margin-top:var(--space-6); padding:var(--space-5); border-left:3px solid var(--color-primary); border-radius:0 var(--radius-md) var(--radius-md) 0; background:var(--color-bg-light); }
+.article-detail__cover { display:block; width:100%; max-height:480px; margin-top:var(--space-6); border-radius:var(--radius-md); background:var(--color-bg-light); object-fit:contain; }
+.article-detail__empty { margin-top:var(--space-6); color:var(--color-text-muted); }
+.article-detail__back { display:flex; flex-wrap:wrap; gap:var(--space-4); margin-top:var(--space-8); font-size:var(--text-sm); }
+@media(max-width:639px) { .article-detail__body { padding:var(--space-5); } }
 </style>

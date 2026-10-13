@@ -176,7 +176,7 @@ const identity = useSiteIdentity()
 .site-header__menu-icon {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .site-header__menu-toggle:hover {

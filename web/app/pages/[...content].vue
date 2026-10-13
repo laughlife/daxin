@@ -74,5 +74,5 @@ useSeoMeta({
 </template>
 
 <style scoped>
-.content-fallback { padding:32px 0 64px; background:var(--color-bg-light); min-height:50vh; }
+.content-fallback { padding-block:var(--space-section-compact) var(--space-section); background:var(--color-bg-light); min-height:50vh; }
 </style>

@@ -71,18 +71,18 @@ const sidebarPhone = computed(() => identity.value.phone.trim())
 </template>
 
 <style scoped>
-.content-sidebar { display:flex; flex-direction:column; gap:20px; }
-.sidebar-card { background:white; border:1px solid var(--color-border); border-radius:12px; padding:20px; box-shadow:var(--shadow-sm); }
-.sidebar-card h2 { margin:0 0 14px; font-size:16px; line-height:1.45; }
-.sidebar-card__links { display:flex; flex-direction:column; gap:12px; margin:0; padding:0; list-style:none; font-size:14px; }
-.sidebar-card__links li + li { border-top:1px solid var(--color-border); padding-top:12px; }
+.content-sidebar { display:flex; flex-direction:column; gap:var(--space-5); }
+.sidebar-card { padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
+.sidebar-card h2 { margin:0 0 var(--space-4); font-size:var(--text-lg); line-height:var(--leading-tight); }
+.sidebar-card__links { display:flex; flex-direction:column; gap:var(--space-3); margin:0; padding:0; list-style:none; font-size:var(--text-sm); }
+.sidebar-card__links li + li { padding-top:var(--space-3); border-top:1px solid var(--color-border); }
 .sidebar-card__links a { color:var(--color-text); }
-.sidebar-card__qr { display:flex; flex-direction:column; gap:24px; }
+.sidebar-card__qr { display:flex; flex-direction:column; gap:var(--space-6); }
 .sidebar-card__qr-block { min-width:0; }
 .sidebar-card__qr-block :deep(.contact-qr-grid) { grid-template-columns:minmax(0,1fr); }
 .sidebar-card__qr-block :deep(figure) { width:100%; }
 .sidebar-card__qr-block :deep(img) { max-width:180px; }
-.sidebar-card__phone { margin:12px 0 0; text-align:center; color:var(--color-text-muted); font-size:14px; }
+.sidebar-card__phone { margin:var(--space-3) 0 0; text-align:center; color:var(--color-text-muted); font-size:var(--text-sm); }
 .sidebar-card__phone a { color:var(--color-primary); font-weight:600; white-space:nowrap; }
 @media(min-width:640px) and (max-width:1023px) { .content-sidebar { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; } }
 </style>

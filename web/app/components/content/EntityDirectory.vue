@@ -128,18 +128,19 @@ useSeoMeta({
 </template>
 
 <style scoped>
-.directory { padding:40px 0 64px; background:var(--color-bg-light); }
-.directory :deep(.content-columns) { margin-top:28px; }
-.directory__stats { padding:20px; margin-bottom:20px; border:1px solid var(--color-border); border-radius:12px; background:white; }
-.directory__stats h2 { font-size:18px; margin-bottom:16px; }
-.directory__stats-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
-.directory__stats-grid > div { display:flex; flex-direction:column; gap:6px; padding:12px; text-align:center; background:var(--color-bg-light); border-radius:8px; }
-.directory__stats-grid strong { font-size:28px; color:var(--color-primary); }
-.directory__stats-grid span { font-size:13px; color:var(--color-text-muted); }
-.directory__stats > p { font-size:12px; color:var(--color-text-muted); margin-top:14px; line-height:1.7; }
-.directory__search { display:grid; grid-template-columns:1fr; gap:14px; padding:20px; background:white; border-radius:12px; border:1px solid var(--color-border); }
-label { display:flex; flex-direction:column; gap:6px; font-size:13px; min-width:0; } input,select { width:100%; min-width:0; padding:10px; border:1px solid var(--color-border); border-radius:6px; font:inherit; background:white; }
-.directory__notice { font-size:13px; color:var(--color-text-muted); margin:18px 0; } .directory__grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
-.directory__card { background:white; border:1px solid var(--color-border); border-radius:12px; padding:24px; } .directory__label { color:var(--color-primary); font-size:12px; margin-bottom:12px; } h2 { font-size:20px; margin-bottom:12px; } h2 a { color:var(--color-text); } .directory__card > p:not(:first-child) { font-size:14px; color:var(--color-text-muted); line-height:1.8; } .directory__count { margin:14px 0; } .directory__card > a { font-size:14px; }
+.directory { padding-block:var(--space-section); background:var(--color-bg-light); }
+.directory :deep(.content-columns) { margin-top:var(--space-8); }
+.directory__stats { margin-bottom:var(--space-5); padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); }
+.directory__stats h2 { margin-bottom:var(--space-4); font-size:var(--text-xl); }
+.directory__stats-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:var(--space-3); }
+.directory__stats-grid > div { display:flex; flex-direction:column; gap:var(--space-2); padding:var(--space-4); border-radius:var(--radius-md); background:var(--color-bg-light); text-align:center; }
+.directory__stats-grid strong { color:var(--color-primary); font-size:var(--text-2xl); }
+.directory__stats-grid span { color:var(--color-text-muted); font-size:var(--text-sm); }
+.directory__stats > p { margin-top:var(--space-4); color:var(--color-text-muted); font-size:var(--text-xs); line-height:var(--leading-relaxed); }
+.directory__search { display:grid; grid-template-columns:1fr; gap:var(--space-4); padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); }
+label { display:flex; min-width:0; flex-direction:column; gap:var(--space-2); color:var(--color-text-muted); font-size:var(--text-sm); }
+input,select { width:100%; min-width:0; }
+.directory__notice { margin:var(--space-5) 0; color:var(--color-text-muted); font-size:var(--text-sm); } .directory__grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-5); }
+.directory__card { padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); } .directory__label { margin-bottom:var(--space-3); color:var(--color-primary); font-size:var(--text-xs); } h2 { margin-bottom:var(--space-3); font-size:var(--heading-3); } h2 a { color:var(--color-text); } .directory__card > p:not(:first-child) { color:var(--color-text-muted); font-size:var(--text-sm); line-height:var(--leading-relaxed); } .directory__count { margin:var(--space-4) 0; } .directory__card > a { font-size:var(--text-sm); }
 @media(max-width:639px) { .directory__stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .directory__grid { grid-template-columns:1fr; } .directory__search { grid-template-columns:1fr; } }
 </style>
