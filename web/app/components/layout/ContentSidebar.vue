@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import type { FooterQrItem } from '~/repositories/settings'
 import { useSiteSettings } from '~/composables/useSiteSettings'
 import { normalizeContentSidebar, type SidebarQrGroup } from '~/utils/contentSettings'
+import { useSiteIdentity } from '~/composables/useSiteIdentity'
+import { qrSourcesFromAssets } from '~/utils/contactQr'
 
 const props = withDefaults(defineProps<{ group?: SidebarQrGroup }>(), { group: 'all' })
 const { data: siteSettings } = await useSiteSettings()
+const identity = useSiteIdentity()
 
 function settingValue(key: string): unknown {
   const value = siteSettings.value?.settings?.[key]
@@ -25,16 +27,8 @@ const visibleFaqLinks = computed(() => sidebarConfig.value.faqLinks.filter((link
   if (props.group === 'labor' && link.key === 'tro') return false
   return true
 }))
-const qrSources = computed<Record<string, string>>(() => {
-  const qrItems: FooterQrItem[] = siteSettings.value?.footer.qr ?? []
-  const imageFor = (itemKey: string) => qrItems.find(item => item.itemKey === itemKey)?.imageUrl ?? ''
-  return {
-    'tro-public': String(settingValue('footer_qr_primary') ?? ''),
-    'labor-public': String(settingValue('footer_qr_secondary') ?? ''),
-    'tro-consult': imageFor('qr-tro-consult'),
-    'labor-consult': imageFor('qr-labor-consult'),
-  }
-})
+const qrSources = computed(() => qrSourcesFromAssets(siteSettings.value?.footer.qr))
+const sidebarPhone = computed(() => identity.value.phone.trim())
 </script>
 
 <template>
@@ -68,6 +62,9 @@ const qrSources = computed<Record<string, string>>(() => {
           :hide-name="true"
           :hide-note="true"
         />
+        <p v-if="sidebarPhone" class="sidebar-card__phone">
+          电话咨询：<a :href="`tel:${sidebarPhone.replace(/[^\d+]/g, '')}`">{{ sidebarPhone }}</a>
+        </p>
       </div>
     </section>
   </aside>
@@ -85,5 +82,7 @@ const qrSources = computed<Record<string, string>>(() => {
 .sidebar-card__qr-block :deep(.contact-qr-grid) { grid-template-columns:minmax(0,1fr); }
 .sidebar-card__qr-block :deep(figure) { width:100%; }
 .sidebar-card__qr-block :deep(img) { max-width:180px; }
+.sidebar-card__phone { margin:12px 0 0; text-align:center; color:var(--color-text-muted); font-size:14px; }
+.sidebar-card__phone a { color:var(--color-primary); font-weight:600; white-space:nowrap; }
 @media(min-width:640px) and (max-width:1023px) { .content-sidebar { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; } }
 </style>

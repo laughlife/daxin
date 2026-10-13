@@ -73,6 +73,12 @@ const saveSuccess = reactive<Record<SaveKind, string>>({ footer: '', contact: ''
 const qrUploadedUrls = reactive<Record<string, string>>({})
 /** 正在上传的二维码（上传期间禁止保存，避免提交旧 mediaId） */
 const uploadingKeys = ref<string[]>([])
+const REQUIRED_QR_CHANNELS = [
+  { key: 'qr-tro-public', label: 'TRO 公众号' },
+  { key: 'qr-labor-public', label: '劳动法公众号' },
+  { key: 'qr-tro-consult', label: 'TRO 咨询号' },
+  { key: 'qr-labor-consult', label: '劳动法咨询号' },
+] as const
 
 function toText(value: unknown): string {
   if (typeof value === 'string') return value
@@ -177,6 +183,7 @@ function applyContact(payload: { data: { items: ContactItem[] } }) {
 function applyQr(payload: { data: { items: QrItem[] } }) {
   const items = payload?.data?.items ?? []
   for (const key of Object.keys(qrUploadedUrls)) delete qrUploadedUrls[key]
+  const order = new Map<string, number>(REQUIRED_QR_CHANNELS.map((channel, index) => [channel.key, index]))
   qrItems.value = items.map(item => ({
     uid: nextUid('qr'),
     id: toNumber(item.id),
@@ -187,7 +194,7 @@ function applyQr(payload: { data: { items: QrItem[] } }) {
     caption: toText(item.caption),
     sortOrder: toNumber(item.sortOrder),
     status: toFlag(item.status)
-  }))
+  })).sort((a, b) => (order.get(a.itemKey) ?? REQUIRED_QR_CHANNELS.length) - (order.get(b.itemKey) ?? REQUIRED_QR_CHANNELS.length) || a.sortOrder - b.sortOrder)
   baseline.qr = snapshot('qr')
   return qrItems.value
 }
@@ -388,8 +395,17 @@ function addQr() {
 }
 
 function removeQr(index: number) {
+  if (isRequiredQr(qrItems.value[index])) return
   qrItems.value.splice(index, 1)
   saveSuccess.qr = ''
+}
+
+function isRequiredQr(item: QrRow | undefined): boolean {
+  return Boolean(item && REQUIRED_QR_CHANNELS.some(channel => channel.key === item.itemKey))
+}
+
+function qrChannelLabel(itemKey: string): string {
+  return REQUIRED_QR_CHANNELS.find(channel => channel.key === itemKey)?.label ?? ''
 }
 
 // ---------------------------------------------------------------------------
@@ -832,16 +848,19 @@ const STATUS_OPTIONS = [
         @retry="refreshQr()"
       />
       <template v-else>
+        <p class="admin-footer__hint">以下四个二维码供首页、内容侧栏和领取弹窗使用；页脚展示的两个公众号二维码仍在「站点设置 → 站点信息」单独维护。</p>
         <div v-for="(item, index) in qrItems" :key="item.uid" class="admin-footer__row">
+          <h3 v-if="qrChannelLabel(item.itemKey)" class="admin-footer__group-title">{{ qrChannelLabel(item.itemKey) }}</h3>
           <div class="admin-footer__grid">
             <div class="admin-footer__cell">
-              <label class="admin-footer__label" :for="`qr-${index}-key`">标识 itemKey</label>
+              <label class="admin-footer__label" :for="`qr-${index}-key`">配置标识</label>
               <input
                 :id="`qr-${index}-key`"
                 v-model="item.itemKey"
                 class="admin-footer__input"
                 type="text"
                 maxlength="64"
+                :readonly="isRequiredQr(item)"
                 :disabled="controlsDisabled || savingKind !== ''"
               >
             </div>
@@ -853,6 +872,7 @@ const STATUS_OPTIONS = [
                 class="admin-footer__input"
                 type="text"
                 maxlength="128"
+                :readonly="isRequiredQr(item)"
                 :disabled="controlsDisabled || savingKind !== ''"
               >
             </div>
@@ -885,7 +905,7 @@ const STATUS_OPTIONS = [
                 :id="`qr-${index}-status`"
                 v-model.number="item.status"
                 class="admin-footer__select"
-                :disabled="controlsDisabled || savingKind !== ''"
+                :disabled="controlsDisabled || savingKind !== '' || isRequiredQr(item)"
               >
                 <option v-for="option in STATUS_OPTIONS" :key="option.value" :value="option.value">
                   {{ option.label }}
@@ -927,7 +947,7 @@ const STATUS_OPTIONS = [
             <BaseButton
               variant="ghost"
               size="sm"
-              :disabled="controlsDisabled || savingKind !== ''"
+              :disabled="controlsDisabled || savingKind !== '' || isRequiredQr(item)"
               @click="removeQr(index)"
             >
               移除

@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { homeStats, teamIntro } from '~/config/homeContent'
 import { fetchHomeData } from '~/repositories/home'
+import { qrSourcesFromAssets } from '~/utils/contactQr'
 
 /**
  * 官网首页第一版（Task 3）。
@@ -16,6 +17,7 @@ const { data: homeData, error: homeError, refresh: refreshHome } = await useAsyn
 )
 
 const { data: siteSettings } = await useSiteSettings()
+const qrSources = computed(() => qrSourcesFromAssets(siteSettings.value?.footer.qr))
 /**
  * 站点身份与联系方式：后台「站点信息」优先，为空回退 config。
  * 结构化数据（schema.org）里的名称与联系方式也走这里，保证与页脚一致。
@@ -209,7 +211,7 @@ useHead({
       </template>
     </PageContainer></section>
 
-    <WechatQrModal :group="contactGroup" :open="contactModalOpen" @close="closeContactModal" />
+    <WechatQrModal :group="contactGroup" :open="contactModalOpen" :sources="qrSources" @close="closeContactModal" />
   </div>
 </template>
 

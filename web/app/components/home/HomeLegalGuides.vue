@@ -4,6 +4,7 @@ import { qrChannels } from '~/config/contactQr'
 import { useSiteSettings } from '~/composables/useSiteSettings'
 import type { FooterQrItem } from '~/repositories/settings'
 import { normalizeLegalGuideSlides } from '~/utils/contentSettings'
+import { qrImageForItemKey } from '~/utils/contactQr'
 
 const { data: siteSettings } = await useSiteSettings()
 
@@ -23,7 +24,7 @@ const activeSlide = computed(() => slides.value[currentIndex.value] ?? slides.va
 const qrImage = computed(() => {
   const itemKey = activeSlide.value.qrItemKey
   if (!itemKey) return ''
-  const configured = (siteSettings.value?.footer.qr ?? []).find((item: FooterQrItem) => item.itemKey === itemKey)?.imageUrl
+  const configured = qrImageForItemKey(siteSettings.value?.footer.qr as FooterQrItem[] | undefined, itemKey)
   if (configured) return configured
   const fallbackId = itemKey === 'qr-labor-consult' ? 'labor-consult' : 'tro-consult'
   return qrChannels.find(channel => channel.id === fallbackId)?.qrSrc ?? ''
@@ -125,7 +126,7 @@ onBeforeUnmount(() => {
 .home-legal-guides__category { margin:0; font-size:clamp(28px,4vw,44px); font-weight:800; letter-spacing:0.08em; }
 .home-legal-guides__content h3 { margin:0 0 var(--space-4); color:var(--guide-accent); font-size:clamp(26px,3vw,38px); line-height:1.3; }
 .home-legal-guides__copy { margin:0 0 var(--space-3); color:color-mix(in srgb,var(--guide-accent) 76%,#202020); font-size:var(--text-base); line-height:1.85; }
-.home-legal-guides__offer { display:flex; width:100%; align-items:flex-end; justify-content:space-between; gap:var(--space-4); margin-top:auto; padding-top:var(--space-4); }
+.home-legal-guides__offer { display:flex; width:100%; align-items:center; justify-content:space-between; gap:var(--space-4); margin-top:auto; padding-top:var(--space-4); }
 .home-legal-guides__benefit { display:flex; align-items:center; gap:var(--space-3); margin:0; color:var(--guide-accent); font-size:var(--text-base); font-weight:700; line-height:1.5; }
 .home-legal-guides__check { display:grid; width:28px; height:28px; flex:0 0 28px; place-items:center; border:2px solid currentColor; border-radius:50%; font-size:17px; line-height:1; }
 .home-legal-guides__qr { width:116px; flex:0 0 116px; margin:0; color:var(--guide-accent); text-align:center; }
