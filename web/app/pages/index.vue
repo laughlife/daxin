@@ -175,7 +175,7 @@ useHead({
       <PageContainer>
         <div class="home-about__layout">
           <div class="home-about__content">
-            <SectionHeading align="center" :title="teamTitleFromSettings" />
+            <SectionHeading align="left" :title="teamTitleFromSettings" />
             <p
               v-for="(paragraph, index) in teamParagraphsFromSettings"
               :key="index"
@@ -188,12 +188,12 @@ useHead({
               <span aria-hidden="true">→</span>
             </NuxtLink>
           </div>
+          <HomeTeamServices :sections="teamServices" />
         </div>
         <StatsSection class="home-about__stats" :stats="statsFromSettings" />
       </PageContainer>
     </section>
 
-    <HomeTeamServices :sections="teamServices" />
     <HomeCoreAdvantages :items="coreAdvantages" />
     <section class="home-content"><PageContainer>
       <ErrorState
@@ -218,7 +218,10 @@ useHead({
 }
 
 .home-about__layout {
-  max-width: 860px;
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  align-items: stretch;
+  gap: var(--space-8);
   margin-inline: auto;
   margin-top: var(--space-6);
 }
@@ -237,6 +240,8 @@ useHead({
 
 @media (max-width: 767px) {
   .home-about__layout {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
     margin-top: var(--space-4);
   }
 }

@@ -1,23 +1,59 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import type { CoreAdvantage } from '~/repositories/home'
 
 const props = defineProps<{
   items: CoreAdvantage[]
 }>()
 
-const expandedIndex = ref(-1)
+const hoveredIndex = ref(-1)
+const selectedIndex = ref(-1)
+const compactLayout = ref(false)
+const expandedIndex = computed(() => selectedIndex.value >= 0 ? selectedIndex.value : hoveredIndex.value)
+const gridTemplateColumns = computed(() => {
+  const columns = Math.min(compactLayout.value ? 2 : 4, props.items.length)
+  if (columns === 0) return ''
+  if (expandedIndex.value < 0) return `repeat(${columns}, minmax(0, 1fr))`
+  const activeColumn = compactLayout.value ? expandedIndex.value % columns : expandedIndex.value
+  return Array.from({ length: columns }, (_, index) => index === activeColumn ? '2fr' : '1fr').join(' ')
+})
+let layoutQuery: MediaQueryList | undefined
+
+function updateLayout() {
+  compactLayout.value = layoutQuery?.matches ?? false
+}
+
+onMounted(() => {
+  layoutQuery = window.matchMedia('(max-width: 1023px)')
+  updateLayout()
+  layoutQuery.addEventListener('change', updateLayout)
+})
+
+onBeforeUnmount(() => layoutQuery?.removeEventListener('change', updateLayout))
 
 function toggle(index: number) {
-  expandedIndex.value = expandedIndex.value === index ? -1 : index
+  if (selectedIndex.value === index) {
+    selectedIndex.value = -1
+    hoveredIndex.value = -1
+  } else {
+    selectedIndex.value = index
+    hoveredIndex.value = -1
+  }
 }
 
-function setExpanded(index: number) {
-  expandedIndex.value = index
+function setHovered(index: number) {
+  if (selectedIndex.value < 0) hoveredIndex.value = index
 }
 
-function clearExpanded(index: number) {
-  if (expandedIndex.value === index) expandedIndex.value = -1
+function clearHovered(index: number) {
+  if (hoveredIndex.value === index) hoveredIndex.value = -1
+}
+
+function iconPath(title: string) {
+  if (title.includes('专业')) return 'M12 3 3 7.5 12 12l9-4.5L12 3Zm-6 7.5V15l6 3 6-3v-4.5M4 8v5m16-5v5'
+  if (title.includes('经验')) return 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Zm0-16v6l4 2'
+  if (title.includes('高效')) return 'm13 2-3 8h7l-6 12 2-9H6l7-11Z'
+  return 'm12 22 7-4V11c0-4-3-7-7-9-4 2-7 5-7 9v7l7 4Zm-3-10 2 2 4-4'
 }
 
 function segments(item: CoreAdvantage) {
@@ -58,23 +94,26 @@ function segments(item: CoreAdvantage) {
         title="核心优势"
         description="专业团队与长期实战经验，为跨境企业提供高效、可执行的法律方案。"
       />
-      <div class="home-core-advantages__grid">
+      <div class="home-core-advantages__grid" :style="{ gridTemplateColumns }" :class="{ 'home-core-advantages__grid--compact': compactLayout }">
         <article
           v-for="(item, index) in props.items"
           :key="`${item.title}-${index}`"
           class="home-core-advantages__card"
           :class="{ 'home-core-advantages__card--expanded': expandedIndex === index }"
-          @mouseenter="setExpanded(index)"
-          @mouseleave="clearExpanded(index)"
+          @mouseenter="setHovered(index)"
+          @mouseleave="clearHovered(index)"
         >
           <button
             type="button"
             class="home-core-advantages__trigger"
             :aria-expanded="expandedIndex === index"
             @click="toggle(index)"
-            @focus="setExpanded(index)"
+            @focus="setHovered(index)"
+            @blur="clearHovered(index)"
           >
-            <span class="home-core-advantages__index">0{{ index + 1 }}</span>
+            <svg class="home-core-advantages__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path :d="iconPath(item.title)" />
+            </svg>
             <span class="home-core-advantages__title">{{ item.title }}</span>
             <span class="home-core-advantages__plus" aria-hidden="true">{{ expandedIndex === index ? '−' : '+' }}</span>
           </button>
@@ -98,11 +137,14 @@ function segments(item: CoreAdvantage) {
 
 .home-core-advantages__grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-4);
+  transition: grid-template-columns var(--transition-base);
 }
 
 .home-core-advantages__card {
+  display: flex;
+  flex-direction: column;
+  height: 220px;
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--color-border);
@@ -119,7 +161,7 @@ function segments(item: CoreAdvantage) {
 
 .home-core-advantages__trigger {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
   align-items: center;
   width: 100%;
   gap: var(--space-3);
@@ -129,13 +171,13 @@ function segments(item: CoreAdvantage) {
   color: var(--color-text);
   text-align: left;
   cursor: pointer;
+  min-height: 82px;
 }
 
-.home-core-advantages__index {
+.home-core-advantages__icon {
+  width: 28px;
+  height: 28px;
   color: var(--color-primary);
-  font-family: var(--font-mono);
-  font-size: var(--text-sm);
-  font-weight: 700;
 }
 
 .home-core-advantages__title {
@@ -151,11 +193,14 @@ function segments(item: CoreAdvantage) {
 }
 
 .home-core-advantages__description {
+  flex: 1;
+  min-height: 0;
   margin: 0;
   padding: 0 var(--space-6) var(--space-6);
   color: var(--color-text-muted);
   font-size: var(--text-sm);
   line-height: var(--leading-relaxed);
+  overflow-y: auto;
 }
 
 .home-core-advantages__emphasis {
@@ -163,19 +208,13 @@ function segments(item: CoreAdvantage) {
   font-weight: 800;
 }
 
-@media (max-width: 1023px) {
-  .home-core-advantages__grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @media (max-width: 639px) {
   .home-core-advantages {
     padding-block: var(--space-10);
   }
 
-  .home-core-advantages__grid {
-    grid-template-columns: 1fr;
+  .home-core-advantages__grid--compact {
+    grid-template-columns: minmax(0, 1fr) !important;
   }
 }
 </style>

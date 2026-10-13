@@ -5,9 +5,10 @@ const props = withDefaults(defineProps<{
   kind?: 'all' | 'public' | 'consult'
   zoomable?: boolean
   sources?: Record<string, string>
+  hideName?: boolean
   /** 隐藏「扫码关注 · 获取资讯」这类操作说明，只保留二维码名称（页脚用）。 */
   hideNote?: boolean
-}>(), { group: 'all', kind: 'all', hideNote: false, sources: () => ({}) })
+}>(), { group: 'all', kind: 'all', hideName: false, hideNote: false, sources: () => ({}) })
 const emit = defineEmits<{ zoom: [group: 'tro' | 'labor'] }>()
 const channels = computed(() => qrChannels.filter(item => (props.group === 'all' || item.group === props.group) && (props.kind === 'all' || item.kind === props.kind)))
 function qrSource(id: string, fallback: string) {
@@ -49,8 +50,8 @@ onBeforeUnmount(() => observer?.disconnect())
         <img :src="qrSource(channel.id, channel.qrSrc)" :alt="`${channel.name}二维码`" width="160" height="160" loading="lazy">
       </button>
       <img v-else :src="qrSource(channel.id, channel.qrSrc)" :alt="`${channel.name}二维码`" width="160" height="160" loading="lazy">
-      <figcaption>
-        <strong>{{ channel.name }}</strong>
+      <figcaption v-if="!hideName || !hideNote">
+        <strong v-if="!hideName">{{ channel.name }}</strong>
         <!-- 页脚只需要二维码名称，不需要「扫码关注 · 获取资讯」这类操作说明 -->
         <span v-if="!hideNote" class="contact-qr-grid__note" :class="{ 'contact-qr-grid__note--two': twoLineIds.includes(channel.id) }">
           <span class="contact-qr-grid__phrase">{{ channel.kind === 'public' ? '扫码关注' : '扫码咨询' }}</span>

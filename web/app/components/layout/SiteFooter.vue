@@ -71,6 +71,7 @@ const identity = useSiteIdentity()
           <ContactQrGrid
             kind="public"
             zoomable
+            hide-name
             hide-note
             :sources="qrSources"
             class="site-footer__channels"
