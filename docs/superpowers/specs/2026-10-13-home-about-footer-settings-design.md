@@ -9,8 +9,9 @@
 - 首页不再展示“核心业务”整块。
 - 首页团队介绍右侧图片移除。
 - 首页团队介绍下方保留“了解更多”链接，文案由“了解更多关于我们”改为“了解更多”。
-- 不新增“精益求精服务典范”四块模块。
+- 首页团队介绍下方新增“核心优势”四块模块，展示专业团队、经验丰富、低支高效、无果免酬；悬停或点击时展开对应说明。
 - 首页左侧团队介绍复用关于我们页的 `about_team_paragraphs` 配置。
+- “核心优势”模块沿用既定四项文案，并支持后台配置其标题、简述和展开内容。
 - 关于我们页移除核心业务图片模块；团队段落采用原 `about_hero_paragraph` 的正文样式。
 - 删除 `about_hero_paragraph`、`about_business_images`、`home_right_image` 的后台配置与前台读取。
 - 全站移除推荐阅读模块；首页不再使用侧栏布局。
@@ -48,6 +49,7 @@
 
 - `app/pages/index.vue`：移除 `BusinessSection`、首页 `ContentColumns` 侧栏包装和右侧图片读取；使用 `about_team_paragraphs` 渲染团队介绍；保留并改名“了解更多”；插入可配置团队业务模块。
 - `app/components/home/HomeTeamServices.vue`：展示四个团队业务模块，桌面四列、窄屏单列，板块内子项采用卡片内列表。
+- `app/components/home/HomeCoreAdvantages.vue`：新增“核心优势”模块，桌面四列、窄屏单列；悬停或点击展开详细说明，长文案自然换行。
 - `app/components/layout/ContentSidebar.vue`：删除推荐阅读卡片，保留联系和常见问题模块。
 - `app/pages/about.vue` 与 `app/utils/aboutContent.ts`：删除核心业务图片模块和 `about_hero_paragraph` 读取，统一团队段落正文样式。
 - `app/components/layout/SiteFooter.vue`：读取 `footer_intro` 与两张站点配置二维码，保留静态兜底。
@@ -68,3 +70,4 @@
 - 检查页脚读取配置字段并显示两张二维码。
 - 检查 TRO 查询每页 50 条、无快捷按钮、三个筛选控件边界一致。
 - 检查后台站点设置不再列出废弃字段，首页团队业务模块可读取并保存。
+- 检查首页“核心优势”模块显示四项内容，并验证悬停/点击展开交互。
