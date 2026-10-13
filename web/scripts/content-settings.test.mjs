@@ -127,6 +127,7 @@ test('migration seeds both JSON settings without replacing current admin values'
 })
 
 test('015 migration seeds site theme and only fills an empty logistics QR default', () => {
+  assert.match(featureMigration, /^-- @data-migration/m)
   assert.match(featureMigration, /'site_theme',\s*'general'/)
   assert.match(featureMigration, /classic-red/)
   assert.match(featureMigration, /qr-tro-consult/)

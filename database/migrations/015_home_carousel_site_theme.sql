@@ -1,3 +1,4 @@
+-- @data-migration
 -- Seed a site-wide theme and give the logistics guide a default consultation QR.
 -- Existing administrator-selected themes and non-empty logistics QR values are preserved.
 
