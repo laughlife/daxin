@@ -24,8 +24,8 @@ definePageMeta({
 })
 
 useSeoMeta({
-  title: '核心业务配置',
-  description: '维护首页核心业务板块与子项。',
+  title: '团队业务配置',
+  description: '维护首页团队介绍右侧四个业务块及其子项。',
   robots: 'noindex, nofollow'
 })
 
@@ -249,14 +249,21 @@ const STATUS_OPTIONS = [
   { value: 1, label: '启用' },
   { value: 0, label: '停用' }
 ]
+
+const ICON_OPTIONS = [
+  { value: 'scale', label: 'TRO 全流程' },
+  { value: 'shield', label: '知识产权' },
+  { value: 'briefcase', label: '涉外纠纷' },
+  { value: 'document', label: '跨境与劳动争议' },
+]
 </script>
 
 <template>
   <PageContainer class="admin-services" size="wide">
     <header class="admin-services__head">
-      <h1 class="admin-services__title">核心业务配置</h1>
+      <h1 class="admin-services__title">团队业务配置</h1>
       <p class="admin-services__desc">
-        维护首页「核心业务」四个板块及其子项。保存后首页立即按此配置渲染。
+        维护首页团队介绍右侧的四个业务块、图标与条目。保存后首页会读取这里的配置。
       </p>
     </header>
 
@@ -330,15 +337,15 @@ const STATUS_OPTIONS = [
             </div>
 
             <div class="admin-services__cell">
-              <label class="admin-services__label" :for="`section-${sectionIndex}-icon`">图标标识 iconKey</label>
-              <input
+              <label class="admin-services__label" :for="`section-${sectionIndex}-icon`">业务块图标</label>
+              <select
                 :id="`section-${sectionIndex}-icon`"
                 v-model="section.iconKey"
-                class="admin-services__input"
-                type="text"
-                maxlength="64"
+                class="admin-services__select"
                 :disabled="controlsDisabled || saving"
               >
+                <option v-for="option in ICON_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
+              </select>
             </div>
 
             <div class="admin-services__cell">

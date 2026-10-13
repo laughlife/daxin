@@ -5,14 +5,15 @@ defineProps<{
   sections: HomeTeamServiceSection[]
 }>()
 
-function iconFor(section: HomeTeamServiceSection): string {
-  const title = section.title.toLowerCase()
+const SERVICE_ICONS: Record<string, string> = {
+  scale: '/images/services/service-tro.png',
+  shield: '/images/services/service-ip.png',
+  briefcase: '/images/services/service-dispute.png',
+  document: '/images/services/service-cross-border.png',
+}
 
-  if (title.includes('tro')) return '/images/services/service-tro.png'
-  if (title.includes('知识产权') || title.includes('亚马逊')) return '/images/services/service-ip.png'
-  if (title.includes('涉外')) return '/images/services/service-dispute.png'
-  if (title.includes('跨境') || title.includes('劳动')) return '/images/services/service-cross-border.png'
-  return ''
+function iconFor(section: HomeTeamServiceSection): string {
+  return SERVICE_ICONS[section.iconKey] ?? ''
 }
 </script>
 

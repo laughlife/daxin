@@ -37,6 +37,7 @@ export function normalizeTeamServices(value) {
       slug: text(section.slug),
       title: text(section.title),
       description: text(section.description ?? section.summary),
+      iconKey: text(section.iconKey ?? section.icon_key),
       items: Array.isArray(section.items)
         ? section.items
             .filter(item => item && flag(item.status) === 1)

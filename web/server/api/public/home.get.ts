@@ -27,7 +27,7 @@ export const HOME_ARTICLE_CATEGORIES = [
 /** 每类取近 3 篇。 */
 const HOME_ARTICLES_PER_CATEGORY = 3
 
-const HOME_TEAM_SERVICES_SQL = `SELECT ss.slug, ss.title, ss.summary, ss.sort_order AS section_sort_order, ss.status AS section_status,
+const HOME_TEAM_SERVICES_SQL = `SELECT ss.slug, ss.title, ss.summary, ss.icon_key, ss.sort_order AS section_sort_order, ss.status AS section_status,
   si.title AS item_title, si.summary AS item_summary, si.sort_order AS item_sort_order, si.status AS item_status
 FROM service_sections ss
 LEFT JOIN service_items si ON si.section_id = ss.id
@@ -89,6 +89,7 @@ interface HomeTeamServiceRow {
   slug: string | null
   title: string | null
   summary: string | null
+  icon_key: string | null
   section_sort_order: number | string | null
   section_status: number | string | null
   item_title: string | null
@@ -110,7 +111,7 @@ function toFeaturedCase(row: HomeCaseRow): CaseRecord {
 }
 
 function toTeamServices(rows: HomeTeamServiceRow[]) {
-  const sections = new Map<string, { slug: string, title: string, description: string, status: number, items: Array<{ title: string, description: string, status: number }> }>()
+  const sections = new Map<string, { slug: string, title: string, description: string, iconKey: string, status: number, items: Array<{ title: string, description: string, status: number }> }>()
   for (const row of rows) {
     const slug = String(row.slug ?? '').trim()
     if (!slug) continue
@@ -118,6 +119,7 @@ function toTeamServices(rows: HomeTeamServiceRow[]) {
       slug,
       title: String(row.title ?? '').trim(),
       description: String(row.summary ?? '').trim(),
+      iconKey: String(row.icon_key ?? '').trim(),
       status: Number(row.section_status ?? 1),
       items: [],
     }

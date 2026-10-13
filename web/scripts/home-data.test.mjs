@@ -12,6 +12,7 @@ test('normalizes enabled team services and drops disabled sections/items', () =>
       slug: 'team-tro',
       title: 'TRO全流程处理',
       description: 'summary',
+      iconKey: 'scale',
       status: 1,
       items: [
         { title: '和解', status: 1, sortOrder: 10 },
@@ -25,6 +26,7 @@ test('normalizes enabled team services and drops disabled sections/items', () =>
     slug: 'team-tro',
     title: 'TRO全流程处理',
     description: 'summary',
+    iconKey: 'scale',
     items: [{ title: '和解', description: '' }],
   }])
 })

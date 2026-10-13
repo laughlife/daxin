@@ -54,8 +54,8 @@ interface AdminNavItem {
 /**
  * 后台导航。
  *
- * 需求（2026-10-10）要求「只保留以下模块」：案例管理、文章管理、律所模块、
- * 侧边栏管理、站点设置。
+ * 需求（2026-10-10）要求保留主要内容管理入口；现补充团队业务与联系配置入口，
+ * 让首页团队业务块和四个二维码的编辑页可从控制台直接访问。
  *
  * 因此品牌管理、媒体库、内容审核从导航中移除，
  * 但它们的页面与接口仍然保留（不删除已完成的功能，需要时可直接访问路径恢复）。
@@ -63,6 +63,8 @@ interface AdminNavItem {
  */
 const navItems: AdminNavItem[] = [
   { label: '站点设置', to: '/admin/settings', description: '站点基础信息与全局配置', roles: ['admin', 'editor', 'viewer'] },
+  { label: '团队业务配置', to: '/admin/services', description: '维护首页团队介绍右侧四个业务块', roles: ['admin', 'editor', 'viewer'] },
+  { label: '页脚与联系方式', to: '/admin/footer', description: '维护页脚、联系方式与四类二维码配置', roles: ['admin', 'editor', 'viewer'] },
   { label: '文章管理', to: '/admin/articles', description: '富文本文章与图片发布维护', roles: ['admin', 'editor', 'viewer'] },
   { label: '侧边栏管理', to: '/admin/sidebar', description: '首页侧栏推荐阅读内容维护', roles: ['admin', 'editor', 'viewer'] },
   { label: '案例管理', to: '/admin/cases', description: 'TRO 案件数据的添加与维护', roles: ['admin', 'editor', 'viewer'] },
