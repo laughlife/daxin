@@ -1,0 +1,50 @@
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import {
+  normalizeSiteTheme,
+  SITE_THEME_PRESETS,
+  siteThemeCssVariables,
+} from '../app/utils/siteTheme.ts'
+
+test('site theme presets use the approved brand palettes', () => {
+  assert.deepEqual(SITE_THEME_PRESETS, {
+    'classic-red': { label: '大信经典红', primary: '#B91C1C', accent: '#C9A45C' },
+    'legal-navy': { label: '律政藏蓝', primary: '#244A73', accent: '#C9A45C' },
+    'elegant-green': { label: '雅致墨绿', primary: '#28675A', accent: '#C9A45C' },
+    'business-purple': { label: '商务紫', primary: '#642A86', accent: '#D7B5E8' },
+  })
+})
+
+test('site theme normalizes custom HEX values and falls back safely for invalid values', () => {
+  assert.deepEqual(normalizeSiteTheme({ preset: 'custom', primary: '#aBc123' }), {
+    preset: 'custom',
+    primary: '#ABC123',
+  })
+  assert.deepEqual(normalizeSiteTheme({ preset: 'custom', primary: '#12345g' }), {
+    preset: 'classic-red',
+    primary: '#B91C1C',
+  })
+  assert.deepEqual(normalizeSiteTheme({ preset: 'custom', primary: '#12345' }), {
+    preset: 'classic-red',
+    primary: '#B91C1C',
+  })
+  assert.deepEqual(normalizeSiteTheme({ preset: 'unknown', primary: '#123456' }), {
+    preset: 'classic-red',
+    primary: '#B91C1C',
+  })
+  assert.deepEqual(normalizeSiteTheme(null), {
+    preset: 'classic-red',
+    primary: '#B91C1C',
+  })
+})
+
+test('site theme exposes only controlled primary and accent CSS variables', () => {
+  assert.deepEqual(siteThemeCssVariables({ preset: 'business-purple' }), {
+    '--color-primary': '#642A86',
+    '--color-accent': '#D7B5E8',
+  })
+  assert.deepEqual(siteThemeCssVariables({ preset: 'custom', primary: '#0a2b4c' }), {
+    '--color-primary': '#0A2B4C',
+    '--color-accent': '#C9A45C',
+  })
+})

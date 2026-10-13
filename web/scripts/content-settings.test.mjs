@@ -8,6 +8,7 @@ import {
 } from '../app/utils/contentSettings.ts'
 
 const migration = await readFile(new URL('../../database/migrations/013_sidebar_and_legal_guides_settings.sql', import.meta.url), 'utf8')
+const featureMigration = await readFile(new URL('../../database/migrations/015_home_carousel_site_theme.sql', import.meta.url), 'utf8')
 
 test('content sidebar merges editable copy while locking FAQ destinations to safe internal routes', () => {
   const result = normalizeContentSidebar({
@@ -63,7 +64,33 @@ test('legal guide settings preserve three fixed themes and merge editable copy w
   assert.equal(result[1].title, '《懂法用工，规避风险》')
   assert.equal(result[1].image, 'https://cdn.example.test/labor.png')
   assert.equal(result[2].accent, '#2177aa')
-  assert.equal(result[2].qrItemKey, '')
+  assert.equal(result[2].qrItemKey, 'qr-tro-consult')
+})
+
+test('legal guide QR choices accept the four existing assets and retain an explicit empty choice', () => {
+  const keys = ['qr-tro-public', 'qr-tro-consult', 'qr-labor-public', 'qr-labor-consult', '']
+  const result = normalizeLegalGuideSlides([
+    { slug: 'tro', qrItemKey: 'qr-tro-consult' },
+    { slug: 'labor', qrItemKey: 'qr-labor-consult' },
+    { slug: 'logistics', qrItemKey: keys[0] },
+  ])
+  assert.equal(result[0].qrItemKey, 'qr-tro-consult')
+  assert.equal(result[1].qrItemKey, 'qr-labor-consult')
+  assert.equal(result[2].qrItemKey, 'qr-tro-public')
+
+  const optedOut = normalizeLegalGuideSlides([
+    { slug: 'tro' },
+    { slug: 'labor' },
+    { slug: 'logistics', qrItemKey: '' },
+  ])
+  assert.equal(optedOut[2].qrItemKey, '')
+
+  const invalid = normalizeLegalGuideSlides([
+    { slug: 'tro' },
+    { slug: 'labor' },
+    { slug: 'logistics', qrItemKey: 'https://example.test/qr.png' },
+  ])
+  assert.equal(invalid[2].qrItemKey, 'qr-tro-consult')
 })
 
 test('legal guide settings preserve every paragraph added in the admin editor', () => {
@@ -97,4 +124,13 @@ test('migration seeds both JSON settings without replacing current admin values'
   assert.match(migration, /qr-labor-consult/)
   assert.match(migration, /破解TRO跨境难题/)
   assert.match(migration, /88项用工风险自查表/)
+})
+
+test('015 migration seeds site theme and only fills an empty logistics QR default', () => {
+  assert.match(featureMigration, /'site_theme',\s*'general'/)
+  assert.match(featureMigration, /classic-red/)
+  assert.match(featureMigration, /qr-tro-consult/)
+  assert.match(featureMigration, /JSON_SET/)
+  assert.match(featureMigration, /WHERE NOT EXISTS\s*\(\s*SELECT 1 FROM site_settings WHERE setting_key = 'site_theme'/)
+  assert.match(featureMigration, /qrItemKey/)
 })

@@ -28,7 +28,7 @@ export interface LegalGuideSlide {
   imageAlt: string
   benefit: string
   accent: string
-  qrItemKey: 'qr-tro-consult' | 'qr-labor-consult' | ''
+  qrItemKey: 'qr-tro-public' | 'qr-tro-consult' | 'qr-labor-public' | 'qr-labor-consult' | ''
 }
 
 const SIDEBAR_LINK_DEFAULTS: ContentSidebarLink[] = [
@@ -81,7 +81,7 @@ export const DEFAULT_LEGAL_GUIDES: LegalGuideSlide[] = [
     imageAlt: '国际物流法律指南',
     benefit: '',
     accent: '#216695',
-    qrItemKey: '',
+    qrItemKey: 'qr-tro-consult',
   },
 ]
 
@@ -169,7 +169,9 @@ function safeAccent(value: unknown, fallback: string): string {
 function safeGuideQrKey(value: unknown, slug: LegalGuideSlug, fallback: LegalGuideSlide['qrItemKey']): LegalGuideSlide['qrItemKey'] {
   if (slug === 'tro' && value === 'qr-tro-consult') return value
   if (slug === 'labor' && value === 'qr-labor-consult') return value
-  if (slug === 'logistics' && value === '') return ''
+  if (slug === 'logistics' && ['qr-tro-public', 'qr-tro-consult', 'qr-labor-public', 'qr-labor-consult', ''].includes(String(value))) {
+    return value as LegalGuideSlide['qrItemKey']
+  }
   return fallback
 }
 
