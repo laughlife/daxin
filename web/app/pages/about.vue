@@ -6,10 +6,9 @@ import { toAboutContent } from '~/utils/aboutContent'
  *
  * 结构与视觉按旧站 http://yan1.qinianyun.com/about/ 复刻（已用 Playwright 抓取整页比对）：
  *   1. 首屏：左侧配图（旧站为法庭天平图）+ 右侧「欢迎您来访」标题、公司名、三段介绍、24H 联系
- *   2. 核心业务：按旧站做法只用图片展示（**不复用首页的业务卡片文案**）
- *   3. TRO 成功案例：旧站该区块为 4 张案例图（**不是文章卡片列表**）
- *   4. 企业宣讲（4 列图片网格，旧站 14 张）
- *   5. 我们的小伙伴（合作伙伴 logo 墙）
+ *   2. TRO 成功案例：旧站该区块为 4 张案例图（**不是文章卡片列表**）
+ *   3. 企业宣讲（4 列图片网格，旧站 14 张）
+ *   4. 我们的小伙伴（合作伙伴 logo 墙）
  *
  * 旧站该页顶部的「扫码领取 TRO 侵权大礼包」扫码区按需求**不保留**；
  * 旧站的深色页脚也不复刻，全站统一沿用现有页脚。
@@ -49,10 +48,9 @@ useSeoMeta({
           <div class="about-page__hero-body">
             <p class="about-page__welcome">{{ about.welcome }}</p>
             <h1 class="about-page__title">{{ about.heroTitle }}</h1>
-            <p v-if="about.heroParagraph" class="about-page__lead">{{ about.heroParagraph }}</p>
-            <div v-for="(paragraph, index) in about.teamParagraphs" :key="index" class="about-page__paragraph">
+            <p v-for="(paragraph, index) in about.teamParagraphs" :key="index" class="about-page__lead">
               {{ paragraph }}
-            </div>
+            </p>
             <div class="about-page__contact">
               <h2 class="about-page__contact-title">{{ about.contactTitle }}</h2>
               <p class="about-page__contact-lines">
@@ -64,25 +62,7 @@ useSeoMeta({
           </div>
         </section>
 
-        <!-- 2. 核心业务：按旧站做法只用图片展示，不复用首页的业务卡片 -->
-        <section class="about-page__section" aria-label="核心业务">
-          <SectionHeading
-            align="center"
-            eyebrow="OUR BUSINESS"
-            title="核心业务"
-            description="覆盖跨境知识产权、产品合规、涉外纠纷与国内企业法律顾问四大板块。"
-          />
-          <ul v-if="about.businessImages.length > 0" class="about-page__business-gallery">
-            <li v-for="(src, index) in about.businessImages" :key="index">
-              <img :src="src" alt="大信法务核心业务" loading="lazy">
-            </li>
-          </ul>
-          <p v-else class="about-page__notice" role="note">
-            业务配图尚未上传。可在「后台 → 站点设置 → 关于我们」的 about_business_images 中配置。
-          </p>
-        </section>
-
-        <!-- 3. TRO 成功案例：旧站该区块为 4 张案例图 -->
+        <!-- 2. TRO 成功案例：旧站该区块为 4 张案例图 -->
         <section class="about-page__section" aria-label="成功案例">
           <SectionHeading
             align="center"
@@ -103,7 +83,7 @@ useSeoMeta({
           </p>
         </section>
 
-        <!-- 4. 企业宣讲：4 列图片网格 -->
+        <!-- 3. 企业宣讲：4 列图片网格 -->
         <section class="about-page__section" aria-label="企业宣讲">
           <SectionHeading
             align="center"
@@ -121,7 +101,7 @@ useSeoMeta({
           </p>
         </section>
 
-        <!-- 5. 我们的小伙伴：合作伙伴 logo 墙 -->
+        <!-- 4. 我们的小伙伴：合作伙伴 logo 墙 -->
         <section class="about-page__section" aria-label="我们的小伙伴">
           <SectionHeading
             align="center"
@@ -255,22 +235,6 @@ useSeoMeta({
   margin-top: var(--space-16);
 }
 
-/* 2. 核心业务：旧站该区块为图片展示 */
-.about-page__business-gallery {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-6);
-  list-style: none;
-  padding: 0;
-}
-
-.about-page__business-gallery img {
-  display: block;
-  width: 100%;
-  height: auto;
-  border-radius: var(--radius-lg);
-}
-
 /* 3. TRO 成功案例：旧站为 4 张竖版案例图 */
 .about-page__success-gallery {
   display: grid;
@@ -377,12 +341,6 @@ useSeoMeta({
   .about-page :deep(.section-heading__eyebrow::before),
   .about-page :deep(.section-heading__eyebrow::after) {
     width: 32px;
-  }
-}
-
-@media (max-width: 767px) {
-  .about-page__business-gallery {
-    grid-template-columns: 1fr;
   }
 }
 

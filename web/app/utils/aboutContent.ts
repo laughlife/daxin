@@ -12,8 +12,6 @@ export interface AboutContent {
   welcome: string
   /** 公司主体名称。 */
   heroTitle: string
-  /** 公司介绍长段。 */
-  heroParagraph: string
   /** 团队介绍标题。 */
   teamTitle: string
   /** 团队介绍段落（JSON 数组）。 */
@@ -24,8 +22,6 @@ export interface AboutContent {
   heroImage: string
   /** 团队介绍配图。 */
   teamImages: string[]
-  /** 核心业务配图（旧站该区块只用图片展示）。 */
-  businessImages: string[]
   /** 成功案例区块标题。 */
   successTitle: string
   /** 成功案例图片（旧站该区块为图片，不是文章卡片列表）。 */
@@ -84,7 +80,6 @@ export function toAboutContent(settings: PublicSettings | null | undefined): Abo
   return {
     welcome: readText(values, 'about_hero_welcome', DEFAULTS.welcome),
     heroTitle: readText(values, 'about_hero_title', DEFAULTS.heroTitle),
-    heroParagraph: readText(values, 'about_hero_paragraph', ''),
     teamTitle: readText(values, 'about_team_title', DEFAULTS.teamTitle),
     teamParagraphs: readStringList(values, 'about_team_paragraphs'),
     contactTitle: readText(values, 'about_contact_title', DEFAULTS.contactTitle),
@@ -94,7 +89,6 @@ export function toAboutContent(settings: PublicSettings | null | undefined): Abo
       const single = readText(values, 'about_team_image', '')
       return single ? [single] : []
     })(),
-    businessImages: readStringList(values, 'about_business_images'),
     successTitle: readText(values, 'about_success_title', DEFAULTS.successTitle),
     successImages: readStringList(values, 'about_success_images'),
     lectureTitle: readText(values, 'about_lecture_title', DEFAULTS.lectureTitle),

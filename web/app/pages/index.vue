@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { homeHero, homeStats, teamIntro } from '~/config/homeContent'
+import { homeStats, teamIntro } from '~/config/homeContent'
 import { fetchHomeData } from '~/repositories/home'
-import { siteConfig } from '~/config/site'
 
 /**
  * 官网首页第一版（Task 3）。
- * 首页文案来自 `~/config/homeContent`；成功案例与推荐阅读来自仓储 fetchHomeData()。
+ * 首页文案来自站点配置；案例分享、团队业务和核心优势来自仓储 fetchHomeData()。
  */
 const contactModalOpen = ref(false)
 const contactGroup = ref<'tro' | 'labor'>('tro')
@@ -16,20 +15,12 @@ const { data: homeData, error: homeError, refresh: refreshHome } = await useAsyn
   () => fetchHomeData()
 )
 
-/**
- * 团队介绍右侧配图：来自后台站点配置的 home_right_image（经 media_assets 关联）。
- * 未配置时不渲染图片位，避免出现空白框或假图。
- */
 const { data: siteSettings } = await useSiteSettings()
 /**
  * 站点身份与联系方式：后台「站点信息」优先，为空回退 config。
  * 结构化数据（schema.org）里的名称与联系方式也走这里，保证与页脚一致。
  */
 const identity = useSiteIdentity()
-const homeRightImage = computed(() => {
-  const value = siteSettings.value?.settings?.home_right_image
-  return typeof value === 'string' && value.trim() ? value.trim() : ''
-})
 
 /**
  * 首页 Banner 图片，由后台「图片管理」维护。
@@ -80,7 +71,17 @@ const statsFromSettings = computed(() => {
   return items.length > 0 ? items : homeStats
 })
 
+const teamTitleFromSettings = computed(() => readSettingText('about_team_title') || teamIntro.title)
+const teamParagraphsFromSettings = computed(() => {
+  const value = siteSettings.value?.settings?.about_team_paragraphs
+  if (!Array.isArray(value)) return teamIntro.paragraphs
+  const paragraphs = value.filter((entry): entry is string => typeof entry === 'string' && Boolean(entry.trim())).map(entry => entry.trim())
+  return paragraphs.length ? paragraphs : teamIntro.paragraphs
+})
+
 const articleColumns = computed(() => homeData.value?.articleColumns ?? [])
+const teamServices = computed(() => homeData.value?.teamServices ?? [])
+const coreAdvantages = computed(() => homeData.value?.coreAdvantages ?? [])
 const homeErrorMessage = computed(() =>
   homeError.value instanceof Error && homeError.value.message
     ? homeError.value.message
@@ -172,37 +173,29 @@ useHead({
 
     <section class="home-about" aria-label="团队介绍">
       <PageContainer>
-        <!-- 需求：标题放在左侧正文上方居中；右侧图片与左侧文字等高对齐。 -->
         <div class="home-about__layout">
           <div class="home-about__content">
-            <SectionHeading align="center" :title="teamIntro.title" />
+            <SectionHeading align="center" :title="teamTitleFromSettings" />
             <p
-              v-for="(paragraph, index) in teamIntro.paragraphs"
+              v-for="(paragraph, index) in teamParagraphsFromSettings"
               :key="index"
               class="home-about__paragraph"
             >
               {{ paragraph }}
             </p>
-            <NuxtLink :to="teamIntro.moreLink.to" class="home-about__more">
-              {{ teamIntro.moreLink.label }}
+            <NuxtLink to="/about" class="home-about__more">
+              了解更多
               <span aria-hidden="true">→</span>
             </NuxtLink>
           </div>
-          <figure v-if="homeRightImage" class="home-about__figure">
-            <img
-              class="home-about__image"
-              :src="homeRightImage"
-              :alt="teamIntro.title"
-              loading="lazy"
-            >
-          </figure>
         </div>
         <StatsSection class="home-about__stats" :stats="statsFromSettings" />
       </PageContainer>
     </section>
 
-    <BusinessSection />
-    <section class="home-content"><PageContainer><ContentColumns>
+    <HomeTeamServices :sections="teamServices" />
+    <HomeCoreAdvantages :items="coreAdvantages" />
+    <section class="home-content"><PageContainer>
       <ErrorState
         v-if="homeError"
         title="首页数据加载失败"
@@ -212,7 +205,7 @@ useHead({
       <template v-else>
         <ArticlePreviewSection :columns="articleColumns" />
       </template>
-    </ContentColumns></PageContainer></section>
+    </PageContainer></section>
 
     <WechatQrModal :group="contactGroup" :open="contactModalOpen" @close="closeContactModal" />
   </div>
@@ -224,56 +217,27 @@ useHead({
   background-color: var(--color-bg-page);
 }
 
-/* 左字右图：标题在左侧正文上方居中；右侧图片与左侧文字等高对齐。
-   用 align-items:stretch 让右侧 figure 撑满行高，img 以 height:100% + object-fit:cover
-   填满，因此图片高度与左侧文字块一致（窄屏改为上下排列）。 */
 .home-about__layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  align-items: stretch;
-  gap: var(--space-10);
+  max-width: 860px;
+  margin-inline: auto;
   margin-top: var(--space-6);
-}
-
-.home-about__figure {
-  margin: 0;
-  display: flex;
-  align-items: center;
-}
-
-.home-about__image {
-  display: block;
-  width: 100%;
-  height: 100%;
-  max-height: 100%;
-  object-fit: cover;
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
 }
 
 .home-about__content {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: var(--space-4);
   text-align: left;
 }
 
-/* 标题在左侧正文上方居中 */
 .home-about__content :deep(.section-heading) {
   align-self: stretch;
 }
 
 @media (max-width: 767px) {
   .home-about__layout {
-    grid-template-columns: 1fr;
-    gap: var(--space-6);
-  }
-
-  /* 窄屏下不再强制等高，避免图片被压得很扁 */
-  .home-about__image {
-    height: auto;
-    object-fit: contain;
+    margin-top: var(--space-4);
   }
 }
 
