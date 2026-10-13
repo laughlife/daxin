@@ -103,9 +103,15 @@ const items = computed(() =>
 /* 四个栏目上下排列（需求：不用左右两列） */
 .article-preview-section__columns {
   display: grid;
-  grid-template-columns: 1fr;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-10);
   margin-top: var(--space-8);
+}
+
+.article-preview-section__column,
+.article-preview-section__list {
+  min-width: 0;
 }
 
 .article-preview-section__column-head {
@@ -269,6 +275,7 @@ const items = computed(() =>
   /* 窄屏仍保持横向卡片轨道，单卡尺寸固定并支持触控滑动。 */
   .article-preview-section__list {
     display: flex;
+    width: 100%;
     overflow-x: auto;
     padding: 0 0 var(--space-2);
     scroll-snap-type: x mandatory;

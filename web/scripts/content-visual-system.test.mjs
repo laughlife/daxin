@@ -10,6 +10,7 @@ const [listing, detail, articleList, directory, columns, sidebar] = await Promis
   'app/components/layout/ContentColumns.vue',
   'app/components/layout/ContentSidebar.vue'
 ].map(path => readFile(new URL(`../${path}`, import.meta.url), 'utf8')))
+const homeArticles = await readFile(new URL('../app/components/home/ArticlePreviewSection.vue', import.meta.url), 'utf8')
 
 test('public listing pages use the site section spacing, field, and heading scale', () => {
   assert.match(listing, /\.listing-page\s*\{[^}]*padding-block:\s*var\(--space-section\)/s)
@@ -33,4 +34,12 @@ test('two-column content and sidebars share measured spacing and card padding', 
   assert.match(columns, /gap:\s*var\(--space-8\)/)
   assert.match(sidebar, /\.sidebar-card\s*\{[^}]*border-radius:\s*var\(--radius-lg\)/s)
   assert.match(sidebar, /\.sidebar-card\s*\{[^}]*padding:\s*var\(--space-6\)/s)
+})
+
+test('mobile article cards keep their fixed swipe rail inside the page width', () => {
+  assert.match(homeArticles, /\.article-preview-section__columns\s*\{[^}]*grid-template-columns:\s*minmax\(0,\s*1fr\)/s)
+  assert.match(homeArticles, /\.article-preview-section__columns\s*\{[^}]*min-width:\s*0/s)
+  assert.match(homeArticles, /\.article-preview-section__column,[\s\S]*?min-width:\s*0/s)
+  assert.match(homeArticles, /\.article-preview-section__list\s*\{[^}]*overflow-x:\s*auto/s)
+  assert.match(homeArticles, /flex:\s*0\s+0\s+280px/)
 })
