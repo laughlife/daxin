@@ -16,7 +16,7 @@ const guideSlides: GuideSlide[] = [
   {
     slug: 'tro',
     category: '跨境tro',
-    title: '破解TRO跨境难题',
+    title: '《破解TRO跨境难题》',
     paragraphs: [
       '卖家最头疼的跨境困局：被美国律所起诉、店铺被锁、资金冻结、链接强制下架，若不及时处理，很可能钱店两空，我们专注各类TRO案件，提供低价和解、资金解冻、店铺解封等服务；同行搞不定的疑难案件，也能高效破局',
     ],
@@ -28,7 +28,7 @@ const guideSlides: GuideSlide[] = [
   {
     slug: 'labor',
     category: '劳动法',
-    title: '懂法用工，规避风险',
+    title: '《懂法用工，规避风险》',
     paragraphs: [
       '还在忽视用工细节？结合近年劳动仲裁大数据，当前企业用工形势日趋严峻，核心风险集中在员工法律意识提升后离职时集中仲裁、企业因用工不规范频发高额赔付，以及事后补救困难且损害企业声誉这三点',
       '与其事后被动应对，不如提前合规布局，以懂法用工实现风险前置管理，护航企业稳健经营',
@@ -86,7 +86,7 @@ onBeforeUnmount(() => {
           <div v-else class="home-legal-guides__reserved" aria-hidden="true" />
 
           <div class="home-legal-guides__content">
-            <p class="home-legal-guides__category">{{ activeSlide.category }}</p>
+            <p v-if="activeSlide.slug === 'logistics'" class="home-legal-guides__category">{{ activeSlide.category }}</p>
             <h3 v-if="activeSlide.title">{{ activeSlide.title }}</h3>
             <template v-if="activeSlide.paragraphs.length">
               <p v-for="paragraph in activeSlide.paragraphs" :key="paragraph" class="home-legal-guides__copy">
