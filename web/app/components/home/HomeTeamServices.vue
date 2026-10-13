@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import type { HomeTeamServiceSection } from '~/repositories/home'
 
+const redundantItemTitles = new Set(['和解', '起诉', '应诉'])
+
 defineProps<{
   sections: HomeTeamServiceSection[]
 }>()
@@ -11,9 +13,8 @@ defineProps<{
     <div class="home-team-services__grid">
       <article v-for="section in sections" :key="section.slug" class="home-team-services__card">
         <h3 class="home-team-services__title">{{ section.title }}</h3>
-        <p v-if="section.description" class="home-team-services__description">{{ section.description }}</p>
         <ul class="home-team-services__items">
-          <li v-for="item in section.items" :key="`${section.slug}-${item.title}`">
+          <li v-for="item in section.items.filter(item => !redundantItemTitles.has(item.title.trim()))" :key="`${section.slug}-${item.title}`">
             <span aria-hidden="true">✦</span>
             <span>{{ item.title }}</span>
           </li>
@@ -41,6 +42,15 @@ defineProps<{
   border-radius: var(--radius-lg);
   background: var(--color-bg-light);
   box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base), background-color var(--transition-base);
+}
+
+.home-team-services__card:hover,
+.home-team-services__card:focus-within {
+  border-color: var(--color-primary);
+  background: var(--color-bg-page);
+  box-shadow: var(--shadow-md);
+  transform: scale(1.015);
 }
 
 .home-team-services__title {
@@ -49,21 +59,25 @@ defineProps<{
   line-height: 1.35;
 }
 
-.home-team-services__description {
-  margin-top: var(--space-3);
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-  line-height: var(--leading-relaxed);
-}
-
 .home-team-services__items {
   display: grid;
   gap: var(--space-2);
-  margin: var(--space-5) 0 0;
+  margin: var(--space-3) 0 0;
   padding: 0;
   list-style: none;
   color: var(--color-text-muted);
   font-size: var(--text-sm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-team-services__card {
+    transition: none;
+  }
+
+  .home-team-services__card:hover,
+  .home-team-services__card:focus-within {
+    transform: none;
+  }
 }
 
 .home-team-services__items li {

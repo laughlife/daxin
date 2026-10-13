@@ -56,6 +56,10 @@ function iconPath(title: string) {
   return 'm12 22 7-4V11c0-4-3-7-7-9-4 2-7 5-7 9v7l7 4Zm-3-10 2 2 4-4'
 }
 
+function displayTitle(title: string) {
+  return title.replace(/^0?[1-4][.、\s]+/, '').trim()
+}
+
 function segments(item: CoreAdvantage) {
   const text = item.description
   const highlights = [...new Set(item.highlights.filter(Boolean))].sort((a, b) => b.length - a.length)
@@ -114,8 +118,7 @@ function segments(item: CoreAdvantage) {
             <svg class="home-core-advantages__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path :d="iconPath(item.title)" />
             </svg>
-            <span class="home-core-advantages__title">{{ item.title }}</span>
-            <span class="home-core-advantages__plus" aria-hidden="true">{{ expandedIndex === index ? '−' : '+' }}</span>
+            <span class="home-core-advantages__title">{{ displayTitle(item.title) }}</span>
           </button>
           <p v-if="expandedIndex === index" class="home-core-advantages__description">
             <template v-for="(segment, segmentIndex) in segments(item)" :key="segmentIndex">
@@ -160,8 +163,10 @@ function segments(item: CoreAdvantage) {
 }
 
 .home-core-advantages__trigger {
-  display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) auto;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
   align-items: center;
   width: 100%;
   gap: var(--space-3);
@@ -169,14 +174,13 @@ function segments(item: CoreAdvantage) {
   border: 0;
   background: transparent;
   color: var(--color-text);
-  text-align: left;
+  text-align: center;
   cursor: pointer;
-  min-height: 82px;
 }
 
 .home-core-advantages__icon {
-  width: 28px;
-  height: 28px;
+  width: 38px;
+  height: 38px;
   color: var(--color-primary);
 }
 
@@ -184,12 +188,7 @@ function segments(item: CoreAdvantage) {
   font-size: var(--text-lg);
   font-weight: 700;
   line-height: 1.35;
-}
-
-.home-core-advantages__plus {
-  color: var(--color-primary);
-  font-size: var(--text-xl);
-  font-weight: 400;
+  text-align: center;
 }
 
 .home-core-advantages__description {
@@ -206,6 +205,13 @@ function segments(item: CoreAdvantage) {
 .home-core-advantages__emphasis {
   color: #111;
   font-weight: 800;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-core-advantages__grid,
+  .home-core-advantages__card {
+    transition: none;
+  }
 }
 
 @media (max-width: 639px) {

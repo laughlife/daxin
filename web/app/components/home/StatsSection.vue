@@ -42,6 +42,14 @@ defineProps<{
   border-radius: var(--radius-lg);
   text-align: center;
   align-items: center;
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base), background-color var(--transition-base);
+}
+
+.stats-section__item:hover {
+  border-color: var(--color-primary);
+  background-color: var(--color-bg-light);
+  box-shadow: var(--shadow-md);
+  transform: scale(1.02);
 }
 
 .stats-section__value {
@@ -64,6 +72,16 @@ defineProps<{
 .stats-section__description {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stats-section__item {
+    transition: none;
+  }
+
+  .stats-section__item:hover {
+    transform: none;
+  }
 }
 
 /* 平板：3 列 */

@@ -72,6 +72,7 @@ const statsFromSettings = computed(() => {
 })
 
 const teamTitleFromSettings = computed(() => readSettingText('about_team_title') || teamIntro.title)
+const teamDisplayTitle = computed(() => teamTitleFromSettings.value.replace(/^About\s*US\s*[·|｜—-]?\s*/i, '') || '大信法务团队')
 const teamParagraphsFromSettings = computed(() => {
   const value = siteSettings.value?.settings?.about_team_paragraphs
   if (!Array.isArray(value)) return teamIntro.paragraphs
@@ -175,7 +176,7 @@ useHead({
       <PageContainer>
         <div class="home-about__layout">
           <div class="home-about__content">
-            <SectionHeading align="left" :title="teamTitleFromSettings" />
+            <SectionHeading align="center" eyebrow="About US" :title="teamDisplayTitle" />
             <p
               v-for="(paragraph, index) in teamParagraphsFromSettings"
               :key="index"
@@ -236,6 +237,16 @@ useHead({
 
 .home-about__content :deep(.section-heading) {
   align-self: stretch;
+  gap: var(--space-2);
+}
+
+.home-about__content :deep(.section-heading__eyebrow) {
+  font-size: var(--text-sm);
+}
+
+.home-about__content :deep(.section-heading__eyebrow::before),
+.home-about__content :deep(.section-heading__eyebrow::after) {
+  width: 32px;
 }
 
 @media (max-width: 767px) {
@@ -248,7 +259,7 @@ useHead({
 
 .home-about__paragraph {
   color: var(--color-text-muted);
-  line-height: var(--leading-relaxed);
+  line-height: 1.55;
 }
 
 .home-about__paragraph:first-child {
