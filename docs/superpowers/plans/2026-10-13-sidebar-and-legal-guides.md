@@ -4,7 +4,7 @@
 
 **Goal:** 将内容页侧栏和首页三本普法干货书接入现有站点配置后台，并保持团队业务块与二维码继续复用现有管理入口。
 
-**Architecture:** 新增 `site_settings` JSON 配置 `content_sidebar` 和 `home_legal_guides`，以幂等迁移填入当前展示内容。纯函数负责配置校验与默认回退；站点设置后台增加结构化编辑器；公开页面复用 `/api/public/settings` 返回的 JSON 配置和 `footer.qr` 二维码目录。
+**Architecture:** 新增 `site_settings` JSON 配置 `content_sidebar` 和 `home_legal_guides`，以幂等迁移填入当前展示内容。纯函数负责配置校验与默认回退；站点设置后台增加结构化编辑器；公众号二维码复用 `footer_qr_primary` / `footer_qr_secondary` 设置，咨询号二维码复用 `/api/public/settings` 返回的 `footer.qr` 目录。
 
 **Tech Stack:** Nuxt 4、Vue 3、TypeScript、MySQL migrations、Node.js `node:test`、现有 OSS 上传组件。
 
@@ -15,7 +15,7 @@
 - 不新增数据库表，不改变团队业务块的 `/admin/services` 配置入口。
 - 侧栏 FAQ 仅使用三个站内链接，不接受任意外链。
 - 轮播固定为 TRO、劳动法、国际物流三个主题，不在后台提供增删或重排。
-- TRO/劳动法二维码沿用现有二维码管理；找不到有效二维码时使用当前静态默认图。
+- TRO/劳动法公众号二维码沿用现有 `footer_qr_primary` / `footer_qr_secondary` 图片设置，咨询号二维码沿用现有 `qr_assets` 管理；找不到有效二维码时使用当前静态默认图。
 - 新配置缺失或无效时，前台使用当前页面默认内容；后台 JSON 解析失败时阻止保存。
 - Git 提交标题使用中文正文与英文类型前缀；每个可独立验证的任务单独提交，只暂存任务涉及文件。
 - 不执行 git push 或 merge。
@@ -43,9 +43,9 @@
 - Produces `ContentSidebarConfig`, `ContentSidebarLink`, `LegalGuideSlide` exported types.
 - Produces `normalizeContentSidebar(value: unknown): ContentSidebarConfig`.
 - Produces `normalizeLegalGuideSlides(value: unknown): LegalGuideSlide[]`; returns all three fixed slugs in `tro`, `labor`, `logistics` order, merging valid editable fields with defaults. Invalid/missing configuration returns a fresh copy of all existing defaults.
-- QR link field is `qrItemKey`; TRO/Labor defaults use stable IDs matching `qr_assets.item_key` (`tro-consult`, `labor-consult`); sidebar resolves public and consultation QR IDs by page group.
+- QR link field is `qrItemKey`; TRO/Labor defaults use stable IDs matching `qr_assets.item_key` (`qr-tro-consult`, `qr-labor-consult`); sidebar resolves public and consultation QR IDs by page group.
 
-- [ ] **Step 1: Write failing normalization tests** in `web/scripts/content-settings.test.mjs` for: full valid config; missing optional fields; malformed object/array; fixed guide order; damaged data falls back without dropping any theme; unsafe FAQ path rejected; `all` sidebar group default QR IDs.
+- [ ] **Step 1: Write failing normalization tests** in `web/scripts/content-settings.test.mjs` for: full valid config; missing optional fields; malformed object/array; fixed guide order; damaged data falls back without dropping any theme; unsafe FAQ path rejected; `all` sidebar group default QR IDs. Add a static migration assertion for both keys/groups/JSON types/default rows and `NOT EXISTS` guards.
 - [ ] **Step 2: Run the focused tests and verify they fail**
 
   Run: `cd web; node --test scripts/content-settings.test.mjs`
@@ -112,8 +112,8 @@
 - Test: `web/scripts/footer-sidebar.test.mjs`, `web/scripts/home-legal-guides.test.mjs`
 
 **Interfaces:**
-- Public `settings` remains a key-value record; `footer.qr` remains the QR asset directory with `itemKey` and `imageUrl`.
-- `ContentSidebar` uses shared `useSiteSettings()` and `normalizeContentSidebar`; maps active group to exactly two QR channels and passes only those image URLs to `ContactQrGrid` with `hideName` and `hideNote`.
+- Public `settings` remains a key-value record; `footer.qr` remains the consult QR asset directory with `itemKey` and `imageUrl`; public account QR sources remain `settings.footer_qr_primary` and `settings.footer_qr_secondary`.
+- `ContentSidebar` uses shared `useSiteSettings()` and `normalizeContentSidebar`; maps active group to exactly two QR channels using the public-account setting and the consult asset key, then passes image URLs to `ContactQrGrid` with `hideName` and `hideNote`.
 - `HomeLegalGuides` uses shared `useSiteSettings()` and `normalizeLegalGuideSlides`; QR URLs resolve by `qrItemKey` against `footer.qr`, falling back to static URLs when the asset is missing.
 
 - [ ] **Step 1: Update failing sidebar tests** to assert FAQ block precedes QR blocks; headings match defaults; no intro/phone/caption text; TRO/labor/all groups map exactly two matching QR IDs; QR labels are hidden.
