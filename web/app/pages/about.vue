@@ -135,7 +135,7 @@ useSeoMeta({
  * 因此这里不再恢复该横条，仅沿用其标题与卡片视觉语言。
  */
 .about-page {
-  padding-block: var(--space-10) var(--space-16);
+  padding-block: var(--space-section-compact) var(--space-section);
   background-color: var(--color-bg-light);
 }
 

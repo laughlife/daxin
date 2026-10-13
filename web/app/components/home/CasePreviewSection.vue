@@ -45,7 +45,7 @@ const visibleCases = computed(() => recentCases.value.length ? recentCases.value
 
 <style scoped>
 .case-preview-section {
-  padding-block: var(--space-16);
+  padding-block: var(--space-section);
   background-color: var(--color-bg-page);
 }
 
@@ -92,7 +92,7 @@ const visibleCases = computed(() => recentCases.value.length ? recentCases.value
 
 @media (max-width: 639px) {
   .case-preview-section {
-    padding-block: var(--space-10);
+    padding-block: var(--space-section);
   }
 }
 </style>

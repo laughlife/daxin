@@ -96,7 +96,7 @@ const items = computed(() =>
 
 <style scoped>
 .article-preview-section {
-  padding-block: var(--space-16);
+  padding-block: var(--space-section);
   background-color: var(--color-bg-light);
 }
 
@@ -263,7 +263,7 @@ const items = computed(() =>
 
 @media (max-width: 639px) {
   .article-preview-section {
-    padding-block: var(--space-10);
+    padding-block: var(--space-section);
   }
 
   /* 窄屏仍保持横向卡片轨道，单卡尺寸固定并支持触控滑动。 */

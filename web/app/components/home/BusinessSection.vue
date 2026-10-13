@@ -32,7 +32,7 @@ const cards = computed(() => businessCards)
 
 <style scoped>
 .business-section {
-  padding-block: var(--space-16);
+  padding-block: var(--space-section);
   background-color: var(--color-bg-light);
 }
 
@@ -46,7 +46,7 @@ const cards = computed(() => businessCards)
 
 @media (max-width: 767px) {
   .business-section {
-    padding-block: var(--space-10);
+    padding-block: var(--space-section);
   }
 
   .business-section__grid {

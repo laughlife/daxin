@@ -54,7 +54,8 @@ const buttonClass = computed(() => [
   justify-content: center;
   gap: var(--space-2);
   border: 1px solid transparent;
-  border-radius: var(--radius-md);
+  min-height: 44px;
+  border-radius: var(--radius-control);
   font-weight: 600;
   line-height: 1;
   text-decoration: none;
@@ -63,11 +64,16 @@ const buttonClass = computed(() => [
   transition:
     background-color var(--transition-base),
     border-color var(--transition-base),
-    color var(--transition-base);
+    color var(--transition-base),
+    transform var(--transition-base),
+    box-shadow var(--transition-base);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn:hover {
   text-decoration: none;
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 
 /* 尺寸 */
@@ -116,6 +122,13 @@ const buttonClass = computed(() => [
 .btn--ghost:hover {
   background-color: var(--color-bg-light);
   color: var(--color-primary);
+}
+
+.btn:active { transform: translateY(0); box-shadow: var(--shadow-sm); }
+
+@media (prefers-reduced-motion: reduce) {
+  .btn { transition: none; }
+  .btn:hover { transform: none; }
 }
 
 .btn--block {

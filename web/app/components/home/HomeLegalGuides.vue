@@ -171,7 +171,7 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.home-legal-guides { padding-block:var(--space-16); background:var(--color-bg-page); }
+.home-legal-guides { padding-block:var(--space-section); background:var(--color-bg-page); }
 .home-legal-guides__panel {
   --guide-accent:#216695;
   display:grid;
@@ -207,7 +207,7 @@ onBeforeUnmount(() => {
 .home-legal-guides__slide-enter-from { opacity:0; transform:translateX(18px); }
 .home-legal-guides__slide-leave-to { opacity:0; transform:translateX(-18px); }
 @media(max-width:767px) {
-  .home-legal-guides { padding-block:var(--space-10); }
+  .home-legal-guides { padding-block:var(--space-section); }
   .home-legal-guides__panel { grid-template-columns:1fr; }
   .home-legal-guides__image { min-height:220px; height:220px; }
   .home-legal-guides__image img { max-height:220px; }

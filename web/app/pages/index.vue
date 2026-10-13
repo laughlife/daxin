@@ -293,16 +293,16 @@ useHead({
 </style>
 
 <style scoped>
-.home-content { padding-block:48px; background:var(--color-bg-light); }
+.home-content { padding-block:var(--space-section-compact); background:var(--color-bg-light); }
 .home-content :deep(.case-preview-section), .home-content :deep(.article-preview-section) { padding:0 0 28px; background:transparent; }
 .home-content :deep(.case-preview-section > .page-container), .home-content :deep(.article-preview-section > .page-container) { padding:0; }
 .home-content :deep(.case-preview-section__grid) { grid-template-columns:1fr; }
 
 /* 首页 Banner：整幅图片，宽度撑满容器并保持原始比例 */
-.home-banner { padding-block:32px; }
+.home-banner { padding-block:var(--space-section-compact); }
 .home-banner__img { display:block; width:100%; height:auto; border-radius:var(--radius-lg); }
 @media (max-width: 767px) {
-  .home-banner { padding-block:20px; }
+  .home-banner { padding-block:var(--space-6); }
   .home-banner__img { border-radius:var(--radius-md); }
 }
 </style>

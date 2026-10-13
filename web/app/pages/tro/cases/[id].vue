@@ -163,7 +163,7 @@ useSeoMeta({
 
 <style scoped>
 .case-detail {
-  padding-block: var(--space-8) var(--space-16);
+  padding-block: var(--space-section-compact) var(--space-section);
   background-color: var(--color-bg-light);
   min-height: 60vh;
 }

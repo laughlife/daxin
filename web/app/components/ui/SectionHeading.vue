@@ -54,7 +54,7 @@ const rootClass = computed(() => [
 .section-heading {
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: var(--space-4);
 }
 
 .section-heading--center {
@@ -69,8 +69,8 @@ const rootClass = computed(() => [
   align-items: center;
   justify-content: center;
   gap: var(--space-4);
-  font-size: var(--text-lg);
-  font-weight: 500;
+  font-size: var(--text-sm);
+  font-weight: 700;
   line-height: 1;
   letter-spacing: 0.02em;
   text-transform: uppercase;
@@ -82,7 +82,7 @@ const rootClass = computed(() => [
   content: '';
   flex: none;
   width: 60px;
-  height: 2px;
+  height: 1px;
   background-color: var(--color-primary);
 }
 
@@ -98,7 +98,7 @@ const rootClass = computed(() => [
 /* 区块大标题：沿用全站尺度；需要旧站 36px 尺度时由页面局部覆盖
    （见 about.vue 的 :deep(.section-heading__title)），避免改动影响其它页面。 */
 .section-heading__title {
-  font-size: var(--text-3xl);
+  font-size: var(--heading-2);
   font-weight: 700;
   line-height: 1.2;
   color: var(--color-text);
