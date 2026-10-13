@@ -4,11 +4,15 @@ const props = withDefaults(defineProps<{
   group?: 'tro' | 'labor' | 'all'
   kind?: 'all' | 'public' | 'consult'
   zoomable?: boolean
+  sources?: Record<string, string>
   /** 隐藏「扫码关注 · 获取资讯」这类操作说明，只保留二维码名称（页脚用）。 */
   hideNote?: boolean
-}>(), { group: 'all', kind: 'all', hideNote: false })
+}>(), { group: 'all', kind: 'all', hideNote: false, sources: () => ({}) })
 const emit = defineEmits<{ zoom: [group: 'tro' | 'labor'] }>()
 const channels = computed(() => qrChannels.filter(item => (props.group === 'all' || item.group === props.group) && (props.kind === 'all' || item.kind === props.kind)))
+function qrSource(id: string, fallback: string) {
+  return props.sources[id] || fallback
+}
 const grid = ref<HTMLElement | null>(null)
 const twoLineIds = ref<string[]>([])
 let observer: ResizeObserver | undefined
@@ -42,9 +46,9 @@ onBeforeUnmount(() => observer?.disconnect())
   <div ref="grid" class="contact-qr-grid" :class="{ 'contact-qr-grid--single': channels.length === 1 }">
     <figure v-for="channel in channels" :key="channel.id" :data-qr-id="channel.id">
       <button v-if="zoomable" type="button" class="contact-qr-grid__zoom" :aria-label="`放大${channel.name}二维码`" @click="emit('zoom', channel.group)">
-        <img :src="channel.qrSrc" :alt="`${channel.name}二维码`" width="160" height="160" loading="lazy">
+        <img :src="qrSource(channel.id, channel.qrSrc)" :alt="`${channel.name}二维码`" width="160" height="160" loading="lazy">
       </button>
-      <img v-else :src="channel.qrSrc" :alt="`${channel.name}二维码`" width="160" height="160" loading="lazy">
+      <img v-else :src="qrSource(channel.id, channel.qrSrc)" :alt="`${channel.name}二维码`" width="160" height="160" loading="lazy">
       <figcaption>
         <strong>{{ channel.name }}</strong>
         <!-- 页脚只需要二维码名称，不需要「扫码关注 · 获取资讯」这类操作说明 -->

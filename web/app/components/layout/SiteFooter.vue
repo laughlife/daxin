@@ -20,6 +20,21 @@ const footerServices = computed(() => {
   return items.filter((item) => item.title)
 })
 
+const footerIntro = computed(() => {
+  const value = settings.value?.settings?.footer_intro
+  return typeof value === 'string' && value.trim() ? value.trim() : siteConfig.footerIntro
+})
+
+const qrSources = computed(() => {
+  const values = settings.value?.settings ?? {}
+  const primary = values.footer_qr_primary
+  const secondary = values.footer_qr_secondary
+  return {
+    'tro-public': typeof primary === 'string' && primary.trim() ? primary.trim() : '',
+    'labor-public': typeof secondary === 'string' && secondary.trim() ? secondary.trim() : '',
+  }
+})
+
 /** 页脚 logo：优先用后台站点配置的 site_logo（新 logo）。 */
 const logoSrc = computed(() => {
   const value = settings.value?.settings?.site_logo
@@ -51,12 +66,13 @@ const identity = useSiteIdentity()
             >
             <p v-else class="site-footer__name">{{ identity.name }}</p>
           </div>
-          <p class="site-footer__subtitle">{{ siteConfig.footerIntro }}</p>
+          <p class="site-footer__subtitle">{{ footerIntro }}</p>
           <!-- 二维码下方只保留名称，不显示「扫码关注 · 获取资讯」 -->
           <ContactQrGrid
             kind="public"
             zoomable
             hide-note
+            :sources="qrSources"
             class="site-footer__channels"
             @zoom="enlargeQr"
           />
@@ -107,7 +123,7 @@ const identity = useSiteIdentity()
         </p>
       </PageContainer>
     </div>
-    <WechatQrModal :open="qrOpen" :group="qrGroup" kind="public" @close="qrOpen = false" />
+    <WechatQrModal :open="qrOpen" :group="qrGroup" kind="public" :sources="qrSources" @close="qrOpen = false" />
   </footer>
 </template>
 

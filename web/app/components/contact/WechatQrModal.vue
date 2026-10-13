@@ -13,6 +13,7 @@ const props = defineProps<{
   open: boolean
   group: 'tro' | 'labor'
   kind?: 'consult' | 'public'
+  sources?: Record<string, string>
 }>()
 
 const emit = defineEmits<{
@@ -112,7 +113,7 @@ onBeforeUnmount(() => {
       </header>
 
       <div class="qr-modal__body">
-        <ContactQrGrid :group="group" :kind="kind ?? 'consult'" />
+        <ContactQrGrid :group="group" :kind="kind ?? 'consult'" :sources="sources" />
       </div>
     </div>
   </div>
