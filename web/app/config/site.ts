@@ -83,17 +83,24 @@ export const siteConfig: SiteConfig = {
 
   footerNav: [
     {
-      title: '业务范围',
+      title: '知识产权服务',
       items: [
-        { label: 'TRO应诉和解' },
-        { label: '亚马逊申诉/投诉' },
-        { label: '不侵权报告' },
-        { label: '商标/版权/专利申请注册' },
-        { label: 'CPSC召回' },
-        { label: '劳动争议' },
-        { label: '货代民商纠纷' },
-        { label: '企业法律顾问' },
-        { label: '跨境纠纷' }
+        { label: 'TRO 和解应诉', to: '/tro/cases' },
+        { label: '亚马逊申诉/投诉', to: '/tro/guides' },
+        { label: '不侵权报告', to: '/infringement-check' },
+        { label: '加州 65 号法案', to: '/tro/guides' },
+        { label: 'CPSC 召回', to: '/tro/cpsc-recalls' },
+        { label: '商标/版权/专利申请', to: '/tro/guides' },
+        { label: '亚马逊专利中立评估（APEX）', to: '/tro/guides' }
+      ]
+    },
+    {
+      title: '国内业务',
+      items: [
+        { label: '劳动人事管理', to: '/domestic/labor-disputes' },
+        { label: '跨境物流纠纷', to: '/domestic/freight-cases' },
+        { label: '货代民商纠纷', to: '/domestic/freight-cases' },
+        { label: '企业法律顾问', to: '/about' }
       ]
     }
   ],

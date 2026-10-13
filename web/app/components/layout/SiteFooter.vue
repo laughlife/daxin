@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { siteConfig } from '~/config/site'
+import { groupFooterServices } from '~/utils/footerServices'
 
 const qrOpen = ref(false)
 const qrGroup = ref<'tro' | 'labor'>('tro')
@@ -15,10 +16,9 @@ function enlargeQr(group: 'tro' | 'labor') { qrGroup.value = group; qrOpen.value
  */
 const { data: settings } = await useSiteSettings()
 
-const footerServices = computed(() => {
-  const items = settings.value?.footer?.services ?? []
-  return items.filter((item) => item.title)
-})
+const footerServiceGroups = computed(() =>
+  groupFooterServices(settings.value?.footer?.services ?? [], siteConfig.footerNav),
+)
 
 const footerIntro = computed(() => {
   const value = settings.value?.settings?.footer_intro
@@ -40,9 +40,6 @@ const logoSrc = computed(() => {
   const value = settings.value?.settings?.site_logo
   return typeof value === 'string' && value.trim() ? value.trim() : ''
 })
-
-/** 服务端暂无配置时的静态兜底（仅文案，不可点击）。 */
-const fallbackGroups = computed(() => siteConfig.footerNav)
 
 /**
  * 站点名称与联系方式改为「后台配置优先、config 兜底」，
@@ -80,20 +77,19 @@ const identity = useSiteIdentity()
         </section>
 
         <section class="site-footer__column" aria-label="业务范围">
-          <h3 class="site-footer__section-title">业务范围</h3>
-          <ul v-if="footerServices.length > 0" class="site-footer__list">
-            <li v-for="item in footerServices" :key="item.itemKey">
-              <NuxtLink v-if="item.linkPath" class="site-footer__service-link" :to="item.linkPath">
-                {{ item.title }}
-              </NuxtLink>
-              <span v-else>{{ item.title }}</span>
-            </li>
-          </ul>
-          <ul v-else class="site-footer__list">
-            <li v-for="group in fallbackGroups" :key="group.title">
-              <span v-for="item in group.items" :key="item.label">{{ item.label }}</span>
-            </li>
-          </ul>
+          <div class="site-footer__service-groups">
+            <section v-for="group in footerServiceGroups" :key="group.title" class="site-footer__service-group">
+              <h3 class="site-footer__section-title">{{ group.title }}</h3>
+              <ul class="site-footer__list">
+                <li v-for="item in group.items" :key="item.itemKey">
+                  <NuxtLink v-if="item.to" class="site-footer__service-link" :to="item.to">
+                    {{ item.label }}
+                  </NuxtLink>
+                  <span v-else>{{ item.label }}</span>
+                </li>
+              </ul>
+            </section>
+          </div>
         </section>
 
         <section class="site-footer__column" aria-label="联系我们">
@@ -145,6 +141,9 @@ const identity = useSiteIdentity()
 .site-footer__columns { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:var(--space-8); padding-top:var(--space-6); border-top:1px solid rgb(255 255 255 / 15%); }
 .site-footer__column { display:flex; flex-direction:column; gap:var(--space-4); min-width:0; }
 .site-footer__section-title { font-size:var(--text-lg); font-weight:600; color:var(--color-text-inverse); text-align:left; letter-spacing:0.08em; padding-top:4px; }
+.site-footer__service-groups { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-5); }
+.site-footer__service-group { display:flex; min-width:0; flex-direction:column; gap:var(--space-3); }
+.site-footer__service-group .site-footer__section-title { font-size:var(--text-base); letter-spacing:0; }
 .site-footer__section-title::after { content:''; display:block; width:28px; height:2px; margin:8px 0 0; background:var(--color-accent); }
 .site-footer__list { display:flex; flex-direction:column; gap:8px; margin:0; padding:0; list-style:none; color:rgb(255 255 255 / 80%); }
 .site-footer__service-link { color:rgb(255 255 255 / 80%); line-height:1.7; }
