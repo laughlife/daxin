@@ -49,11 +49,11 @@ function clearHovered(index: number) {
   if (hoveredIndex.value === index) hoveredIndex.value = -1
 }
 
-function iconPath(title: string) {
-  if (title.includes('专业')) return 'M12 3 3 7.5 12 12l9-4.5L12 3Zm-6 7.5V15l6 3 6-3v-4.5M4 8v5m16-5v5'
-  if (title.includes('经验')) return 'M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Zm0-16v6l4 2'
-  if (title.includes('高效')) return 'm13 2-3 8h7l-6 12 2-9H6l7-11Z'
-  return 'm12 22 7-4V11c0-4-3-7-7-9-4 2-7 5-7 9v7l7 4Zm-3-10 2 2 4-4'
+function iconKey(title: string) {
+  if (title.includes('专业')) return 'team'
+  if (title.includes('经验')) return 'experience'
+  if (title.includes('高效')) return 'efficiency'
+  return 'protection'
 }
 
 function displayTitle(title: string) {
@@ -115,9 +115,10 @@ function segments(item: CoreAdvantage) {
             @focus="setHovered(index)"
             @blur="clearHovered(index)"
           >
-            <svg v-if="expandedIndex !== index" class="home-core-advantages__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path :d="iconPath(item.title)" />
-            </svg>
+            <span class="home-core-advantages__icon" :class="{ 'home-core-advantages__icon--red': expandedIndex === index }" aria-hidden="true">
+              <img :src="`/images/icons/core-${iconKey(item.title)}-black.png`" alt="">
+              <img :src="`/images/icons/core-${iconKey(item.title)}-red.png`" alt="">
+            </span>
             <span class="home-core-advantages__title">{{ displayTitle(item.title) }}</span>
           </button>
           <p v-if="expandedIndex === index" class="home-core-advantages__description">
@@ -136,7 +137,7 @@ function segments(item: CoreAdvantage) {
 
 <style scoped>
 .home-core-advantages {
-  padding-block: var(--space-16);
+  padding-block: var(--space-section);
   background: var(--color-bg-light);
 }
 
@@ -149,13 +150,13 @@ function segments(item: CoreAdvantage) {
 .home-core-advantages__card {
   display: flex;
   flex-direction: column;
-  height: 220px;
+  height: 252px;
   min-width: 0;
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-bg-page);
-  transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base);
+  transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base), background-color var(--transition-base);
 }
 
 .home-core-advantages__card--expanded {
@@ -171,7 +172,7 @@ function segments(item: CoreAdvantage) {
   justify-content: center;
   align-items: center;
   width: 100%;
-  gap: var(--space-3);
+  gap: var(--space-4);
   padding: var(--space-6);
   border: 0;
   background: transparent;
@@ -181,9 +182,29 @@ function segments(item: CoreAdvantage) {
 }
 
 .home-core-advantages__icon {
-  width: 38px;
-  height: 38px;
-  color: var(--color-primary);
+  position: relative;
+  display: block;
+  width: 48px;
+  height: 48px;
+  flex: none;
+}
+
+.home-core-advantages__icon img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+
+.home-core-advantages__icon img:last-child { opacity: 0; }
+.home-core-advantages__icon--red img:first-child { opacity: 0; }
+.home-core-advantages__icon--red img:last-child { opacity: 1; }
+
+.home-core-advantages__card:hover .home-core-advantages__icon img,
+.home-core-advantages__card:focus-within .home-core-advantages__icon img {
+  transform: scale(1.06);
 }
 
 .home-core-advantages__card--expanded .home-core-advantages__trigger {
@@ -196,6 +217,10 @@ function segments(item: CoreAdvantage) {
   font-weight: 700;
   line-height: 1.35;
   text-align: center;
+}
+
+.home-core-advantages__card--expanded .home-core-advantages__title {
+  color: var(--color-primary-dark);
 }
 
 .home-core-advantages__description {
@@ -220,7 +245,7 @@ function segments(item: CoreAdvantage) {
 }
 
 .home-core-advantages__emphasis {
-  color: #111;
+  color: var(--color-text);
   font-weight: 800;
 }
 
@@ -233,7 +258,7 @@ function segments(item: CoreAdvantage) {
 
 @media (max-width: 639px) {
   .home-core-advantages {
-    padding-block: var(--space-10);
+    padding-block: var(--space-section);
   }
 
   .home-core-advantages__grid--compact {
