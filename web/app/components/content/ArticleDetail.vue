@@ -61,7 +61,7 @@ const related = computed(() =>
         </article>
         <section class="article-detail__related">
           <h2>相关阅读</h2>
-          <ArticleList :articles="related" />
+          <ArticleList :articles="related" :hide-excerpt="section.group === 'tro'" />
         </section>
       </ContentColumns>
     </PageContainer>

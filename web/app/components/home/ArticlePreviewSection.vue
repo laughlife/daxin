@@ -27,6 +27,7 @@ const items = computed(() =>
     return {
       slug: column.slug,
       title: meta?.title ?? column.slug,
+      section: column.section,
       moreLabel: meta?.moreLabel ?? '更多文章',
       moreHref: meta?.moreHref ?? '/tro/alerts',
       // 接口已按分类限流；这里再兜一层，确保「每类最多三篇」
@@ -75,7 +76,7 @@ const items = computed(() =>
                   <h4 class="article-preview-card__title">
                     <NuxtLink :to="article.href">{{ article.title }}</NuxtLink>
                   </h4>
-                  <p class="article-preview-card__excerpt">{{ article.excerpt }}</p>
+                  <p v-if="item.section !== 'tro'" class="article-preview-card__excerpt">{{ article.excerpt }}</p>
                   <NuxtLink :to="article.href" class="article-preview-card__link">
                     查看详情
                     <span aria-hidden="true">→</span>

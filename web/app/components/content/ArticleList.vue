@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import type { ArticleSummary } from '~/repositories/articles'
-defineProps<{ articles: ArticleSummary[] }>()
+defineProps<{ articles: ArticleSummary[]; hideExcerpt?: boolean }>()
 </script>
 <template>
-  <div class="article-list"><article v-for="article in articles" :key="article.id" class="article-list__card"><div class="article-list__meta"><span>{{ article.category }}</span><time :datetime="article.publishedAt">{{ article.publishedAt }}</time></div><NuxtLink v-if="article.imageSrc" :to="article.href" class="article-list__cover"><img :src="article.imageSrc" :alt="article.imageAlt" loading="lazy"></NuxtLink><h2><NuxtLink :to="article.href">{{ article.title }}</NuxtLink></h2><p>{{ article.excerpt }}</p><NuxtLink :to="article.href">阅读全文 →</NuxtLink></article><p v-if="!articles.length" class="article-list__empty" role="status">此条件下暂无内容，请调整关键词或日期范围。</p></div>
+  <div class="article-list"><article v-for="article in articles" :key="article.id" class="article-list__card"><div class="article-list__meta"><span>{{ article.category }}</span><time :datetime="article.publishedAt">{{ article.publishedAt }}</time></div><NuxtLink v-if="article.imageSrc" :to="article.href" class="article-list__cover"><img :src="article.imageSrc" :alt="article.imageAlt" loading="lazy"></NuxtLink><h2><NuxtLink :to="article.href">{{ article.title }}</NuxtLink></h2><p v-if="!hideExcerpt">{{ article.excerpt }}</p><NuxtLink :to="article.href">阅读全文 →</NuxtLink></article><p v-if="!articles.length" class="article-list__empty" role="status">此条件下暂无内容，请调整关键词或日期范围。</p></div>
 </template>
 <style scoped>
 .article-list { display:flex; flex-direction:column; gap:18px; }
