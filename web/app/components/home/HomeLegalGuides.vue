@@ -26,21 +26,72 @@ const qrImage = computed(() => {
   if (!itemKey) return ''
   const configured = qrImageForItemKey(siteSettings.value?.footer.qr as FooterQrItem[] | undefined, itemKey)
   if (configured) return configured
-  const fallbackId = itemKey === 'qr-labor-consult' ? 'labor-consult' : 'tro-consult'
-  return qrChannels.find(channel => channel.id === fallbackId)?.qrSrc ?? ''
+  return qrChannels.find(channel => channel.assetKey === itemKey)?.qrSrc ?? ''
 })
 const guideStyle = computed(() => ({ '--guide-accent': activeSlide.value.accent }))
 
-let rotationTimer: ReturnType<typeof setInterval> | undefined
+let rotationTimer: ReturnType<typeof setTimeout> | undefined
+let rotationPaused = false
+let pointerInside = false
+let focusInside = false
 
-onMounted(() => {
-  rotationTimer = setInterval(() => {
+function clearRotationTimer() {
+  if (rotationTimer) clearTimeout(rotationTimer)
+  rotationTimer = undefined
+}
+
+function scheduleRotation() {
+  clearRotationTimer()
+  if (rotationPaused || slides.value.length < 2) return
+  rotationTimer = setTimeout(() => {
     currentIndex.value = (currentIndex.value + 1) % slides.value.length
+    scheduleRotation()
   }, 5000)
-})
+}
+
+function pauseRotation() {
+  rotationPaused = true
+  clearRotationTimer()
+}
+
+function resumeRotation() {
+  rotationPaused = false
+  scheduleRotation()
+}
+
+function onPointerEnter() {
+  pointerInside = true
+  pauseRotation()
+}
+
+function onPointerLeave() {
+  pointerInside = false
+  if (!focusInside) resumeRotation()
+}
+
+function onFocusIn() {
+  focusInside = true
+  pauseRotation()
+}
+
+function onFocusOut(event: FocusEvent) {
+  const container = event.currentTarget
+  const nextTarget = event.relatedTarget
+  if (container instanceof Node && nextTarget instanceof Node && container.contains(nextTarget)) return
+  focusInside = false
+  if (!pointerInside) resumeRotation()
+}
+
+function showSlide(index: number) {
+  if (index < 0 || index >= slides.value.length || index === currentIndex.value) return
+  currentIndex.value = index
+  scheduleRotation()
+}
+
+onMounted(scheduleRotation)
 
 onBeforeUnmount(() => {
-  if (rotationTimer) clearInterval(rotationTimer)
+  clearRotationTimer()
 })
 </script>
 
@@ -54,52 +105,66 @@ onBeforeUnmount(() => {
         description="聚焦跨境经营中的常见法律问题，提供实用知识参考。"
       />
 
-      <Transition name="home-legal-guides__slide" mode="out-in">
-        <article
-          :key="activeSlide.slug"
-          class="home-legal-guides__panel"
-          :class="`home-legal-guides__panel--${activeSlide.slug}`"
-          :style="guideStyle"
-          role="group"
-          aria-roledescription="轮播项目"
-          :aria-label="`${activeSlide.category}主题`"
-        >
-          <div v-if="activeSlide.image" class="home-legal-guides__image">
-            <img :src="activeSlide.image" :alt="activeSlide.imageAlt" loading="lazy">
-          </div>
-          <div v-else class="home-legal-guides__reserved" aria-hidden="true" />
-
-          <div class="home-legal-guides__content">
-            <h3 v-if="activeSlide.title">{{ activeSlide.title }}</h3>
-            <template v-if="activeSlide.paragraphs.length">
-              <p v-for="(paragraph, index) in activeSlide.paragraphs" :key="`${activeSlide.slug}-${index}`" class="home-legal-guides__copy">
-                {{ paragraph }}
-              </p>
-            </template>
-            <p v-else-if="activeSlide.slug === 'logistics'" class="home-legal-guides__category">{{ activeSlide.category }}</p>
-
-            <div v-if="activeSlide.benefit && qrImage" class="home-legal-guides__offer">
-              <p class="home-legal-guides__benefit">
-                <span class="home-legal-guides__check" aria-hidden="true">✓</span>
-                <span>{{ activeSlide.benefit }}</span>
-              </p>
-              <figure class="home-legal-guides__qr">
-                <img :src="qrImage" :alt="`${activeSlide.category}咨询二维码`" width="112" height="112" loading="lazy">
-                <figcaption>添加领取</figcaption>
-              </figure>
+      <div
+        class="home-legal-guides__carousel"
+        @pointerenter="onPointerEnter"
+        @pointerleave="onPointerLeave"
+        @focusin="onFocusIn"
+        @focusout="onFocusOut"
+      >
+        <Transition name="home-legal-guides__slide" mode="out-in">
+          <article
+            :key="activeSlide.slug"
+            class="home-legal-guides__panel"
+            :class="`home-legal-guides__panel--${activeSlide.slug}`"
+            :style="guideStyle"
+            role="group"
+            aria-roledescription="轮播项目"
+            :aria-label="`${activeSlide.category}主题`"
+          >
+            <div v-if="activeSlide.image" class="home-legal-guides__image">
+              <img :src="activeSlide.image" :alt="activeSlide.imageAlt" loading="lazy">
             </div>
-          </div>
-        </article>
-      </Transition>
+            <div v-else class="home-legal-guides__reserved" aria-hidden="true" />
 
-      <div class="home-legal-guides__indicators" aria-hidden="true">
-        <span
-          v-for="(slide, index) in slides"
-          :key="slide.slug"
-          class="home-legal-guides__indicator"
-          :class="{ 'home-legal-guides__indicator--active': currentIndex === index }"
-          :style="index === currentIndex ? guideStyle : undefined"
-        />
+            <div class="home-legal-guides__content">
+              <h3 v-if="activeSlide.title">{{ activeSlide.title }}</h3>
+              <template v-if="activeSlide.paragraphs.length">
+                <p v-for="(paragraph, index) in activeSlide.paragraphs" :key="`${activeSlide.slug}-${index}`" class="home-legal-guides__copy">
+                  {{ paragraph }}
+                </p>
+              </template>
+              <p v-else-if="activeSlide.slug === 'logistics'" class="home-legal-guides__category">{{ activeSlide.category }}</p>
+
+              <div v-if="activeSlide.benefit && qrImage" class="home-legal-guides__offer">
+                <p class="home-legal-guides__benefit">
+                  <span class="home-legal-guides__check" aria-hidden="true">✓</span>
+                  <span>{{ activeSlide.benefit }}</span>
+                </p>
+                <figure class="home-legal-guides__qr">
+                  <img :src="qrImage" :alt="`${activeSlide.category}咨询二维码`" width="112" height="112" loading="lazy">
+                  <figcaption>添加领取</figcaption>
+                </figure>
+              </div>
+            </div>
+          </article>
+        </Transition>
+
+        <div class="home-legal-guides__indicators" role="group" aria-label="选择普法主题">
+          <button
+            v-for="(slide, index) in slides"
+            :key="slide.slug"
+            type="button"
+            class="home-legal-guides__indicator"
+            :class="{ 'home-legal-guides__indicator--active': currentIndex === index }"
+            :style="{ '--guide-accent': slide.accent }"
+            :aria-label="`查看${slide.category}主题`"
+            :aria-current="currentIndex === index ? 'page' : undefined"
+            @mouseenter="() => showSlide(index)"
+            @focus="() => showSlide(index)"
+            @click="() => showSlide(index)"
+          />
+        </div>
       </div>
     </PageContainer>
   </section>
@@ -135,8 +200,9 @@ onBeforeUnmount(() => {
 .home-legal-guides__reserved { min-height:420px; border-right:1px solid color-mix(in srgb,var(--guide-accent) 16%,white); background:linear-gradient(145deg,white, color-mix(in srgb,var(--guide-accent) 10%,white)); }
 .home-legal-guides__panel--logistics .home-legal-guides__content { align-items:center; justify-content:center; }
 .home-legal-guides__indicators { display:flex; justify-content:center; gap:8px; margin-top:var(--space-4); }
-.home-legal-guides__indicator { width:8px; height:8px; border-radius:999px; background:var(--color-border-strong); transition:width .25s ease,background-color .25s ease; }
+.home-legal-guides__indicator { display:block; width:8px; height:8px; padding:0; border:0; border-radius:999px; background:var(--color-border-strong); cursor:pointer; transition:width .25s ease,background-color .25s ease; }
 .home-legal-guides__indicator--active { width:24px; background:var(--guide-accent); }
+.home-legal-guides__indicator:focus-visible { outline:2px solid var(--guide-accent); outline-offset:4px; }
 .home-legal-guides__slide-enter-active,.home-legal-guides__slide-leave-active { transition:opacity .35s ease,transform .35s ease; }
 .home-legal-guides__slide-enter-from { opacity:0; transform:translateX(18px); }
 .home-legal-guides__slide-leave-to { opacity:0; transform:translateX(-18px); }
