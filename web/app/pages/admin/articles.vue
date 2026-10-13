@@ -160,7 +160,7 @@ const saveError = ref('')
 const editorRef = ref<HTMLElement | null>(null)
 const { requestScrollToEditor, scrollToEditor } = useScrollToEditor(editorRef, { selector: '[data-scroll-target="article-editor"]' })
 
-/** 当前路由：用于支持 /admin/articles?id=N 深链（侧边栏管理跳过来时定位到该文章）。 */
+/** 当前路由：支持 /admin/articles?id=N 深链并直接定位文章编辑表单。 */
 const route = useRoute()
 
 interface ArticleForm {
@@ -343,7 +343,7 @@ function onPageSize(next: number) {
 /**
  * 深链支持：/admin/articles?id=<文章ID> 直接打开该文章的编辑表单。
  *
- * 侧边栏管理页的「编辑内容」就是跳到这里，因此必须支持从 URL 打开；
+ * 管理界面的文章深链可以直接打开指定文章；
  * 只靠列表点击的话，跨页面跳转进去会停在列表页，编辑意图丢失。
  * 客户端与服务端都执行，保证 SSR 首次渲染就是编辑态。
  */

@@ -11,7 +11,7 @@ try {
 } catch (error) {
   if (error?.code !== 'ENOENT') throw error
 }
-const adminFooter = await readFile(new URL('../app/pages/admin/footer.vue', import.meta.url), 'utf8')
+const adminFooter = await readFile(new URL('../app/components/admin/SitePublishingSettings.vue', import.meta.url), 'utf8')
 const home = await readFile(new URL('../app/pages/index.vue', import.meta.url), 'utf8')
 const modal = await readFile(new URL('../app/components/contact/WechatQrModal.vue', import.meta.url), 'utf8')
 
@@ -46,9 +46,9 @@ test('admin exposes the four named QR image fields and protects their stable key
   for (const label of ['TRO 公众号', '劳动法公众号', 'TRO 咨询号', '劳动法咨询号']) {
     assert.ok(adminFooter.includes(label), `${label} is visible in QR management`)
   }
-  assert.match(adminFooter, /isRequiredQr/)
-  assert.match(adminFooter, /readonly/)
-  assert.match(adminFooter, /if \(isRequiredQr\(qrItems\.value\[index\]\)\) return/)
+  assert.match(adminFooter, /REQUIRED_QR_CHANNELS/)
+  assert.match(adminFooter, /itemKey: channel\.key/)
+  assert.match(adminFooter, /status: 1/)
 })
 
 test('homepage contact modal resolves QR images from the shared QR asset settings', () => {

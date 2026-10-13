@@ -9,6 +9,7 @@ import {
 } from '~/utils/contentSettings'
 import { apiErrorMessage, httpStatusOf } from '~/utils/publicApi'
 import { SETTINGS_READ_ONLY_NOTICE, canWriteSettings } from '~/utils/adminPermission'
+import AdminSitePublishingSettings from '~/components/admin/SitePublishingSettings.vue'
 
 /**
  * 站点设置：站点 / 首页 / 关于三类 key-value 文案配置。
@@ -57,7 +58,7 @@ const requestFetch = useRequestFetch()
 const { user } = useAdminSession()
 
 const TABS: { kind: GroupKind, label: string, description: string }[] = [
-  { kind: 'site', label: '站点信息', description: '站点名称、描述、联系方式、站点 Logo 与内容页侧栏。' },
+  { kind: 'site', label: '站点信息', description: '站点名称、描述、联系方式、Logo、常见问题、二维码与页脚业务。' },
   { kind: 'home', label: '首页文案', description: '首页首屏、数据概览、普法干货轮播及咨询区文案。' },
   { kind: 'about', label: '关于我们', description: '团队介绍标题、段落与配图。' }
 ]
@@ -676,10 +677,11 @@ const STATUS_OPTIONS = [
           </p>
 
           <div class="admin-settings__fields">
-            <div v-for="item in editItems[tab.kind].value" :key="item.key" class="admin-settings__field">
+            <template v-for="item in editItems[tab.kind].value" :key="item.key">
+            <div class="admin-settings__field">
               <div class="admin-settings__field-head">
                 <label class="admin-settings__label" :for="`setting-${tab.kind}-${item.key}`">
-                  {{ item.key }}
+                  {{ item.key === 'content_sidebar' ? '常见问题' : item.key }}
                 </label>
                 <span class="admin-settings__badge">{{ item.valueType }}</span>
               </div>
@@ -1044,7 +1046,7 @@ const STATUS_OPTIONS = [
                     </div>
                     <div class="admin-settings__status">
                       <span class="admin-settings__cell-label">咨询二维码</span>
-                      <span>{{ guide.qrItemKey || '暂未配置' }}（在“页脚与联系方式”管理二维码图片）</span>
+                      <span>{{ guide.qrItemKey || '暂未配置' }}（在“站点信息 → 常见问题”下方管理二维码图片）</span>
                     </div>
                   </fieldset>
                   <div class="admin-settings__status">
@@ -1147,6 +1149,8 @@ const STATUS_OPTIONS = [
                 </div>
               </template>
             </div>
+            <AdminSitePublishingSettings v-if="tab.kind === 'site' && item.key === 'content_sidebar'" />
+            </template>
           </div>
 
           <p v-if="saveSuccess[tab.kind]" class="admin-settings__success" role="status">

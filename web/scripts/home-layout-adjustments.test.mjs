@@ -39,7 +39,7 @@ test('service cards omit redundant summaries but keep all configured items, with
 
 test('team business configuration is discoverable and configured icons reach the homepage cards', () => {
   assert.match(adminHomeSource, /label: '团队业务配置', to: '\/admin\/services'/)
-  assert.match(adminHomeSource, /label: '页脚与联系方式', to: '\/admin\/footer'/)
+  assert.doesNotMatch(adminHomeSource, /页脚与联系方式|\/admin\/footer/)
   assert.match(adminServicesSource, /TRO全流程处理|iconKey|section\.items/)
   assert.match(homeApiSource, /ss\.icon_key[\s\S]*?iconKey: String\(row\.icon_key/)
   assert.match(homeRepositorySource, /iconKey: String\(section\?\.iconKey/)

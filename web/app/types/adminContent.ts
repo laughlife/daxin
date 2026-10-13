@@ -17,7 +17,7 @@ export interface AdminArticleItem {
   publishedAt: string
   status: string
   isFeatured: boolean
-  /** 是否在首页侧栏「推荐阅读」中显示（侧边栏管理用） */
+  /** 是否在首页侧栏「推荐阅读」中显示（文章编辑页配置项） */
   showInSidebar: boolean
   updatedAt: string
 }
