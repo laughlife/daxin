@@ -80,7 +80,6 @@ function onUploaded(item: QrRow, payload: { mediaId: number, mediaUrl: string })
 
 <template>
   <BaseCard title="二维码管理" :title-level="2" class="site-publishing__card">
-    <p class="site-publishing__hint">维护 TRO 与劳动法的公众号、咨询号二维码。首页联系弹窗、内容侧栏和普法干货轮播会读取对应配置。</p>
     <ErrorState v-if="qrLoadError" title="二维码配置加载失败" message="请检查登录状态或稍后重试。" @retry="refreshQr()" />
     <template v-else>
       <div class="site-publishing__qr-grid">

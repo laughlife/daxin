@@ -10,14 +10,14 @@ const aboutPage = readFileSync(new URL('../app/pages/about.vue', import.meta.url
 const sidebarRoute = new URL('../app/pages/admin/sidebar.vue', import.meta.url)
 const footerRoute = new URL('../app/pages/admin/footer.vue', import.meta.url)
 
-test('站点设置按四个标签分组，字段提供中文名称与说明', () => {
+test('站点设置按四个标签分组，字段只保留中文名称和值', () => {
   for (const label of ['站点信息', '首页内容', '关于我们', '二维码管理']) {
     assert.ok(siteSettings.includes(`label: '${label}'`), `${label} 标签存在`)
   }
   assert.match(siteSettings, /SETTING_LABELS/)
-  assert.match(siteSettings, /SETTING_DESCRIPTIONS/)
-  assert.match(siteSettings, /valueTypeLabel/)
-  assert.match(siteSettings, /首页团队介绍区域会同步使用/)
+  assert.doesNotMatch(siteSettings, /SETTING_DESCRIPTIONS|settingDescription\(/)
+  assert.doesNotMatch(siteSettings, /valueTypeLabel\(/)
+  assert.match(siteSettings, /about_team_paragraphs: '团队介绍内容（首页同步）'/)
   assert.match(siteSettings, /AdminSitePublishingSettings/)
   assert.match(publishingSettings, /TRO 公众号/)
   assert.doesNotMatch(publishingSettings, /页脚业务配置/)

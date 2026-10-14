@@ -94,41 +94,25 @@ const SETTING_LABELS: Record<string, string> = {
   about_partner_title: '合作伙伴标题', about_partner_images: '合作伙伴 Logo'
 }
 
-const SETTING_DESCRIPTIONS: Record<string, string> = {
-  site_name: '用于网站品牌展示和浏览器页面标题。', site_subtitle: '展示在网站名称附近的简短说明。',
-  site_description: '网站整体介绍，可用于公开页面摘要。', site_logo: '用于官网导航和页脚的品牌标识。',
-  contact_phone: '官网公开展示并供访客联系的电话号码。', contact_email: '官网公开展示的联系邮箱。',
-  contact_address: '官网公开展示的办公地址。', contact_wechat: '官网公开展示的微信联系方式。',
-  footer_intro: '显示在官网页脚的团队简介。', content_sidebar: '控制文章侧栏的问题入口名称及二维码区标题。',
-  site_theme: '选择预设主色，或输入自定义 HEX 颜色。', home_hero_background: '首页首屏背景视频地址。',
-  home_hero_background_poster: '背景视频加载或播放前显示的封面图。', home_stats: '首页团队数据卡片，可调整显示内容和顺序。',
-  home_core_advantages: '首页核心优势卡片及重点文字设置。', home_legal_guides: '首页三本普法主题书的图片、标题、正文和领取说明。',
-  about_team_title: '团队介绍标题；首页团队介绍区域会同步使用。',
-  about_team_paragraphs: '团队介绍正文；首页团队介绍区域会同步使用。',
-  about_contact_title: '显示在关于我们主图介绍区下方的联系引导文案。',
-  about_success_images: '关于我们页面成功案例展示图片。',
-  about_lecture_images: '关于我们页面企业宣讲图片。', about_partner_images: '关于我们页面合作伙伴标识。',
-}
-
-const SETTING_GROUPS: Record<GroupKind, { id: string, title: string, description: string, keys: string[] }[]> = {
+const SETTING_GROUPS: Record<GroupKind, { id: string, title: string, keys: string[] }[]> = {
   site: [
-    { id: 'brand', title: '品牌与网站资料', description: '官网名称、品牌标识和网站介绍。', keys: ['site_name', 'site_logo', 'site_subtitle', 'site_description'] },
-    { id: 'contact', title: '联系方式', description: '官网公开展示的联系信息。', keys: ['contact_phone', 'contact_wechat', 'contact_email', 'contact_address'] },
-    { id: 'content', title: '常见问题与页面配色', description: '内容页侧栏入口和公开页面整体风格。', keys: ['content_sidebar', 'site_theme'] },
-    { id: 'footer-intro', title: '页脚简介', description: '官网页脚展示的团队介绍。', keys: ['footer_intro'] }
+    { id: 'brand', title: '品牌与网站资料', keys: ['site_name', 'site_logo', 'site_subtitle', 'site_description'] },
+    { id: 'contact', title: '联系方式', keys: ['contact_phone', 'contact_wechat', 'contact_email', 'contact_address'] },
+    { id: 'content', title: '常见问题与页面配色', keys: ['content_sidebar', 'site_theme'] },
+    { id: 'footer-intro', title: '页脚简介', keys: ['footer_intro'] }
   ],
   home: [
-    { id: 'hero', title: '首页首屏', description: '主标题、介绍、行动按钮与动态背景。', keys: ['home_hero_badge', 'home_hero_title', 'home_hero_subtitle', 'home_hero_primary_label', 'home_hero_primary_link', 'home_hero_secondary_label', 'home_hero_background', 'home_hero_background_poster'] },
-    { id: 'stats', title: '首页数据指标', description: '首页展示的团队与业务数据。', keys: ['home_stats'] },
-    { id: 'advantages', title: '核心优势', description: '首页核心优势卡片及重点文字。', keys: ['home_core_advantages'] },
-    { id: 'guides', title: '普法干货轮播', description: '三本主题书的展示内容和领取信息。', keys: ['home_legal_guides'] },
-    { id: 'consultation', title: '咨询区域', description: '首页咨询模块的标题、说明和按钮。', keys: ['home_consultation_title', 'home_consultation_description', 'home_consultation_button'] }
+    { id: 'hero', title: '首页首屏', keys: ['home_hero_badge', 'home_hero_title', 'home_hero_subtitle', 'home_hero_primary_label', 'home_hero_primary_link', 'home_hero_secondary_label', 'home_hero_background', 'home_hero_background_poster'] },
+    { id: 'stats', title: '首页数据指标', keys: ['home_stats'] },
+    { id: 'advantages', title: '核心优势', keys: ['home_core_advantages'] },
+    { id: 'guides', title: '普法干货轮播', keys: ['home_legal_guides'] },
+    { id: 'consultation', title: '咨询区域', keys: ['home_consultation_title', 'home_consultation_description', 'home_consultation_button'] }
   ],
   about: [
-    { id: 'team', title: '团队介绍', description: '团队标题与介绍内容也会同步显示在首页。', keys: ['about_team_title', 'about_team_paragraphs'] },
-    { id: 'about-hero', title: '关于我们主图与介绍', description: '页面标题、引导语、主图以及主图介绍区的联系文案。', keys: ['about_hero_welcome', 'about_hero_title', 'about_hero_image', 'about_contact_title'] },
-    { id: 'success', title: '成功案例', description: '成功案例区标题和图片。', keys: ['about_success_title', 'about_success_images'] },
-    { id: 'partners', title: '企业宣讲与合作伙伴', description: '企业宣讲和合作伙伴展示内容。', keys: ['about_lecture_title', 'about_lecture_images', 'about_partner_title', 'about_partner_images'] }
+    { id: 'team', title: '团队介绍', keys: ['about_team_title', 'about_team_paragraphs'] },
+    { id: 'about-hero', title: '关于我们主图与介绍', keys: ['about_hero_welcome', 'about_hero_title', 'about_hero_image', 'about_contact_title'] },
+    { id: 'success', title: '成功案例', keys: ['about_success_title', 'about_success_images'] },
+    { id: 'partners', title: '企业宣讲与合作伙伴', keys: ['about_lecture_title', 'about_lecture_images', 'about_partner_title', 'about_partner_images'] }
   ]
 }
 
@@ -147,16 +131,6 @@ function settingLabel(key: string): string {
   return SETTING_LABELS[key] ?? '其他配置项'
 }
 
-function settingDescription(key: string): string {
-  return SETTING_DESCRIPTIONS[key] ?? '维护该页面对应的公开展示内容。'
-}
-
-function valueTypeLabel(valueType: SettingItem['valueType']): string {
-  if (valueType === 'image') return '图片'
-  if (valueType === 'json') return '组合配置'
-  return '文本'
-}
-
 function settingsGroups(kind: GroupKind) {
   const items = editItems[kind].value
   const groups = SETTING_GROUPS[kind].map(group => ({
@@ -167,7 +141,7 @@ function settingsGroups(kind: GroupKind) {
   const remaining = items.filter(item => !knownKeys.has(item.key))
   if (remaining.length) {
     groups.push({
-      id: 'other', title: '其他页面内容', description: '其他当前启用的页面配置。', keys: [], items: remaining
+      id: 'other', title: '其他页面内容', keys: [], items: remaining
     })
   }
   return groups
@@ -766,11 +740,6 @@ function useTextarea(value: string): boolean {
   return value.length > 80
 }
 
-const STATUS_OPTIONS = [
-  { value: 'published', label: '已发布' },
-  { value: 'draft', label: '草稿' },
-  { value: 'archived', label: '已归档' }
-]
 </script>
 
 <template>
@@ -839,7 +808,6 @@ const STATUS_OPTIONS = [
                 <label class="admin-settings__label" :for="`setting-${tab.kind}-${item.key}`">
                   {{ settingLabel(item.key) }}
                 </label>
-                <span class="admin-settings__badge">{{ valueTypeLabel(item.valueType) }}</span>
               </div>
 
               <!-- image：只接上传，值由 media_id 关联 -->
@@ -858,9 +826,6 @@ const STATUS_OPTIONS = [
               <!-- 多图字段：逐张显示 + 每张后面选择文件（与 logo 同一交互方式） -->
               <template v-else-if="isImageListKey(item.key)">
                 <div v-if="blockingErrors[`${tab.kind}:${item.key}`]" class="admin-settings__json-block">
-                  <p class="admin-settings__hint">
-                    图片控件已停用：库中原始值无法解析，请参考上方错误提示处理。
-                  </p>
                 </div>
                 <AdminImageListField
                   v-else
@@ -877,14 +842,10 @@ const STATUS_OPTIONS = [
               <!-- json：专用结构化编辑器 -->
               <template v-else-if="isJsonEditor(tab.kind, item.key)">
                 <div v-if="blockingErrors[`${tab.kind}:${item.key}`]" class="admin-settings__json-block">
-                  <p class="admin-settings__hint">
-                    结构化编辑区已停用：库中原始值无法解析，请参考上方错误提示处理。
-                  </p>
                 </div>
 
                 <!-- site_theme：全站主色预设与自定义 HEX -->
                 <div v-else-if="item.key === 'site_theme'" class="admin-settings__rows">
-                  <p class="admin-settings__hint">选择公开页面的整体主色风格，保存后立即生效。自定义颜色只接受六位 HEX 格式。</p>
                   <div class="admin-settings__cell">
                     <label class="admin-settings__cell-label" for="site-theme-preset">配色风格</label>
                     <select
@@ -926,13 +887,11 @@ const STATUS_OPTIONS = [
                       <code>{{ siteTheme.primary }}</code>
                     </template>
                   </div>
-                  <p id="site-theme-color-hint" class="admin-settings__hint">#RRGGBB，例如 #B91C1C。点缀色按预设风格搭配。</p>
                   <p v-if="siteThemeInputError" class="admin-settings__alert" role="alert">颜色格式无效，请输入 #RRGGBB 六位 HEX 值。</p>
                 </div>
 
                 <!-- content_sidebar：FAQ 顺序、显示状态与两类二维码标题 -->
                 <div v-else-if="item.key === 'content_sidebar'" class="admin-settings__rows">
-                  <p class="admin-settings__hint">维护内容页侧栏的常见问题入口和两类二维码标题。FAQ 地址固定为站内链接。</p>
                   <div class="admin-settings__cell">
                     <label class="admin-settings__cell-label" for="sidebar-faq-title">常见问题标题</label>
                     <input
@@ -994,19 +953,10 @@ const STATUS_OPTIONS = [
                       </div>
                     </div>
                   </fieldset>
-                  <div class="admin-settings__status">
-                    <label class="admin-settings__cell-label" :for="`status-${tab.kind}-${item.key}`">状态</label>
-                    <select :id="`status-${tab.kind}-${item.key}`" v-model="item.status" class="admin-settings__select" :disabled="controlsDisabled || savingKind !== ''">
-                      <option v-for="option in STATUS_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
-                    </select>
-                  </div>
                 </div>
 
                 <!-- home_stats：数组 of { value, label, description, emphasis } -->
                 <div v-else-if="item.key === 'home_stats'" class="admin-settings__rows">
-                  <p class="admin-settings__hint">
-                    共 {{ homeStats.length }} 项数据指标。可新增、删除、上下移动；勾选「强调展示」前台以主色突出。
-                  </p>
                   <fieldset
                     v-for="(stat, index) in homeStats"
                     :key="`stat-${index}`"
@@ -1097,9 +1047,6 @@ const STATUS_OPTIONS = [
 
                 <!-- home_core_advantages：核心优势与可选重点片段 -->
                 <div v-else-if="item.key === 'home_core_advantages'" class="admin-settings__rows">
-                  <p class="admin-settings__hint">
-                    共 {{ coreAdvantages.length }} 项核心优势。描述中的重点片段勾选后，官网将以加粗黑色显示。
-                  </p>
                   <fieldset
                     v-for="(advantage, index) in coreAdvantages"
                     :key="`advantage-${index}`"
@@ -1203,7 +1150,6 @@ const STATUS_OPTIONS = [
 
                 <!-- home_legal_guides：固定的 TRO、劳动法和国际物流三个主题 -->
                 <div v-else-if="item.key === 'home_legal_guides'" class="admin-settings__rows">
-                  <p class="admin-settings__hint">固定三个轮播主题；可维护标题、正文、封面、领取说明和主题颜色，主题顺序保持不变。</p>
                   <fieldset v-for="guide in legalGuides" :key="`guide-${guide.slug}`" class="admin-settings__row">
                     <legend class="admin-settings__row-legend">{{ guide.slug === 'tro' ? 'TRO 跨境' : guide.slug === 'labor' ? '劳动法' : '国际物流' }}</legend>
                     <div class="admin-settings__row-grid">
@@ -1245,27 +1191,18 @@ const STATUS_OPTIONS = [
                       </div>
                       <BaseButton variant="secondary" size="sm" :disabled="controlsDisabled || savingKind !== ''" @click="addGuideParagraph(guide)">新增正文段落</BaseButton>
                     </div>
-                    <div class="admin-settings__status">
+                    <div class="admin-settings__qr-field">
                       <label class="admin-settings__cell-label" :for="`guide-${guide.slug}-qr`">领取二维码</label>
                       <select :id="`guide-${guide.slug}-qr`" v-model="guide.qrItemKey" class="admin-settings__select" :disabled="controlsDisabled || savingKind !== ''">
                         <option v-for="option in GUIDE_QR_OPTIONS" :key="option.key || 'none'" :value="option.key">{{ option.label }}</option>
                       </select>
-                      <span>{{ GUIDE_QR_OPTIONS.find(option => option.key === guide.qrItemKey)?.label }}（在“二维码管理”中维护图片）</span>
+                      <span>{{ GUIDE_QR_OPTIONS.find(option => option.key === guide.qrItemKey)?.label }}</span>
                     </div>
                   </fieldset>
-                  <div class="admin-settings__status">
-                    <label class="admin-settings__cell-label" :for="`status-${tab.kind}-${item.key}`">状态</label>
-                    <select :id="`status-${tab.kind}-${item.key}`" v-model="item.status" class="admin-settings__select" :disabled="controlsDisabled || savingKind !== ''">
-                      <option v-for="option in STATUS_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
-                    </select>
-                  </div>
                 </div>
 
                 <!-- about_team_paragraphs：字符串数组 -->
                 <div v-else class="admin-settings__rows">
-                  <p class="admin-settings__hint">
-                    共 {{ aboutParagraphs.length }} 段团队介绍。可新增、删除、上下移动。
-                  </p>
                   <div
                     v-for="(paragraph, index) in aboutParagraphs"
                     :key="`paragraph-${index}`"
@@ -1338,19 +1275,6 @@ const STATUS_OPTIONS = [
                   type="text"
                   :disabled="controlsDisabled || savingKind !== ''"
                 >
-                <div class="admin-settings__status">
-                  <label class="admin-settings__cell-label" :for="`status-${tab.kind}-${item.key}`">状态</label>
-                  <select
-                    :id="`status-${tab.kind}-${item.key}`"
-                    v-model="item.status"
-                    class="admin-settings__select"
-                    :disabled="controlsDisabled || savingKind !== ''"
-                  >
-                    <option v-for="option in STATUS_OPTIONS" :key="option.value" :value="option.value">
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </div>
               </template>
             </div>
             </template>
@@ -1508,14 +1432,6 @@ const STATUS_OPTIONS = [
   color: var(--color-text);
 }
 
-.admin-settings__badge {
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-full);
-  background-color: var(--color-bg-light);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-}
-
 .admin-settings__input,
 .admin-settings__textarea,
 .admin-settings__select {
@@ -1546,7 +1462,7 @@ const STATUS_OPTIONS = [
   cursor: not-allowed;
 }
 
-.admin-settings__status {
+.admin-settings__qr-field {
   display: flex;
   align-items: center;
   gap: var(--space-2);

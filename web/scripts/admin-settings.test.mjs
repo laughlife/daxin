@@ -420,6 +420,20 @@ test('站点设置页把 content_sidebar 与 home_legal_guides 接入结构化 J
   assert.match(source, /home_legal_guides:[^`]*uploading|onImageUploading\(/)
 })
 
+test('站点配置不显示内部状态和类型说明，但保存时保留原状态', () => {
+  const source = readFileSync(ADMIN_SETTINGS_PAGE, 'utf8')
+
+  assert.doesNotMatch(source, /<label[^>]*>状态<\/label>/)
+  assert.doesNotMatch(source, /v-model="item\.status"/)
+  assert.match(source, /status:\s*item\.status/)
+  assert.doesNotMatch(source, /SETTING_DESCRIPTIONS|settingDescription\(/)
+  assert.doesNotMatch(source, /valueTypeLabel\(/)
+  assert.match(source, /label: '站点信息'/)
+  assert.match(source, /label: '首页内容'/)
+  assert.match(source, /label: '关于我们'/)
+  assert.match(source, /label: '二维码管理'/)
+})
+
 test('JSON 配置图片控件上传后返回图片 URL 并在上传期间发出禁用状态', () => {
   const source = readFileSync(JSON_IMAGE_FIELD, 'utf8')
   assert.match(source, /useOssUpload\(/)
