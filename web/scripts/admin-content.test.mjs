@@ -8,6 +8,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { join, relative, resolve } from 'node:path'
 import { test } from 'node:test'
 import { resolvePageWindow } from '../server/utils/public/query.ts'
+const articleAdminSource = await readFile(new URL('../app/pages/admin/articles.vue', import.meta.url), 'utf8')
 import {
   ADMIN_ARTICLE_COUNT_SQL,
   ADMIN_ARTICLE_LIST_SQL,
@@ -306,6 +307,12 @@ test('mapAdminArticleRow：NULL 分类保留 null，内部列不外泄', () => {
   for (const key of ['legacy_source_table', 'legacy_source_id', 'migration_batch_id', 'content_html']) {
     assert.ok(!(key in mapped), `列表映射不应包含 ${key}`)
   }
+})
+
+test('文章编辑表单隐藏推荐与侧边栏开关，但保存时保留已有字段状态', () => {
+  assert.doesNotMatch(articleAdminSource, /article-featured|article-sidebar|设为推荐|在侧边栏显示/)
+  assert.match(articleAdminSource, /isFeatured:\s*form\.isFeatured/)
+  assert.match(articleAdminSource, /showInSidebar:\s*form\.showInSidebar/)
 })
 
 test('mapAdminEntityRow：caseCount 来自统计列，status 归一化成 0/1，品牌 region 恒为空串', () => {

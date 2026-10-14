@@ -663,25 +663,6 @@ if (import.meta.client) {
             </select>
           </div>
 
-          <div class="admin-articles__field admin-articles__field--check">
-            <input
-              id="article-featured"
-              v-model="form.isFeatured"
-              type="checkbox"
-              :disabled="!canWrite"
-            >
-            <label class="admin-articles__label" for="article-featured">设为推荐（isFeatured）</label>
-          </div>
-
-          <div class="admin-articles__field admin-articles__field--check">
-            <input
-              id="article-sidebar"
-              v-model="form.showInSidebar"
-              type="checkbox"
-              :disabled="!canWrite"
-            >
-            <label class="admin-articles__label" for="article-sidebar">在侧边栏显示（首页「推荐阅读」）</label>
-          </div>
         </div>
 
         <p v-if="saveError" class="admin-articles__error" role="alert">{{ saveError }}</p>
