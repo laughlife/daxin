@@ -42,9 +42,9 @@ test('站点设置不再提供 SEO 标签页', () => {
   assert.doesNotMatch(settingsPage, /admin-settings-seo|refreshSeo|seoError/, '站点设置不应再加载 SEO 编辑面板')
 })
 
-test('后台导航开放用户与权限模块且仅限管理员', () => {
-  assert.match(adminHomePage, /label: ['\"]用户与权限['\"]/)
-  assert.match(adminHomePage, /to: ['\"]\/admin\/users['\"][\s\S]*?roles: \[['\"]admin['\"]\]/)
+test('后台侧栏开放用户与权限模块且仅限管理员', () => {
+  assert.match(adminLayout, /label: ['\"]用户与权限['\"]/)
+  assert.match(adminLayout, /to: ['\"]\/admin\/users['\"][\s\S]*?roles: \[['\"]admin['\"]\]/)
 })
 
 test('用户管理页面接入账号 CRUD 且不包含邮箱字段', () => {
@@ -57,18 +57,19 @@ test('用户管理页面接入账号 CRUD 且不包含邮箱字段', () => {
   assert.doesNotMatch(usersPage, /AdminPlaceholder|email/i)
 })
 
-test('后台统一返回入口固定在右侧并复用官网 Logo', () => {
-  assert.match(adminLayout, /route\.path\s*!==\s*['\"]\/admin['\"]/)
+test('后台统一左侧导航并复用官网 Logo', () => {
+  assert.match(adminLayout, /admin-shell__sidebar/)
+  assert.match(adminLayout, /admin-shell__drawer-toggle/)
+  assert.doesNotMatch(adminLayout, /返回后台首页|返回官网首页/)
   assert.match(adminLayout, /position:\s*fixed/)
   assert.match(adminLayout, /useSiteSettings\(\)/)
   assert.match(adminLayout, /site_logo/)
   assert.match(adminLayout, /flex-direction:\s*column/)
 })
 
-test('后台布局不显示 Logo 旁的后台文案且两个返回入口样式一致', () => {
+test('后台布局不显示 Logo 旁的后台文案且移除两个返回入口', () => {
   assert.doesNotMatch(adminLayout, /大信法务 · 后台管理/)
-  assert.match(adminLayout, /class="admin-shell__home"[^>]*>\s*返回后台首页\s*<\/NuxtLink>/)
-  assert.match(adminLayout, /class="admin-shell__home"[^>]*>\s*返回官网首页\s*<\/NuxtLink>/)
+  assert.doesNotMatch(adminLayout, /返回后台首页|返回官网首页/)
 })
 
 test('后台登录页复用官网 Logo', () => {
@@ -77,8 +78,7 @@ test('后台登录页复用官网 Logo', () => {
   assert.doesNotMatch(adminLoginPage, /class="admin-login__brand"[^>]*>\s*大信法务/)
 })
 
-test('后台两个返回入口使用纯文字样式', () => {
-  assert.match(adminLayout, /\.admin-shell__home\s*\{[\s\S]*border:\s*0[;\s]/)
-  assert.match(adminLayout, /\.admin-shell__home\s*\{[\s\S]*background(?:-color)?:\s*transparent[;\s]/)
-  assert.match(adminLayout, /\.admin-shell__home\s*\{[\s\S]*box-shadow:\s*none[;\s]/)
+test('后台左侧菜单项提供悬停和当前页样式', () => {
+  assert.match(adminLayout, /\.admin-shell__link:hover/)
+  assert.match(adminLayout, /\.admin-shell__link--active/)
 })

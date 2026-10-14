@@ -9,6 +9,7 @@ const statsSource = await readFile(new URL('../app/components/home/StatsSection.
 const footerSource = await readFile(new URL('../app/components/layout/SiteFooter.vue', import.meta.url), 'utf8')
 const qrSource = await readFile(new URL('../app/components/contact/ContactQrGrid.vue', import.meta.url), 'utf8')
 const adminHomeSource = await readFile(new URL('../app/pages/admin/index.vue', import.meta.url), 'utf8')
+const adminLayoutSource = await readFile(new URL('../app/layouts/admin.vue', import.meta.url), 'utf8')
 const adminServicesSource = await readFile(new URL('../app/pages/admin/services.vue', import.meta.url), 'utf8')
 const homeApiSource = await readFile(new URL('../server/api/public/home.get.ts', import.meta.url), 'utf8')
 const homeRepositorySource = await readFile(new URL('../app/repositories/home.ts', import.meta.url), 'utf8')
@@ -37,8 +38,8 @@ test('service cards omit redundant summaries but keep all configured items, with
   assert.match(teamServicesSource, /scale\(1\.0\d+\)/)
 })
 
-test('team business configuration is discoverable and configured icons reach the homepage cards', () => {
-  assert.match(adminHomeSource, /label: '团队业务配置', to: '\/admin\/services'/)
+test('team business configuration is discoverable from the shared sidebar and configured icons reach homepage cards', () => {
+  assert.match(adminLayoutSource, /label: '团队业务范围', to: '\/admin\/services'/)
   assert.doesNotMatch(adminHomeSource, /页脚与联系方式|\/admin\/footer/)
   assert.match(adminServicesSource, /TRO全流程处理|iconKey|section\.items/)
   assert.match(homeApiSource, /ss\.icon_key[\s\S]*?iconKey: String\(row\.icon_key/)
