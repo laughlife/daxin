@@ -76,13 +76,17 @@ watch(() => route.path, closeDrawer)
         <img v-if="logoSrc" class="admin-shell__logo-img" :src="logoSrc" :alt="siteConfig.logo.alt">
         <span v-else class="admin-shell__logo" aria-hidden="true">信</span>
       </NuxtLink>
+      <!--
+        账号与角色：紧跟在品牌 logo 之后横向排列（居左），
+        不再推到右侧；退出按钮单独放在最右，并做成可见的按钮样式。
+      -->
       <div v-if="user" class="admin-shell__account" aria-label="当前账号信息">
         <span class="admin-shell__identity"><span class="admin-shell__account-label">账号</span>{{ user.displayName }}（{{ user.username }}）</span>
         <span class="admin-shell__identity"><span class="admin-shell__account-label">角色</span>{{ roleLabels.join('、') || '未分配角色' }}</span>
-        <button class="admin-shell__logout" type="button" :disabled="loggingOut" @click="onLogout">
-          {{ loggingOut ? '退出中…' : '退出登录' }}
-        </button>
       </div>
+      <button class="admin-shell__logout" type="button" :disabled="loggingOut" @click="onLogout">
+        {{ loggingOut ? '退出中…' : '退出登录' }}
+      </button>
       <button
         class="admin-shell__drawer-toggle"
         type="button"
@@ -217,10 +221,44 @@ watch(() => route.path, closeDrawer)
   text-decoration: none;
 }
 
-.admin-shell__account { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-4); min-width: 0; }
+.admin-shell__account {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  /* 账号与角色横向排列、紧跟在品牌之后靠左 */
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  min-width: 0;
+}
 .admin-shell__identity { color: var(--color-text); font-size: var(--text-sm); white-space: nowrap; }
 .admin-shell__account-label { margin-right: var(--space-1); color: var(--color-text-muted); }
-.admin-shell__logout { padding: var(--space-2) var(--space-3); border: 0; background: transparent; color: var(--color-primary); font: inherit; font-size: var(--text-sm); cursor: pointer; }
+
+/*
+ * 退出按钮：做成可见的按钮样式（描边 + 内边距），并推到最右。
+ * margin-left: auto 把剩余空间都吃掉，因此它总是贴右，
+ * 中间的账号信息与它之间的空白由弹性布局自动分配。
+ */
+.admin-shell__logout {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-page);
+  color: var(--color-text);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: border-color var(--transition-base), color var(--transition-base), background-color var(--transition-base);
+}
+.admin-shell__logout:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+}
 .admin-shell__logout:disabled { opacity: .55; cursor: not-allowed; }
 .admin-shell__error { margin: var(--space-2) var(--space-6); color: var(--color-error); font-size: var(--text-sm); }
 
@@ -385,8 +423,19 @@ watch(() => route.path, closeDrawer)
 }
 
 @media (max-width: 460px) {
+  /*
+   * 窄屏（手机）时账号信息允许换行到第二行，但退出按钮仍与抽屉按钮同排靠右。
+   * 用 order 明确顺序：品牌(0) → 退出(1) → 抽屉(2) → 账号(3)。
+   */
   .admin-shell__topbar { flex-wrap: wrap; }
-  .admin-shell__account { flex-basis: calc(100% - 52px); justify-content: flex-start; order: 3; }
-  .admin-shell__drawer-toggle { margin-left: auto; }
+  .admin-shell__account {
+    flex-basis: 100%;
+    order: 3;
+    justify-content: flex-start;
+    /* 换行后独占一行，不再需要抢占右侧空间 */
+    margin-left: 0;
+  }
+  .admin-shell__logout { order: 1; margin-left: auto; }
+  .admin-shell__drawer-toggle { order: 2; margin-left: var(--space-2); }
 }
 </style>

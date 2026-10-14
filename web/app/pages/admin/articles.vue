@@ -12,7 +12,7 @@ import {
   type AdminWriteResult,
 } from '~/utils/adminApi'
 import { canWriteContent, READ_ONLY_NOTICE } from '~/utils/adminPermission'
-import { sanitizeHtml } from '~/utils/publicHtml'
+// 正文白名单清洗已移到 AdminArticlePreview 组件内，本页不再直接使用 sanitizeHtml
 
 /**
  * 文章管理（/admin/articles）。
@@ -173,8 +173,71 @@ const form = reactive<ArticleForm>({
   isFeatured: false,
   showInSidebar: false
 })
-const previewHtml = computed(() => sanitizeHtml(form.contentHtml))
 const previewCategory = computed(() => categoryOptions.value.find(option => String(option.id) === form.categoryId)?.name || '未分类')
+
+/**
+ * 列表里的「预览内容」独立于编辑器预览：
+ * 列表接口只返回标题/摘要/分类，不含正文，所以点预览时按 id 拉一次详情。
+ * 单独维护一份状态，避免与编辑器预览（previewOpen）互相干扰。
+ */
+const listPreviewOpen = ref(false)
+const listPreviewLoading = ref(false)
+const listPreviewError = ref('')
+const listPreviewArticle = ref<{
+  title: string
+  summary: string
+  contentHtml: string
+  meta: string
+} | null>(null)
+
+/** 列表预览里的状态中文名（与表单里的状态下拉保持同一套说法）。 */
+const STATUS_LABELS: Record<string, string> = {
+  draft: '草稿',
+  published: '已发布',
+  archived: '已归档',
+}
+
+/** 列表预览的头部元信息：分类 · 发布时间（或状态）· 站点名。 */
+function toPreviewMeta(item: AdminArticleItem): string {
+  const statusText = item.status === 'published' ? '' : (STATUS_LABELS[item.status] ?? item.status)
+  return [item.categoryName || '未分类', item.publishedAt || statusText || '未发布', '大信法务'].join(' · ')
+}
+
+/** 打开某篇文章的内容预览（按需取正文）。 */
+async function openListPreview(item: AdminArticleItem) {
+  listPreviewOpen.value = true
+  listPreviewLoading.value = true
+  listPreviewError.value = ''
+  // 先用列表已有字段渲染骨架，正文到位后补齐，避免弹层空白
+  listPreviewArticle.value = {
+    title: item.title,
+    summary: item.summary,
+    contentHtml: '',
+    meta: toPreviewMeta(item),
+  }
+  try {
+    const detail = await requestAdminApi<{ article: AdminArticleDetail }>(
+      `/api/admin/articles/${item.id}`,
+      { requestFetch },
+    )
+    const article = detail.article
+    listPreviewArticle.value = {
+      title: article.title || item.title,
+      summary: article.summary,
+      contentHtml: article.contentHtml,
+      meta: toPreviewMeta(item),
+    }
+  } catch (error) {
+    listPreviewError.value = adminRequestErrorMessage(error, '文章内容加载失败，请稍后重试')
+  } finally {
+    listPreviewLoading.value = false
+  }
+}
+
+function closeListPreview() {
+  listPreviewOpen.value = false
+  listPreviewError.value = ''
+}
 
 /** 正在编辑的文章标识；新建时为「（保存后由服务端生成）」 */
 const slugHint = ref('')
@@ -475,6 +538,14 @@ if (import.meta.client) {
                   <BaseButton
                     variant="ghost"
                     size="sm"
+                    :title="'预览该文章的正文显示效果'"
+                    @click="openListPreview(item)"
+                  >
+                    预览内容
+                  </BaseButton>
+                  <BaseButton
+                    variant="ghost"
+                    size="sm"
                     :disabled="!canWrite || item.status === 'archived'"
                     :title="canWrite ? '归档为软删除，数据仍然保留' : readOnlyReason"
                     @click="onArchive(item)"
@@ -642,20 +713,30 @@ if (import.meta.client) {
           <BaseButton type="button" variant="secondary" :disabled="saving" @click="closeEditor">取消</BaseButton>
         </div>
       </form>
-      <div v-if="previewOpen" class="admin-articles__preview-backdrop" role="presentation" @click.self="previewOpen = false">
-        <article class="admin-articles__preview" role="dialog" aria-modal="true" aria-labelledby="article-preview-title">
-          <header class="admin-articles__preview-head">
-            <span>{{ previewCategory }} · {{ form.publishedAt || '预览' }} · 大信法务</span>
-            <button type="button" aria-label="关闭预览" @click="previewOpen = false">×</button>
-          </header>
-          <h2 id="article-preview-title">{{ form.title || '未填写标题' }}</h2>
-          <p v-if="form.summary" class="admin-articles__preview-summary">{{ form.summary }}</p>
-          <RichArticleBody v-if="previewHtml" :html="previewHtml" />
-          <p v-else class="admin-articles__preview-empty">暂无正文内容</p>
-        </article>
-      </div>
       </BaseCard>
     </div>
+
+    <!-- 编辑器预览：与列表预览共用同一个组件，正文清洗口径一致 -->
+    <AdminArticlePreview
+      :open="previewOpen"
+      :title="form.title"
+      :summary="form.summary"
+      :content-html="form.contentHtml"
+      :meta="`${previewCategory} · ${form.publishedAt || '预览'} · 大信法务`"
+      @close="previewOpen = false"
+    />
+
+    <!-- 列表「预览内容」：正文按需从详情接口取 -->
+    <AdminArticlePreview
+      :open="listPreviewOpen"
+      :title="listPreviewArticle?.title ?? ''"
+      :summary="listPreviewArticle?.summary ?? ''"
+      :content-html="listPreviewArticle?.contentHtml ?? ''"
+      :meta="listPreviewArticle?.meta ?? ''"
+      :loading="listPreviewLoading"
+      :error="listPreviewError"
+      @close="closeListPreview"
+    />
 
   </PageContainer>
 </template>
@@ -925,37 +1006,10 @@ if (import.meta.client) {
   gap: var(--space-3);
 }
 
-.admin-articles__preview-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 300;
-  display: grid;
-  place-items: center;
-  padding: var(--space-6);
-  background: rgb(15 23 42 / 55%);
-}
-.admin-articles__preview {
-  width: min(900px, 100%);
-  max-height: min(90vh, 100%);
-  overflow: auto;
-  padding: var(--space-8);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-page);
-  box-shadow: var(--shadow-lg);
-}
-.admin-articles__preview-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  margin-bottom: var(--space-5);
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-}
-.admin-articles__preview-head button { border: 0; background: transparent; color: inherit; font-size: 28px; cursor: pointer; }
-.admin-articles__preview h2 { font-size: var(--heading-1); line-height: var(--leading-tight); }
-.admin-articles__preview-summary { margin-top: var(--space-5); padding: var(--space-4); border-left: 3px solid var(--color-primary); background: var(--color-bg-light); }
-.admin-articles__preview-empty { margin-top: var(--space-6); color: var(--color-text-muted); }
+/*
+ * 预览弹层的样式已随实现移入 AdminArticlePreview 组件，
+ * 编辑器与列表共用同一份样式，这里不再重复定义。
+ */
 
 /* 富文本源码折叠区 */
 .admin-articles__source { margin-top: var(--space-3); }
