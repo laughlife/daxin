@@ -20,3 +20,30 @@ test('公开页面移除模板生成的眉题、副标题与配置使用说明',
   assert.doesNotMatch(header, /class="site-header__subtitle"/)
   assert.match(header, /class="site-header__name"/)
 })
+
+test('官网所有栏目标题下不渲染浅色辅助介绍，团队标题继续读取站点配置', async () => {
+  const home = await read('../app/pages/index.vue')
+  const sectionPaths = [
+    '../app/components/home/BusinessSection.vue',
+    '../app/components/home/CasePreviewSection.vue',
+    '../app/components/home/ArticlePreviewSection.vue',
+    '../app/components/home/HomeCoreAdvantages.vue',
+    '../app/components/home/HomeLegalGuides.vue',
+    '../app/components/content/ContentListing.vue',
+    '../app/components/content/EntityDirectory.vue',
+  ]
+  const sections = await Promise.all(sectionPaths.map(read))
+
+  for (const source of sections) {
+    assert.doesNotMatch(source, /<SectionHeading\b[^>]*\b:description=/s)
+    assert.doesNotMatch(source, /<SectionHeading\b[^>]*\bdescription=/s)
+  }
+  assert.match(home, /:title="teamDisplayTitle"/)
+  assert.match(home, /readSettingText\('about_team_title'\)/)
+})
+
+test('TRO 案件查询不显示即时筛选和日期解释提示', async () => {
+  const search = await read('../app/components/cases/CaseSearchPanel.vue')
+  assert.doesNotMatch(search, /输入即时筛选|查询条件会同步到 URL|刷新后可恢复/)
+  assert.doesNotMatch(search, /case-search-panel__hint|case-search-panel__field-hint|case-search-date-hint/)
+})

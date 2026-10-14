@@ -23,7 +23,6 @@ const visibleCases = computed(() => recentCases.value.length ? recentCases.value
       <div class="case-preview-section__head">
         <SectionHeading
           :title="recentCases.length ? '近三天 TRO 案件与进展' : '精选历史 TRO 案件'"
-          :description="recentCases.length ? `北京时间 ${today} 及前两天的立案动态` : '精选历史案件，按原始起诉时间排序。'"
         />
         <NuxtLink to="/tro/cases" class="case-preview-section__all">
           进入 TRO 案件查询

@@ -64,15 +64,10 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
           id="case-search-date"
           v-model="filters.date"
           type="date"
-          aria-describedby="case-search-date-hint"
         >
-        <span id="case-search-date-hint" class="case-search-panel__field-hint">显示该日期及之后立案的案件</span>
       </div>
     </div>
     <div class="case-search-panel__actions">
-      <p class="case-search-panel__hint">
-        输入即时筛选，无需提交；查询条件会同步到 URL，刷新后可恢复。
-      </p>
       <button
         type="button"
         class="case-search-panel__reset"
@@ -111,11 +106,6 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
   grid-column: 1 / -1;
 }
 
-.case-search-panel__field-hint {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-}
-
 .case-search-panel__field label {
   font-size: var(--text-sm);
   font-weight: 600;
@@ -142,15 +132,10 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
 .case-search-panel__actions {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--space-4);
   flex-wrap: wrap;
   margin-top: var(--space-4);
-}
-
-.case-search-panel__hint {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
 }
 
 .case-search-panel__reset {

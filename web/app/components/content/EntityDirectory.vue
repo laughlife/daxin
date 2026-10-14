@@ -69,7 +69,6 @@ useSeoMeta({
       <SectionHeading
         :level="1"
         :title="title"
-        :description="kind === 'brand' ? '按名称检索品牌，查看品牌历史发案。' : '查看原告代理律所介绍与代理的历史案件。'"
       />
       <ContentColumns group="tro">
         <ContentSectionTabs v-if="kind === 'firm'" path="/faq/plaintiff-firms" />

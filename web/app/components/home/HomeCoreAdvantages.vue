@@ -96,7 +96,6 @@ function segments(item: CoreAdvantage) {
         align="center"
         eyebrow="WHY DAXIN"
         title="核心优势"
-        description="专业团队与长期实战经验，为跨境企业提供高效、可执行的法律方案。"
       />
       <div class="home-core-advantages__grid" :style="{ gridTemplateColumns }" :class="{ 'home-core-advantages__grid--compact': compactLayout }">
         <article

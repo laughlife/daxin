@@ -17,7 +17,6 @@ const cards = computed(() => businessCards)
       <SectionHeading
         align="center"
         :title="businessSection.title"
-        :description="businessSection.description"
       />
       <div class="business-section__grid">
         <BusinessCard

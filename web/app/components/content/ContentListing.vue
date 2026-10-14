@@ -134,7 +134,7 @@ const eyebrow = computed(() => props.section.path.startsWith('/tro') ? 'TRO SERV
     <PageContainer>
       <header class="listing-page__head">
         <p class="listing-page__eyebrow">{{ eyebrow }}</p>
-        <SectionHeading :level="1" :title="section.title" :description="section.description" />
+        <SectionHeading :level="1" :title="section.title" />
       </header>
       <ContentColumns :group="section.group">
         <ContentSectionTabs :path="section.path" />

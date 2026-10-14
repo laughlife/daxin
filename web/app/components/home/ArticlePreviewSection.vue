@@ -43,7 +43,6 @@ const items = computed(() =>
       <SectionHeading
         align="center"
         title="案例分享"
-        description="按 TRO 预警、TRO 成功案例、劳动法案例与货代案例四类展示，每类保留最近三篇。"
       />
       <div class="article-preview-section__columns">
         <div

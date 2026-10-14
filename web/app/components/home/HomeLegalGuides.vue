@@ -100,7 +100,6 @@ onBeforeUnmount(() => {
         align="center"
         eyebrow="LEGAL GUIDES"
         title="普法干货"
-        description="聚焦跨境经营中的常见法律问题，提供实用知识参考。"
       />
 
       <div
