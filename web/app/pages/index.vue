@@ -178,7 +178,7 @@ useHead({
       <PageContainer>
         <div class="home-about__layout">
           <div class="home-about__content">
-            <SectionHeading align="center" eyebrow="About US" :title="teamDisplayTitle" />
+            <SectionHeading align="center" :title="teamDisplayTitle" />
             <p
               v-for="(paragraph, index) in teamParagraphsFromSettings"
               :key="index"

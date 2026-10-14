@@ -71,7 +71,6 @@ useSeoMeta({
       <header class="cases-page__head">
         <SectionHeading
           title="TRO 案件查询"
-          description="检索 TRO 案件的起诉时间、案件号、代理律所、原告与涉案品牌，帮助卖家快速评估风险。"
         />
       </header>
 

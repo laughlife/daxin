@@ -91,7 +91,6 @@ useSeoMeta({
       <SectionHeading
         :level="1"
         title="产品侵权检测"
-        description="填写待检测的品牌与产品信息，法务团队将评估侵权风险并给出初步建议。"
       />
       <p class="check-page__notice" role="note">
         当前为前端 Mock 演示：表单仅做本地必填校验，不发送网络请求、不保存任何数据，尚未连接后端检测服务。

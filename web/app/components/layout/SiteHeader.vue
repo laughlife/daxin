@@ -52,7 +52,6 @@ const identity = useSiteIdentity()
              已放 logo 时不再并列显示「大信法务」名称与副标题（需求 2026-10-10）。 -->
         <span v-else class="site-header__logo-text">
           <span class="site-header__name">{{ identity.name }}</span>
-          <span class="site-header__subtitle">{{ identity.subtitle }}</span>
         </span>
       </NuxtLink>
 
@@ -143,14 +142,6 @@ const identity = useSiteIdentity()
   white-space: nowrap;
 }
 
-.site-header__subtitle {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .site-header__nav {
   margin-inline: auto;
 }
@@ -197,14 +188,11 @@ const identity = useSiteIdentity()
   }
 }
 
-/* 窄屏：隐藏 CTA（移动端抽屉底部仍有入口），压缩副标题 */
+/* 窄屏：隐藏 CTA（移动端抽屉底部仍有入口） */
 @media (max-width: 639px) {
   .site-header__cta {
     display: none;
   }
 
-  .site-header__subtitle {
-    display: none;
-  }
 }
 </style>

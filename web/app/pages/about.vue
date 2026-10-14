@@ -66,18 +66,13 @@ useSeoMeta({
         <section class="about-page__section" aria-label="成功案例">
           <SectionHeading
             align="center"
-            eyebrow="TRO SUCCESS STORIES"
             :title="about.successTitle"
-            description="精选成功案例，结果与金额按记录展示。"
           />
           <ul v-if="about.successImages.length > 0" class="about-page__success-gallery">
             <li v-for="(src, index) in about.successImages" :key="index">
               <img :src="src" :alt="`${about.successTitle} ${index + 1}`" loading="lazy">
             </li>
           </ul>
-          <p v-else class="about-page__notice" role="note">
-            成功案例图片尚未上传。可在「后台 → 站点设置 → 关于我们」的 about_success_images 中配置。
-          </p>
           <p class="about-page__more">
             <NuxtLink to="/tro/success-cases">查看全部成功案例 →</NuxtLink>
           </p>
@@ -87,25 +82,19 @@ useSeoMeta({
         <section class="about-page__section" aria-label="企业宣讲">
           <SectionHeading
             align="center"
-            eyebrow="COMPANY PRESENTATION"
             :title="about.lectureTitle"
-            description="围绕知识产权、劳动用工与合同风控，提供适合跨境企业的培训主题。"
           />
           <ul v-if="about.lectureImages.length > 0" class="about-page__gallery">
             <li v-for="(src, index) in about.lectureImages" :key="index">
               <img :src="src" alt="大信法务企业宣讲现场" loading="lazy">
             </li>
           </ul>
-          <p v-else class="about-page__notice" role="note">
-            宣讲现场图片尚未上传。可在「后台 → 站点设置 → 关于我们」的 about_lecture_images 中配置。
-          </p>
         </section>
 
         <!-- 4. 我们的小伙伴：合作伙伴 logo 墙 -->
         <section class="about-page__section" aria-label="我们的小伙伴">
           <SectionHeading
             align="center"
-            eyebrow="OUR FRIENDS"
             :title="about.partnerTitle"
           />
           <ul v-if="about.partnerImages.length > 0" class="about-page__partners">
@@ -304,15 +293,6 @@ useSeoMeta({
 .about-page__more a {
   color: var(--color-primary);
   font-weight: 600;
-}
-
-.about-page__notice {
-  margin-top: var(--space-6);
-  padding: var(--space-4);
-  border: 1px dashed var(--color-border-strong);
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
 }
 
 @media (max-width: 1023px) {
