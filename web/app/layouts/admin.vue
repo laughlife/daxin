@@ -77,12 +77,11 @@ watch(() => route.path, closeDrawer)
         <span v-else class="admin-shell__logo" aria-hidden="true">信</span>
       </NuxtLink>
       <!--
-        账号与角色：紧跟在品牌 logo 之后横向排列（居左），
-        不再推到右侧；退出按钮单独放在最右，并做成可见的按钮样式。
+        账号与角色位于 Logo 右侧并横向排列；退出按钮单独放在最右。
       -->
       <div v-if="user" class="admin-shell__account" aria-label="当前账号信息">
-        <span class="admin-shell__identity"><span class="admin-shell__account-label">账号</span>{{ user.displayName }}（{{ user.username }}）</span>
-        <span class="admin-shell__identity"><span class="admin-shell__account-label">角色</span>{{ roleLabels.join('、') || '未分配角色' }}</span>
+        <span class="admin-shell__identity admin-shell__identity--account"><span class="admin-shell__account-label">账号</span>{{ user.displayName }}（{{ user.username }}）</span>
+        <span class="admin-shell__identity admin-shell__identity--role"><span class="admin-shell__account-label">角色</span>{{ roleLabels.join('、') || '未分配角色' }}</span>
       </div>
       <button class="admin-shell__logout" type="button" :disabled="loggingOut" @click="onLogout">
         {{ loggingOut ? '退出中…' : '退出登录' }}
@@ -143,7 +142,7 @@ watch(() => route.path, closeDrawer)
   z-index: calc(var(--z-header) + 1);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: var(--space-5);
   min-height: 72px;
   padding: var(--space-3) var(--space-6);
@@ -225,14 +224,28 @@ watch(() => route.path, closeDrawer)
   display: flex;
   flex-direction: row;
   align-items: center;
-  /* 账号与角色横向排列、紧跟在品牌之后靠左 */
+  /* 账号区与 Logo 保持间距，不额外添加竖向分隔线。 */
   justify-content: flex-start;
   flex-wrap: wrap;
   gap: var(--space-4);
   min-width: 0;
+  margin-left: var(--space-6);
 }
-.admin-shell__identity { color: var(--color-text); font-size: var(--text-sm); white-space: nowrap; }
-.admin-shell__account-label { margin-right: var(--space-1); color: var(--color-text-muted); }
+.admin-shell__identity {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 34px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-full);
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  white-space: nowrap;
+}
+.admin-shell__identity--account { background: var(--color-bg-light); }
+.admin-shell__identity--role { border-color: color-mix(in srgb, var(--color-primary) 28%, var(--color-border)); background: var(--color-primary-light); color: var(--color-primary-dark); }
+.admin-shell__account-label { color: var(--color-text-muted); font-size: var(--text-xs); font-weight: 650; }
 
 /*
  * 退出按钮：做成可见的按钮样式（描边 + 内边距），并推到最右。
@@ -242,22 +255,26 @@ watch(() => route.path, closeDrawer)
 .admin-shell__logout {
   flex: 0 0 auto;
   margin-left: auto;
-  padding: var(--space-2) var(--space-4);
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-page);
-  color: var(--color-text);
+  min-height: 42px;
+  padding: var(--space-2) var(--space-5);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius-control);
+  background: var(--color-primary);
+  color: var(--color-text-on-primary);
   font: inherit;
   font-size: var(--text-sm);
   font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
-  transition: border-color var(--transition-base), color var(--transition-base), background-color var(--transition-base);
+  box-shadow: var(--shadow-sm);
+  transition: border-color var(--transition-base), color var(--transition-base), background-color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
 }
 .admin-shell__logout:hover:not(:disabled) {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  background: var(--color-primary-light);
+  border-color: var(--color-primary-dark);
+  color: var(--color-text-on-primary);
+  background: var(--color-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
 }
 .admin-shell__logout:disabled { opacity: .55; cursor: not-allowed; }
 .admin-shell__error { margin: var(--space-2) var(--space-6); color: var(--color-error); font-size: var(--text-sm); }
@@ -382,9 +399,9 @@ watch(() => route.path, closeDrawer)
   .admin-shell__topbar { min-height: 64px; gap: var(--space-2); padding-inline: var(--space-3); }
   .admin-shell__brand { justify-content: flex-start; min-width: 0; }
   .admin-shell__logo-img { max-width: 116px; height: 34px; }
-  .admin-shell__account { flex: 1; gap: 0 var(--space-2); justify-content: flex-end; }
+  .admin-shell__account { flex: 1 1 auto; gap: var(--space-2); justify-content: flex-start; margin-left: var(--space-3); }
   .admin-shell__identity { font-size: 11px; }
-  .admin-shell__logout { padding: var(--space-1); font-size: 11px; white-space: nowrap; }
+  .admin-shell__logout { min-height: 38px; padding: var(--space-1) var(--space-3); font-size: 11px; white-space: nowrap; }
   .admin-shell__drawer-toggle { flex: 0 0 auto; }
 
   :deep(.admin-settings__field),
@@ -434,6 +451,7 @@ watch(() => route.path, closeDrawer)
     justify-content: flex-start;
     /* 换行后独占一行，不再需要抢占右侧空间 */
     margin-left: 0;
+    padding-left: 0;
   }
   .admin-shell__logout { order: 1; margin-left: auto; }
   .admin-shell__drawer-toggle { order: 2; margin-left: var(--space-2); }

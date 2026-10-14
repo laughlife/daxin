@@ -239,23 +239,16 @@ function closeListPreview() {
   listPreviewError.value = ''
 }
 
-/** 正在编辑的文章标识；新建时为「（保存后由服务端生成）」 */
-const slugHint = ref('')
-
 const detailLoading = ref(false)
 const detailError = ref('')
 
 const titleError = computed(() => (form.title.trim() ? '' : '标题不能为空'))
-const slugError = computed(() => (form.slug.trim() && !/^[a-z0-9-]+$/i.test(form.slug.trim())
-  ? 'slug 只允许字母、数字与连字符（中文标题请留空，由服务端生成）'
-  : ''))
-const formValid = computed(() => !titleError.value && !slugError.value)
+const formValid = computed(() => !titleError.value)
 
 /** 打开新建表单 */
 async function openCreate() {
   previewOpen.value = false
   editingId.value = null
-  slugHint.value = ''
   form.title = ''
   form.slug = ''
   form.categoryId = ''
@@ -287,7 +280,6 @@ async function openEdit(item: AdminArticleItem) {
   form.publishedAt = toDateTimeLocal(item.publishedAt)
   form.summary = item.summary
   form.contentHtml = ''
-  slugHint.value = item.slug
   try {
     const detail = await requestAdminApi<{ article: AdminArticleDetail }>(
       `/api/admin/articles/${item.id}`,
@@ -303,7 +295,6 @@ async function openEdit(item: AdminArticleItem) {
     form.status = article.status || 'draft'
     form.isFeatured = article.isFeatured
     form.showInSidebar = article.showInSidebar === true
-    slugHint.value = article.slug
   } catch (error) {
     detailError.value = adminRequestErrorMessage(error, '文章详情加载失败，请稍后重试')
   } finally {
@@ -340,7 +331,7 @@ async function onSubmit(publish = false) {
     return
   }
   if (!formValid.value) {
-    saveError.value = titleError.value || slugError.value
+    saveError.value = titleError.value
     return
   }
   saving.value = true
@@ -463,16 +454,6 @@ if (import.meta.client) {
 
 <template>
   <PageContainer class="admin-articles" size="wide">
-    <header class="admin-articles__head">
-      <BaseButton
-        :disabled="!canWrite"
-        :title="canWrite ? undefined : readOnlyReason"
-        @click="openCreate"
-      >
-        新建文章
-      </BaseButton>
-    </header>
-
     <p v-if="!canWrite" class="admin-articles__readonly" role="note">
       {{ readOnlyReason }}
     </p>
@@ -492,6 +473,12 @@ if (import.meta.client) {
           >
         </div>
         <BaseButton variant="secondary" size="sm" type="submit">搜索</BaseButton>
+        <BaseButton
+          type="button"
+          :disabled="!canWrite"
+          :title="canWrite ? undefined : readOnlyReason"
+          @click="openCreate"
+        >新建文章</BaseButton>
     </form>
 
     <section class="admin-articles__list" aria-label="文章列表" aria-live="polite">
@@ -536,8 +523,9 @@ if (import.meta.client) {
                     编辑
                   </BaseButton>
                   <BaseButton
-                    variant="ghost"
+                    variant="primary"
                     size="sm"
+                    class="admin-articles__preview-button"
                     :title="'预览该文章的正文显示效果'"
                     @click="openListPreview(item)"
                   >
@@ -604,25 +592,6 @@ if (import.meta.client) {
         </div>
 
         <div class="admin-articles__field">
-          <label class="admin-articles__label" for="article-slug">slug（可选）</label>
-          <input
-            id="article-slug"
-            v-model="form.slug"
-            class="admin-articles__input"
-            type="text"
-            maxlength="191"
-            :disabled="!canWrite"
-            :aria-invalid="Boolean(slugError)"
-            placeholder="留空时由标题生成"
-          >
-          <p class="admin-articles__hint">
-            当前 slug：{{ slugHint || '（保存后由服务端生成）' }}。留空提交时服务端会按标题重新生成，
-            中文标题会生成带短哈希的稳定 slug。
-          </p>
-          <p v-if="slugError" class="admin-articles__hint admin-articles__hint--error">{{ slugError }}</p>
-        </div>
-
-        <div class="admin-articles__field">
           <label class="admin-articles__label" for="article-category">分类</label>
           <select
             id="article-category"
@@ -645,10 +614,6 @@ if (import.meta.client) {
               当前分类（#{{ form.categoryId }}，不在当前页候选中）
             </option>
           </select>
-          <p class="admin-articles__hint">
-            后台没有单独的分类字典接口，选项由当前列表响应里的「分类 ID / 分类名称」派生，
-            因此只包含本页出现过的分类；留空表示不修改/未分类。
-          </p>
         </div>
 
         <div class="admin-articles__field">
@@ -664,23 +629,7 @@ if (import.meta.client) {
 
         <div class="admin-articles__field">
           <label class="admin-articles__label" for="article-content">正文</label>
-          <p class="admin-articles__warning" role="note">
-            支持加粗、标题、列表、链接等排版；「插入图片」会上传到 OSS，
-            并把 OSS 访问地址写进正文。保存时整篇 HTML 入库，
-            公开站点渲染前仍会由服务端做白名单清洗。
-          </p>
           <AdminRichTextEditor v-model="form.contentHtml" :disabled="!canWrite" />
-          <details class="admin-articles__source">
-            <summary>查看／编辑 HTML 原文（高级）</summary>
-            <textarea
-              id="article-content"
-              v-model="form.contentHtml"
-              class="admin-articles__textarea admin-articles__textarea--code"
-              rows="14"
-              spellcheck="false"
-              :disabled="!canWrite"
-            />
-          </details>
         </div>
 
         <div class="admin-articles__grid">
@@ -746,14 +695,6 @@ if (import.meta.client) {
   padding-block: var(--space-8) var(--space-16);
 }
 
-.admin-articles__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-
 .admin-articles__title {
   font-size: var(--text-2xl);
   color: var(--color-text);
@@ -801,8 +742,8 @@ if (import.meta.client) {
 }
 
 .admin-articles__filters {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  justify-content: flex-end;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-4);
@@ -812,10 +753,16 @@ if (import.meta.client) {
 }
 
 .admin-articles__filter-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
   gap: var(--space-4);
+}
+
+.admin-articles__filter-form .admin-articles__field { flex: 0 1 360px; min-width: 220px; }
+
+@media (max-width: 520px) {
+  .admin-articles__filter-form { flex-wrap: wrap; gap: var(--space-3); }
+  .admin-articles__filter-form .admin-articles__field { flex: 1 1 100%; }
 }
 
 .admin-articles__field {
@@ -870,12 +817,6 @@ if (import.meta.client) {
   max-width: 640px;
 }
 
-.admin-articles__textarea--code {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--text-sm);
-  line-height: var(--leading-relaxed);
-}
-
 .admin-articles__hint {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
@@ -883,15 +824,6 @@ if (import.meta.client) {
 
 .admin-articles__hint--error {
   color: var(--color-error);
-}
-
-.admin-articles__warning {
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--color-warning);
-  border-radius: var(--radius-md);
-  background-color: color-mix(in srgb, var(--color-warning) 10%, transparent);
-  color: var(--color-warning);
-  font-size: var(--text-xs);
 }
 
 .admin-articles__list {
@@ -968,6 +900,11 @@ if (import.meta.client) {
   white-space: nowrap;
 }
 
+.admin-articles__preview-button {
+  font-weight: 650;
+  box-shadow: 0 2px 6px color-mix(in srgb, var(--color-primary) 20%, transparent);
+}
+
 .admin-articles__empty {
   padding: var(--space-12) var(--space-6);
   background-color: var(--color-bg-page);
@@ -1011,9 +948,4 @@ if (import.meta.client) {
  * 编辑器与列表共用同一份样式，这里不再重复定义。
  */
 
-/* 富文本源码折叠区 */
-.admin-articles__source { margin-top: var(--space-3); }
-.admin-articles__source summary { cursor: pointer; font-size: var(--text-sm); color: var(--color-text-muted); }
-.admin-articles__source summary:hover { color: var(--color-primary); }
-.admin-articles__source textarea { margin-top: var(--space-2); }
 </style>

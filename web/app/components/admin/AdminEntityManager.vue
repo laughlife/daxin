@@ -141,14 +141,8 @@ const form = reactive<EntityForm>({
   status: '1'
 })
 
-/** 编辑时用于展示「当前 slug 是否变化」 */
-const originalSlug = ref('')
-
 const nameError = computed(() => (form.name.trim() ? '' : `${props.entityLabel}名称不能为空`))
-const slugError = computed(() => (form.slug.trim() && !/^[a-z0-9-]+$/i.test(form.slug.trim())
-  ? 'slug 只允许字母、数字与连字符（中文名称请留空，由服务端生成）'
-  : ''))
-const formValid = computed(() => !nameError.value && !slugError.value)
+const formValid = computed(() => !nameError.value)
 
 function resetForm() {
   form.slug = ''
@@ -158,7 +152,6 @@ function resetForm() {
   form.region = ''
   form.summary = ''
   form.status = '1'
-  originalSlug.value = ''
 }
 
 /**
@@ -206,7 +199,6 @@ function applyDetail(item: AdminEntityItem) {
   form.region = item.region
   form.summary = item.summary
   form.status = String(item.status)
-  originalSlug.value = item.slug
 }
 
 function closeEditor() {
@@ -223,7 +215,7 @@ async function onSubmit() {
     return
   }
   if (!formValid.value) {
-    saveError.value = nameError.value || slugError.value
+    saveError.value = nameError.value
     return
   }
   saving.value = true
@@ -266,16 +258,6 @@ function onPageSize(next: number) {
 
 <template>
   <PageContainer class="admin-entity" size="wide">
-    <header class="admin-entity__head">
-      <BaseButton
-        :disabled="!canWrite"
-        :title="canWrite ? undefined : readOnlyReason"
-        @click="openCreate"
-      >
-        新建{{ entityLabel }}
-      </BaseButton>
-    </header>
-
     <p v-if="!canWrite" class="admin-entity__readonly" role="note">{{ readOnlyReason }}</p>
     <p v-if="notice" class="admin-entity__notice" role="status">{{ notice }}</p>
     <p v-if="actionError" class="admin-entity__error" role="alert">{{ actionError }}</p>
@@ -292,6 +274,12 @@ function onPageSize(next: number) {
           >
         </div>
         <BaseButton variant="secondary" size="sm" type="submit">搜索</BaseButton>
+        <BaseButton
+          type="button"
+          :disabled="!canWrite"
+          :title="canWrite ? undefined : readOnlyReason"
+          @click="openCreate"
+        >新建{{ entityLabel }}</BaseButton>
     </form>
 
     <section class="admin-entity__list" :aria-label="`${entityLabel}列表`" aria-live="polite">
@@ -391,28 +379,9 @@ function onPageSize(next: number) {
             <input id="entity-name-en" v-model="form.nameEn" class="admin-entity__input" type="text" maxlength="191" :disabled="!canWrite">
           </div>
 
-          <div class="admin-entity__field">
-            <label class="admin-entity__label" for="entity-slug">slug（可选）</label>
-            <input
-              id="entity-slug"
-              v-model="form.slug"
-              class="admin-entity__input"
-              type="text"
-              maxlength="191"
-              :disabled="!canWrite"
-              :aria-invalid="Boolean(slugError)"
-              placeholder="留空时由名称生成"
-            >
-            <p class="admin-entity__hint">
-              当前 slug：{{ originalSlug || '（保存后由服务端生成）' }}。冲突时服务端会自动追加后缀保证唯一。
-            </p>
-            <p v-if="slugError" class="admin-entity__hint admin-entity__hint--error">{{ slugError }}</p>
-          </div>
-
           <div v-if="withRegion" class="admin-entity__field">
             <label class="admin-entity__label" for="entity-region">地区</label>
             <input id="entity-region" v-model="form.region" class="admin-entity__input" type="text" maxlength="191" :disabled="!canWrite">
-            <p class="admin-entity__hint">仅律所有该字段；品牌没有地区列，提交也会被服务端忽略。</p>
           </div>
         </div>
 
@@ -425,7 +394,6 @@ function onPageSize(next: number) {
             type="text"
             maxlength="512"
             :disabled="!canWrite"
-            placeholder="多个别名用逗号分隔"
           >
         </div>
 
@@ -439,10 +407,6 @@ function onPageSize(next: number) {
             :disabled="!canWrite"
           />
         </div>
-
-        <p class="admin-entity__hint">
-          关联案件数：只读，由案件关联表统计得出，无法在此填写或覆盖。
-        </p>
 
         <p v-if="saveError" class="admin-entity__error" role="alert">{{ saveError }}</p>
         <p v-if="!canWrite" class="admin-entity__readonly" role="note">{{ readOnlyReason }}</p>
@@ -467,14 +431,6 @@ function onPageSize(next: number) {
 <style scoped>
 .admin-entity {
   padding-block: var(--space-8) var(--space-16);
-}
-
-.admin-entity__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
 }
 
 .admin-entity__title {
@@ -524,8 +480,8 @@ function onPageSize(next: number) {
 }
 
 .admin-entity__filters {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  justify-content: flex-end;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-4);
@@ -535,10 +491,16 @@ function onPageSize(next: number) {
 }
 
 .admin-entity__filter-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
   gap: var(--space-4);
+}
+
+.admin-entity__filter-form .admin-entity__field { flex: 0 1 360px; min-width: 220px; }
+
+@media (max-width: 520px) {
+  .admin-entity__filter-form { flex-wrap: wrap; gap: var(--space-3); }
+  .admin-entity__filter-form .admin-entity__field { flex: 1 1 100%; }
 }
 
 .admin-entity__field {

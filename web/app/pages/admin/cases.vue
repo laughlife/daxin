@@ -489,16 +489,6 @@ function onPageSize(next: number) {
 
 <template>
   <PageContainer class="admin-cases" size="wide">
-    <header class="admin-cases__head">
-      <BaseButton
-        :disabled="!canWrite"
-        :title="canWrite ? undefined : readOnlyReason"
-        @click="openCreate"
-      >
-        新建案例
-      </BaseButton>
-    </header>
-
     <p v-if="!canWrite" class="admin-cases__readonly" role="note">{{ readOnlyReason }}</p>
     <p v-if="notice" class="admin-cases__notice" role="status">{{ notice }}</p>
     <p v-if="actionError" class="admin-cases__error" role="alert">{{ actionError }}</p>
@@ -515,6 +505,12 @@ function onPageSize(next: number) {
           >
         </div>
         <BaseButton variant="secondary" size="sm" type="submit">搜索</BaseButton>
+        <BaseButton
+          type="button"
+          :disabled="!canWrite"
+          :title="canWrite ? undefined : readOnlyReason"
+          @click="openCreate"
+        >新建案例</BaseButton>
     </form>
 
     <section class="admin-cases__list" aria-label="案例列表" aria-live="polite">
@@ -615,9 +611,7 @@ function onPageSize(next: number) {
               maxlength="64"
               :disabled="!canWrite"
               :aria-invalid="Boolean(caseNumberError)"
-              placeholder="24-cv-0006"
             >
-            <p class="admin-cases__hint">格式：{{ CASE_NUMBER_HINT }}（大小写不敏感，入库统一小写）。</p>
             <p v-if="caseNumberError" class="admin-cases__hint admin-cases__hint--error">{{ caseNumberError }}</p>
           </div>
 
@@ -658,10 +652,6 @@ function onPageSize(next: number) {
 
         <fieldset class="admin-cases__relations">
           <legend class="admin-cases__legend">关联信息</legend>
-          <p class="admin-cases__hint">
-            关联采用「按 id 覆盖式替换」：每张关联表对一个案件只保留一条记录。
-            不触碰下面的控件 = 请求里不带该字段 = 保留现状；点击「清除关联」= 发送 null = 删除现有关系。
-          </p>
 
           <AdminRemoteSelect
             id="case-brand"
@@ -669,7 +659,6 @@ function onPageSize(next: number) {
             label="涉案品牌"
             label-key="name"
             hint-key="nameEn"
-            empty-hint="没有匹配的品牌，可直接用输入的名称新建"
             :model-value="form.brandId"
             :disabled="!canWrite"
             allow-create
@@ -687,10 +676,6 @@ function onPageSize(next: number) {
               清除品牌关联
             </BaseButton>
           </AdminRemoteSelect>
-          <p class="admin-cases__hint">
-            品牌候选按关键词分页加载（每页 20 条）并提供「加载更多」，品牌库共 228 条，
-            不会一次性全部加载；「未选择」+「清除品牌关联」会显式发送 null 删除关联。
-          </p>
 
           <AdminRemoteSelect
             id="case-law-firm"
@@ -698,7 +683,6 @@ function onPageSize(next: number) {
             label="代理律所"
             label-key="name"
             hint-key="nameEn"
-            empty-hint="没有匹配的律所，可直接用输入的名称新建"
             :model-value="form.lawFirmId"
             :disabled="!canWrite"
             allow-create
@@ -716,9 +700,6 @@ function onPageSize(next: number) {
               清除律所关联
             </BaseButton>
           </AdminRemoteSelect>
-          <p class="admin-cases__hint">
-            律所候选同样按关键词分页加载（每页 20 条），律所库共 95 条。
-          </p>
 
           <div class="admin-cases__field">
             <label class="admin-cases__label" for="case-ip-type">侵权类型</label>
@@ -735,11 +716,6 @@ function onPageSize(next: number) {
                 {{ item.label }}（{{ item.slug || '未知' }}）
               </option>
             </select>
-            <p class="admin-cases__hint">
-              侵权类型保存在 case_ip_types 关联表，公开列表的「侵权类型」由该关联推导；
-              未标注时公开页显示「{{ UNKNOWN_CASE_TYPE_LABEL }}」。
-              当前选择对应展示：{{ ipTypeCurrentLabel }}。
-            </p>
           </div>
         </fieldset>
 
@@ -767,14 +743,6 @@ function onPageSize(next: number) {
 <style scoped>
 .admin-cases {
   padding-block: var(--space-8) var(--space-16);
-}
-
-.admin-cases__head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--space-4);
 }
 
 .admin-cases__title {
@@ -824,8 +792,8 @@ function onPageSize(next: number) {
 }
 
 .admin-cases__filters {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
+  justify-content: flex-end;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-4);
@@ -835,10 +803,16 @@ function onPageSize(next: number) {
 }
 
 .admin-cases__filter-form {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  display: flex;
   align-items: center;
   gap: var(--space-4);
+}
+
+.admin-cases__filter-form .admin-cases__field { flex: 0 1 360px; min-width: 220px; }
+
+@media (max-width: 520px) {
+  .admin-cases__filter-form { flex-wrap: wrap; gap: var(--space-3); }
+  .admin-cases__filter-form .admin-cases__field { flex: 1 1 100%; }
 }
 
 .admin-cases__field {

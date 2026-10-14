@@ -227,10 +227,6 @@ await loadUsers()
 
 <template>
   <PageContainer class="admin-users" size="wide">
-    <header class="admin-users__head">
-      <BaseButton @click="openCreate">新建账号</BaseButton>
-    </header>
-
     <p v-if="actionSuccess" class="admin-users__success" role="status">{{ actionSuccess }}</p>
     <p v-if="actionError" class="admin-users__error" role="alert">{{ actionError }}</p>
 
@@ -249,6 +245,7 @@ await loadUsers()
       <div class="admin-users__filter-actions">
         <BaseButton type="submit" variant="secondary" :disabled="loading">查询</BaseButton>
         <BaseButton type="button" variant="ghost" :disabled="loading" @click="resetFilters">重置</BaseButton>
+        <BaseButton type="button" :disabled="loading" @click="openCreate">新建账号</BaseButton>
       </div>
     </form>
 
@@ -333,16 +330,16 @@ await loadUsers()
 
 <style scoped>
 .admin-users { padding-block: var(--space-8) var(--space-16); }
-.admin-users__head, .admin-users__card-head { display:flex; align-items:center; justify-content:space-between; gap:var(--space-4); }
+.admin-users__card-head { display:flex; align-items:center; justify-content:space-between; gap:var(--space-4); }
 .admin-users__title { font-size:var(--text-2xl); color:var(--color-text); }
 .admin-users__desc { margin-top:var(--space-2); color:var(--color-text-muted); font-size:var(--text-sm); }
 .admin-users__success, .admin-users__error { margin-top:var(--space-4); padding:var(--space-3) var(--space-4); border-radius:var(--radius-md); font-size:var(--text-sm); }
 .admin-users__success { background:color-mix(in srgb, var(--color-success) 10%, transparent); color:var(--color-success); }
 .admin-users__error { background:color-mix(in srgb, var(--color-error) 10%, transparent); color:var(--color-error); }
-.admin-users__filters { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto; align-items:center; gap:var(--space-4); margin-top:var(--space-6); padding:var(--space-4); background:var(--color-bg-page); border:1px solid var(--color-border); border-radius:var(--radius-lg); }
-.admin-users__filter { display:grid; grid-template-columns:auto minmax(0,1fr); align-items:center; min-width:0; gap:var(--space-3); color:var(--color-text); font-size:var(--text-sm); }
+.admin-users__filters { display:flex; justify-content:flex-end; align-items:center; gap:var(--space-4); margin-top:var(--space-6); padding:var(--space-4); background:var(--color-bg-page); border:1px solid var(--color-border); border-radius:var(--radius-lg); }
+.admin-users__filter { display:grid; grid-template-columns:auto minmax(0,1fr); flex:0 1 240px; align-items:center; min-width:0; gap:var(--space-3); color:var(--color-text); font-size:var(--text-sm); }
 .admin-users__filter input, .admin-users__filter select, .admin-users__form input, .admin-users__form select { min-height:40px; padding:0 var(--space-3); border:1px solid var(--color-border-strong); border-radius:var(--radius-md); background:var(--color-bg-page); color:var(--color-text); font:inherit; }
-.admin-users__filter-actions { display:flex; gap:var(--space-2); }
+.admin-users__filter-actions { display:flex; align-items:center; gap:var(--space-2); }
 .admin-users__card { margin-top:var(--space-6); padding:var(--space-5); background:var(--color-bg-page); border:1px solid var(--color-border); border-radius:var(--radius-lg); box-shadow:var(--shadow-sm); }
 .admin-users__card-head h2 { font-size:var(--text-lg); }
 .admin-users__count, .admin-users__state, .admin-users__hint { color:var(--color-text-muted); font-size:var(--text-sm); }
@@ -365,11 +362,10 @@ await loadUsers()
 .admin-users__form legend { margin-bottom:var(--space-2); font-weight:600; }
 .admin-users__check { display:flex; flex-direction:row !important; align-items:center; gap:var(--space-2); color:var(--color-text-muted); }
 .admin-users__form-actions { display:flex; justify-content:flex-end; gap:var(--space-2); padding-top:var(--space-2); }
-@media (max-width: 767px) {
-  .admin-users__head { align-items:flex-start; flex-direction:column; }
-  .admin-users__filters { grid-template-columns:minmax(0,1fr); }
-  .admin-users__filter { width:100%; }
-  .admin-users__filter-actions { width:100%; }
+@media (max-width: 520px) {
+  .admin-users__filters { flex-wrap:wrap; }
+  .admin-users__filter { flex:1 1 100%; width:100%; }
+  .admin-users__filter-actions { flex-wrap:wrap; width:100%; }
   .admin-users__filter-actions > * { flex:1; }
   .admin-users__table thead { display:none; }
   .admin-users__table, .admin-users__table tbody, .admin-users__table tr, .admin-users__table td { display:block; width:100%; }
