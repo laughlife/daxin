@@ -20,15 +20,13 @@ function settingValue(key: string): unknown {
 
 const slides = computed(() => normalizeLegalGuideSlides(settingValue('home_legal_guides')))
 const currentIndex = ref(0)
-const activeSlide = computed(() => slides.value[currentIndex.value] ?? slides.value[0]!)
-const qrImage = computed(() => {
-  const itemKey = activeSlide.value.qrItemKey
+function qrImageForSlide(slide: (typeof slides.value)[number]): string {
+  const itemKey = slide.qrItemKey
   if (!itemKey) return ''
   const configured = qrImageForItemKey(siteSettings.value?.footer.qr as FooterQrItem[] | undefined, itemKey)
   if (configured) return configured
   return qrChannels.find(channel => channel.assetKey === itemKey)?.qrSrc ?? ''
-})
-const guideStyle = computed(() => ({ '--guide-accent': activeSlide.value.accent }))
+}
 
 let rotationTimer: ReturnType<typeof setTimeout> | undefined
 let rotationPaused = false
@@ -112,43 +110,48 @@ onBeforeUnmount(() => {
         @focusin="onFocusIn"
         @focusout="onFocusOut"
       >
-        <Transition name="home-legal-guides__slide" mode="out-in">
+        <div class="home-legal-guides__stage">
           <article
-            :key="activeSlide.slug"
+            v-for="(slide, index) in slides"
+            :key="slide.slug"
             class="home-legal-guides__panel"
-            :class="`home-legal-guides__panel--${activeSlide.slug}`"
-            :style="guideStyle"
+            :class="[
+              `home-legal-guides__panel--${slide.slug}`,
+              { 'home-legal-guides__panel--active': currentIndex === index }
+            ]"
+            :style="{ '--guide-accent': slide.accent }"
             role="group"
             aria-roledescription="轮播项目"
-            :aria-label="`${activeSlide.category}主题`"
+            :aria-label="`${slide.category}主题`"
+            :aria-hidden="currentIndex !== index"
           >
-            <div v-if="activeSlide.image" class="home-legal-guides__image">
-              <img :src="activeSlide.image" :alt="activeSlide.imageAlt" loading="lazy">
+            <div v-if="slide.image" class="home-legal-guides__image">
+              <img :src="slide.image" :alt="slide.imageAlt" loading="lazy">
             </div>
             <div v-else class="home-legal-guides__reserved" aria-hidden="true" />
 
             <div class="home-legal-guides__content">
-              <h3 v-if="activeSlide.title">{{ activeSlide.title }}</h3>
-              <template v-if="activeSlide.paragraphs.length">
-                <p v-for="(paragraph, index) in activeSlide.paragraphs" :key="`${activeSlide.slug}-${index}`" class="home-legal-guides__copy">
+              <h3 v-if="slide.title">{{ slide.title }}</h3>
+              <template v-if="slide.paragraphs.length">
+                <p v-for="(paragraph, paragraphIndex) in slide.paragraphs" :key="`${slide.slug}-${paragraphIndex}`" class="home-legal-guides__copy">
                   {{ paragraph }}
                 </p>
               </template>
-              <p v-else-if="activeSlide.slug === 'logistics'" class="home-legal-guides__category">{{ activeSlide.category }}</p>
+              <p v-else-if="slide.slug === 'logistics'" class="home-legal-guides__category">{{ slide.category }}</p>
 
-              <div v-if="activeSlide.benefit && qrImage" class="home-legal-guides__offer">
+              <div v-if="slide.benefit && qrImageForSlide(slide)" class="home-legal-guides__offer">
                 <p class="home-legal-guides__benefit">
                   <span class="home-legal-guides__check" aria-hidden="true">✓</span>
-                  <span>{{ activeSlide.benefit }}</span>
+                  <span>{{ slide.benefit }}</span>
                 </p>
                 <figure class="home-legal-guides__qr">
-                  <img :src="qrImage" :alt="`${activeSlide.category}咨询二维码`" width="112" height="112" loading="lazy">
+                  <img :src="qrImageForSlide(slide)" :alt="`${slide.category}咨询二维码`" width="112" height="112" loading="lazy">
                   <figcaption>添加领取</figcaption>
                 </figure>
               </div>
             </div>
           </article>
-        </Transition>
+        </div>
 
         <div class="home-legal-guides__indicators" role="group" aria-label="选择普法主题">
           <button
@@ -172,19 +175,26 @@ onBeforeUnmount(() => {
 
 <style scoped>
 .home-legal-guides { padding-block:var(--space-section); background:var(--color-bg-page); }
+.home-legal-guides__stage { display:grid; margin-top:var(--space-8); }
 .home-legal-guides__panel {
   --guide-accent:#216695;
   display:grid;
+  grid-area:1 / 1;
   grid-template-columns:minmax(260px,0.82fr) minmax(0,1.18fr);
   min-height:420px;
-  margin-top:var(--space-8);
   overflow:hidden;
   border:1px solid color-mix(in srgb,var(--guide-accent) 22%,white);
   border-radius:var(--radius-xl);
   color:var(--guide-accent);
   background:linear-gradient(115deg,color-mix(in srgb,var(--guide-accent) 4%,white),color-mix(in srgb,var(--guide-accent) 13%,white));
   box-shadow:var(--shadow-md);
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+  transform:translateX(12px);
+  transition:opacity .3s ease,transform .3s ease,visibility .3s;
 }
+.home-legal-guides__panel--active { z-index:1; opacity:1; visibility:visible; pointer-events:auto; transform:translateX(0); }
 .home-legal-guides__image { display:grid; min-height:420px; place-items:center; overflow:hidden; background:color-mix(in srgb,var(--guide-accent) 3%,white); }
 .home-legal-guides__image img { display:block; width:100%; height:100%; max-height:480px; object-fit:contain; }
 .home-legal-guides__content { display:flex; min-width:0; flex-direction:column; align-items:flex-start; padding:clamp(24px,3vw,44px); }
@@ -203,9 +213,6 @@ onBeforeUnmount(() => {
 .home-legal-guides__indicator { display:block; width:8px; height:8px; padding:0; border:0; border-radius:999px; background:var(--color-border-strong); cursor:pointer; transition:width .25s ease,background-color .25s ease; }
 .home-legal-guides__indicator--active { width:24px; background:var(--guide-accent); }
 .home-legal-guides__indicator:focus-visible { outline:2px solid var(--guide-accent); outline-offset:4px; }
-.home-legal-guides__slide-enter-active,.home-legal-guides__slide-leave-active { transition:opacity .35s ease,transform .35s ease; }
-.home-legal-guides__slide-enter-from { opacity:0; transform:translateX(18px); }
-.home-legal-guides__slide-leave-to { opacity:0; transform:translateX(-18px); }
 @media(max-width:767px) {
   .home-legal-guides { padding-block:var(--space-section); }
   .home-legal-guides__panel { grid-template-columns:1fr; }
@@ -219,6 +226,6 @@ onBeforeUnmount(() => {
   .home-legal-guides__panel--logistics .home-legal-guides__content { min-height:180px; }
 }
 @media(prefers-reduced-motion:reduce) {
-  .home-legal-guides__indicator,.home-legal-guides__slide-enter-active,.home-legal-guides__slide-leave-active { transition:none; }
+  .home-legal-guides__indicator,.home-legal-guides__panel { transition:none; }
 }
 </style>
