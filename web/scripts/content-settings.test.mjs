@@ -67,29 +67,33 @@ test('legal guide settings preserve three fixed themes and merge editable copy w
   assert.equal(result[2].qrItemKey, 'qr-tro-consult')
 })
 
-test('legal guide QR choices accept the four existing assets and retain an explicit empty choice', () => {
+test('three legal guide slides accept the same four QR assets and an explicit empty choice', () => {
   const keys = ['qr-tro-public', 'qr-tro-consult', 'qr-labor-public', 'qr-labor-consult', '']
   const result = normalizeLegalGuideSlides([
-    { slug: 'tro', qrItemKey: 'qr-tro-consult' },
-    { slug: 'labor', qrItemKey: 'qr-labor-consult' },
+    { slug: 'tro', qrItemKey: 'qr-labor-public' },
+    { slug: 'labor', qrItemKey: 'qr-tro-public' },
     { slug: 'logistics', qrItemKey: keys[0] },
   ])
-  assert.equal(result[0].qrItemKey, 'qr-tro-consult')
-  assert.equal(result[1].qrItemKey, 'qr-labor-consult')
+  assert.equal(result[0].qrItemKey, 'qr-labor-public')
+  assert.equal(result[1].qrItemKey, 'qr-tro-public')
   assert.equal(result[2].qrItemKey, 'qr-tro-public')
 
   const optedOut = normalizeLegalGuideSlides([
-    { slug: 'tro' },
-    { slug: 'labor' },
+    { slug: 'tro', qrItemKey: '' },
+    { slug: 'labor', qrItemKey: '' },
     { slug: 'logistics', qrItemKey: '' },
   ])
+  assert.equal(optedOut[0].qrItemKey, '')
+  assert.equal(optedOut[1].qrItemKey, '')
   assert.equal(optedOut[2].qrItemKey, '')
 
   const invalid = normalizeLegalGuideSlides([
-    { slug: 'tro' },
-    { slug: 'labor' },
+    { slug: 'tro', qrItemKey: 'https://example.test/qr.png' },
+    { slug: 'labor', qrItemKey: 'https://example.test/qr.png' },
     { slug: 'logistics', qrItemKey: 'https://example.test/qr.png' },
   ])
+  assert.equal(invalid[0].qrItemKey, 'qr-tro-consult')
+  assert.equal(invalid[1].qrItemKey, 'qr-labor-consult')
   assert.equal(invalid[2].qrItemKey, 'qr-tro-consult')
 })
 

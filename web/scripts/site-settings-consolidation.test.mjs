@@ -5,6 +5,8 @@ import test from 'node:test'
 const adminHome = readFileSync(new URL('../app/pages/admin/index.vue', import.meta.url), 'utf8')
 const siteSettings = readFileSync(new URL('../app/pages/admin/settings.vue', import.meta.url), 'utf8')
 const publishingSettings = readFileSync(new URL('../app/components/admin/SitePublishingSettings.vue', import.meta.url), 'utf8')
+const aboutSettings = readFileSync(new URL('../app/utils/aboutContent.ts', import.meta.url), 'utf8')
+const aboutPage = readFileSync(new URL('../app/pages/about.vue', import.meta.url), 'utf8')
 const sidebarRoute = new URL('../app/pages/admin/sidebar.vue', import.meta.url)
 const footerRoute = new URL('../app/pages/admin/footer.vue', import.meta.url)
 
@@ -43,4 +45,14 @@ test('二维码配置编辑器只读取和保存二维码，不管理页脚业�
   assert.doesNotMatch(source, /kind: 'footer'/)
   assert.doesNotMatch(source, /FooterItem|footerItems|页脚导航|业务范围/)
   assert.match(source, /SettingImageField/)
+})
+
+test('关于我们移除资质荣誉和团队展示图片配置，联系引导文案归入主图分组', () => {
+  assert.match(siteSettings, /id: 'about-hero'[\s\S]*?about_contact_title/)
+  assert.doesNotMatch(siteSettings, /about_honors_images: '资质荣誉图片'/)
+  assert.doesNotMatch(siteSettings, /about_team_image: '团队展示图片'/)
+  assert.match(siteSettings, /'about_honors_images'/)
+  assert.match(siteSettings, /'about_team_image'/)
+  assert.doesNotMatch(aboutSettings, /honorsImages/)
+  assert.doesNotMatch(aboutPage, /资质与荣誉|aria-label="资质荣誉"/)
 })
