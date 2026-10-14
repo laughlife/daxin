@@ -45,8 +45,9 @@ useSeoMeta({
   robots: 'noindex, nofollow'
 })
 
-/** 三类文案配置 */
+/** 三类文案配置；二维码作为独立展示标签，保存仍走现有二维码接口。 */
 type GroupKind = 'site' | 'home' | 'about'
+type SettingsTabKind = GroupKind | 'qr'
 
 interface GroupPayload {
   items: SettingItem[]
@@ -66,14 +67,71 @@ interface CoreAdvantageEditorEntry {
 const requestFetch = useRequestFetch()
 const { user } = useAdminSession()
 
-const TABS: { kind: GroupKind, label: string, description: string }[] = [
-  { kind: 'site', label: '站点信息', description: '站点名称、描述、联系方式、Logo、常见问题、二维码与页脚业务。' },
-  { kind: 'home', label: '首页文案', description: '首页首屏、数据概览、普法干货轮播及咨询区文案。' },
-  { kind: 'about', label: '关于我们', description: '团队介绍标题、段落与配图。' }
+const TABS: { kind: SettingsTabKind, label: string, description: string }[] = [
+  { kind: 'site', label: '站点信息', description: '集中维护网站品牌资料、联系方式、常见问题与全站配色。' },
+  { kind: 'home', label: '首页内容', description: '维护首页首屏、数据、核心优势与普法干货轮播。' },
+  { kind: 'about', label: '关于我们', description: '维护团队介绍、成功案例、企业宣讲、合作伙伴与资质荣誉。团队介绍也同步显示在首页。' },
+  { kind: 'qr', label: '二维码管理', description: '统一维护 TRO 与劳动法的公众号、咨询号二维码，供官网各处调用。' }
 ]
 
 /** 默认展开第一个 tab */
-const activeKind = ref<GroupKind>('site')
+const activeKind = ref<SettingsTabKind>('site')
+
+const SETTING_LABELS: Record<string, string> = {
+  site_name: '网站名称', site_subtitle: '网站副标题', site_description: '网站简介', site_logo: '网站 Logo',
+  contact_phone: '联系电话', contact_email: '联系邮箱', contact_address: '联系地址', contact_wechat: '联系微信号',
+  footer_intro: '页脚团队简介', content_sidebar: '内容页常见问题与二维码标题', site_theme: '公开页面配色',
+  home_hero_badge: '首屏眉题', home_hero_title: '首屏主标题', home_hero_subtitle: '首屏介绍',
+  home_hero_primary_label: '主按钮文字', home_hero_primary_link: '主按钮链接',
+  home_hero_secondary_label: '次按钮文字', home_hero_background: '首页动态背景视频',
+  home_hero_background_poster: '首页背景视频封面', home_stats: '首页数据指标',
+  home_core_advantages: '首页核心优势', home_legal_guides: '普法干货轮播',
+  home_consultation_title: '咨询区域标题', home_consultation_description: '咨询区域说明', home_consultation_button: '咨询按钮文字',
+  about_hero_welcome: '关于我们引导语', about_hero_title: '关于我们标题', about_hero_image: '关于我们主图',
+  about_team_title: '团队介绍标题（首页同步）', about_team_paragraphs: '团队介绍内容（首页同步）', about_team_image: '团队展示图片',
+  about_contact_title: '联系我们标题', about_success_title: '成功案例标题', about_success_images: '成功案例图片',
+  about_lecture_title: '企业宣讲标题', about_lecture_images: '企业宣讲图片',
+  about_partner_title: '合作伙伴标题', about_partner_images: '合作伙伴 Logo', about_honors_images: '资质荣誉图片'
+}
+
+const SETTING_DESCRIPTIONS: Record<string, string> = {
+  site_name: '用于网站品牌展示和浏览器页面标题。', site_subtitle: '展示在网站名称附近的简短说明。',
+  site_description: '网站整体介绍，可用于公开页面摘要。', site_logo: '用于官网导航和页脚的品牌标识。',
+  contact_phone: '官网公开展示并供访客联系的电话号码。', contact_email: '官网公开展示的联系邮箱。',
+  contact_address: '官网公开展示的办公地址。', contact_wechat: '官网公开展示的微信联系方式。',
+  footer_intro: '显示在官网页脚的团队简介。', content_sidebar: '控制文章侧栏的问题入口名称及二维码区标题。',
+  site_theme: '选择预设主色，或输入自定义 HEX 颜色。', home_hero_background: '首页首屏背景视频地址。',
+  home_hero_background_poster: '背景视频加载或播放前显示的封面图。', home_stats: '首页团队数据卡片，可调整显示内容和顺序。',
+  home_core_advantages: '首页核心优势卡片及重点文字设置。', home_legal_guides: '首页三本普法主题书的图片、标题、正文和领取说明。',
+  about_team_title: '团队介绍标题；首页团队介绍区域会同步使用。',
+  about_team_paragraphs: '团队介绍正文；首页团队介绍区域会同步使用。',
+  about_team_image: '关于我们页面团队介绍配图。', about_success_images: '关于我们页面成功案例展示图片。',
+  about_lecture_images: '关于我们页面企业宣讲图片。', about_partner_images: '关于我们页面合作伙伴标识。',
+  about_honors_images: '关于我们页面资质荣誉展示图片。'
+}
+
+const SETTING_GROUPS: Record<GroupKind, { id: string, title: string, description: string, keys: string[] }[]> = {
+  site: [
+    { id: 'brand', title: '品牌与网站资料', description: '官网名称、品牌标识和网站介绍。', keys: ['site_name', 'site_logo', 'site_subtitle', 'site_description'] },
+    { id: 'contact', title: '联系方式', description: '官网公开展示的联系信息。', keys: ['contact_phone', 'contact_wechat', 'contact_email', 'contact_address'] },
+    { id: 'content', title: '常见问题与页面配色', description: '内容页侧栏入口和公开页面整体风格。', keys: ['content_sidebar', 'site_theme'] },
+    { id: 'footer-intro', title: '页脚简介', description: '官网页脚展示的团队介绍。', keys: ['footer_intro'] }
+  ],
+  home: [
+    { id: 'hero', title: '首页首屏', description: '主标题、介绍、行动按钮与动态背景。', keys: ['home_hero_badge', 'home_hero_title', 'home_hero_subtitle', 'home_hero_primary_label', 'home_hero_primary_link', 'home_hero_secondary_label', 'home_hero_background', 'home_hero_background_poster'] },
+    { id: 'stats', title: '首页数据指标', description: '首页展示的团队与业务数据。', keys: ['home_stats'] },
+    { id: 'advantages', title: '核心优势', description: '首页核心优势卡片及重点文字。', keys: ['home_core_advantages'] },
+    { id: 'guides', title: '普法干货轮播', description: '三本主题书的展示内容和领取信息。', keys: ['home_legal_guides'] },
+    { id: 'consultation', title: '咨询区域', description: '首页咨询模块的标题、说明和按钮。', keys: ['home_consultation_title', 'home_consultation_description', 'home_consultation_button'] }
+  ],
+  about: [
+    { id: 'team', title: '团队介绍', description: '团队标题与介绍内容也会同步显示在首页。', keys: ['about_team_title', 'about_team_paragraphs', 'about_team_image'] },
+    { id: 'about-hero', title: '关于我们页面介绍', description: '页面标题、引导语和主图。', keys: ['about_hero_welcome', 'about_hero_title', 'about_hero_image'] },
+    { id: 'success', title: '成功案例', description: '成功案例区标题和图片。', keys: ['about_success_title', 'about_success_images'] },
+    { id: 'partners', title: '企业宣讲与合作伙伴', description: '企业宣讲和合作伙伴展示内容。', keys: ['about_lecture_title', 'about_lecture_images', 'about_partner_title', 'about_partner_images'] },
+    { id: 'honors', title: '资质荣誉', description: '团队资质与荣誉图片。', keys: ['about_contact_title', 'about_honors_images'] }
+  ]
+}
 
 const writable = computed(() => canWriteSettings(user.value?.roles))
 const readOnlyNotice = SETTINGS_READ_ONLY_NOTICE
@@ -84,6 +142,36 @@ const editItems = {
   site: ref<SettingItem[]>([]),
   home: ref<SettingItem[]>([]),
   about: ref<SettingItem[]>([]),
+}
+
+function settingLabel(key: string): string {
+  return SETTING_LABELS[key] ?? '其他配置项'
+}
+
+function settingDescription(key: string): string {
+  return SETTING_DESCRIPTIONS[key] ?? '维护该页面对应的公开展示内容。'
+}
+
+function valueTypeLabel(valueType: SettingItem['valueType']): string {
+  if (valueType === 'image') return '图片'
+  if (valueType === 'json') return '组合配置'
+  return '文本'
+}
+
+function settingsGroups(kind: GroupKind) {
+  const items = editItems[kind].value
+  const groups = SETTING_GROUPS[kind].map(group => ({
+    ...group,
+    items: group.keys.flatMap(key => items.filter(item => item.key === key))
+  })).filter(group => group.items.length > 0)
+  const knownKeys = new Set(SETTING_GROUPS[kind].flatMap(group => group.keys))
+  const remaining = items.filter(item => !knownKeys.has(item.key))
+  if (remaining.length) {
+    groups.push({
+      id: 'other', title: '其他页面内容', description: '其他当前启用的页面配置。', keys: [], items: remaining
+    })
+  }
+  return groups
 }
 
 /** 已下线的历史配置不进入后台编辑态，避免继续暴露给管理员。 */
@@ -146,11 +234,11 @@ function parseHomeStats(items: SettingItem[]): HomeStatEntry[] {
   try {
     parsed = item.value ? JSON.parse(item.value) : []
   } catch {
-    blockingErrors['home:home_stats'] = '库中已有的 home_stats 不是合法 JSON，无法结构化编辑。为避免覆盖原始数据，已停用该编辑区并禁止保存，请先在数据库中修复该配置。'
+    blockingErrors['home:home_stats'] = '首页数据指标配置格式无效，结构化编辑已停用并禁止保存，请先修复该配置。'
     return []
   }
   if (!Array.isArray(parsed)) {
-    blockingErrors['home:home_stats'] = '库中已有的 home_stats 不是数组，无法结构化编辑。为避免覆盖原始数据，已停用该编辑区并禁止保存，请先在数据库中修复该配置。'
+    blockingErrors['home:home_stats'] = '首页数据指标配置不是列表，结构化编辑已停用并禁止保存，请先修复该配置。'
     return []
   }
   return parsed.map((entry) => {
@@ -172,11 +260,11 @@ function parseParagraphs(items: SettingItem[]): string[] {
   try {
     parsed = item.value ? JSON.parse(item.value) : []
   } catch {
-    blockingErrors['about:about_team_paragraphs'] = '库中已有的 about_team_paragraphs 不是合法 JSON，无法结构化编辑。为避免覆盖原始数据，已停用该编辑区并禁止保存，请先在数据库中修复该配置。'
+    blockingErrors['about:about_team_paragraphs'] = '团队介绍内容格式无效，结构化编辑已停用并禁止保存，请先修复该配置。'
     return []
   }
   if (!Array.isArray(parsed) || parsed.some(entry => typeof entry !== 'string')) {
-    blockingErrors['about:about_team_paragraphs'] = '库中已有的 about_team_paragraphs 不是字符串数组，无法结构化编辑。为避免覆盖原始数据，已停用该编辑区并禁止保存，请先在数据库中修复该配置。'
+    blockingErrors['about:about_team_paragraphs'] = '团队介绍内容格式不是段落列表，结构化编辑已停用并禁止保存，请先修复该配置。'
     return []
   }
   return parsed as string[]
@@ -190,11 +278,11 @@ function parseCoreAdvantages(items: SettingItem[]): CoreAdvantageEditorEntry[] {
   try {
     parsed = item.value ? JSON.parse(item.value) : []
   } catch {
-    blockingErrors['home:home_core_advantages'] = '库中已有的 home_core_advantages 不是合法 JSON，无法结构化编辑。为避免覆盖原始数据，已停用该编辑区并禁止保存，请先在数据库中修复该配置。'
+    blockingErrors['home:home_core_advantages'] = '首页核心优势配置格式无效，结构化编辑已停用并禁止保存，请先修复该配置。'
     return []
   }
   if (!Array.isArray(parsed)) {
-    blockingErrors['home:home_core_advantages'] = '库中已有的 home_core_advantages 不是数组，无法结构化编辑。为避免覆盖原始数据，已停用该编辑区并禁止保存，请先在数据库中修复该配置。'
+    blockingErrors['home:home_core_advantages'] = '首页核心优势配置不是列表，结构化编辑已停用并禁止保存，请先修复该配置。'
     return []
   }
   return parsed.map((entry) => {
@@ -214,7 +302,7 @@ function parseContentSidebar(items: SettingItem[]): ContentSidebarConfig {
   try {
     return normalizeContentSidebar(JSON.parse(item.value))
   } catch {
-    blockingErrors['site:content_sidebar'] = '库中已有的 content_sidebar 不是合法 JSON，无法结构化编辑。为避免覆盖原始数据，已停用该编辑区并禁止保存，请先在数据库中修复该配置。'
+    blockingErrors['site:content_sidebar'] = '内容页常见问题配置格式无效，结构化编辑已停用并禁止保存，请先修复该配置。'
     return normalizeContentSidebar(null)
   }
 }
@@ -225,7 +313,7 @@ function parseSiteTheme(items: SettingItem[]): SiteTheme {
   try {
     return normalizeSiteTheme(JSON.parse(item.value))
   } catch {
-    blockingErrors['site:site_theme'] = '库中已有的 site_theme 不是合法 JSON，已暂时使用大信经典红；为避免覆盖原始数据，请先在数据库中修复该配置。'
+    blockingErrors['site:site_theme'] = '公开页面配色配置格式无效，暂时使用默认红色；请先修复该配置。'
     return normalizeSiteTheme(null)
   }
 }
@@ -236,7 +324,7 @@ function parseLegalGuides(items: SettingItem[]): LegalGuideSlide[] {
   try {
     return normalizeLegalGuideSlides(JSON.parse(item.value))
   } catch {
-    blockingErrors['home:home_legal_guides'] = '库中已有的 home_legal_guides 不是合法 JSON，无法结构化编辑。为避免覆盖原始数据，已停用该编辑区并禁止保存，请先在数据库中修复该配置。'
+    blockingErrors['home:home_legal_guides'] = '普法干货轮播配置格式无效，结构化编辑已停用并禁止保存，请先修复该配置。'
     return normalizeLegalGuideSlides(null)
   }
 }
@@ -302,11 +390,11 @@ function parseImageList(items: SettingItem[], key: string): string[] {
   try {
     parsed = item.value ? JSON.parse(item.value) : []
   } catch {
-    blockingErrors[`about:${key}`] = `库中已有的 ${key} 不是合法 JSON，无法用图片控件编辑。为避免覆盖原始数据，已禁止保存，请先在数据库中修复该配置。`
+    blockingErrors[`about:${key}`] = `${settingLabel(key)}配置格式无效，无法用图片控件编辑；为保护原数据，已禁止保存，请先修复该配置。`
     return []
   }
   if (!Array.isArray(parsed)) {
-    blockingErrors[`about:${key}`] = `库中已有的 ${key} 不是数组，无法用图片控件编辑。为避免覆盖原始数据，已禁止保存，请先在数据库中修复该配置。`
+    blockingErrors[`about:${key}`] = `${settingLabel(key)}配置不是图片列表，无法用图片控件编辑；为保护原数据，已禁止保存，请先修复该配置。`
     return []
   }
   const urls: string[] = []
@@ -621,6 +709,11 @@ function onImageUploaded(kind: GroupKind, key: string, payload: { mediaId: numbe
   saveError[kind] = ''
 }
 
+function onSettingImageUploaded(kind: SettingsTabKind, key: string, payload: { mediaId: number, mediaUrl: string }) {
+  if (kind === 'qr') return
+  onImageUploaded(kind, key, payload)
+}
+
 function onImageUploading(key: string, value: boolean) {
   if (value) {
     if (!uploadingKeys.value.includes(key)) uploadingKeys.value = [...uploadingKeys.value, key]
@@ -683,8 +776,8 @@ const STATUS_OPTIONS = [
   <PageContainer class="admin-settings" size="wide">
     <header class="admin-settings__head">
       <h1 class="admin-settings__title">站点设置</h1>
-      <p class="admin-settings__desc">
-        维护站点基础信息、首页文案与关于我们配置。每类配置单独保存，保存成功后立即生效。
+    <p class="admin-settings__desc">
+        按页面用途维护官网内容。站点、首页和关于我们配置分别保存，二维码统一在独立标签管理。
       </p>
     </header>
 
@@ -719,6 +812,10 @@ const STATUS_OPTIONS = [
       :aria-labelledby="`settings-tab-${tab.kind}`"
       tabindex="0"
     >
+      <template v-if="tab.kind === 'qr'">
+        <AdminSitePublishingSettings />
+      </template>
+      <template v-else>
       <BaseCard :title="tab.label" :title-level="2">
         <p class="admin-settings__panel-desc">{{ tab.description }}</p>
 
@@ -734,15 +831,22 @@ const STATUS_OPTIONS = [
             {{ blockReason(tab.kind) }}
           </p>
 
+          <div class="admin-settings__group-list">
+          <section v-for="group in settingsGroups(tab.kind)" :key="group.id" class="admin-settings__group">
+            <header class="admin-settings__group-head">
+              <h3 class="admin-settings__group-title">{{ group.title }}</h3>
+              <p class="admin-settings__group-desc">{{ group.description }}</p>
+            </header>
           <div class="admin-settings__fields">
-            <template v-for="item in editItems[tab.kind].value" :key="item.key">
+            <template v-for="item in group.items" :key="item.key">
             <div class="admin-settings__field">
               <div class="admin-settings__field-head">
                 <label class="admin-settings__label" :for="`setting-${tab.kind}-${item.key}`">
-                  {{ item.key === 'content_sidebar' ? '常见问题' : item.key === 'site_theme' ? '全站配色' : item.key }}
+                  {{ settingLabel(item.key) }}
                 </label>
-                <span class="admin-settings__badge">{{ item.valueType }}</span>
+                <span class="admin-settings__badge">{{ valueTypeLabel(item.valueType) }}</span>
               </div>
+              <p class="admin-settings__hint">{{ settingDescription(item.key) }}</p>
 
               <!-- image：只接上传，值由 media_id 关联 -->
               <template v-if="item.valueType === 'image'">
@@ -751,11 +855,11 @@ const STATUS_OPTIONS = [
                 </p>
                 <SettingImageField
                   :input-id="`setting-image-${tab.kind}-${item.key}`"
-                  :label="item.key"
+                  :label="settingLabel(item.key)"
                   :media-url="imageUrl(tab.kind, item.key)"
                   :disabled="controlsDisabled || savingKind !== ''"
                   :usage-scope="imageScope(tab.kind)"
-                  @uploaded="payload => onImageUploaded(tab.kind, item.key, payload)"
+                  @uploaded="payload => onSettingImageUploaded(tab.kind, item.key, payload)"
                   @uploading="value => onImageUploading(`${tab.kind}:${item.key}`, value)"
                 />
               </template>
@@ -770,7 +874,7 @@ const STATUS_OPTIONS = [
                 <AdminImageListField
                   v-else
                   :input-id="`setting-images-${tab.kind}-${item.key}`"
-                  :label="item.key"
+                  :label="settingLabel(item.key)"
                   :images="imageLists[item.key] ?? []"
                   :disabled="controlsDisabled || savingKind !== ''"
                   usage-scope="about"
@@ -1265,8 +1369,9 @@ const STATUS_OPTIONS = [
                 </div>
               </template>
             </div>
-            <AdminSitePublishingSettings v-if="tab.kind === 'site' && item.key === 'content_sidebar'" />
             </template>
+          </div>
+          </section>
           </div>
 
           <p v-if="saveSuccess[tab.kind]" class="admin-settings__success" role="status">
@@ -1289,6 +1394,7 @@ const STATUS_OPTIONS = [
           </div>
         </template>
       </BaseCard>
+      </template>
     </section>
 
   </PageContainer>
@@ -1358,6 +1464,35 @@ const STATUS_OPTIONS = [
 
 .admin-settings__panel-desc {
   margin-bottom: var(--space-5);
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+}
+
+.admin-settings__group-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.admin-settings__group {
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-page);
+}
+
+.admin-settings__group-head {
+  margin-bottom: var(--space-5);
+}
+
+.admin-settings__group-title {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--color-text);
+}
+
+.admin-settings__group-desc {
+  margin: var(--space-1) 0 0;
   font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
