@@ -55,7 +55,7 @@ test('carousel reads editable slides and QR images from shared public settings',
 test('admin exposes the same QR selector for all three legal guide slides', () => {
   assert.doesNotMatch(adminSettingsSource, /guide\.slug === 'logistics'/)
   assert.match(adminSettingsSource, /v-for="guide in legalGuides"[\s\S]*?v-model="guide\.qrItemKey"/)
-  assert.match(adminSettingsSource, /guide\.qrItemKey === option\.key/)
+  assert.match(adminSettingsSource, /option\.key === guide\.qrItemKey/)
   assert.match(adminSettingsSource, /qr-tro-public/)
   assert.match(adminSettingsSource, /qr-tro-consult/)
   assert.match(adminSettingsSource, /qr-labor-public/)

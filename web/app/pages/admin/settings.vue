@@ -70,7 +70,7 @@ const { user } = useAdminSession()
 const TABS: { kind: SettingsTabKind, label: string, description: string }[] = [
   { kind: 'site', label: '站点信息', description: '集中维护网站品牌资料、联系方式、常见问题与全站配色。' },
   { kind: 'home', label: '首页内容', description: '维护首页首屏、数据、核心优势与普法干货轮播。' },
-  { kind: 'about', label: '关于我们', description: '维护团队介绍、成功案例、企业宣讲、合作伙伴与资质荣誉。团队介绍也同步显示在首页。' },
+  { kind: 'about', label: '关于我们', description: '维护团队介绍、主图联系文案、成功案例、企业宣讲与合作伙伴。团队介绍也同步显示在首页。' },
   { kind: 'qr', label: '二维码管理', description: '统一维护 TRO 与劳动法的公众号、咨询号二维码，供官网各处调用。' }
 ]
 
@@ -88,10 +88,10 @@ const SETTING_LABELS: Record<string, string> = {
   home_core_advantages: '首页核心优势', home_legal_guides: '普法干货轮播',
   home_consultation_title: '咨询区域标题', home_consultation_description: '咨询区域说明', home_consultation_button: '咨询按钮文字',
   about_hero_welcome: '关于我们引导语', about_hero_title: '关于我们标题', about_hero_image: '关于我们主图',
-  about_team_title: '团队介绍标题（首页同步）', about_team_paragraphs: '团队介绍内容（首页同步）', about_team_image: '团队展示图片',
-  about_contact_title: '联系我们标题', about_success_title: '成功案例标题', about_success_images: '成功案例图片',
+  about_team_title: '团队介绍标题（首页同步）', about_team_paragraphs: '团队介绍内容（首页同步）',
+  about_contact_title: '主图联系引导文案', about_success_title: '成功案例标题', about_success_images: '成功案例图片',
   about_lecture_title: '企业宣讲标题', about_lecture_images: '企业宣讲图片',
-  about_partner_title: '合作伙伴标题', about_partner_images: '合作伙伴 Logo', about_honors_images: '资质荣誉图片'
+  about_partner_title: '合作伙伴标题', about_partner_images: '合作伙伴 Logo'
 }
 
 const SETTING_DESCRIPTIONS: Record<string, string> = {
@@ -105,9 +105,9 @@ const SETTING_DESCRIPTIONS: Record<string, string> = {
   home_core_advantages: '首页核心优势卡片及重点文字设置。', home_legal_guides: '首页三本普法主题书的图片、标题、正文和领取说明。',
   about_team_title: '团队介绍标题；首页团队介绍区域会同步使用。',
   about_team_paragraphs: '团队介绍正文；首页团队介绍区域会同步使用。',
-  about_team_image: '关于我们页面团队介绍配图。', about_success_images: '关于我们页面成功案例展示图片。',
+  about_contact_title: '显示在关于我们主图介绍区下方的联系引导文案。',
+  about_success_images: '关于我们页面成功案例展示图片。',
   about_lecture_images: '关于我们页面企业宣讲图片。', about_partner_images: '关于我们页面合作伙伴标识。',
-  about_honors_images: '关于我们页面资质荣誉展示图片。'
 }
 
 const SETTING_GROUPS: Record<GroupKind, { id: string, title: string, description: string, keys: string[] }[]> = {
@@ -125,11 +125,10 @@ const SETTING_GROUPS: Record<GroupKind, { id: string, title: string, description
     { id: 'consultation', title: '咨询区域', description: '首页咨询模块的标题、说明和按钮。', keys: ['home_consultation_title', 'home_consultation_description', 'home_consultation_button'] }
   ],
   about: [
-    { id: 'team', title: '团队介绍', description: '团队标题与介绍内容也会同步显示在首页。', keys: ['about_team_title', 'about_team_paragraphs', 'about_team_image'] },
-    { id: 'about-hero', title: '关于我们页面介绍', description: '页面标题、引导语和主图。', keys: ['about_hero_welcome', 'about_hero_title', 'about_hero_image'] },
+    { id: 'team', title: '团队介绍', description: '团队标题与介绍内容也会同步显示在首页。', keys: ['about_team_title', 'about_team_paragraphs'] },
+    { id: 'about-hero', title: '关于我们主图与介绍', description: '页面标题、引导语、主图以及主图介绍区的联系文案。', keys: ['about_hero_welcome', 'about_hero_title', 'about_hero_image', 'about_contact_title'] },
     { id: 'success', title: '成功案例', description: '成功案例区标题和图片。', keys: ['about_success_title', 'about_success_images'] },
-    { id: 'partners', title: '企业宣讲与合作伙伴', description: '企业宣讲和合作伙伴展示内容。', keys: ['about_lecture_title', 'about_lecture_images', 'about_partner_title', 'about_partner_images'] },
-    { id: 'honors', title: '资质荣誉', description: '团队资质与荣誉图片。', keys: ['about_contact_title', 'about_honors_images'] }
+    { id: 'partners', title: '企业宣讲与合作伙伴', description: '企业宣讲和合作伙伴展示内容。', keys: ['about_lecture_title', 'about_lecture_images', 'about_partner_title', 'about_partner_images'] }
   ]
 }
 
@@ -180,6 +179,8 @@ const HIDDEN_SETTING_KEYS = new Set([
   'home_right_image',
   'about_hero_paragraph',
   'about_business_images',
+  'about_honors_images',
+  'about_team_image',
 ])
 
 /** baseline 快照（JSON 字符串）：用于判断是否有未保存的修改 */
@@ -203,6 +204,7 @@ const GUIDE_QR_OPTIONS = [
   { key: 'qr-tro-consult', label: 'TRO 咨询号' },
   { key: 'qr-labor-public', label: '劳动法公众号' },
   { key: 'qr-labor-consult', label: '劳动法咨询号' },
+  { key: '', label: '不显示二维码' },
 ] as const
 /** 解析失败等阻断保存的原因：`kind:key` → 中文说明 */
 const blockingErrors = reactive<Record<string, string>>({})
@@ -368,7 +370,6 @@ const IMAGE_LIST_KEYS = [
   'about_success_images',
   'about_lecture_images',
   'about_partner_images',
-  'about_honors_images',
 ] as const
 
 function isImageListKey(key: string): boolean {
@@ -1255,18 +1256,11 @@ const STATUS_OPTIONS = [
                       <BaseButton variant="secondary" size="sm" :disabled="controlsDisabled || savingKind !== ''" @click="addGuideParagraph(guide)">新增正文段落</BaseButton>
                     </div>
                     <div class="admin-settings__status">
-                      <template v-if="guide.slug === 'logistics'">
-                        <label class="admin-settings__cell-label" for="guide-logistics-qr">领取二维码</label>
-                        <select id="guide-logistics-qr" v-model="guide.qrItemKey" class="admin-settings__select" :disabled="controlsDisabled || savingKind !== ''">
-                          <option value="">不显示二维码</option>
-                          <option v-for="option in GUIDE_QR_OPTIONS" :key="option.key" :value="option.key">{{ option.label }}</option>
-                        </select>
-                        <span>填写领取说明且所选二维码已配置图片后，首页显示“添加领取”。</span>
-                      </template>
-                      <template v-else>
-                        <span class="admin-settings__cell-label">咨询二维码</span>
-                        <span>{{ guide.qrItemKey }}（在“站点信息 → 常见问题”下方管理二维码图片）</span>
-                      </template>
+                      <label class="admin-settings__cell-label" :for="`guide-${guide.slug}-qr`">领取二维码</label>
+                      <select :id="`guide-${guide.slug}-qr`" v-model="guide.qrItemKey" class="admin-settings__select" :disabled="controlsDisabled || savingKind !== ''">
+                        <option v-for="option in GUIDE_QR_OPTIONS" :key="option.key || 'none'" :value="option.key">{{ option.label }}</option>
+                      </select>
+                      <span>{{ GUIDE_QR_OPTIONS.find(option => option.key === guide.qrItemKey)?.label }}（在“二维码管理”中维护图片）</span>
                     </div>
                   </fieldset>
                   <div class="admin-settings__status">

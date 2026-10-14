@@ -20,8 +20,6 @@ export interface AboutContent {
   contactTitle: string
   /** 首屏右侧配图（旧站为法庭天平图），取 about_hero_image 数组首项。 */
   heroImage: string
-  /** 团队介绍配图。 */
-  teamImages: string[]
   /** 成功案例区块标题。 */
   successTitle: string
   /** 成功案例图片（旧站该区块为图片，不是文章卡片列表）。 */
@@ -34,8 +32,6 @@ export interface AboutContent {
   partnerTitle: string
   /** 合作伙伴图片（media 地址数组）。 */
   partnerImages: string[]
-  /** 荣誉 / 资质图片（media 地址数组）。 */
-  honorsImages: string[]
 }
 
 const DEFAULTS = {
@@ -83,18 +79,12 @@ export function toAboutContent(settings: PublicSettings | null | undefined): Abo
     teamTitle: readText(values, 'about_team_title', DEFAULTS.teamTitle),
     teamParagraphs: readStringList(values, 'about_team_paragraphs'),
     contactTitle: readText(values, 'about_contact_title', DEFAULTS.contactTitle),
-    // 首图既支持 json 数组（about_hero_image），也兼容单图配置（about_team_image）
-    heroImage: readStringList(values, 'about_hero_image')[0] ?? readText(values, 'about_team_image', ''),
-    teamImages: (() => {
-      const single = readText(values, 'about_team_image', '')
-      return single ? [single] : []
-    })(),
+    heroImage: readStringList(values, 'about_hero_image')[0] ?? '',
     successTitle: readText(values, 'about_success_title', DEFAULTS.successTitle),
     successImages: readStringList(values, 'about_success_images'),
     lectureTitle: readText(values, 'about_lecture_title', DEFAULTS.lectureTitle),
     lectureImages,
     partnerTitle: readText(values, 'about_partner_title', DEFAULTS.partnerTitle),
     partnerImages,
-    honorsImages: readStringList(values, 'about_honors_images'),
   }
 }

@@ -166,10 +166,8 @@ function safeAccent(value: unknown, fallback: string): string {
   return typeof value === 'string' && /^#[\da-f]{6}$/i.test(value.trim()) ? value.trim() : fallback
 }
 
-function safeGuideQrKey(value: unknown, slug: LegalGuideSlug, fallback: LegalGuideSlide['qrItemKey']): LegalGuideSlide['qrItemKey'] {
-  if (slug === 'tro' && value === 'qr-tro-consult') return value
-  if (slug === 'labor' && value === 'qr-labor-consult') return value
-  if (slug === 'logistics' && ['qr-tro-public', 'qr-tro-consult', 'qr-labor-public', 'qr-labor-consult', ''].includes(String(value))) {
+function safeGuideQrKey(value: unknown, fallback: LegalGuideSlide['qrItemKey']): LegalGuideSlide['qrItemKey'] {
+  if (['qr-tro-public', 'qr-tro-consult', 'qr-labor-public', 'qr-labor-consult', ''].includes(String(value))) {
     return value as LegalGuideSlide['qrItemKey']
   }
   return fallback
@@ -203,7 +201,7 @@ export function normalizeLegalGuideSlides(value: unknown): LegalGuideSlide[] {
       imageAlt: readText(candidate.imageAlt, fallback.imageAlt, 160),
       benefit: typeof candidate.benefit === 'string' ? candidate.benefit.trim().slice(0, 160) : fallback.benefit,
       accent: safeAccent(candidate.accent, fallback.accent),
-      qrItemKey: safeGuideQrKey(candidate.qrItemKey, fallback.slug, fallback.qrItemKey),
+      qrItemKey: safeGuideQrKey(candidate.qrItemKey, fallback.qrItemKey),
     }
   })
 }
