@@ -11,6 +11,8 @@ const qrSource = await readFile(new URL('../app/components/contact/ContactQrGrid
 const adminHomeSource = await readFile(new URL('../app/pages/admin/index.vue', import.meta.url), 'utf8')
 const adminLayoutSource = await readFile(new URL('../app/layouts/admin.vue', import.meta.url), 'utf8')
 const adminServicesSource = await readFile(new URL('../app/pages/admin/services.vue', import.meta.url), 'utf8')
+const adminServicesSettingsSource = await readFile(new URL('../app/components/admin/AdminServicesSettings.vue', import.meta.url), 'utf8')
+const adminSettingsSource = await readFile(new URL('../app/pages/admin/settings.vue', import.meta.url), 'utf8')
 const homeApiSource = await readFile(new URL('../server/api/public/home.get.ts', import.meta.url), 'utf8')
 const homeRepositorySource = await readFile(new URL('../app/repositories/home.ts', import.meta.url), 'utf8')
 
@@ -25,7 +27,8 @@ test('homepage keeps the configured team intro on the left and places services i
 })
 
 test('team introduction centers About US and keeps the copy compact beside the service cards', () => {
-  assert.match(indexSource, /<SectionHeading align="center" eyebrow="About US" :title="teamDisplayTitle"\s*\/>/)
+  assert.match(indexSource, /<SectionHeading align="center" :title="teamDisplayTitle"\s*\/>/)
+  assert.doesNotMatch(indexSource, /eyebrow="About US"/)
   assert.match(indexSource, /line-height:\s*1\.55/)
   assert.match(indexSource, /teamDisplayTitle = computed/)
 })
@@ -38,16 +41,18 @@ test('service cards omit redundant summaries but keep all configured items, with
   assert.match(teamServicesSource, /scale\(1\.0\d+\)/)
 })
 
-test('team business configuration is discoverable from the shared sidebar and configured icons reach homepage cards', () => {
-  assert.match(adminLayoutSource, /label: '团队业务范围', to: '\/admin\/services'/)
+test('team business configuration is a site settings tab and configured icons reach homepage cards', () => {
+  assert.doesNotMatch(adminLayoutSource, /label: '团队业务范围', to: '\/admin\/services'/)
+  assert.match(adminSettingsSource, /kind: 'services', label: '团队业务范围'/)
   assert.doesNotMatch(adminHomeSource, /页脚与联系方式|\/admin\/footer/)
-  assert.match(adminServicesSource, /TRO全流程处理|iconKey|section\.items/)
+  assert.match(adminServicesSource, /navigateTo\('\/admin\/settings\?tab=services'/)
+  assert.match(adminServicesSettingsSource, /TRO全流程处理|iconKey|section\.items/)
   assert.match(homeApiSource, /ss\.icon_key[\s\S]*?iconKey: String\(row\.icon_key/)
   assert.match(homeRepositorySource, /iconKey: String\(section\?\.iconKey/)
   assert.match(teamServicesSource, /SERVICE_ICONS\[section\.iconKey\]/)
-  assert.match(adminServicesSource, /iconKey: toText\(section\.iconKey\)/)
-  assert.match(adminServicesSource, /\.\.\.section/)
-  assert.doesNotMatch(adminServicesSource, /业务块图标|ICON_OPTIONS/)
+  assert.match(adminServicesSettingsSource, /iconKey: toText\(section\.iconKey\)/)
+  assert.match(adminServicesSettingsSource, /\.\.\.section/)
+  assert.doesNotMatch(adminServicesSettingsSource, /业务块图标|ICON_OPTIONS/)
   assert.match(homeApiSource, /from '~\/utils\/homeData\.mjs'/)
   assert.doesNotMatch(homeApiSource, /from '\.\.\/\.\.\/\.\.\/app\/utils\/homeData\.mjs'/)
 })
