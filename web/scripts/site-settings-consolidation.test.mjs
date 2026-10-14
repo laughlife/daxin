@@ -8,12 +8,17 @@ const publishingSettings = readFileSync(new URL('../app/components/admin/SitePub
 const sidebarRoute = new URL('../app/pages/admin/sidebar.vue', import.meta.url)
 const footerRoute = new URL('../app/pages/admin/footer.vue', import.meta.url)
 
-test('站点信息在 FAQ 配置后集中展示四类二维码和页脚业务配置', () => {
-  assert.match(siteSettings, /<AdminSitePublishingSettings/)
-  assert.match(siteSettings, /item\.key === 'content_sidebar'[\s\S]*?<AdminSitePublishingSettings/)
-  assert.match(siteSettings, /常见问题/)
+test('站点设置按四个标签分组，字段提供中文名称与说明', () => {
+  for (const label of ['站点信息', '首页内容', '关于我们', '二维码管理']) {
+    assert.ok(siteSettings.includes(`label: '${label}'`), `${label} 标签存在`)
+  }
+  assert.match(siteSettings, /SETTING_LABELS/)
+  assert.match(siteSettings, /SETTING_DESCRIPTIONS/)
+  assert.match(siteSettings, /valueTypeLabel/)
+  assert.match(siteSettings, /同步用于首页团队介绍/)
+  assert.match(siteSettings, /AdminSitePublishingSettings/)
   assert.match(publishingSettings, /TRO 公众号/)
-  assert.match(publishingSettings, /页脚业务配置/)
+  assert.doesNotMatch(publishingSettings, /页脚业务配置/)
 })
 
 test('后台不再提供独立侧边栏管理和页脚与联系方式模块', () => {
@@ -23,7 +28,7 @@ test('后台不再提供独立侧边栏管理和页脚与联系方式模块', ()
   assert.equal(existsSync(footerRoute), false)
 })
 
-test('合并的配置编辑器仍通过原后台设置 API 保存二维码与页脚业务数据', async () => {
+test('二维码配置编辑器只读取和保存二维码，不管理页脚业务数据', async () => {
   let source = ''
   try {
     source = readFileSync(new URL('../app/components/admin/SitePublishingSettings.vue', import.meta.url), 'utf8')
@@ -34,8 +39,8 @@ test('合并的配置编辑器仍通过原后台设置 API 保存二维码与页
     assert.ok(source.includes(key), `missing ${key}`)
   }
   assert.match(source, /query: \{ kind: 'qr' \}/)
-  assert.match(source, /query: \{ kind: 'footer' \}/)
   assert.match(source, /body: \{ kind: 'qr'/)
-  assert.match(source, /body: \{ kind: 'footer'/)
+  assert.doesNotMatch(source, /kind: 'footer'/)
+  assert.doesNotMatch(source, /FooterItem|footerItems|页脚导航|业务范围/)
   assert.match(source, /SettingImageField/)
 })
