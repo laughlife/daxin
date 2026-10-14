@@ -52,24 +52,6 @@ const requestFetch = useRequestFetch()
 const canWrite = computed(() => canWriteContent(user.value))
 const readOnlyReason = READ_ONLY_NOTICE
 
-const PUBLISH_STATUSES = [
-  { value: 'draft', label: '草稿（draft）' },
-  { value: 'published', label: '已发布（published）' },
-  { value: 'archived', label: '已归档（archived）' }
-] as const
-
-const INTERNAL_STATUSES = [
-  { value: 'open', label: '进行中（open）' },
-  { value: 'closed', label: '已结案（closed）' },
-  { value: 'archived', label: '已归档（archived）' }
-] as const
-
-const PUBLISH_STATUS_LABELS: Record<string, string> = {
-  draft: '草稿',
-  published: '已发布',
-  archived: '已归档'
-}
-
 interface IpTypeOption {
   id: number
   slug: string
@@ -139,7 +121,6 @@ function syncIpTypeFromObservation(id: number | null, slug: string) {
 
 /** 列表查询条件 */
 const keyword = ref('')
-const publishStatus = ref('')
 const page = ref(1)
 const pageSize = ref(ADMIN_PAGE_SIZE)
 
@@ -149,14 +130,13 @@ interface CaseListPayload {
 }
 
 const listKey = computed(() =>
-  `admin-cases:${keyword.value.trim()}:${publishStatus.value}:${page.value}:${pageSize.value}`
+  `admin-cases:${keyword.value.trim()}:${page.value}:${pageSize.value}`
 )
 
 async function fetchCasePage(targetPage: number): Promise<CaseListPayload> {
   const payload = await requestFetch<{ data?: AdminCaseItem[], meta?: Record<string, unknown> }>('/api/admin/cases', {
     query: toAdminQuery({
       keyword: keyword.value.trim(),
-      status: publishStatus.value,
       page: targetPage,
       pageSize: pageSize.value
     })
@@ -203,7 +183,7 @@ const meta = computed<AdminPageMeta>(() => listData.value.meta)
 const isLoading = computed(() => listStatus.value === 'pending')
 const listErrorMessage = computed(() => adminRequestErrorMessage(listError.value, '案例列表加载失败，请稍后重试'))
 
-watch([keyword, publishStatus], () => { page.value = 1 }, { flush: 'sync' })
+watch(keyword, () => { page.value = 1 }, { flush: 'sync' })
 
 const notice = ref('')
 const actionError = ref('')
@@ -437,7 +417,7 @@ async function createLawFirm(name: string) {
 }
 
 /** 保存：新建走 POST，编辑走 PUT；只有被触碰过的关联字段才会出现在请求体里。 */
-async function onSubmit() {
+async function onSubmit(publish = false) {
   if (!canWrite.value) {
     saveError.value = readOnlyReason
     return
@@ -458,7 +438,7 @@ async function onSubmit() {
     title: form.title,
     summary: form.summary,
     status: form.status,
-    publishStatus: form.publishStatus
+    publishStatus: publish ? 'published' : form.publishStatus
   }
 
   // 新建时关联一定一起写；编辑时只有触碰过才写（未触碰 = 请求里不带该字段 = 保留现状）。
@@ -470,10 +450,10 @@ async function onSubmit() {
   try {
     if (isEdit) {
       await requestAdminApi<AdminWriteResult>(`/api/admin/cases/${editingId.value}`, { method: 'PUT', body, requestFetch })
-      notice.value = '案例已保存'
+      notice.value = publish ? '案例已发布' : '案例已保存'
     } else {
       await requestAdminApi<AdminWriteResult>('/api/admin/cases', { method: 'POST', body, requestFetch })
-      notice.value = '案例已新建'
+      notice.value = publish ? '案例已发布' : '案例已新建'
     }
     await refreshList()
     closeEditor()
@@ -483,6 +463,8 @@ async function onSubmit() {
     saving.value = false
   }
 }
+
+function onFormSubmit() { return onSubmit(false) }
 
 /** 归档（软删除：publish_status 置为 archived，不物理删除数据） */
 async function onArchive(item: AdminCaseItem) {
@@ -536,18 +518,8 @@ function onPageSize(next: number) {
             placeholder="案件号 / 原告 / 品牌 / 律所 / 法院"
           >
         </div>
-        <div class="admin-cases__field">
-          <label class="admin-cases__label" for="case-publish-filter">公开状态</label>
-          <select id="case-publish-filter" v-model="publishStatus" class="admin-cases__select">
-            <option value="">全部状态</option>
-            <option v-for="item in PUBLISH_STATUSES" :key="item.value" :value="item.value">
-              {{ item.label }}
-            </option>
-          </select>
-        </div>
         <BaseButton variant="secondary" size="sm" type="submit">搜索</BaseButton>
       </form>
-      <p class="admin-cases__hint">公开状态筛选对应服务端的 publish_status；内部状态不参与筛选。</p>
     </BaseCard>
 
     <section class="admin-cases__list" aria-label="案例列表" aria-live="polite">
@@ -571,7 +543,6 @@ function onPageSize(next: number) {
                 <th scope="col">原告</th>
                 <th scope="col">涉案品牌</th>
                 <th scope="col">侵权类型</th>
-                <th scope="col">发布状态</th>
                 <th scope="col">操作</th>
               </tr>
             </thead>
@@ -583,7 +554,6 @@ function onPageSize(next: number) {
                 <td>{{ item.plaintiff || '未填写' }}</td>
                 <td>{{ item.brand || '未关联' }}</td>
                 <td>{{ caseTypeLabel(item.caseType) }}</td>
-                <td>{{ PUBLISH_STATUS_LABELS[item.publishStatus] || item.publishStatus }}</td>
                 <td class="admin-cases__cell-actions">
                   <BaseButton
                     variant="secondary"
@@ -611,7 +581,7 @@ function onPageSize(next: number) {
 
         <div v-else-if="!isLoading" class="admin-cases__empty">
           <p class="admin-cases__empty-title">没有符合条件的案例</p>
-          <p class="admin-cases__empty-desc">请调整关键词或公开状态筛选后重试。</p>
+          <p class="admin-cases__empty-desc">请调整关键词后重试。</p>
         </div>
 
         <AdminPager
@@ -638,7 +608,7 @@ function onPageSize(next: number) {
       <p v-if="detailLoading" class="admin-cases__loading" role="status">正在加载案例详情…</p>
       <p v-if="detailError" class="admin-cases__error" role="alert">{{ detailError }}</p>
 
-      <form class="admin-cases__form" novalidate @submit.prevent="onSubmit">
+      <form class="admin-cases__form" novalidate @submit.prevent="onFormSubmit">
         <div class="admin-cases__grid">
           <div class="admin-cases__field">
             <label class="admin-cases__label" for="case-number">案件号（必填）</label>
@@ -689,30 +659,6 @@ function onPageSize(next: number) {
             rows="4"
             :disabled="!canWrite"
           />
-        </div>
-
-        <div class="admin-cases__grid">
-          <div class="admin-cases__field">
-            <label class="admin-cases__label" for="case-internal-status">内部状态（不对外展示）</label>
-            <select id="case-internal-status" v-model="form.status" class="admin-cases__select" :disabled="!canWrite">
-              <option v-for="item in INTERNAL_STATUSES" :key="item.value" :value="item.value">
-                {{ item.label }}
-              </option>
-            </select>
-            <p class="admin-cases__hint">
-              内部流转状态（open / closed / archived）仅后台可见，不会出现在公开站点。
-            </p>
-          </div>
-
-          <div class="admin-cases__field">
-            <label class="admin-cases__label" for="case-publish-status">公开状态</label>
-            <select id="case-publish-status" v-model="form.publishStatus" class="admin-cases__select" :disabled="!canWrite">
-              <option v-for="item in PUBLISH_STATUSES" :key="item.value" :value="item.value">
-                {{ item.label }}
-              </option>
-            </select>
-            <p class="admin-cases__hint">只有「已发布」的案例会出现在公开案件列表。</p>
-          </div>
         </div>
 
         <fieldset class="admin-cases__relations">
@@ -813,6 +759,7 @@ function onPageSize(next: number) {
           >
             {{ saving ? '保存中…' : '保存' }}
           </BaseButton>
+          <BaseButton type="button" variant="secondary" :disabled="!canWrite || !formValid || saving || detailLoading" @click="onSubmit(true)">发布案例</BaseButton>
           <BaseButton variant="secondary" :disabled="saving" @click="closeEditor">取消</BaseButton>
         </div>
       </form>
