@@ -111,7 +111,6 @@ async function onFileChange(event: Event) {
           支持 JPG / PNG / WebP / GIF；上传成功后需点击「保存」才会写入配置。
         </template>
       </p>
-      <p v-if="previewUrl" class="setting-image__url">{{ previewUrl }}</p>
     </div>
 
     <p v-if="errorMessage" class="setting-image__error" role="alert">{{ errorMessage }}</p>
@@ -170,12 +169,6 @@ async function onFileChange(event: Event) {
 .setting-image__hint {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
-}
-
-.setting-image__url {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-  word-break: break-all;
 }
 
 .setting-image__error {

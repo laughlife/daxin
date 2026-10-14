@@ -62,7 +62,6 @@ async function onFileChange(event: Event) {
         {{ uploading ? `上传中 ${progress}%` : modelValue ? '更换图片' : '上传图片' }}
       </BaseButton>
       <p class="json-image-field__hint">支持 JPG / PNG / WebP / GIF，单张不超过 20 MB；上传完成后仍需保存本组配置。</p>
-      <code v-if="modelValue" class="json-image-field__url">{{ modelValue }}</code>
       <p v-if="errorMessage" class="json-image-field__error" role="alert">{{ errorMessage }}</p>
     </div>
   </div>
@@ -74,7 +73,6 @@ async function onFileChange(event: Event) {
 .json-image-field__empty { display:grid; place-items:center; color:var(--color-text-muted); font-size:var(--text-sm); }
 .json-image-field__controls { display:flex; min-width:240px; flex:1; flex-direction:column; align-items:flex-start; gap:var(--space-2); }
 .json-image-field__input { display:none; }
-.json-image-field__hint, .json-image-field__url { color:var(--color-text-muted); font-size:var(--text-xs); }
-.json-image-field__url { overflow-wrap:anywhere; }
+.json-image-field__hint { color:var(--color-text-muted); font-size:var(--text-xs); }
 .json-image-field__error { color:var(--color-primary); font-size:var(--text-sm); }
 </style>

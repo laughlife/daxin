@@ -160,7 +160,6 @@ function triggerAppend() {
           <button type="button" :disabled="disabled || uploading || index === images.length - 1" @click="move(index, 1)">下移</button>
           <button type="button" class="admin-image-list__remove" :disabled="disabled || uploading" @click="removeAt(index)">删除</button>
         </div>
-        <code class="admin-image-list__url">{{ url }}</code>
       </li>
     </ul>
     <p v-else class="admin-image-list__empty">尚未设置图片。</p>
@@ -197,7 +196,6 @@ function triggerAppend() {
 .admin-image-list__actions button:hover:not(:disabled) { border-color:var(--color-primary); color:var(--color-primary); }
 .admin-image-list__actions button:disabled { cursor:not-allowed; opacity:.5; }
 .admin-image-list__remove:hover:not(:disabled) { border-color:var(--color-primary); color:var(--color-primary); }
-.admin-image-list__url { grid-column:2; font-size:var(--text-xs); color:var(--color-text-muted); overflow-wrap:anywhere; }
 .admin-image-list__file { display:none; }
 .admin-image-list__empty { font-size:var(--text-sm); color:var(--color-text-muted); }
 .admin-image-list__append { align-self:flex-start; padding:var(--space-2) var(--space-4); border:1px dashed var(--color-border-strong); border-radius:var(--radius-md); background-color:transparent; font-size:var(--text-sm); cursor:pointer; }
@@ -206,6 +204,5 @@ function triggerAppend() {
 .admin-image-list__error { font-size:var(--text-xs); color:var(--color-primary); }
 @media (max-width: 767px) {
   .admin-image-list__item { grid-template-columns:1fr; }
-  .admin-image-list__url { grid-column:1; }
 }
 </style>

@@ -96,8 +96,6 @@ const accept = computed(() =>
   allowedMimeTypes.value.length ? allowedMimeTypes.value.join(',') : DEFAULT_ACCEPT
 )
 
-/** 结果面板展示的地址：publicUrl 缺失时退回 objectKey */
-const resultLocation = computed(() => result.value?.publicUrl || result.value?.objectKey || '')
 
 /** 结果面板展示的文件大小 */
 const resultSize = computed(() => (result.value ? formatBytes(result.value.byteSize) : ''))
@@ -389,15 +387,6 @@ async function showNewestMedia() {
     >
       <dl class="admin-media__result">
         <div class="admin-media__result-row">
-          <dt>访问地址</dt>
-          <dd>
-            <a :href="resultLocation" target="_blank" rel="noopener noreferrer">{{ resultLocation }}</a>
-            <span v-if="!result.publicUrl" class="admin-media__result-note">
-              （服务端未返回公开地址，此处为对象 Key）
-            </span>
-          </dd>
-        </div>
-        <div class="admin-media__result-row">
           <dt>媒体 ID</dt>
           <dd>{{ result.id }}</dd>
         </div>
@@ -488,7 +477,6 @@ async function showNewestMedia() {
             </div>
 
             <div class="admin-media__info">
-              <p class="admin-media__object-key">{{ row.objectKey || '（无对象 Key）' }}</p>
               <p v-if="row.title" class="admin-media__row-title">标题：{{ row.title }}</p>
 
               <dl class="admin-media__facts">
@@ -755,10 +743,6 @@ async function showNewestMedia() {
   word-break: break-all;
 }
 
-.admin-media__result-note {
-  color: var(--color-warning);
-}
-
 .admin-media__filters {
   margin-top: var(--space-4);
   display: flex;
@@ -840,13 +824,6 @@ async function showNewestMedia() {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
-}
-
-.admin-media__object-key {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  font-size: var(--text-sm);
-  color: var(--color-text);
-  overflow-wrap: anywhere;
 }
 
 .admin-media__row-title {
