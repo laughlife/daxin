@@ -29,11 +29,6 @@ const ROLE_OPTIONS: Array<{ value: UserRole, label: string }> = [
   { value: 'viewer', label: '只读查看' }
 ]
 
-const STATUS_OPTIONS = [
-  { value: 'active', label: '启用' },
-  { value: 'disabled', label: '停用' }
-] as const
-
 const requestFetch = useRequestFetch()
 const { user, load } = useAdminSession()
 await load()
@@ -49,7 +44,6 @@ const deletingId = ref<number | null>(null)
 const keyword = ref('')
 const appliedKeyword = ref('')
 const roleFilter = ref<UserRole | ''>('')
-const statusFilter = ref<'active' | 'disabled' | ''>('')
 
 const panelOpen = ref(false)
 const formMode = ref<FormMode>('create')
@@ -134,7 +128,6 @@ async function loadUsers() {
       query: {
         keyword: appliedKeyword.value,
         role: roleFilter.value,
-        status: statusFilter.value
       },
       requestFetch
     })
@@ -154,7 +147,6 @@ function resetFilters() {
   keyword.value = ''
   appliedKeyword.value = ''
   roleFilter.value = ''
-  statusFilter.value = ''
   void loadUsers()
 }
 
@@ -230,10 +222,6 @@ function roleLabel(role: UserRole): string {
   return ROLE_OPTIONS.find(item => item.value === role)?.label ?? role
 }
 
-function statusLabel(status: string): string {
-  return status === 'disabled' ? '停用' : '启用'
-}
-
 await loadUsers()
 </script>
 
@@ -261,13 +249,6 @@ await loadUsers()
           <option v-for="item in ROLE_OPTIONS" :key="item.value" :value="item.value">{{ item.label }}</option>
         </select>
       </label>
-      <label class="admin-users__filter">
-        <span>状态</span>
-        <select v-model="statusFilter">
-          <option value="">全部状态</option>
-          <option v-for="item in STATUS_OPTIONS" :key="item.value" :value="item.value">{{ item.label }}</option>
-        </select>
-      </label>
       <div class="admin-users__filter-actions">
         <BaseButton type="submit" variant="secondary" :disabled="loading">查询</BaseButton>
         <BaseButton type="button" variant="ghost" :disabled="loading" @click="resetFilters">重置</BaseButton>
@@ -289,7 +270,6 @@ await loadUsers()
               <th>用户名</th>
               <th>显示名</th>
               <th>角色</th>
-              <th>状态</th>
               <th>最近登录</th>
               <th>创建时间</th>
               <th>操作</th>
@@ -302,7 +282,6 @@ await loadUsers()
               <td data-label="角色">
                 <span v-for="role in item.roles" :key="role" class="admin-users__role">{{ roleLabel(role) }}</span>
               </td>
-              <td data-label="状态"><span class="admin-users__status" :class="{ 'is-disabled': item.status === 'disabled' }">{{ statusLabel(item.status) }}</span></td>
               <td data-label="最近登录">{{ item.lastLoginAt || '从未登录' }}</td>
               <td data-label="创建时间">{{ item.createdAt || '—' }}</td>
               <td data-label="操作" class="admin-users__actions">
@@ -343,12 +322,6 @@ await loadUsers()
               <span>{{ item.label }}</span>
             </label>
           </fieldset>
-          <label>
-            <span>状态</span>
-            <select v-model="form.status" :disabled="saving || isSelf">
-              <option v-for="item in STATUS_OPTIONS" :key="item.value" :value="item.value">{{ item.label }}</option>
-            </select>
-          </label>
           <p v-if="isSelf" class="admin-users__hint">当前账号不能停用自己或修改自己的角色。</p>
           <p v-if="formError" class="admin-users__error" role="alert">{{ formError }}</p>
           <div class="admin-users__form-actions">

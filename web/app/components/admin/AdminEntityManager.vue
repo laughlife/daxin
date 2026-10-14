@@ -15,12 +15,12 @@ import { canWriteContent, READ_ONLY_NOTICE } from '~/utils/adminPermission'
 /**
  * 品牌 / 律所共用的后台管理界面。
  *
- * 两者字段、列表列、编辑表单、软归档语义完全一致，唯一差异是：
+ * 两者字段、列表列和编辑表单基本一致，唯一差异是：
  *   - 接口路径不同（/api/admin/brands、/api/admin/law-firms）；
  *   - 律所多一个 region 字段（品牌没有该列，接口也会忽略它）。
  * 因此用同一个组件 + props 配置，避免复制两份易走样的页面代码。
  *
- * 表格列固定为：名称、英文名、关联案件数、状态、更新时间（caseCount 只读，绝不提交）。
+ * 表格列固定为：名称、英文名、关联案件数、更新时间（caseCount 只读，绝不提交）。
  */
 const props = withDefaults(defineProps<{
   /** 列表 / 详情接口前缀，例如 /api/admin/brands */
@@ -47,7 +47,6 @@ const readOnlyReason = READ_ONLY_NOTICE
 
 /** 列表查询条件 */
 const keyword = ref('')
-const statusFilter = ref('')
 const page = ref(1)
 const pageSize = ref(ADMIN_PAGE_SIZE)
 
@@ -57,14 +56,13 @@ interface EntityListPayload {
 }
 
 const listKey = computed(() =>
-  `admin-entity:${props.endpoint}:${keyword.value.trim()}:${statusFilter.value}:${page.value}:${pageSize.value}`
+  `admin-entity:${props.endpoint}:${keyword.value.trim()}:${page.value}:${pageSize.value}`
 )
 
 async function fetchEntityPage(targetPage: number): Promise<EntityListPayload> {
   const payload = await requestFetch<{ data?: AdminEntityItem[], meta?: Record<string, unknown> }>(props.endpoint, {
     query: toAdminQuery({
       keyword: keyword.value.trim(),
-      status: statusFilter.value,
       page: targetPage,
       pageSize: pageSize.value
     })
@@ -110,7 +108,7 @@ const listErrorMessage = computed(() =>
   adminRequestErrorMessage(listError.value, `${props.entityLabel}列表加载失败，请稍后重试`)
 )
 
-watch([keyword, statusFilter], () => { page.value = 1 }, { flush: 'sync' })
+watch(keyword, () => { page.value = 1 }, { flush: 'sync' })
 
 const notice = ref('')
 const actionError = ref('')
@@ -260,21 +258,6 @@ async function onSubmit() {
   }
 }
 
-/** 归档（软删除：status 置 0，数据仍保留；关联案件数不受影响） */
-async function onArchive(item: AdminEntityItem) {
-  if (!canWrite.value) return
-  if (!window.confirm(`确认归档「${item.name}」？归档只是把状态改为「已归档」，数据仍保留在数据库中，不会物理删除。`)) return
-  actionError.value = ''
-  notice.value = ''
-  try {
-    await requestAdminApi<AdminWriteResult>(`${props.endpoint}/${item.id}`, { method: 'DELETE', requestFetch })
-    notice.value = `「${item.name}」已归档（软删除，数据仍保留）`
-    await refreshList()
-  } catch (error) {
-    actionError.value = adminRequestErrorMessage(error, '归档失败，请稍后重试')
-  }
-}
-
 function onPageSize(next: number) {
   pageSize.value = next
   page.value = 1
@@ -312,14 +295,6 @@ function onPageSize(next: number) {
             :placeholder="`${entityLabel}名称 / 英文名 / slug / 别名`"
           >
         </div>
-        <div class="admin-entity__field">
-          <label class="admin-entity__label" for="entity-status-filter">状态</label>
-          <select id="entity-status-filter" v-model="statusFilter" class="admin-entity__select">
-            <option value="">全部状态</option>
-            <option value="1">正常（1）</option>
-            <option value="0">已归档（0）</option>
-          </select>
-        </div>
         <BaseButton variant="secondary" size="sm" type="submit">搜索</BaseButton>
       </form>
     </BaseCard>
@@ -342,7 +317,6 @@ function onPageSize(next: number) {
                 <th scope="col">名称</th>
                 <th scope="col">英文名</th>
                 <th scope="col">关联案件数</th>
-                <th scope="col">状态</th>
                 <th scope="col">更新时间</th>
                 <th scope="col">操作</th>
               </tr>
@@ -358,7 +332,6 @@ function onPageSize(next: number) {
                 </td>
                 <td>{{ item.nameEn || '—' }}</td>
                 <td>{{ item.caseCount }} 件（只读）</td>
-                <td>{{ item.status === 1 ? '正常' : '已归档' }}</td>
                 <td>{{ item.updatedAt }}</td>
                 <td class="admin-entity__cell-actions">
                   <BaseButton
@@ -370,15 +343,6 @@ function onPageSize(next: number) {
                   >
                     编辑
                   </BaseButton>
-                  <BaseButton
-                    variant="ghost"
-                    size="sm"
-                    :disabled="!canWrite || item.status === 0"
-                    :title="canWrite ? '归档为软删除，数据仍然保留' : readOnlyReason"
-                    @click="onArchive(item)"
-                  >
-                    归档
-                  </BaseButton>
                 </td>
               </tr>
             </tbody>
@@ -387,7 +351,7 @@ function onPageSize(next: number) {
 
         <div v-else-if="!isLoading" class="admin-entity__empty">
           <p class="admin-entity__empty-title">没有符合条件的{{ entityLabel }}</p>
-          <p class="admin-entity__empty-desc">请调整关键词或状态筛选后重试。</p>
+          <p class="admin-entity__empty-desc">请调整关键词后重试。</p>
         </div>
 
         <AdminPager
@@ -479,15 +443,6 @@ function onPageSize(next: number) {
             rows="4"
             :disabled="!canWrite"
           />
-        </div>
-
-        <div class="admin-entity__field">
-          <label class="admin-entity__label" for="entity-status">状态</label>
-          <select id="entity-status" v-model="form.status" class="admin-entity__select" :disabled="!canWrite">
-            <option value="1">正常（1）</option>
-            <option value="0">已归档（0）</option>
-          </select>
-          <p class="admin-entity__hint">「已归档」不会物理删除数据，只是从公开站点隐藏。</p>
         </div>
 
         <p class="admin-entity__hint">
