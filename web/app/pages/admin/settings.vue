@@ -19,6 +19,7 @@ import {
 import { apiErrorMessage, httpStatusOf } from '~/utils/publicApi'
 import { SETTINGS_READ_ONLY_NOTICE, canWriteSettings } from '~/utils/adminPermission'
 import AdminSitePublishingSettings from '~/components/admin/SitePublishingSettings.vue'
+import AdminServicesSettings from '~/components/admin/AdminServicesSettings.vue'
 
 /**
  * 站点设置：站点 / 首页 / 关于三类 key-value 文案配置。
@@ -47,7 +48,7 @@ useSeoMeta({
 
 /** 三类文案配置；二维码作为独立展示标签，保存仍走现有二维码接口。 */
 type GroupKind = 'site' | 'home' | 'about'
-type SettingsTabKind = GroupKind | 'qr'
+type SettingsTabKind = GroupKind | 'qr' | 'services'
 
 interface GroupPayload {
   items: SettingItem[]
@@ -65,23 +66,25 @@ interface CoreAdvantageEditorEntry {
 }
 
 const requestFetch = useRequestFetch()
+const route = useRoute()
 const { user } = useAdminSession()
 
 const TABS: { kind: SettingsTabKind, label: string }[] = [
   { kind: 'site', label: '站点信息' },
   { kind: 'home', label: '首页内容' },
   { kind: 'about', label: '关于我们' },
-  { kind: 'qr', label: '二维码管理' }
+  { kind: 'qr', label: '二维码管理' },
+  { kind: 'services', label: '团队业务范围' }
 ]
 
 /** 默认展开第一个 tab */
-const activeKind = ref<SettingsTabKind>('site')
+const activeKind = ref<SettingsTabKind>(route.query.tab === 'services' ? 'services' : 'site')
 
 const SETTING_LABELS: Record<string, string> = {
   site_name: '网站名称', site_subtitle: '网站副标题', site_description: '网站简介', site_logo: '网站 Logo',
   contact_phone: '联系电话', contact_email: '联系邮箱', contact_address: '联系地址', contact_wechat: '联系微信号',
   footer_intro: '页脚团队简介', footer_qr_primary: '页脚二维码一', footer_qr_secondary: '页脚二维码二',
-  content_sidebar: '内容页常见问题与二维码标题', site_theme: '公开页面配色',
+  content_sidebar: '', site_theme: '公开页面配色',
   home_hero_badge: '首屏眉题', home_hero_title: '首屏主标题', home_hero_subtitle: '首屏介绍',
   home_hero_primary_label: '主按钮文字', home_hero_primary_link: '主按钮链接',
   home_hero_secondary_label: '次按钮文字', home_hero_background: '首页动态背景视频',
@@ -130,6 +133,15 @@ const editItems = {
 
 function settingLabel(key: string): string {
   return SETTING_LABELS[key] ?? '其他配置项'
+}
+
+function moveSidebarLink(index: number, delta: number) {
+  const links = contentSidebar.value.faqLinks
+  const target = index + delta
+  if (target < 0 || target >= links.length) return
+  const [item] = links.splice(index, 1)
+  if (item) links.splice(target, 0, item)
+  links.forEach((link, position) => { link.sortOrder = (position + 1) * 10 })
 }
 
 function settingsGroups(kind: GroupKind) {
@@ -686,7 +698,7 @@ function onImageUploaded(kind: GroupKind, key: string, payload: { mediaId: numbe
 }
 
 function onSettingImageUploaded(kind: SettingsTabKind, key: string, payload: { mediaId: number, mediaUrl: string }) {
-  if (kind === 'qr') return
+  if (kind === 'qr' || kind === 'services') return
   onImageUploaded(kind, key, payload)
 }
 
@@ -780,7 +792,10 @@ function useTextarea(value: string): boolean {
       :aria-labelledby="`settings-tab-${tab.kind}`"
       tabindex="0"
     >
-      <template v-if="tab.kind === 'qr'">
+      <template v-if="tab.kind === 'services'">
+        <AdminServicesSettings />
+      </template>
+      <template v-else-if="tab.kind === 'qr'">
         <AdminSitePublishingSettings />
       </template>
       <template v-else>
@@ -804,8 +819,8 @@ function useTextarea(value: string): boolean {
             </header>
           <div class="admin-settings__fields">
             <template v-for="item in group.items" :key="item.key">
-            <div class="admin-settings__field">
-              <div class="admin-settings__field-head">
+            <div class="admin-settings__field" :class="{ 'admin-settings__field--full': item.key === 'content_sidebar' }">
+              <div v-if="settingLabel(item.key)" class="admin-settings__field-head">
                 <label class="admin-settings__label" :for="`setting-${tab.kind}-${item.key}`">
                   {{ settingLabel(item.key) }}
                 </label>
@@ -924,13 +939,13 @@ function useTextarea(value: string): boolean {
                     >
                   </div>
                   <fieldset
-                    v-for="link in contentSidebar.faqLinks"
+                    v-for="(link, index) in contentSidebar.faqLinks"
                     :key="`sidebar-link-${link.key}`"
                     class="admin-settings__row"
                   >
                     <legend class="admin-settings__row-legend">{{ link.key === 'tro' ? 'TRO 常见问题' : link.key === 'labor' ? '劳动争议' : '跨境干货' }}</legend>
                     <div class="admin-settings__row-grid">
-                      <div class="admin-settings__cell">
+                      <div class="admin-settings__cell admin-settings__sidebar-link-field">
                         <label class="admin-settings__cell-label" :for="`sidebar-link-${link.key}-label`">显示名称</label>
                         <input
                           :id="`sidebar-link-${link.key}-label`"
@@ -940,17 +955,23 @@ function useTextarea(value: string): boolean {
                           :disabled="controlsDisabled || savingKind !== ''"
                         >
                       </div>
-                      <div class="admin-settings__cell">
-                        <label class="admin-settings__cell-label" :for="`sidebar-link-${link.key}-path`">站内地址</label>
-                        <input :id="`sidebar-link-${link.key}-path`" class="admin-settings__input" type="text" :value="link.path" disabled>
-                      </div>
-                      <div class="admin-settings__cell admin-settings__cell--inline">
-                        <input :id="`sidebar-link-${link.key}-enabled`" v-model="link.enabled" type="checkbox" :disabled="controlsDisabled || savingKind !== ''">
-                        <label class="admin-settings__cell-label" :for="`sidebar-link-${link.key}-enabled`">显示此入口</label>
-                      </div>
-                      <div class="admin-settings__cell">
-                        <label class="admin-settings__cell-label" :for="`sidebar-link-${link.key}-order`">排序值</label>
-                        <input :id="`sidebar-link-${link.key}-order`" v-model.number="link.sortOrder" class="admin-settings__input" type="number" min="0" max="9999" :disabled="controlsDisabled || savingKind !== ''">
+                      <div class="admin-settings__row-actions">
+                        <BaseButton
+                          variant="ghost"
+                          size="sm"
+                          :disabled="controlsDisabled || savingKind !== '' || index === 0"
+                          @click="moveSidebarLink(index, -1)"
+                        >
+                          上移
+                        </BaseButton>
+                        <BaseButton
+                          variant="ghost"
+                          size="sm"
+                          :disabled="controlsDisabled || savingKind !== '' || index === contentSidebar.faqLinks.length - 1"
+                          @click="moveSidebarLink(index, 1)"
+                        >
+                          下移
+                        </BaseButton>
                       </div>
                     </div>
                   </fieldset>

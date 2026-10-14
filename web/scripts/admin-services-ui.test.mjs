@@ -2,7 +2,7 @@ import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 
-const source = await readFile(new URL('../app/pages/admin/services.vue', import.meta.url), 'utf8')
+const source = await readFile(new URL('../app/components/admin/AdminServicesSettings.vue', import.meta.url), 'utf8')
 const template = source.split('<template>')[1]?.split('</template>')[0] ?? ''
 
 test('业务范围页面只显示板块标题和子项标题', () => {
@@ -41,4 +41,13 @@ test('新增板块和子项仍可用，编辑页面不提供移除按钮', () =>
   assert.match(template, /@click="addSection"/)
   assert.match(template, /@click="addChild\(section\)"/)
   assert.doesNotMatch(template, /@click="removeChild/)
+})
+
+test('业务范围通过站点设置标签维护，旧直达地址会转到对应标签', async () => {
+  const settings = await readFile(new URL('../app/pages/admin/settings.vue', import.meta.url), 'utf8')
+  const route = await readFile(new URL('../app/pages/admin/services.vue', import.meta.url), 'utf8')
+  assert.match(settings, /kind: 'services', label: '团队业务范围'/)
+  assert.match(settings, /<AdminServicesSettings\s*\/>/)
+  assert.match(route, /tab=services/)
+  assert.doesNotMatch(source, /<h1[^>]*>团队业务配置/)
 })

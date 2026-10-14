@@ -10,8 +10,8 @@ const aboutPage = readFileSync(new URL('../app/pages/about.vue', import.meta.url
 const sidebarRoute = new URL('../app/pages/admin/sidebar.vue', import.meta.url)
 const footerRoute = new URL('../app/pages/admin/footer.vue', import.meta.url)
 
-test('站点设置按四个标签分组，字段只保留中文名称和值', () => {
-  for (const label of ['站点信息', '首页内容', '关于我们', '二维码管理']) {
+test('站点设置按五个标签分组，字段只保留中文名称和值', () => {
+  for (const label of ['站点信息', '首页内容', '关于我们', '二维码管理', '团队业务范围']) {
     assert.ok(siteSettings.includes(`label: '${label}'`), `${label} 标签存在`)
   }
   assert.match(siteSettings, /SETTING_LABELS/)
@@ -24,6 +24,16 @@ test('站点设置按四个标签分组，字段只保留中文名称和值', ()
   assert.match(siteSettings, /AdminSitePublishingSettings/)
   assert.match(publishingSettings, /TRO 公众号/)
   assert.doesNotMatch(publishingSettings, /页脚业务配置/)
+})
+
+test('常见问题编辑只显示名称与上下移动作，保留隐藏入口属性', () => {
+  assert.doesNotMatch(siteSettings, /内容页常见问题与二维码标题/)
+  assert.doesNotMatch(siteSettings, /站内地址|显示此入口|排序值/)
+  assert.match(siteSettings, /moveSidebarLink\(index, -1\)/)
+  assert.match(siteSettings, /moveSidebarLink\(index, 1\)/)
+  assert.match(siteSettings, /normalizeContentSidebar\(null\)/)
+  assert.match(siteSettings, /JSON\.stringify\(contentSidebar\.value\)/)
+  assert.doesNotMatch(siteSettings, /v-model="link\.(path|enabled|sortOrder)"/)
 })
 
 test('后台不再提供独立侧边栏管理和页脚与联系方式模块', () => {
