@@ -12,6 +12,7 @@ import {
   type AdminWriteResult,
 } from '~/utils/adminApi'
 import { canWriteContent, READ_ONLY_NOTICE } from '~/utils/adminPermission'
+import { sanitizeHtml } from '~/utils/publicHtml'
 
 /**
  * 文章管理（/admin/articles）。
@@ -44,21 +45,8 @@ const requestFetch = useRequestFetch()
 const canWrite = computed(() => canWriteContent(user.value))
 const readOnlyReason = READ_ONLY_NOTICE
 
-const ARTICLE_STATUSES = [
-  { value: 'draft', label: '草稿（draft）' },
-  { value: 'published', label: '已发布（published）' },
-  { value: 'archived', label: '已归档（archived）' }
-] as const
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: '草稿',
-  published: '已发布',
-  archived: '已归档'
-}
-
 /** 列表查询条件 */
 const keyword = ref('')
-const status = ref('')
 const page = ref(1)
 const pageSize = ref(ADMIN_PAGE_SIZE)
 
@@ -68,7 +56,7 @@ interface ArticleListPayload {
 }
 
 const listKey = computed(() =>
-  `admin-articles:${keyword.value.trim()}:${status.value}:${page.value}:${pageSize.value}`
+  `admin-articles:${keyword.value.trim()}:${page.value}:${pageSize.value}`
 )
 
 
@@ -86,7 +74,6 @@ const {
     }>('/api/admin/articles', {
       query: toAdminQuery({
         keyword: keyword.value.trim(),
-        status: status.value,
         page: page.value,
         pageSize: pageSize.value
       })
@@ -100,7 +87,6 @@ const {
         {
           query: toAdminQuery({
             keyword: keyword.value.trim(),
-            status: status.value,
             page: meta.totalPages,
             pageSize: pageSize.value
           })
@@ -141,7 +127,7 @@ const categoryOptions = computed(() => {
 })
 
 /** 关键字 / 状态变化后回到第一页 */
-watch([keyword, status], () => { page.value = 1 }, { flush: 'sync' })
+watch(keyword, () => { page.value = 1 }, { flush: 'sync' })
 
 /** 列表操作反馈 */
 const notice = ref('')
@@ -149,6 +135,7 @@ const actionError = ref('')
 
 /** 编辑器状态 */
 const editorOpen = ref(false)
+const previewOpen = ref(false)
 const editingId = ref<number | null>(null)
 const saving = ref(false)
 const saveError = ref('')
@@ -186,6 +173,8 @@ const form = reactive<ArticleForm>({
   isFeatured: false,
   showInSidebar: false
 })
+const previewHtml = computed(() => sanitizeHtml(form.contentHtml))
+const previewCategory = computed(() => categoryOptions.value.find(option => String(option.id) === form.categoryId)?.name || '未分类')
 
 /** 正在编辑的文章标识；新建时为「（保存后由服务端生成）」 */
 const slugHint = ref('')
@@ -201,6 +190,7 @@ const formValid = computed(() => !titleError.value && !slugError.value)
 
 /** 打开新建表单 */
 async function openCreate() {
+  previewOpen.value = false
   editingId.value = null
   slugHint.value = ''
   form.title = ''
@@ -219,6 +209,7 @@ async function openCreate() {
 
 /** 打开编辑表单：按 id 取详情（含原始 contentHtml） */
 async function openEdit(item: AdminArticleItem) {
+  previewOpen.value = false
   editorOpen.value = true
   editingId.value = item.id
   saveError.value = ''
@@ -272,6 +263,7 @@ async function openEdit(item: AdminArticleItem) {
 }
 
 function closeEditor() {
+  previewOpen.value = false
   editorOpen.value = false
   editingId.value = null
   saveError.value = ''
@@ -279,7 +271,7 @@ function closeEditor() {
 }
 
 /** 保存：新建走 POST，编辑走 PUT，成功后刷新列表 */
-async function onSubmit() {
+async function onSubmit(publish = false) {
   if (!canWrite.value) {
     saveError.value = readOnlyReason
     return
@@ -298,7 +290,7 @@ async function onSubmit() {
     contentHtml: form.contentHtml,
     categoryId: form.categoryId ? Number(form.categoryId) : null,
     publishedAt: form.publishedAt || '',
-    status: form.status,
+    status: publish ? 'published' : form.status,
     isFeatured: form.isFeatured,
     showInSidebar: form.showInSidebar
   }
@@ -306,12 +298,13 @@ async function onSubmit() {
   try {
     if (editingId.value === null) {
       await requestAdminApi<AdminWriteResult>('/api/admin/articles', { method: 'POST', body, requestFetch })
-      notice.value = '文章已新建'
+      notice.value = publish ? '文章已发布' : '文章已新建'
     } else {
       await requestAdminApi<AdminWriteResult>(`/api/admin/articles/${editingId.value}`, { method: 'PUT', body, requestFetch })
-      notice.value = '文章已保存'
+      notice.value = publish ? '文章已发布' : '文章已保存'
     }
     await refreshList()
+    previewOpen.value = false
     closeEditor()
   } catch (error) {
     saveError.value = adminRequestErrorMessage(error, '保存失败，请稍后重试')
@@ -319,6 +312,8 @@ async function onSubmit() {
     saving.value = false
   }
 }
+
+function onFormSubmit() { return onSubmit(false) }
 
 /** 归档（软删除，不物理删除数据） */
 async function onArchive(item: AdminArticleItem) {
@@ -437,15 +432,6 @@ if (import.meta.client) {
             placeholder="标题 / 摘要 / slug"
           >
         </div>
-        <div class="admin-articles__field">
-          <label class="admin-articles__label" for="article-status-filter">状态</label>
-          <select id="article-status-filter" v-model="status" class="admin-articles__select">
-            <option value="">全部状态</option>
-            <option v-for="item in ARTICLE_STATUSES" :key="item.value" :value="item.value">
-              {{ item.label }}
-            </option>
-          </select>
-        </div>
         <BaseButton variant="secondary" size="sm" type="submit">搜索</BaseButton>
       </form>
     </BaseCard>
@@ -467,7 +453,6 @@ if (import.meta.client) {
               <tr>
                 <th scope="col">标题</th>
                 <th scope="col">分类</th>
-                <th scope="col">状态</th>
                 <th scope="col">发布时间</th>
                 <th scope="col">更新时间</th>
                 <th scope="col">操作</th>
@@ -480,11 +465,7 @@ if (import.meta.client) {
                   <span class="admin-articles__cell-sub">{{ item.slug }}</span>
                 </td>
                 <td>{{ item.categoryName || '未分类' }}</td>
-                <td>
-                  {{ STATUS_LABELS[item.status] || item.status }}
-                  <span v-if="item.isFeatured" class="admin-articles__badge">推荐</span>
-                </td>
-                <td>{{ item.publishedAt || '未发布' }}</td>
+                <td><span v-if="item.isFeatured" class="admin-articles__badge">推荐</span>{{ item.publishedAt || '未发布' }}</td>
                 <td>{{ item.updatedAt }}</td>
                 <td class="admin-articles__cell-actions">
                   <BaseButton
@@ -513,7 +494,7 @@ if (import.meta.client) {
 
         <div v-else-if="!isLoading" class="admin-articles__empty">
           <p class="admin-articles__empty-title">没有符合条件的文章</p>
-          <p class="admin-articles__empty-desc">请调整关键词或状态筛选后重试。</p>
+          <p class="admin-articles__empty-desc">请调整关键词后重试。</p>
         </div>
 
         <AdminPager
@@ -541,7 +522,7 @@ if (import.meta.client) {
       <p v-if="detailLoading" class="admin-articles__loading" role="status">正在加载文章详情…</p>
       <p v-if="detailError" class="admin-articles__error" role="alert">{{ detailError }}</p>
 
-      <form class="admin-articles__form" novalidate @submit.prevent="onSubmit">
+      <form class="admin-articles__form" novalidate @submit.prevent="onFormSubmit">
         <div class="admin-articles__field">
           <label class="admin-articles__label" for="article-title">标题（必填）</label>
           <input
@@ -646,18 +627,6 @@ if (import.meta.client) {
               type="datetime-local"
               :disabled="!canWrite"
             >
-            <p class="admin-articles__hint">
-              留空表示未发布时间；若状态为「已发布」而发布时间为空，服务端会自动补当前时间。
-            </p>
-          </div>
-
-          <div class="admin-articles__field">
-            <label class="admin-articles__label" for="article-status">状态</label>
-            <select id="article-status" v-model="form.status" class="admin-articles__select" :disabled="!canWrite">
-              <option v-for="item in ARTICLE_STATUSES" :key="item.value" :value="item.value">
-                {{ item.label }}
-              </option>
-            </select>
           </div>
 
         </div>
@@ -673,9 +642,23 @@ if (import.meta.client) {
           >
             {{ saving ? '保存中…' : '保存' }}
           </BaseButton>
-          <BaseButton variant="secondary" :disabled="saving" @click="closeEditor">取消</BaseButton>
+          <BaseButton type="button" variant="secondary" :disabled="!canWrite || !formValid || saving || detailLoading" @click="onSubmit(true)">发布文章</BaseButton>
+          <BaseButton type="button" variant="ghost" :disabled="detailLoading" @click="previewOpen = true">文章预览</BaseButton>
+          <BaseButton type="button" variant="secondary" :disabled="saving" @click="closeEditor">取消</BaseButton>
         </div>
       </form>
+      <div v-if="previewOpen" class="admin-articles__preview-backdrop" role="presentation" @click.self="previewOpen = false">
+        <article class="admin-articles__preview" role="dialog" aria-modal="true" aria-labelledby="article-preview-title">
+          <header class="admin-articles__preview-head">
+            <span>{{ previewCategory }} · {{ form.publishedAt || '预览' }} · 大信法务</span>
+            <button type="button" aria-label="关闭预览" @click="previewOpen = false">×</button>
+          </header>
+          <h2 id="article-preview-title">{{ form.title || '未填写标题' }}</h2>
+          <p v-if="form.summary" class="admin-articles__preview-summary">{{ form.summary }}</p>
+          <RichArticleBody v-if="previewHtml" :html="previewHtml" />
+          <p v-else class="admin-articles__preview-empty">暂无正文内容</p>
+        </article>
+      </div>
       </BaseCard>
     </div>
 
@@ -935,6 +918,37 @@ if (import.meta.client) {
   gap: var(--space-3);
 }
 
+.admin-articles__preview-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  background: rgb(15 23 42 / 55%);
+}
+.admin-articles__preview {
+  width: min(900px, 100%);
+  max-height: min(90vh, 100%);
+  overflow: auto;
+  padding: var(--space-8);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-page);
+  box-shadow: var(--shadow-lg);
+}
+.admin-articles__preview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+}
+.admin-articles__preview-head button { border: 0; background: transparent; color: inherit; font-size: 28px; cursor: pointer; }
+.admin-articles__preview h2 { font-size: var(--heading-1); line-height: var(--leading-tight); }
+.admin-articles__preview-summary { margin-top: var(--space-5); padding: var(--space-4); border-left: 3px solid var(--color-primary); background: var(--color-bg-light); }
+.admin-articles__preview-empty { margin-top: var(--space-6); color: var(--color-text-muted); }
 
 /* 富文本源码折叠区 */
 .admin-articles__source { margin-top: var(--space-3); }
