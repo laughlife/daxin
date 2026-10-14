@@ -9,7 +9,7 @@ const requestFetch = useRequestFetch()
 const { user } = useAdminSession()
 const writable = computed(() => canWriteSettings(user.value?.roles))
 const sections = ref<ServiceSection[]>([])
-const baseline = ref('')
+const baseline = ref(JSON.stringify(sections.value))
 const saving = ref(false)
 const saveError = ref('')
 const saveSuccess = ref('')
@@ -50,14 +50,15 @@ function applyPayload(payload: { data: ServicesPayload }) {
   return sections.value
 }
 
-const { error: loadError, refresh } = await useAsyncData(
+const { error: loadError, refresh, pending } = await useAsyncData(
   'admin-settings-services',
   () => requestFetch<{ data: ServicesPayload }>('/api/admin/settings', { query: { kind: 'services' } }),
   { transform: payload => applyPayload(payload) }
 )
 const dirty = computed(() => snapshot() !== baseline.value)
-function canSave(): boolean { return writable.value && !saving.value && dirty.value && sections.value.length > 0 }
+function canSave(): boolean { return writable.value && !saving.value && !pending.value && dirty.value && sections.value.length > 0 }
 function saveLabel(): string {
+  if (pending.value) return '正在加载配置…'
   if (saving.value) return '保存中…'
   if (!writable.value) return '保存（只读角色不可用）'
   if (!sections.value.length) return '暂无可保存的板块'
@@ -149,6 +150,7 @@ function addChild(section: ServiceSection) {
   <div class="admin-services">
     <ErrorState v-if="loadError" title="核心业务配置加载失败" :message="loadErrorMessage()" @retry="refresh()" />
     <template v-else>
+      <p v-if="pending" class="admin-services__loading" role="status">正在加载配置…</p>
       <BaseCard
         v-for="(section, sectionIndex) in sections"
         :key="section.id || section.slug || sectionIndex"
@@ -158,26 +160,26 @@ function addChild(section: ServiceSection) {
       >
         <div class="admin-services__title-row">
           <label class="admin-services__label" :for="`section-${sectionIndex}-title`">板块标题</label>
-          <input :id="`section-${sectionIndex}-title`" v-model="section.title" class="admin-services__input" type="text" maxlength="128" :disabled="!writable || saving">
+          <input :id="`section-${sectionIndex}-title`" v-model="section.title" class="admin-services__input" type="text" maxlength="128" :disabled="!writable || saving || pending">
           <div class="admin-services__row-actions">
-            <BaseButton variant="ghost" size="sm" :disabled="!writable || saving || sectionIndex === 0" @click="moveSection(sectionIndex, -1)">上移</BaseButton>
-            <BaseButton variant="ghost" size="sm" :disabled="!writable || saving || sectionIndex === sections.length - 1" @click="moveSection(sectionIndex, 1)">下移</BaseButton>
+            <BaseButton variant="ghost" size="sm" :disabled="!writable || saving || pending || sectionIndex === 0" @click="moveSection(sectionIndex, -1)">上移</BaseButton>
+            <BaseButton variant="ghost" size="sm" :disabled="!writable || saving || pending || sectionIndex === sections.length - 1" @click="moveSection(sectionIndex, 1)">下移</BaseButton>
           </div>
         </div>
 
         <section class="admin-services__children" :aria-label="`${section.title || '业务板块'}子项`">
           <div v-for="(child, childIndex) in section.items" :key="child.id || child.slug || childIndex" class="admin-services__child-row">
             <label class="admin-services__label" :for="`child-${sectionIndex}-${childIndex}-title`">子项标题</label>
-            <input :id="`child-${sectionIndex}-${childIndex}-title`" v-model="child.title" class="admin-services__input" type="text" maxlength="128" :disabled="!writable || saving">
+            <input :id="`child-${sectionIndex}-${childIndex}-title`" v-model="child.title" class="admin-services__input" type="text" maxlength="128" :disabled="!writable || saving || pending">
             <div class="admin-services__row-actions">
-              <BaseButton variant="ghost" size="sm" :disabled="!writable || saving || childIndex === 0" @click="moveChild(section, childIndex, -1)">上移</BaseButton>
-              <BaseButton variant="ghost" size="sm" :disabled="!writable || saving || childIndex === section.items.length - 1" @click="moveChild(section, childIndex, 1)">下移</BaseButton>
+              <BaseButton variant="ghost" size="sm" :disabled="!writable || saving || pending || childIndex === 0" @click="moveChild(section, childIndex, -1)">上移</BaseButton>
+              <BaseButton variant="ghost" size="sm" :disabled="!writable || saving || pending || childIndex === section.items.length - 1" @click="moveChild(section, childIndex, 1)">下移</BaseButton>
             </div>
           </div>
-          <BaseButton variant="secondary" size="sm" :disabled="!writable || saving" @click="addChild(section)">新增子项</BaseButton>
+          <BaseButton variant="secondary" size="sm" :disabled="!writable || saving || pending" @click="addChild(section)">新增子项</BaseButton>
         </section>
       </BaseCard>
-      <BaseButton class="admin-services__add-section" variant="secondary" :disabled="!writable || saving" @click="addSection">新增业务板块</BaseButton>
+      <BaseButton class="admin-services__add-section" variant="secondary" :disabled="!writable || saving || pending" @click="addSection">新增业务板块</BaseButton>
       <p v-if="saveSuccess" class="admin-services__success" role="status">{{ saveSuccess }}</p>
       <p v-if="saveError" class="admin-services__error" role="alert">{{ saveError }}</p>
       <div class="admin-services__footer">
@@ -191,7 +193,7 @@ function addChild(section: ServiceSection) {
 
 <style scoped>
 .admin-services { min-width: 0; }
-.admin-services__readonly { margin-bottom: var(--space-5); padding: var(--space-3) var(--space-4); border: 1px solid var(--color-warning); border-radius: var(--radius-md); background: color-mix(in srgb, var(--color-warning) 8%, transparent); color: var(--color-warning); font-size: var(--text-sm); }
+.admin-services__loading { margin: var(--space-4) 0; color: var(--color-text-muted); font-size: var(--text-sm); }
 .admin-services__section { margin-top: var(--space-5); }
 .admin-services__title-row, .admin-services__child-row { display: grid; grid-template-columns: 132px minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); }
 .admin-services__label { font-size: var(--text-sm); font-weight: 600; color: var(--color-text); }
