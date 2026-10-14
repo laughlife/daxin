@@ -37,7 +37,11 @@ test('后台菜单直接显示业务入口，不包含首页、内容审核、�
   assert.doesNotMatch(layout, /后台首页|内容审核|媒体资源|工作台|站点内容|账号管理/)
   assert.doesNotMatch(layout, /admin-shell__group-toggle|admin-shell__group-label/)
   assert.doesNotMatch(layout, /团队业务范围|\/admin\/services/)
-  assert.match(home, /navigateTo\('\/admin\/settings'/)
+  assert.match(home, /navigateTo\('\/admin\/articles'/)
+  const articleIndex = layout.indexOf("{ label: '文章管理'")
+  const settingsIndex = layout.indexOf("{ label: '站点设置'")
+  assert.ok(articleIndex >= 0 && settingsIndex > articleIndex, '站点设置应排在文章管理后')
+  assert.ok(settingsIndex > layout.indexOf("{ label: '用户与权限'"), '站点设置应位于菜单最后')
 })
 
 test('Logo 同层横排显示账号、角色与退出按钮，后台布局不出现后台管理标题', () => {

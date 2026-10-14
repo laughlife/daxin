@@ -18,12 +18,12 @@ interface AdminNavItem {
 }
 
 const menuItems: AdminNavItem[] = [
-  { label: '站点设置', to: '/admin/settings', roles: ['admin', 'editor', 'viewer'] },
   { label: '文章管理', to: '/admin/articles', roles: ['admin', 'editor', 'viewer'] },
   { label: '案件管理', to: '/admin/cases', roles: ['admin', 'editor', 'viewer'] },
   { label: '品牌管理', to: '/admin/brands', roles: ['admin', 'editor', 'viewer'] },
   { label: '律所管理', to: '/admin/law-firms', roles: ['admin', 'editor', 'viewer'] },
-  { label: '用户与权限', to: '/admin/users', roles: ['admin'] }
+  { label: '用户与权限', to: '/admin/users', roles: ['admin'] },
+  { label: '站点设置', to: '/admin/settings', roles: ['admin', 'editor', 'viewer'] }
 ]
 
 const visibleMenuItems = computed(() => menuItems.filter(item => item.roles.some(role => user.value?.roles.includes(role))))
