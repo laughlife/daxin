@@ -757,10 +757,6 @@ function useTextarea(value: string): boolean {
 
 <template>
   <PageContainer class="admin-settings" size="wide">
-    <header class="admin-settings__head">
-      <h1 class="admin-settings__title">站点设置</h1>
-    </header>
-
     <p v-if="!writable" class="admin-settings__readonly" role="note">
       {{ readOnlyNotice }}（当前角色对站点配置只有读取权限，所有输入框与保存按钮均已禁用）。
     </p>
@@ -799,7 +795,7 @@ function useTextarea(value: string): boolean {
         <AdminSitePublishingSettings />
       </template>
       <template v-else>
-      <BaseCard :title="tab.label" :title-level="2">
+      <BaseCard>
         <ErrorState
           v-if="groupErrors[tab.kind]"
           title="配置加载失败"

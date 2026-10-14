@@ -228,9 +228,6 @@ await loadUsers()
 <template>
   <PageContainer class="admin-users" size="wide">
     <header class="admin-users__head">
-      <div>
-        <h1 class="admin-users__title">用户与权限</h1>
-      </div>
       <BaseButton @click="openCreate">新建账号</BaseButton>
     </header>
 

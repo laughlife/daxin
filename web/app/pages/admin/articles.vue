@@ -401,9 +401,6 @@ if (import.meta.client) {
 <template>
   <PageContainer class="admin-articles" size="wide">
     <header class="admin-articles__head">
-      <div>
-        <h1 class="admin-articles__title">文章管理</h1>
-      </div>
       <BaseButton
         :disabled="!canWrite"
         :title="canWrite ? undefined : readOnlyReason"

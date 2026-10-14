@@ -267,9 +267,6 @@ function onPageSize(next: number) {
 <template>
   <PageContainer class="admin-entity" size="wide">
     <header class="admin-entity__head">
-      <div>
-        <h1 class="admin-entity__title">{{ entityLabel }}管理</h1>
-      </div>
       <BaseButton
         :disabled="!canWrite"
         :title="canWrite ? undefined : readOnlyReason"

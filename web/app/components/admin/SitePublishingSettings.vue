@@ -79,7 +79,7 @@ function onUploaded(item: QrRow, payload: { mediaId: number, mediaUrl: string })
 </script>
 
 <template>
-  <BaseCard title="二维码管理" :title-level="2" class="site-publishing__card">
+  <BaseCard class="site-publishing__card">
     <ErrorState v-if="qrLoadError" title="二维码配置加载失败" message="请检查登录状态或稍后重试。" @retry="refreshQr()" />
     <template v-else>
       <div class="site-publishing__qr-grid">

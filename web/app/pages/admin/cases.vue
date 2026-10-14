@@ -490,9 +490,6 @@ function onPageSize(next: number) {
 <template>
   <PageContainer class="admin-cases" size="wide">
     <header class="admin-cases__head">
-      <div>
-        <h1 class="admin-cases__title">案例管理</h1>
-      </div>
       <BaseButton
         :disabled="!canWrite"
         :title="canWrite ? undefined : readOnlyReason"
