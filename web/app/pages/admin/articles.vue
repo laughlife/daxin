@@ -420,8 +420,7 @@ if (import.meta.client) {
     <p v-if="notice" class="admin-articles__notice" role="status">{{ notice }}</p>
     <p v-if="actionError" class="admin-articles__error" role="alert">{{ actionError }}</p>
 
-    <BaseCard class="admin-articles__filters" title="筛选与搜索">
-      <form class="admin-articles__filter-form" @submit.prevent="page = 1">
+    <form class="admin-articles__filters admin-articles__filter-form" role="search" @submit.prevent="page = 1">
         <div class="admin-articles__field">
           <label class="admin-articles__label" for="article-keyword">关键词</label>
           <input
@@ -433,8 +432,7 @@ if (import.meta.client) {
           >
         </div>
         <BaseButton variant="secondary" size="sm" type="submit">搜索</BaseButton>
-      </form>
-    </BaseCard>
+    </form>
 
     <section class="admin-articles__list" aria-label="文章列表" aria-live="polite">
       <template v-if="listError">
@@ -724,17 +722,29 @@ if (import.meta.client) {
   margin-top: var(--space-6);
 }
 
+.admin-articles__filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-page);
+}
+
 .admin-articles__filter-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: var(--space-4);
 }
 
 .admin-articles__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .admin-articles__field--check {

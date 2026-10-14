@@ -283,8 +283,7 @@ function onPageSize(next: number) {
     <p v-if="notice" class="admin-entity__notice" role="status">{{ notice }}</p>
     <p v-if="actionError" class="admin-entity__error" role="alert">{{ actionError }}</p>
 
-    <BaseCard class="admin-entity__filters" title="筛选与搜索">
-      <form class="admin-entity__filter-form" @submit.prevent="page = 1">
+    <form class="admin-entity__filters admin-entity__filter-form" role="search" @submit.prevent="page = 1">
         <div class="admin-entity__field">
           <label class="admin-entity__label" for="entity-keyword">关键词</label>
           <input
@@ -296,8 +295,7 @@ function onPageSize(next: number) {
           >
         </div>
         <BaseButton variant="secondary" size="sm" type="submit">搜索</BaseButton>
-      </form>
-    </BaseCard>
+    </form>
 
     <section class="admin-entity__list" :aria-label="`${entityLabel}列表`" aria-live="polite">
       <template v-if="listError">
@@ -528,17 +526,29 @@ function onPageSize(next: number) {
   margin-top: var(--space-6);
 }
 
+.admin-entity__filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-page);
+}
+
 .admin-entity__filter-form {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: var(--space-4);
 }
 
 .admin-entity__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
 }
 
 .admin-entity__label {
