@@ -36,10 +36,11 @@
 - Modify: `web/app/pages/admin/settings.vue`
 - Modify: `web/server/api/public/settings.get.ts`
 - Modify: `web/app/components/layout/SiteFooter.vue`
+- Create: `database/migrations/016_footer_registration.sql` (data-only, idempotent insert)
 - Test: `web/scripts/site-settings-consolidation.test.mjs`
-- Test: `web/scripts/admin-public-copy-simplification.test.mjs`
+- Test: `web/scripts/footer-registration.test.mjs`
 
-- [ ] 先补测试：后台配置存在中文备案信息字段；页脚不渲染隐私/免责声明链接或待确认占位；配置值非空时在底部居中展示，为空时不渲染。
+- [ ] 先补测试：后台配置存在中文备案信息字段；数据迁移会幂等新增空配置；页脚不渲染隐私/免责声明链接或待确认占位；配置值非空时在底部居中展示，为空时不渲染。
 - [ ] 运行相关测试并确认因当前实现而失败。
 - [ ] 在现有页脚配置组加入备案字段，公共设置接口返回该值；页脚只渲染配置值并居中，移除隐私/免责声明链接和静态占位。
 - [ ] 运行相关测试、typecheck 和 diff check。
