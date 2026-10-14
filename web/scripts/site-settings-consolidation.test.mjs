@@ -27,7 +27,7 @@ test('站点设置按五个标签分组，字段只保留中文名称和值', ()
 })
 
 test('常见问题编辑只显示名称与上下移动作，保留隐藏入口属性', () => {
-  assert.doesNotMatch(siteSettings, /内容页常见问题与二维码标题/)
+  assert.match(siteSettings, /常见问题与二维码标题/)
   assert.doesNotMatch(siteSettings, /站内地址|显示此入口|排序值/)
   assert.match(siteSettings, /moveSidebarLink\(index, -1\)/)
   assert.match(siteSettings, /moveSidebarLink\(index, 1\)/)

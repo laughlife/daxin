@@ -904,6 +904,7 @@ function useTextarea(value: string): boolean {
 
                 <!-- content_sidebar：FAQ 顺序、显示状态与两类二维码标题 -->
                 <div v-else-if="item.key === 'content_sidebar'" class="admin-settings__rows">
+                  <h4 class="admin-settings__sidebar-title">常见问题与二维码标题</h4>
                   <div class="admin-settings__cell">
                     <label class="admin-settings__cell-label" for="sidebar-faq-title">常见问题标题</label>
                     <input
@@ -1414,6 +1415,13 @@ function useTextarea(value: string): boolean {
 .admin-settings__group-title {
   margin: 0;
   font-size: var(--text-lg);
+  color: var(--color-text);
+}
+
+.admin-settings__sidebar-title {
+  margin: 0 0 var(--space-2);
+  font-size: var(--text-base);
+  font-weight: 700;
   color: var(--color-text);
 }
 
