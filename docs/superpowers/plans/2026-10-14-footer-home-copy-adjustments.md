@@ -67,8 +67,8 @@
 - Modify: other public page/components identified by `description`/`eyebrow` bindings
 - Test: `web/scripts/admin-public-copy-simplification.test.mjs`
 
-- [ ] 先补测试：模板生成的浅色介绍文案及案例查询操作说明不输出；真实团队介绍、字段标签与结果仍存在。
-- [ ] 运行相关测试确认失败。
-- [ ] 移除匹配该模式的辅助说明配置/组件绑定以及案例查询辅助句；首页团队标题继续读取现有配置。
-- [ ] 运行全量 `npm test`、`npm run typecheck`、diff check，并检查公开页预览。
-- [ ] 仅暂存本任务文件并提交：`style: 清理官网标题辅助说明`。
+- [x] 先补测试：模板生成的浅色介绍文案及案例查询操作说明不输出；真实团队介绍、字段标签与结果仍存在。
+- [x] 运行相关测试确认失败。
+- [x] 移除匹配该模式的辅助说明配置/组件绑定以及案例查询辅助句；首页团队标题继续读取现有配置。
+- [x] 运行全量 `npm test`、`npm run typecheck`、diff check，并检查公开页预览。
+- [x] 仅暂存本任务文件并提交：`style: 清理官网标题辅助说明`。
