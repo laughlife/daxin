@@ -262,9 +262,6 @@ const ICON_OPTIONS = [
   <PageContainer class="admin-services" size="wide">
     <header class="admin-services__head">
       <h1 class="admin-services__title">团队业务配置</h1>
-      <p class="admin-services__desc">
-        维护首页团队介绍右侧的四个业务块、图标与条目。保存后首页会读取这里的配置。
-      </p>
     </header>
 
     <p v-if="!writable" class="admin-services__readonly" role="note">

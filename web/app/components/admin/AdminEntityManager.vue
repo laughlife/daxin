@@ -286,9 +286,6 @@ function onPageSize(next: number) {
     <header class="admin-entity__head">
       <div>
         <h1 class="admin-entity__title">{{ entityLabel }}管理</h1>
-        <p class="admin-entity__desc">
-          维护{{ entityLabel }}资料。关联案件数由案件关联表实时统计，属于只读字段，不能在此直接修改。
-        </p>
       </div>
       <BaseButton
         :disabled="!canWrite"

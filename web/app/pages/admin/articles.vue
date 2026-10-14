@@ -408,9 +408,6 @@ if (import.meta.client) {
     <header class="admin-articles__head">
       <div>
         <h1 class="admin-articles__title">文章管理</h1>
-        <p class="admin-articles__desc">
-          维护资讯与法律解读文章。正文以 HTML 原文存储，公开站点读取时会先做白名单清洗。
-        </p>
       </div>
       <BaseButton
         :disabled="!canWrite"

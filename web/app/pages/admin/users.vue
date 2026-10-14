@@ -242,7 +242,6 @@ await loadUsers()
     <header class="admin-users__head">
       <div>
         <h1 class="admin-users__title">用户与权限</h1>
-        <p class="admin-users__desc">管理后台账号、角色分配与访问权限。</p>
       </div>
       <BaseButton @click="openCreate">新建账号</BaseButton>
     </header>

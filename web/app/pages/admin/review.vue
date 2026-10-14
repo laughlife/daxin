@@ -254,9 +254,6 @@ function resetFilters() {
   <PageContainer class="admin-review" size="wide">
     <header class="admin-review__head">
       <h1 class="admin-review__title">核验队列</h1>
-      <p class="admin-review__desc">
-        迁移阶段产生的待人工确认数据。列表按置信度升序排列，最不确定的记录排在最前面。
-      </p>
     </header>
 
     <p v-if="!canResolve" class="admin-review__notice" role="note">

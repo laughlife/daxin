@@ -98,7 +98,6 @@ onMounted(() => {
         <img v-if="logoSrc" class="admin-login__logo" :src="logoSrc" :alt="siteConfig.logo.alt">
         <span v-else class="admin-login__brand" aria-hidden="true">信</span>
         <h1 class="admin-login__title">后台管理登录</h1>
-        <p class="admin-login__subtitle">请使用管理员分配的账号登录后台管理系统。</p>
       </header>
 
       <BaseCard class="admin-login__card">

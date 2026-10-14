@@ -510,9 +510,6 @@ function onPageSize(next: number) {
     <header class="admin-cases__head">
       <div>
         <h1 class="admin-cases__title">案例管理</h1>
-        <p class="admin-cases__desc">
-          维护 TRO 案件数据、内部状态与公开状态，并关联品牌 / 律所 / 侵权类型。
-        </p>
       </div>
       <BaseButton
         :disabled="!canWrite"

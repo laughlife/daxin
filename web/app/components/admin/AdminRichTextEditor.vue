@@ -177,7 +177,7 @@ function triggerPick() {
 .admin-rte__sep { width:1px; height:18px; background-color:var(--color-border); margin-inline:var(--space-1); }
 .admin-rte__font { display:inline-flex; align-items:center; gap:6px; font-size:var(--text-sm); }
 .admin-rte__font select { padding:2px 6px; border:1px solid var(--color-border); border-radius:var(--radius-sm); font:inherit; font-size:var(--text-sm); }
-.admin-rte__body { min-height:280px; max-height:640px; overflow:auto; padding:var(--space-4); font-size:var(--text-base); line-height:var(--leading-relaxed); outline:none; }
+.admin-rte__body { min-height:280px; padding:var(--space-4); font-size:var(--text-base); line-height:var(--leading-relaxed); outline:none; }
 .admin-rte__body:empty::before { content:attr(data-placeholder); color:var(--color-text-muted); }
 .admin-rte__body :deep(img) { max-width:100%; height:auto; border-radius:var(--radius-md); }
 .admin-rte__body :deep(h2) { font-size:var(--text-xl); margin-block:var(--space-3); }

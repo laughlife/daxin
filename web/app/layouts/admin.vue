@@ -275,6 +275,60 @@ watch(() => route.path, closeDrawer)
   margin-left: 248px;
 }
 
+:deep(.admin-settings__field),
+:deep(.admin-services__cell),
+:deep(.admin-articles__field:not(.admin-articles__field--check)),
+:deep(.admin-cases__field),
+:deep(.admin-entity__field),
+:deep(.admin-review__field),
+:deep(.admin-media__field),
+:deep(.admin-login__field),
+:deep(.admin-users__form > label) {
+  display: grid;
+  grid-template-columns: minmax(140px, 220px) minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--space-4);
+  row-gap: var(--space-2);
+}
+
+:deep(.admin-settings__field-head),
+:deep(.admin-articles__field > label),
+:deep(.admin-cases__field > label),
+:deep(.admin-entity__field > label),
+:deep(.admin-review__field > label),
+:deep(.admin-media__field > label),
+:deep(.admin-login__field > label),
+:deep(.admin-users__form > label > span) {
+  grid-column: 1;
+  align-self: center;
+}
+
+:deep(.admin-settings__field > :not(.admin-settings__field-head)),
+:deep(.admin-services__cell > :not(label)),
+:deep(.admin-articles__field > :not(label)),
+:deep(.admin-cases__field > :not(label)),
+:deep(.admin-entity__field > :not(label)),
+:deep(.admin-review__field > :not(label)),
+:deep(.admin-media__field > :not(label)),
+:deep(.admin-login__field > :not(label)),
+:deep(.admin-users__form > label > :not(span)) {
+  grid-column: 2;
+  min-width: 0;
+  max-width: 100%;
+}
+
+:deep(textarea) {
+  field-sizing: content;
+  min-height: 5rem;
+  max-height: none !important;
+  overflow-y: hidden !important;
+}
+
+:deep(.admin-rte__body) {
+  max-height: none;
+  overflow: visible;
+}
+
 .admin-mobile-bar,
 .admin-shell__scrim { display: none; }
 
@@ -332,6 +386,31 @@ watch(() => route.path, closeDrawer)
   .admin-shell--drawer-open .admin-shell__sidebar { transform: translateX(0); }
   .admin-shell__sidebar-brand { display: none; }
   .admin-shell__main { margin-left: 0; }
+
+  :deep(.admin-settings__field),
+  :deep(.admin-services__cell),
+  :deep(.admin-articles__field:not(.admin-articles__field--check)),
+  :deep(.admin-cases__field),
+  :deep(.admin-entity__field),
+  :deep(.admin-review__field),
+  :deep(.admin-media__field),
+  :deep(.admin-login__field),
+  :deep(.admin-users__form > label) {
+    grid-template-columns: 1fr;
+  }
+
+  :deep(.admin-settings__field-head),
+  :deep(.admin-settings__field > :not(.admin-settings__field-head)),
+  :deep(.admin-services__cell > *),
+  :deep(.admin-articles__field > *),
+  :deep(.admin-cases__field > *),
+  :deep(.admin-entity__field > *),
+  :deep(.admin-review__field > *),
+  :deep(.admin-media__field > *),
+  :deep(.admin-login__field > *),
+  :deep(.admin-users__form > label > *) {
+    grid-column: 1;
+  }
 
   .admin-shell__scrim {
     position: fixed;

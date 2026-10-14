@@ -295,10 +295,6 @@ async function showNewestMedia() {
   <PageContainer class="admin-media" size="wide">
     <header class="admin-media__head">
       <h1 class="admin-media__title">媒体库</h1>
-      <p class="admin-media__desc">
-        上传图片与 PDF 附件，并管理（检索、软删除）已有资源。
-        文件由浏览器直传对象存储，服务器只负责签名与登记记录。
-      </p>
     </header>
 
     <p v-if="!canManage" class="admin-media__notice" role="note">{{ MEDIA_READ_ONLY_NOTICE }}</p>

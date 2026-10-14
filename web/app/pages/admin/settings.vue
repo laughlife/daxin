@@ -67,11 +67,11 @@ interface CoreAdvantageEditorEntry {
 const requestFetch = useRequestFetch()
 const { user } = useAdminSession()
 
-const TABS: { kind: SettingsTabKind, label: string, description: string }[] = [
-  { kind: 'site', label: '站点信息', description: '集中维护网站品牌资料、联系方式、常见问题与全站配色。' },
-  { kind: 'home', label: '首页内容', description: '维护首页首屏、数据、核心优势与普法干货轮播。' },
-  { kind: 'about', label: '关于我们', description: '维护团队介绍、主图联系文案、成功案例、企业宣讲与合作伙伴。团队介绍也同步显示在首页。' },
-  { kind: 'qr', label: '二维码管理', description: '统一维护 TRO 与劳动法的公众号、咨询号二维码，供官网各处调用。' }
+const TABS: { kind: SettingsTabKind, label: string }[] = [
+  { kind: 'site', label: '站点信息' },
+  { kind: 'home', label: '首页内容' },
+  { kind: 'about', label: '关于我们' },
+  { kind: 'qr', label: '二维码管理' }
 ]
 
 /** 默认展开第一个 tab */
@@ -777,9 +777,6 @@ const STATUS_OPTIONS = [
   <PageContainer class="admin-settings" size="wide">
     <header class="admin-settings__head">
       <h1 class="admin-settings__title">站点设置</h1>
-    <p class="admin-settings__desc">
-        按页面用途维护官网内容。站点、首页和关于我们配置分别保存，二维码统一在独立标签管理。
-      </p>
     </header>
 
     <p v-if="!writable" class="admin-settings__readonly" role="note">
@@ -818,8 +815,6 @@ const STATUS_OPTIONS = [
       </template>
       <template v-else>
       <BaseCard :title="tab.label" :title-level="2">
-        <p class="admin-settings__panel-desc">{{ tab.description }}</p>
-
         <ErrorState
           v-if="groupErrors[tab.kind]"
           title="配置加载失败"
@@ -836,7 +831,6 @@ const STATUS_OPTIONS = [
           <section v-for="group in settingsGroups(tab.kind)" :key="group.id" class="admin-settings__group">
             <header class="admin-settings__group-head">
               <h3 class="admin-settings__group-title">{{ group.title }}</h3>
-              <p class="admin-settings__group-desc">{{ group.description }}</p>
             </header>
           <div class="admin-settings__fields">
             <template v-for="item in group.items" :key="item.key">
@@ -847,13 +841,9 @@ const STATUS_OPTIONS = [
                 </label>
                 <span class="admin-settings__badge">{{ valueTypeLabel(item.valueType) }}</span>
               </div>
-              <p class="admin-settings__hint">{{ settingDescription(item.key) }}</p>
 
               <!-- image：只接上传，值由 media_id 关联 -->
               <template v-if="item.valueType === 'image'">
-                <p class="admin-settings__hint">
-                  图片类配置：选择文件后由浏览器直传对象存储，上传成功后需再点击「保存」才会写入配置。
-                </p>
                 <SettingImageField
                   :input-id="`setting-image-${tab.kind}-${item.key}`"
                   :label="settingLabel(item.key)"
