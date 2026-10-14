@@ -111,9 +111,6 @@ export const siteConfig: SiteConfig = {
   },
 
   legal: {
-    icp: '备案信息待确认',
     copyright: '大信法务团队 · 官网展示版',
-    privacyLink: { label: '隐私政策', to: '/privacy' },
-    disclaimerLink: { label: '免责声明', to: '/disclaimer' }
   }
 }

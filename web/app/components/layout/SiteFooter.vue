@@ -8,7 +8,7 @@ function enlargeQr(group: 'tro' | 'labor') { qrGroup.value = group; qrOpen.value
 
 /**
  * 网站 Footer：品牌信息 + 横向业务范围 + 双公众号二维码
- * + 联系方式 + ICP / 版权 / 隐私政策 / 免责声明占位。
+ * + 联系方式 + 配置化备案信息与版权信息。
  *
  * 业务范围改为读取后台维护的 footer_services（需求要求「可点击业务项」），
  * 每项渲染为链接；服务端未返回数据时回退为 siteConfig 里的静态标签，
@@ -23,6 +23,11 @@ const footerServiceGroups = computed(() =>
 const footerIntro = computed(() => {
   const value = settings.value?.settings?.footer_intro
   return typeof value === 'string' && value.trim() ? value.trim() : siteConfig.footerIntro
+})
+
+const footerRegistration = computed(() => {
+  const value = settings.value?.settings?.footer_registration
+  return typeof value === 'string' ? value.trim() : ''
 })
 
 const qrSources = computed(() => {
@@ -107,17 +112,9 @@ const identity = useSiteIdentity()
     <div class="site-footer__bottom">
       <PageContainer class="site-footer__bottom-inner">
         <p class="site-footer__legal">
-          <span>{{ siteConfig.legal.icp }}</span>
           <span>{{ siteConfig.legal.copyright }}</span>
         </p>
-        <p class="site-footer__policies">
-          <NuxtLink :to="siteConfig.legal.privacyLink.to ?? '/'" class="site-footer__link">
-            {{ siteConfig.legal.privacyLink.label }}
-          </NuxtLink>
-          <NuxtLink :to="siteConfig.legal.disclaimerLink.to ?? '/'" class="site-footer__link">
-            {{ siteConfig.legal.disclaimerLink.label }}
-          </NuxtLink>
-        </p>
+        <p v-if="footerRegistration" class="site-footer__registration">{{ footerRegistration }}</p>
       </PageContainer>
     </div>
     <WechatQrModal :open="qrOpen" :group="qrGroup" kind="public" :sources="qrSources" @close="qrOpen = false" />
@@ -160,13 +157,13 @@ const identity = useSiteIdentity()
 .site-footer__link { color:rgb(255 255 255 / 65%); }
 .site-footer__link:hover { color:var(--color-text-inverse); }
 .site-footer__bottom { border-top:1px solid rgb(255 255 255 / 15%); padding-block:var(--space-4); }
-.site-footer__bottom-inner { display:flex; align-items:center; justify-content:space-between; gap:var(--space-4); flex-wrap:wrap; color:rgb(255 255 255 / 55%); }
-.site-footer__legal, .site-footer__policies { display:flex; gap:var(--space-4); flex-wrap:wrap; }
+.site-footer__bottom-inner { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--space-2); text-align:center; color:rgb(255 255 255 / 55%); }
+.site-footer__legal, .site-footer__registration { display:flex; justify-content:center; margin:0; }
+.site-footer__registration { color:rgb(255 255 255 / 70%); }
 @media (max-width:1023px) {
   /* 窄屏：三列降为单列堆叠 */
   .site-footer__columns { grid-template-columns:1fr; gap:var(--space-6); }
   .site-footer__channels { max-width:280px; }
-  .site-footer__bottom-inner { flex-direction:column; text-align:center; }
-  .site-footer__legal, .site-footer__policies { justify-content:center; }
+  .site-footer__bottom-inner { text-align:center; }
 }
 </style>

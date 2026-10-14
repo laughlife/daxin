@@ -65,16 +65,10 @@ export interface CtaConfig {
   to: string
 }
 
-/** 法律与备案信息占位 */
+/** 页脚版权信息 */
 export interface LegalConfig {
-  /** ICP 备案号（TODO 占位） */
-  icp: string
-  /** 版权信息（TODO 占位） */
+  /** 版权信息 */
   copyright: string
-  /** 隐私政策链接 */
-  privacyLink: NavItem
-  /** 免责声明链接 */
-  disclaimerLink: NavItem
 }
 
 /** 站点全局配置 */
