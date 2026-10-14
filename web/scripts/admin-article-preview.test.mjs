@@ -27,6 +27,12 @@ test('预览展示未保存字段且不会提交或改路由', () => {
   assert.doesNotMatch(template, /@click="preview.*save|navigateTo\(/)
 })
 
+test('预览弹层覆盖固定后台侧栏', () => {
+  const backdrop = articleSource.match(/\.admin-articles__preview-backdrop\s*\{([^}]+)\}/)?.[1] ?? ''
+  const zIndex = Number(backdrop.match(/z-index:\s*(\d+)/)?.[1] ?? 0)
+  assert.ok(zIndex > 100, `预览层级 ${zIndex} 必须高于后台侧栏层级 100`)
+})
+
 test('预览正文先走白名单净化，危险标签与链接不会进入渲染内容', () => {
   const clean = sanitizeHtml('<p>正文</p><script>alert(1)</script><a href="javascript:alert(1)">危险链接</a>')
   assert.equal(clean, '<p>正文</p><a>危险链接</a>')

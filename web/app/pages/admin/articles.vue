@@ -921,7 +921,7 @@ if (import.meta.client) {
 .admin-articles__preview-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 50;
+  z-index: 300;
   display: grid;
   place-items: center;
   padding: var(--space-6);
