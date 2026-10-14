@@ -5,14 +5,13 @@ import { test } from 'node:test'
 const layout = await readFile(new URL('../app/layouts/admin.vue', import.meta.url), 'utf8')
 const home = await readFile(new URL('../app/pages/admin/index.vue', import.meta.url), 'utf8')
 
-test('后台布局提供分组左侧导航、当前页标识与移动端抽屉', () => {
+test('后台布局提供直接菜单、当前页标识与移动端抽屉', () => {
   for (const marker of [
     'admin-shell__sidebar',
-    'admin-shell__group-toggle',
+    'admin-shell__link',
     'admin-shell__drawer-toggle',
-    ':aria-current="isActive(link.to) ? \'page\' : undefined"',
+    ':aria-current="isActive(item.to) ? \'page\' : undefined"',
     '/admin/settings',
-    '/admin/services',
     '/admin/articles',
     '/admin/cases',
     '/admin/brands',
@@ -34,6 +33,17 @@ test('后台首页不重复渲染导航卡片和用途说明', () => {
   assert.ok(!home.includes('const navItems:'))
 })
 
-test('单链接导航组始终显示，避免后台首页和用户管理入口被折叠隐藏', () => {
-  assert.match(layout, /v-show="group\.links\.length === 1 \|\| isExpanded\(group\)"/)
+test('后台菜单直接显示业务入口，不包含首页、内容审核、媒体资源或分组栏', () => {
+  assert.doesNotMatch(layout, /后台首页|内容审核|媒体资源|工作台|站点内容|账号管理/)
+  assert.doesNotMatch(layout, /admin-shell__group-toggle|admin-shell__group-label/)
+  assert.doesNotMatch(layout, /团队业务范围|\/admin\/services/)
+  assert.match(home, /navigateTo\('\/admin\/settings'/)
+})
+
+test('Logo 同层横排显示账号、角色与退出按钮，后台布局不出现后台管理标题', () => {
+  for (const marker of ['admin-shell__topbar', 'user.username', 'user.displayName', 'roleLabels', '退出登录']) {
+    assert.ok(layout.includes(marker), `顶部账号栏缺少 ${marker}`)
+  }
+  assert.doesNotMatch(layout, />后台管理</)
+  assert.doesNotMatch(home, /后台管理/)
 })

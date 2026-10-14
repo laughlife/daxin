@@ -11,54 +11,34 @@ const logoSrc = computed(() => {
   return typeof value === 'string' && value.trim() ? value.trim() : siteConfig.logo.src
 })
 
-interface AdminNavLink {
+interface AdminNavItem {
   label: string
   to: string
   roles: UserRole[]
 }
 
-interface AdminNavGroup {
-  label: string
-  links: AdminNavLink[]
-}
-
-const groups: AdminNavGroup[] = [
-  {
-    label: '工作台',
-    links: [
-      { label: '后台首页', to: '/admin', roles: ['admin', 'editor', 'viewer'] }
-    ]
-  },
-  {
-    label: '站点内容',
-    links: [
-      { label: '站点设置', to: '/admin/settings', roles: ['admin', 'editor', 'viewer'] },
-      { label: '团队业务范围', to: '/admin/services', roles: ['admin', 'editor', 'viewer'] },
-      { label: '文章管理', to: '/admin/articles', roles: ['admin', 'editor', 'viewer'] },
-      { label: '案件管理', to: '/admin/cases', roles: ['admin', 'editor', 'viewer'] },
-      { label: '品牌管理', to: '/admin/brands', roles: ['admin', 'editor', 'viewer'] },
-      { label: '律所管理', to: '/admin/law-firms', roles: ['admin', 'editor', 'viewer'] },
-      { label: '内容审核', to: '/admin/review', roles: ['admin', 'editor', 'viewer'] },
-      { label: '媒体资源', to: '/admin/media', roles: ['admin', 'editor', 'viewer'] }
-    ]
-  },
-  {
-    label: '账号管理',
-    links: [
-      { label: '用户与权限', to: '/admin/users', roles: ['admin'] }
-    ]
-  }
+const menuItems: AdminNavItem[] = [
+  { label: '站点设置', to: '/admin/settings', roles: ['admin', 'editor', 'viewer'] },
+  { label: '文章管理', to: '/admin/articles', roles: ['admin', 'editor', 'viewer'] },
+  { label: '案件管理', to: '/admin/cases', roles: ['admin', 'editor', 'viewer'] },
+  { label: '品牌管理', to: '/admin/brands', roles: ['admin', 'editor', 'viewer'] },
+  { label: '律所管理', to: '/admin/law-firms', roles: ['admin', 'editor', 'viewer'] },
+  { label: '用户与权限', to: '/admin/users', roles: ['admin'] }
 ]
 
-const visibleGroups = computed(() => groups
-  .map(group => ({
-    ...group,
-    links: group.links.filter(link => link.roles.some(role => user.value?.roles.includes(role)))
-  }))
-  .filter(group => group.links.length > 0))
-
-const expandedGroups = ref<string[]>([])
+const visibleMenuItems = computed(() => menuItems.filter(item => item.roles.some(role => user.value?.roles.includes(role))))
 const drawerOpen = ref(false)
+const loggingOut = ref(false)
+const logoutError = ref('')
+const roleLabels = computed(() => {
+  const labels: Record<UserRole, string> = {
+    admin: '超级管理员',
+    editor: '内容编辑',
+    viewer: '只读查看'
+  }
+  return (user.value?.roles ?? []).map(role => labels[role] ?? role)
+})
+const { logout } = useAdminSession()
 
 function isActive(to: string) {
   return to === '/admin'
@@ -66,23 +46,22 @@ function isActive(to: string) {
     : route.path === to || route.path.startsWith(`${to}/`)
 }
 
-function groupIsActive(group: AdminNavGroup) {
-  return group.links.some(link => isActive(link.to))
-}
-
-function isExpanded(group: AdminNavGroup) {
-  return expandedGroups.value.includes(group.label) || groupIsActive(group)
-}
-
-function toggleGroup(group: AdminNavGroup) {
-  if (groupIsActive(group)) return
-  expandedGroups.value = isExpanded(group)
-    ? expandedGroups.value.filter(label => label !== group.label)
-    : [...expandedGroups.value, group.label]
-}
-
 function closeDrawer() {
   drawerOpen.value = false
+}
+
+async function onLogout() {
+  if (loggingOut.value) return
+  loggingOut.value = true
+  logoutError.value = ''
+  try {
+    await logout()
+    await navigateTo('/admin/login', { replace: true })
+  } catch {
+    logoutError.value = '退出登录失败，请稍后重试'
+  } finally {
+    loggingOut.value = false
+  }
 }
 
 watch(() => route.path, closeDrawer)
@@ -92,22 +71,31 @@ watch(() => route.path, closeDrawer)
   <div class="admin-shell" :class="{ 'admin-shell--drawer-open': drawerOpen }">
     <a class="skip-link" href="#admin-main">跳到主要内容</a>
 
-    <header class="admin-mobile-bar">
-      <NuxtLink to="/admin" class="admin-shell__brand" aria-label="后台首页">
+    <header class="admin-shell__topbar">
+      <NuxtLink to="/admin/settings" class="admin-shell__brand" aria-label="站点设置">
         <img v-if="logoSrc" class="admin-shell__logo-img" :src="logoSrc" :alt="siteConfig.logo.alt">
         <span v-else class="admin-shell__logo" aria-hidden="true">信</span>
       </NuxtLink>
+      <div v-if="user" class="admin-shell__account" aria-label="当前账号信息">
+        <span class="admin-shell__identity"><span class="admin-shell__account-label">账号</span>{{ user.displayName }}（{{ user.username }}）</span>
+        <span class="admin-shell__identity"><span class="admin-shell__account-label">角色</span>{{ roleLabels.join('、') || '未分配角色' }}</span>
+        <button class="admin-shell__logout" type="button" :disabled="loggingOut" @click="onLogout">
+          {{ loggingOut ? '退出中…' : '退出登录' }}
+        </button>
+      </div>
       <button
         class="admin-shell__drawer-toggle"
         type="button"
         :aria-expanded="drawerOpen"
         aria-controls="admin-sidebar"
-        :aria-label="drawerOpen ? '关闭后台菜单' : '打开后台菜单'"
+        :aria-label="drawerOpen ? '关闭菜单' : '打开菜单'"
         @click="drawerOpen = !drawerOpen"
       >
         <span aria-hidden="true">{{ drawerOpen ? '×' : '☰' }}</span>
       </button>
     </header>
+
+    <p v-if="logoutError" class="admin-shell__error" role="alert">{{ logoutError }}</p>
 
     <button
       v-if="drawerOpen"
@@ -117,40 +105,19 @@ watch(() => route.path, closeDrawer)
       @click="closeDrawer"
     />
 
-    <aside id="admin-sidebar" class="admin-shell__sidebar" aria-label="后台导航">
-      <NuxtLink to="/admin" class="admin-shell__brand admin-shell__sidebar-brand" aria-label="后台首页" @click="closeDrawer">
-        <img v-if="logoSrc" class="admin-shell__logo-img" :src="logoSrc" :alt="siteConfig.logo.alt">
-        <span v-else class="admin-shell__logo" aria-hidden="true">信</span>
-      </NuxtLink>
-
+    <aside id="admin-sidebar" class="admin-shell__sidebar" aria-label="导航菜单">
       <nav class="admin-shell__nav">
-        <section v-for="group in visibleGroups" :key="group.label" class="admin-shell__group">
-          <button
-            v-if="group.links.length > 1"
-            class="admin-shell__group-toggle"
-            type="button"
-            :aria-expanded="isExpanded(group)"
-            @click="toggleGroup(group)"
-          >
-            <span>{{ group.label }}</span>
-            <span class="admin-shell__chevron" :class="{ 'admin-shell__chevron--open': isExpanded(group) }" aria-hidden="true">⌄</span>
-          </button>
-          <p v-else class="admin-shell__group-label">{{ group.label }}</p>
-
-          <ul v-show="group.links.length === 1 || isExpanded(group)" class="admin-shell__links">
-            <li v-for="link in group.links" :key="link.to">
-              <NuxtLink
-                :to="link.to"
-                class="admin-shell__link"
-                :class="{ 'admin-shell__link--active': isActive(link.to) }"
-                :aria-current="isActive(link.to) ? 'page' : undefined"
-                @click="closeDrawer"
-              >
-                {{ link.label }}
-              </NuxtLink>
-            </li>
-          </ul>
-        </section>
+        <NuxtLink
+          v-for="item in visibleMenuItems"
+          :key="item.to"
+          :to="item.to"
+          class="admin-shell__link"
+          :class="{ 'admin-shell__link--active': isActive(item.to) }"
+          :aria-current="isActive(item.to) ? 'page' : undefined"
+          @click="closeDrawer"
+        >
+          {{ item.label }}
+        </NuxtLink>
       </nav>
     </aside>
 
@@ -166,9 +133,23 @@ watch(() => route.path, closeDrawer)
   background: var(--color-bg-light);
 }
 
+.admin-shell__topbar {
+  position: sticky;
+  top: 0;
+  z-index: calc(var(--z-header) + 1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  min-height: 72px;
+  padding: var(--space-3) var(--space-6);
+  background: var(--color-bg-page);
+  border-bottom: 1px solid var(--color-border);
+}
+
 .admin-shell__sidebar {
   position: fixed;
-  inset: 0 auto 0 0;
+  inset: 72px auto 0 0;
   z-index: var(--z-header);
   display: flex;
   flex-direction: column;
@@ -213,41 +194,8 @@ watch(() => route.path, closeDrawer)
 
 .admin-shell__nav {
   display: grid;
-  gap: var(--space-5);
-  margin-top: var(--space-7);
-}
-
-.admin-shell__group { min-width: 0; }
-
-.admin-shell__group-label,
-.admin-shell__group-toggle {
-  width: 100%;
-  margin: 0;
-  padding: var(--space-2) var(--space-3);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: .04em;
-  text-align: left;
-  text-transform: uppercase;
-}
-
-.admin-shell__group-toggle {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-}
-
-.admin-shell__chevron { transition: transform var(--transition-base); }
-.admin-shell__chevron--open { transform: rotate(180deg); }
-
-.admin-shell__links {
-  display: grid;
-  gap: 3px;
-  margin: var(--space-1) 0 0;
+  gap: var(--space-1);
+  margin-top: var(--space-5);
   padding: 0;
   list-style: none;
 }
@@ -268,6 +216,13 @@ watch(() => route.path, closeDrawer)
   color: var(--color-primary-dark);
   text-decoration: none;
 }
+
+.admin-shell__account { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: var(--space-4); min-width: 0; }
+.admin-shell__identity { color: var(--color-text); font-size: var(--text-sm); white-space: nowrap; }
+.admin-shell__account-label { margin-right: var(--space-1); color: var(--color-text-muted); }
+.admin-shell__logout { padding: var(--space-2) var(--space-3); border: 0; background: transparent; color: var(--color-primary); font: inherit; font-size: var(--text-sm); cursor: pointer; }
+.admin-shell__logout:disabled { opacity: .55; cursor: not-allowed; }
+.admin-shell__error { margin: var(--space-2) var(--space-6); color: var(--color-error); font-size: var(--text-sm); }
 
 .admin-shell__main {
   min-width: 0;
@@ -329,7 +284,6 @@ watch(() => route.path, closeDrawer)
   overflow: visible;
 }
 
-.admin-mobile-bar,
 .admin-shell__scrim { display: none; }
 
 .skip-link {
@@ -377,6 +331,7 @@ watch(() => route.path, closeDrawer)
 
   .admin-shell__sidebar {
     z-index: calc(var(--z-header) + 3);
+    inset: 64px auto 0 0;
     width: min(300px, 84vw);
     padding-top: var(--space-4);
     transform: translateX(-105%);
@@ -384,8 +339,15 @@ watch(() => route.path, closeDrawer)
   }
 
   .admin-shell--drawer-open .admin-shell__sidebar { transform: translateX(0); }
-  .admin-shell__sidebar-brand { display: none; }
   .admin-shell__main { margin-left: 0; }
+
+  .admin-shell__topbar { min-height: 64px; gap: var(--space-2); padding-inline: var(--space-3); }
+  .admin-shell__brand { justify-content: flex-start; min-width: 0; }
+  .admin-shell__logo-img { max-width: 116px; height: 34px; }
+  .admin-shell__account { flex: 1; gap: 0 var(--space-2); justify-content: flex-end; }
+  .admin-shell__identity { font-size: 11px; }
+  .admin-shell__logout { padding: var(--space-1); font-size: 11px; white-space: nowrap; }
+  .admin-shell__drawer-toggle { flex: 0 0 auto; }
 
   :deep(.admin-settings__field),
   :deep(.admin-services__cell),
@@ -420,5 +382,11 @@ watch(() => route.path, closeDrawer)
     border: 0;
     background: rgb(18 24 34 / 42%);
   }
+}
+
+@media (max-width: 460px) {
+  .admin-shell__topbar { flex-wrap: wrap; }
+  .admin-shell__account { flex-basis: calc(100% - 52px); justify-content: flex-start; order: 3; }
+  .admin-shell__drawer-toggle { margin-left: auto; }
 }
 </style>
