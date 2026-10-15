@@ -14,5 +14,6 @@ test('页脚备案信息可配置、公开显示居中，且不再显示隐私�
   assert.match(footer, /settings\.value\?\.settings\?\.footer_registration/)
   assert.match(footer, /site-footer__registration/)
   assert.match(footer, /text-align:\s*center/)
+  assert.doesNotMatch(footer, /site-footer__legal|siteConfig\.legal\.copyright/)
   assert.doesNotMatch(footer, /siteConfig\.legal\.icp|privacyLink|disclaimerLink|隐私政策|免责声明|备案信息待确认/)
 })

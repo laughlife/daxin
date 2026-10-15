@@ -111,9 +111,6 @@ const identity = useSiteIdentity()
 
     <div class="site-footer__bottom">
       <PageContainer class="site-footer__bottom-inner">
-        <p class="site-footer__legal">
-          <span>{{ siteConfig.legal.copyright }}</span>
-        </p>
         <p v-if="footerRegistration" class="site-footer__registration">{{ footerRegistration }}</p>
       </PageContainer>
     </div>
@@ -158,7 +155,7 @@ const identity = useSiteIdentity()
 .site-footer__link:hover { color:var(--color-text-inverse); }
 .site-footer__bottom { border-top:1px solid rgb(255 255 255 / 15%); padding-block:var(--space-4); }
 .site-footer__bottom-inner { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:var(--space-2); text-align:center; color:rgb(255 255 255 / 55%); }
-.site-footer__legal, .site-footer__registration { display:flex; justify-content:center; margin:0; }
+.site-footer__registration { display:flex; justify-content:center; margin:0; }
 .site-footer__registration { color:rgb(255 255 255 / 70%); }
 @media (max-width:1023px) {
   /* 窄屏：三列降为单列堆叠 */
