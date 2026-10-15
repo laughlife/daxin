@@ -106,7 +106,6 @@ useSeoMeta({
                 </NuxtLink>
                 <span v-else>—</span>
               </p>
-              <NuxtLink :to="`/tro/cases/${record.slug}`">查看完整案件 →</NuxtLink>
             </article>
 
             <p v-if="!cases.length" class="entity-detail__empty" role="status">
@@ -133,7 +132,6 @@ h2 { margin-bottom:var(--space-5); font-size:var(--heading-2); }
 article { margin-top:var(--space-4); padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); }
 article div, article p { color:var(--color-text-muted); font-size:var(--text-sm); line-height:var(--leading-relaxed); }
 h3 { margin:var(--space-3) 0; font-size:var(--text-xl); }
-article > a { display:inline-block; margin-top:var(--space-3); font-size:var(--text-sm); }
 .entity-detail__empty { padding:var(--space-8); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); color:var(--color-text-muted); text-align:center; }
 @media(max-width:639px) { .entity-detail__header { padding:var(--space-5); } }
 </style>

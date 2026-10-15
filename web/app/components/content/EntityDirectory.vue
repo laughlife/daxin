@@ -89,12 +89,11 @@ useSeoMeta({
                 <span>{{ stat.label }}</span>
               </div>
             </div>
-            <p>统计来自公开案件资料，按{{ kind === 'brand' ? '品牌' : '律所' }}去重；同一案件可能涉及多个品牌与律所。</p>
           </section>
 
           <form class="directory__search" role="search" @submit.prevent>
             <label>
-              关键词
+              <span>关键词</span>
               <input v-model="keyword" type="search" placeholder="品牌名或律所名">
             </label>
           </form>
@@ -111,9 +110,6 @@ useSeoMeta({
               </h2>
               <p>{{ item.description || '简介资料整理后补充。' }}</p>
               <p class="directory__count">{{ item.caseCount }} 条关联案件</p>
-              <NuxtLink :to="`${kind === 'brand' ? '/brands' : '/law-firms'}/${item.slug}`">
-                查看{{ kind === 'brand' ? '品牌历史发案' : '律所介绍与案件' }} →
-              </NuxtLink>
             </article>
           </div>
 
@@ -136,10 +132,10 @@ useSeoMeta({
 .directory__stats-grid strong { color:var(--color-primary); font-size:var(--text-2xl); }
 .directory__stats-grid span { color:var(--color-text-muted); font-size:var(--text-sm); }
 .directory__stats > p { margin-top:var(--space-4); color:var(--color-text-muted); font-size:var(--text-xs); line-height:var(--leading-relaxed); }
-.directory__search { display:grid; grid-template-columns:1fr; gap:var(--space-4); padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); }
-label { display:flex; min-width:0; flex-direction:column; gap:var(--space-2); color:var(--color-text-muted); font-size:var(--text-sm); }
+.directory__search { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--space-4); padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); }
+.directory__search label { display:grid; grid-template-columns:max-content minmax(0,1fr); align-items:center; gap:var(--space-4); color:var(--color-text-muted); font-size:var(--text-sm); }
 input,select { width:100%; min-width:0; }
 .directory__notice { margin:var(--space-5) 0; color:var(--color-text-muted); font-size:var(--text-sm); } .directory__grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-5); }
 .directory__card { padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); } .directory__label { margin-bottom:var(--space-3); color:var(--color-primary); font-size:var(--text-xs); } h2 { margin-bottom:var(--space-3); font-size:var(--heading-3); } h2 a { color:var(--color-text); } .directory__card > p:not(:first-child) { color:var(--color-text-muted); font-size:var(--text-sm); line-height:var(--leading-relaxed); } .directory__count { margin:var(--space-4) 0; } .directory__card > a { font-size:var(--text-sm); }
-@media(max-width:639px) { .directory__stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .directory__grid { grid-template-columns:1fr; } .directory__search { grid-template-columns:1fr; } }
+@media(max-width:639px) { .directory__stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .directory__grid { grid-template-columns:1fr; } .directory__search { grid-template-columns:1fr; } .directory__search label { gap:var(--space-3); } }
 </style>

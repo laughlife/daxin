@@ -104,6 +104,10 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
 
 .case-search-panel__field--keyword {
   grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-4);
 }
 
 .case-search-panel__field label {

@@ -140,9 +140,9 @@ const eyebrow = computed(() => props.section.path.startsWith('/tro') ? 'TRO SERV
         <ContentSectionTabs :path="section.path" />
 
         <form class="listing-search" role="search" @submit.prevent>
-          <label>关键词<input v-model="keyword" type="search" placeholder="标题、案件号、品牌名或律所名"></label>
-          <label>发布日期从<input v-model="from" type="date" :max="to || undefined"></label>
-          <label>发布日期至<input v-model="to" type="date" :min="from || undefined"></label>
+          <label><span>关键词</span><input v-model="keyword" type="search" placeholder="标题、案件号、品牌名或律所名"></label>
+          <label><span>发布日期从</span><input v-model="from" type="date" :max="to || undefined"></label>
+          <label><span>发布日期至</span><input v-model="to" type="date" :min="from || undefined"></label>
           <button type="button" @click="reset">清空</button>
         </form>
         <p v-if="invalidRange" class="listing-notice" role="alert">开始日期不能晚于结束日期。</p>
@@ -176,7 +176,7 @@ const eyebrow = computed(() => props.section.path.startsWith('/tro') ? 'TRO SERV
 .listing-page__head { margin-bottom:var(--space-8); }
 .listing-page__eyebrow { margin-bottom:var(--space-3); color:var(--color-primary); font-size:var(--text-sm); font-weight:700; letter-spacing:.12em; }
 .listing-search { display:grid; grid-template-columns:minmax(0,2fr) minmax(140px,1fr) minmax(140px,1fr) auto; gap:var(--space-4); padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
-label { display:flex; min-width:0; flex-direction:column; gap:var(--space-2); font-size:var(--text-sm); color:var(--color-text-muted); }
+.listing-search label { display:grid; grid-template-columns:max-content minmax(0,1fr); align-items:center; gap:var(--space-3); min-width:0; font-size:var(--text-sm); color:var(--color-text-muted); }
 input { width:100%; min-width:0; }
 button { align-self:end; min-height:48px; padding:var(--space-3) var(--space-5); border:1px solid var(--color-primary); border-radius:var(--radius-control); background:var(--color-primary); color:var(--color-text-on-primary); font-weight:600; transition:background-color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base); }
 button:hover { background:var(--color-primary-dark); box-shadow:var(--shadow-sm); transform:translateY(-1px); }

@@ -12,7 +12,17 @@ const { isRecent } = useContentDate()
  * 相关案件取同一原告品牌的历史案件（服务端关键词覆盖品牌名）。
  */
 const route = useRoute()
+const router = useRouter()
 const slug = String(route.params.id ?? '')
+
+function goBack() {
+  const previousPath = router.options.history.state.back
+  if (typeof previousPath === 'string' && previousPath.startsWith('/') && !previousPath.startsWith('//')) {
+    router.back()
+    return
+  }
+  void navigateTo('/tro/cases')
+}
 
 const { data, error, refresh } = await useAsyncData(
   () => `tro-case:${slug}`,
@@ -61,7 +71,7 @@ useSeoMeta({
   <div class="case-detail">
     <PageContainer><ContentColumns group="tro">
       <nav class="case-detail__breadcrumb" aria-label="面包屑">
-        <NuxtLink to="/tro/cases">← 返回 TRO 案件查询</NuxtLink>
+        <button type="button" @click="goBack">← 返回上一级</button>
       </nav>
 
       <ErrorState
@@ -147,7 +157,6 @@ useSeoMeta({
         </section>
 
         <div class="case-detail__actions">
-          <BaseButton to="/tro/cases" variant="secondary">返回案件列表</BaseButton>
           <BaseButton to="/" variant="ghost">回到首页</BaseButton>
         </div>
       </template>
@@ -165,6 +174,15 @@ useSeoMeta({
 .case-detail__breadcrumb {
   margin-bottom: var(--space-4);
   font-size: var(--text-sm);
+}
+
+.case-detail__breadcrumb button {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--color-primary);
+  font: inherit;
+  cursor: pointer;
 }
 
 .case-detail__head {
