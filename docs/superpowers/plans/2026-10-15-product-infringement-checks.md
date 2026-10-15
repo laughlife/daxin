@@ -70,17 +70,19 @@
 
 **Files:**
 - Create: `web/server/api/public/infringement-check.post.ts`
+- Create: `web/server/utils/public/infringement-check.ts`
 - Modify: `web/app/pages/infringement-check.vue`
 - Modify: `web/app/components/content/LegalPage.vue`
 - Test: `web/scripts/infringement-checks.test.mjs`
 
 **Interfaces:**
 - Consumes: Task 1 表结构。
+- Produces: `parseInfringementCheckBody(input: unknown)` 返回规范化字段或字段错误；供公开 API 调用并由 Node 测试直接覆盖。
 - Produces: `POST /api/public/infringement-check` 接收 `{ brand, product, contactName, contactWay, remark }`；成功为 HTTP `201` 和 `{ ok: true }`，校验失败为 `400`，数据库失败为通用 `500`。
 
 - [ ] **Step 1: 写公开提交的失败测试**
 
-  扩展 `infringement-checks.test.mjs`：断言公开 POST 对五个字段做服务端必填/长度校验、空备注可写为 NULL、使用绑定参数插入、成功响应不带个人信息、错误日志/响应不拼接表单值；页面发出请求，具备等待/成功/错误状态，且不再包含指定的本地不保存提示；隐私页披露存储目的及管理员访问范围。
+  扩展 `infringement-checks.test.mjs`：直接调用纯函数测试五个字段的空格归一化、必填规则和长度边界；再断言公开 POST 使用绑定参数插入、成功响应不带个人信息、错误日志/响应不拼接表单值；页面发出请求，具备等待/成功/错误状态，且不再包含指定的本地不保存提示；隐私页披露存储目的及管理员访问范围。
 
 - [ ] **Step 2: 运行测试并确认失败**
 
@@ -89,7 +91,7 @@
 
 - [ ] **Step 3: 实现公开写接口**
 
-  在 `infringement-check.post.ts` 使用 H3 `readBody`、`setResponseStatus` 和现有 `queryTarget`。去除首尾空白后校验：品牌最多 120 字、产品最多 160 字、联系人最多 80 字、电话或微信最多 120 字、备注最多 2,000 字；必填值为空或任一字段超限均返回 `400`。通过绑定参数写入专用表，返回不含表单值的 `201 { ok: true }`。数据库错误仅记录固定的接口错误信息，不输出原始错误对象或请求体，向用户返回通用 `500`。
+  在 `infringement-check.ts` 实现 `parseInfringementCheckBody(input: unknown)`：接收对象、去除首尾空白，校验品牌最多 120 字、产品最多 160 字、联系人最多 80 字、电话或微信最多 120 字、备注最多 2,000 字；必填值为空或任一字段超限时返回字段错误，否则返回规范化字符串，空备注归一为 `null`。在 `infringement-check.post.ts` 使用 H3 `readBody`、`setResponseStatus` 和现有 `queryTarget` 调用该 helper；通过绑定参数写入专用表，返回不含表单值的 `201 { ok: true }`。数据库错误仅记录固定的接口错误信息，不输出原始错误对象或请求体，向用户返回通用 `500`。
 
 - [ ] **Step 4: 接入官网表单与更新隐私文案**
 
@@ -103,7 +105,7 @@
 - [ ] **Step 6: 提交本任务**
 
   ```bash
-  git add web/server/api/public/infringement-check.post.ts web/app/pages/infringement-check.vue web/app/components/content/LegalPage.vue web/scripts/infringement-checks.test.mjs
+  git add web/server/api/public/infringement-check.post.ts web/server/utils/public/infringement-check.ts web/app/pages/infringement-check.vue web/app/components/content/LegalPage.vue web/scripts/infringement-checks.test.mjs
   git commit -m "feat: 接入产品侵权检测表单提交"
   ```
 
