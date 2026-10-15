@@ -48,7 +48,7 @@ test('常见问题与二维码标题和首页数据指标字段标题处于同�
   assert.match(siteSettings, /<div v-if="item\.key === 'content_sidebar'" class="admin-settings__field-head admin-settings__field-head--center">\s*<h4 class="admin-settings__sidebar-title">常见问题与二维码标题<\/h4>\s*<\/div>/)
   assert.match(siteSettings, /<div v-if="settingLabel\(item\.key\)" class="admin-settings__field-head">\s*<label class="admin-settings__label"[^>]*>\s*\{\{ settingLabel\(item\.key\) \}\}/)
   assert.match(siteSettings, /\.admin-settings__field-head--center\s*\{[^}]*justify-content:\s*center;/s)
-  assert.match(siteSettings, /\.admin-settings__sidebar-title\s*\{[^}]*font-size:\s*16px;/s)
+  assert.match(siteSettings, /\.admin-settings__sidebar-title\s*\{[^}]*font-size:\s*14px;/s)
   assert.doesNotMatch(siteSettings, /group\.id === 'content'.*常见问题与二维码标题/)
 })
 

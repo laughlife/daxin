@@ -1436,7 +1436,7 @@ function useTextarea(value: string): boolean {
 
 .admin-settings__sidebar-title {
   margin: 0;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: var(--color-text);
   letter-spacing: normal;
