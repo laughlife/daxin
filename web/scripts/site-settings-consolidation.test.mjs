@@ -44,9 +44,11 @@ test('常见问题与页面配色、首页数据指标标题恢复旧版字号�
   assert.match(siteSettings, /\.admin-settings__group--(?:content|stats) \.admin-settings__group-title\s*\{[^}]*font-size:\s*18px;[^}]*letter-spacing:\s*normal;/s)
 })
 
-test('常见问题与二维码标题位于常见问题与页面配色标题下方、配置块上方', () => {
-  assert.match(siteSettings, /<header class="admin-settings__group-head">\s*<h3 class="admin-settings__group-title">\{\{ group\.title \}\}<\/h3>\s*<h4 v-if="group\.id === 'content'" class="admin-settings__sidebar-title">常见问题与二维码标题<\/h4>\s*<\/header>\s*<div class="admin-settings__fields">/)
-  assert.doesNotMatch(siteSettings, /v-else-if="item\.key === 'content_sidebar'" class="admin-settings__rows">\s*<h4[^>]*>常见问题与二维码标题/)
+test('常见问题与二维码标题和首页数据指标字段标题处于同一配置位置并居中', () => {
+  assert.match(siteSettings, /<div v-if="item\.key === 'content_sidebar'" class="admin-settings__field-head admin-settings__field-head--center">\s*<h4 class="admin-settings__sidebar-title">常见问题与二维码标题<\/h4>\s*<\/div>/)
+  assert.match(siteSettings, /<div v-if="settingLabel\(item\.key\)" class="admin-settings__field-head">\s*<label class="admin-settings__label"[^>]*>\s*\{\{ settingLabel\(item\.key\) \}\}/)
+  assert.match(siteSettings, /\.admin-settings__field-head--center\s*\{[^}]*justify-content:\s*center;/s)
+  assert.doesNotMatch(siteSettings, /group\.id === 'content'.*常见问题与二维码标题/)
 })
 
 test('后台不再提供独立侧边栏管理和页脚与联系方式模块', () => {

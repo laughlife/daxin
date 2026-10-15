@@ -820,7 +820,6 @@ function useTextarea(value: string): boolean {
           >
             <header class="admin-settings__group-head">
               <h3 class="admin-settings__group-title">{{ group.title }}</h3>
-              <h4 v-if="group.id === 'content'" class="admin-settings__sidebar-title">常见问题与二维码标题</h4>
             </header>
           <div class="admin-settings__fields">
             <template v-for="item in group.items" :key="item.key">
@@ -829,6 +828,9 @@ function useTextarea(value: string): boolean {
                 <label class="admin-settings__label" :for="`setting-${tab.kind}-${item.key}`">
                   {{ settingLabel(item.key) }}
                 </label>
+              </div>
+              <div v-if="item.key === 'content_sidebar'" class="admin-settings__field-head admin-settings__field-head--center">
+                <h4 class="admin-settings__sidebar-title">常见问题与二维码标题</h4>
               </div>
 
               <!-- image：只接上传，值由 media_id 关联 -->
@@ -1433,7 +1435,7 @@ function useTextarea(value: string): boolean {
 }
 
 .admin-settings__sidebar-title {
-  margin: var(--space-2) 0 0;
+  margin: 0;
   font-size: 18px;
   font-weight: 700;
   color: var(--color-text);
@@ -1465,6 +1467,10 @@ function useTextarea(value: string): boolean {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+}
+
+.admin-settings__field-head--center {
+  justify-content: center;
 }
 
 .admin-settings__label {
