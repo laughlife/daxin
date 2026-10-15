@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
-/** 当前仅进行浏览器内必填校验；暂不提交或保存用户填写的信息。 */
 interface CheckForm {
   brand: string
   product: string
@@ -27,6 +26,8 @@ const errors = reactive<Record<keyof CheckForm, string>>({
 })
 
 const submitted = ref(false)
+const isSubmitting = ref(false)
+const submitError = ref('')
 
 const fieldRules: Array<{
   key: keyof CheckForm
@@ -54,12 +55,24 @@ function validateField(key: keyof CheckForm) {
   }
 }
 
-function onSubmit() {
+async function onSubmit() {
   for (const rule of fieldRules) {
     validateField(rule.key)
   }
-  if (errorCount.value === 0) {
+  if (errorCount.value > 0 || isSubmitting.value) return
+
+  isSubmitting.value = true
+  submitError.value = ''
+  try {
+    await $fetch('/api/public/infringement-check', {
+      method: 'POST',
+      body: { ...form }
+    })
     submitted.value = true
+  } catch {
+    submitError.value = '提交失败，请稍后重试；填写内容已保留。'
+  } finally {
+    isSubmitting.value = false
   }
 }
 
@@ -69,6 +82,7 @@ function onReset() {
     errors[rule.key] = ''
   }
   submitted.value = false
+  submitError.value = ''
 }
 
 useSeoMeta({
@@ -86,19 +100,16 @@ useSeoMeta({
         :level="1"
         title="产品侵权检测"
       />
-      <p class="check-page__notice" role="note">
-        当前仅进行本地必填校验，不会提交或保存填写的信息。
-      </p>
-
       <div v-if="submitted" class="check-page__success" role="status">
-        <p class="check-page__success-title">填写信息已校验</p>
+        <p class="check-page__success-title">提交成功</p>
         <p class="check-page__success-desc">
-          当前页面未接入检测服务；填写的信息仅在本页完成校验，不会发送或保存。
+          我们已收到你的产品检测申请，工作人员将根据你填写的联系方式与您沟通。
         </p>
         <BaseButton variant="secondary" @click="onReset">重新填写</BaseButton>
       </div>
 
       <form v-else class="check-page__form" novalidate @submit.prevent="onSubmit">
+        <p v-if="submitError" class="check-page__submit-error" role="alert">{{ submitError }}</p>
         <div class="check-page__field">
           <label for="check-brand">品牌名称 <span aria-hidden="true" class="check-page__required">*</span></label>
           <input
@@ -174,7 +185,9 @@ useSeoMeta({
         </div>
 
         <div class="check-page__actions">
-          <BaseButton type="submit" variant="primary" size="lg">校验信息</BaseButton>
+          <BaseButton type="submit" variant="primary" size="lg" :disabled="isSubmitting">
+            {{ isSubmitting ? '正在提交…' : '提交检测' }}
+          </BaseButton>
         </div>
       </form>
     </ContentColumns></PageContainer>
@@ -186,12 +199,6 @@ useSeoMeta({
   padding-block: var(--space-10) var(--space-16);
   background-color: var(--color-bg-light);
   min-height: 60vh;
-}
-
-.check-page__notice {
-  margin-top: var(--space-4);
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
 }
 
 .check-page__form {
@@ -250,6 +257,12 @@ useSeoMeta({
 .check-page__error {
   font-size: var(--text-xs);
   color: var(--color-error);
+}
+
+.check-page__submit-error {
+  margin: 0;
+  color: var(--color-error);
+  font-size: var(--text-sm);
 }
 
 .check-page__actions {
