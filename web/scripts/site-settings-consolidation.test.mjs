@@ -47,7 +47,10 @@ test('常见问题与页面配色、首页数据指标标题恢复旧版字号�
 test('常见问题与二维码标题和首页数据指标字段标题处于同一配置位置并居中', () => {
   assert.match(siteSettings, /<div v-if="item\.key === 'content_sidebar'" class="admin-settings__field-head admin-settings__field-head--center">\s*<h4 class="admin-settings__sidebar-title">常见问题与二维码标题<\/h4>\s*<\/div>/)
   assert.match(siteSettings, /<div v-if="settingLabel\(item\.key\)" class="admin-settings__field-head">\s*<label class="admin-settings__label"[^>]*>\s*\{\{ settingLabel\(item\.key\) \}\}/)
-  assert.match(siteSettings, /\.admin-settings__field-head--center\s*\{[^}]*justify-content:\s*center;/s)
+  assert.match(siteSettings, /\.admin-settings__field\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*minmax\(160px, 220px\) minmax\(0, 1fr\);/s)
+  assert.match(siteSettings, /\.admin-settings__field-head--center\s*\{[^}]*grid-column:\s*1;[^}]*align-self:\s*center;[^}]*justify-content:\s*center;/s)
+  assert.match(siteSettings, /\.admin-settings__rows--sidebar\s*\{[^}]*grid-column:\s*2;[^}]*grid-row:\s*1;[^}]*align-self:\s*start;/s)
+  assert.match(siteSettings, /\.admin-settings__cell\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*minmax\(72px, auto\) minmax\(0, 1fr\);/s)
   assert.match(siteSettings, /\.admin-settings__sidebar-title\s*\{[^}]*font-size:\s*14px;/s)
   assert.doesNotMatch(siteSettings, /group\.id === 'content'.*常见问题与二维码标题/)
 })

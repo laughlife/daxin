@@ -914,7 +914,7 @@ function useTextarea(value: string): boolean {
                 </div>
 
                 <!-- content_sidebar：FAQ 顺序、显示状态与两类二维码标题 -->
-                <div v-else-if="item.key === 'content_sidebar'" class="admin-settings__rows">
+                <div v-else-if="item.key === 'content_sidebar'" class="admin-settings__rows admin-settings__rows--sidebar">
                   <div class="admin-settings__cell">
                     <label class="admin-settings__cell-label" for="sidebar-faq-title">常见问题标题</label>
                     <input
@@ -1455,9 +1455,11 @@ function useTextarea(value: string): boolean {
 }
 
 .admin-settings__field {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
+  display: grid;
+  grid-template-columns: minmax(160px, 220px) minmax(0, 1fr);
+  align-items: start;
+  column-gap: var(--space-5);
+  row-gap: var(--space-2);
   padding-bottom: var(--space-5);
   border-bottom: 1px solid var(--color-border);
 }
@@ -1467,9 +1469,12 @@ function useTextarea(value: string): boolean {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+  min-width: 0;
 }
 
 .admin-settings__field-head--center {
+  grid-column: 1;
+  align-self: center;
   justify-content: center;
 }
 
@@ -1524,7 +1529,14 @@ function useTextarea(value: string): boolean {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
-  margin-top: var(--space-2);
+  min-width: 0;
+  margin-top: 0;
+}
+
+.admin-settings__rows--sidebar {
+  grid-column: 2;
+  grid-row: 1;
+  align-self: start;
 }
 
 .admin-settings__row {
@@ -1551,9 +1563,12 @@ function useTextarea(value: string): boolean {
 }
 
 .admin-settings__cell {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  display: grid;
+  grid-template-columns: minmax(72px, auto) minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-3);
+  row-gap: var(--space-1);
+  min-width: 0;
 }
 
 .admin-settings__cell--wide {
@@ -1561,10 +1576,27 @@ function useTextarea(value: string): boolean {
 }
 
 .admin-settings__cell--inline {
+  display: flex;
   flex-direction: row;
   align-items: center;
   gap: var(--space-2);
   grid-column: span 2;
+}
+
+@media (max-width: 760px) {
+  .admin-settings__field {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: var(--space-2);
+  }
+
+  .admin-settings__field-head--center {
+    justify-content: flex-start;
+  }
+
+  .admin-settings__rows--sidebar {
+    grid-column: 1;
+    grid-row: auto;
+  }
 }
 
 .admin-settings__theme-swatch {
