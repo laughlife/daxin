@@ -62,7 +62,7 @@
 - [ ] **Step 5: 提交本任务**
 
   ```bash
-  git add database/migrations/019_product_infringement_checks.sql web/scripts/infringement-checks.test.mjs
+  git add database/migrations/019_product_infringement_checks.sql tools/migrate-legacy/schema-check.mjs web/scripts/infringement-checks.test.mjs
   git commit -m "feat: 新增产品侵权检测记录表"
   ```
 
