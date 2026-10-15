@@ -44,6 +44,7 @@ export const REQUIRED_TABLES = Object.freeze([
   'media_assets',
   'migration_batches',
   'migration_review_items',
+  'product_infringement_checks',
   'qr_assets',
   'service_items',
   'service_sections',
@@ -109,6 +110,7 @@ export const EXPECTED_INDEXES = Object.freeze([
   { name: 'idx_cases_court', table: 'cases', columns: ['court'] },
   { name: 'idx_media_assets_legacy_lookup', table: 'media_assets', columns: ['legacy_source_table', 'legacy_source_id'] },
   { name: 'idx_migration_review_source', table: 'migration_review_items', columns: ['legacy_source_table', 'legacy_source_id'] },
+  { name: 'idx_product_infringement_checks_created', table: 'product_infringement_checks', columns: ['created_at', 'id'] },
 ])
 
 const DECLARATION_KEYWORDS = new Set([
@@ -151,6 +153,7 @@ const REQUIRED_INPUT_COLUMNS = new Set([
   'setting_key', 'object_key', 'slug', 'item_key', 'username', 'password_hash',
   'token_hash', 'code', 'case_number', 'source_table', 'batch_key', 'entity_type',
   'legacy_source_table', 'legacy_source_id', 'action', 'metric_key', 'filed_at',
+  'brand_name', 'product_name', 'contact_name', 'contact_method',
 ])
 
 /**
