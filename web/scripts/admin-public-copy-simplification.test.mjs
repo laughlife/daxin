@@ -21,6 +21,14 @@ test('公开页面移除模板生成的眉题、副标题与配置使用说明',
   assert.match(header, /class="site-header__name"/)
 })
 
+test('产品侵权检测不读取或保存数据，移除 Mock、演示和输入占位提示但保留清晰的数据说明', async () => {
+  const check = await read('../app/pages/infringement-check.vue')
+  assert.doesNotMatch(check, /Mock|演示|自研|placeholder=/i)
+  assert.doesNotMatch(check, /\$fetch|\bfetch\s*\(|useFetch|useAsyncData/)
+  assert.match(check, /不会提交或保存填写的信息/)
+  assert.match(check, /校验信息/)
+})
+
 test('官网所有栏目标题下不渲染浅色辅助介绍，团队标题继续读取站点配置', async () => {
   const home = await read('../app/pages/index.vue')
   const sectionPaths = [

@@ -1,12 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 
-/**
- * 产品侵权检测（前端演示表单）。
- * - 仅做前端必填校验与状态展示；
- * - 不发送任何网络请求、不保存用户数据、不调用后端；
- * - 成功状态仅提示“演示提交成功，当前尚未连接后端”。
- */
+/** 当前仅进行浏览器内必填校验；暂不提交或保存用户填写的信息。 */
 interface CheckForm {
   brand: string
   product: string
@@ -78,10 +73,9 @@ function onReset() {
 
 useSeoMeta({
   title: '产品侵权检测',
-  description:
-    '产品侵权检测演示表单：填写品牌、产品与联系方式，体验侵权检测提交流程。当前为前端 Mock 演示，未连接后端，不保存任何数据。',
+  description: '填写产品与联系方式，了解产品侵权检测服务。',
   ogTitle: '产品侵权检测 - 大信法务',
-  ogDescription: '产品侵权检测演示表单（前端 Mock，未连接后端，不保存任何数据）。'
+  ogDescription: '了解大信法务产品侵权检测服务。'
 })
 </script>
 
@@ -93,13 +87,13 @@ useSeoMeta({
         title="产品侵权检测"
       />
       <p class="check-page__notice" role="note">
-        当前为前端 Mock 演示：表单仅做本地必填校验，不发送网络请求、不保存任何数据，尚未连接后端检测服务。
+        当前仅进行本地必填校验，不会提交或保存填写的信息。
       </p>
 
       <div v-if="submitted" class="check-page__success" role="status">
-        <p class="check-page__success-title">演示提交成功，当前尚未连接后端</p>
+        <p class="check-page__success-title">填写信息已校验</p>
         <p class="check-page__success-desc">
-          正式版本上线后，提交内容将进入检测流程并由法务团队反馈结果。本次演示未保存你填写的任何信息。
+          当前页面未接入检测服务；填写的信息仅在本页完成校验，不会发送或保存。
         </p>
         <BaseButton variant="secondary" @click="onReset">重新填写</BaseButton>
       </div>
@@ -112,7 +106,6 @@ useSeoMeta({
             v-model="form.brand"
             type="text"
             autocomplete="off"
-            placeholder="如：演示品牌名称"
             :aria-invalid="errors.brand ? 'true' : undefined"
             :aria-describedby="errors.brand ? 'check-brand-error' : undefined"
             @blur="validateField('brand')"
@@ -129,7 +122,6 @@ useSeoMeta({
             v-model="form.product"
             type="text"
             autocomplete="off"
-            placeholder="如：演示产品名称 / SKU"
             :aria-invalid="errors.product ? 'true' : undefined"
             :aria-describedby="errors.product ? 'check-product-error' : undefined"
             @blur="validateField('product')"
@@ -147,7 +139,6 @@ useSeoMeta({
               v-model="form.contactName"
               type="text"
               autocomplete="off"
-              placeholder="如：张女士"
               :aria-invalid="errors.contactName ? 'true' : undefined"
               :aria-describedby="errors.contactName ? 'check-contact-name-error' : undefined"
               @blur="validateField('contactName')"
@@ -163,7 +154,6 @@ useSeoMeta({
               v-model="form.contactWay"
               type="text"
               autocomplete="off"
-              placeholder="手机号或微信号"
               :aria-invalid="errors.contactWay ? 'true' : undefined"
               :aria-describedby="errors.contactWay ? 'check-contact-way-error' : undefined"
               @blur="validateField('contactWay')"
@@ -180,15 +170,11 @@ useSeoMeta({
             id="check-remark"
             v-model="form.remark"
             rows="4"
-            placeholder="选填：目标市场、销售平台、已收到的警告信息等"
           />
         </div>
 
         <div class="check-page__actions">
-          <BaseButton type="submit" variant="primary" size="lg">提交检测（演示）</BaseButton>
-          <p class="check-page__actions-hint">
-            带 <span aria-hidden="true">*</span> 为必填项；提交仅在前端演示，不会产生任何请求。
-          </p>
+          <BaseButton type="submit" variant="primary" size="lg">校验信息</BaseButton>
         </div>
       </form>
     </ContentColumns></PageContainer>
@@ -204,11 +190,8 @@ useSeoMeta({
 
 .check-page__notice {
   margin-top: var(--space-4);
-  padding: var(--space-3);
-  border-radius: var(--radius-md);
-  background-color: color-mix(in srgb, var(--color-warning) 10%, transparent);
-  color: var(--color-warning);
-  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
 }
 
 .check-page__form {
@@ -274,11 +257,6 @@ useSeoMeta({
   align-items: center;
   gap: var(--space-4);
   flex-wrap: wrap;
-}
-
-.check-page__actions-hint {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
 }
 
 .check-page__success {
