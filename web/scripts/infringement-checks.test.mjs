@@ -8,6 +8,10 @@ const infringementParser = await import('../server/utils/public/infringement-che
 const publicApi = await readFile(new URL('../server/api/public/infringement-check.post.ts', import.meta.url), 'utf8').catch(() => '')
 const publicPage = await readFile(new URL('../app/pages/infringement-check.vue', import.meta.url), 'utf8')
 const legalPage = await readFile(new URL('../app/components/content/LegalPage.vue', import.meta.url), 'utf8')
+const adminApi = await readFile(new URL('../server/api/admin/infringement-checks.get.ts', import.meta.url), 'utf8').catch(() => '')
+const adminPermissions = await import('../server/utils/auth/permissions.ts')
+const adminContentQueries = await import('../server/utils/admin/content-queries.ts')
+const publicPagination = await import('../server/utils/public/query.ts')
 
 test('产品侵权检测迁移创建独立记录表且结构校验器覆盖其表、索引和必填字段', () => {
   assert.match(migration, /CREATE TABLE IF NOT EXISTS\s+`?product_infringement_checks`?/i)
@@ -66,4 +70,40 @@ test('检测表单等待并展示真实提交结果，隐私页说明管理员�
   assert.match(legalPage, /数据库/)
   assert.match(legalPage, /管理员/)
   assert.doesNotMatch(legalPage, /不发送到后台，也不保存填写内容/)
+})
+
+test('侵权检测记录读取权限仅授予管理员并保护后台路由', () => {
+  const permission = 'product_infringement_check:read'
+  assert.equal(adminPermissions.hasPermission(['admin'], permission), true)
+  assert.equal(adminPermissions.hasPermission(['editor'], permission), false)
+  assert.equal(adminPermissions.hasPermission(['viewer'], permission), false)
+  assert.equal(adminPermissions.canAccessPath(['admin'], '/admin/infringement-checks'), true)
+  assert.equal(adminPermissions.canAccessPath(['editor'], '/admin/infringement-checks'), false)
+})
+
+test('管理员记录 API 限制字段、使用绑定分页并复用统一页窗', () => {
+  assert.match(adminApi, /requireAdmin\(event,\s*'product_infringement_check:read'\)/)
+  assert.match(adminApi, /COUNT\(\*\)/)
+  assert.match(adminApi, /FROM product_infringement_checks/)
+  assert.match(adminApi, /ORDER BY created_at DESC, id DESC/)
+  assert.match(adminApi, /LIMIT \? OFFSET \?/)
+  assert.match(adminApi, /resolvePageWindow/)
+  assert.match(adminApi, /adminPageSize/)
+  assert.match(adminApi, /totalPages/)
+  assert.equal(adminContentQueries.ADMIN_DEFAULT_PAGE_SIZE, 20)
+  assert.equal(adminContentQueries.ADMIN_MAX_PAGE_SIZE, 50)
+  for (const size of [10, 20, 30, 40, 50]) {
+    assert.equal(adminContentQueries.adminPageSize(String(size)), String(size))
+  }
+  assert.deepEqual(adminContentQueries.adminPageSize(undefined), 20)
+})
+
+test('记录列表分页窗口对空表与越界页返回安全页码', () => {
+  assert.deepEqual(publicPagination.resolvePageWindow(0, 999, 20, 50), {
+    page: 1, pageSize: 20, total: 0, totalPages: 1, offset: 0, beyondLastPage: false
+  })
+  assert.deepEqual(publicPagination.resolvePageWindow(101, 999, 20, 50), {
+    page: 6, pageSize: 20, total: 101, totalPages: 6, offset: 100, beyondLastPage: true
+  })
+  assert.equal(publicPagination.resolvePageWindow(101, 6, 20, 50).page, 6)
 })

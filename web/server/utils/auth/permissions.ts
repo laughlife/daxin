@@ -37,6 +37,7 @@ export const ROLE_PERMISSIONS: Readonly<Record<AdminRole, readonly string[]>> = 
 /** 只允许 admin 的权限。 */
 export const ADMIN_ONLY_PERMISSIONS = Object.freeze([
   'admin:user:read', 'admin:user:write', 'admin:audit:read', 'admin:role:write',
+  'product_infringement_check:read',
 ])
 
 /** 各后台路径所需权限；未列出的 /admin 子路径默认要求登录。 */
@@ -51,6 +52,7 @@ export const ADMIN_PATH_PERMISSIONS = Object.freeze([
   { pattern: /^\/admin\/law-firms(\/|$)/, permission: 'law_firm:read' },
   { pattern: /^\/admin\/media(\/|$)/, permission: 'media:read' },
   { pattern: /^\/admin\/review(\/|$)/, permission: 'review:read' },
+  { pattern: /^\/admin\/infringement-checks(\/|$)/, permission: 'product_infringement_check:read' },
 ])
 
 /** 只读角色禁止进入的新建/编辑路径片段。 */
