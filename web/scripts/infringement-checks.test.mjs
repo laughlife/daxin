@@ -12,6 +12,8 @@ const adminApi = await readFile(new URL('../server/api/admin/infringement-checks
 const adminPermissions = await import('../server/utils/auth/permissions.ts')
 const adminContentQueries = await import('../server/utils/admin/content-queries.ts')
 const publicPagination = await import('../server/utils/public/query.ts')
+const adminLayout = await readFile(new URL('../app/layouts/admin.vue', import.meta.url), 'utf8')
+const adminListPage = await readFile(new URL('../app/pages/admin/infringement-checks.vue', import.meta.url), 'utf8').catch(() => '')
 
 test('产品侵权检测迁移创建独立记录表且结构校验器覆盖其表、索引和必填字段', () => {
   assert.match(migration, /CREATE TABLE IF NOT EXISTS\s+`?product_infringement_checks`?/i)
@@ -106,4 +108,20 @@ test('记录列表分页窗口对空表与越界页返回安全页码', () => {
     page: 6, pageSize: 20, total: 101, totalPages: 6, offset: 100, beyondLastPage: true
   })
   assert.equal(publicPagination.resolvePageWindow(101, 6, 20, 50).page, 6)
+})
+
+test('后台仅管理员看到侵权检测菜单，记录页展示只读分页表格', () => {
+  assert.match(adminLayout, /label:\s*'产品侵权检测',\s*to:\s*'\/admin\/infringement-checks',\s*roles:\s*\['admin'\]/)
+  assert.match(adminListPage, /layout:\s*'admin'/)
+  assert.match(adminListPage, /middleware:\s*'admin'/)
+  assert.match(adminListPage, /\/api\/admin\/infringement-checks/)
+  assert.match(adminListPage, /AdminPager/)
+  assert.match(adminListPage, /ADMIN_PAGE_SIZE_OPTIONS/)
+  assert.match(adminListPage, /brand/)
+  assert.match(adminListPage, /product/)
+  assert.match(adminListPage, /contactName/)
+  assert.match(adminListPage, /contactWay/)
+  assert.match(adminListPage, /remark/)
+  assert.match(adminListPage, /createdAt/)
+  assert.doesNotMatch(adminListPage, /删除|导出|编辑/)
 })
