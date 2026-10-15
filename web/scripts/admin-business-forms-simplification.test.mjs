@@ -16,13 +16,16 @@ const caseForm = caseTemplate.slice(caseTemplate.indexOf('<form class="admin-cas
 const entityTemplate = entityManager.slice(entityManager.indexOf('<template>'))
 const entityForm = entityTemplate.slice(entityTemplate.indexOf('<form class="admin-entity__form"'))
 
-test('后台账号与角色放在 Logo 右侧并分别标签化，退出按钮清晰突出', () => {
+test('后台账号角色是无按钮底色的加粗文字，退出按钮清晰突出', () => {
   const account = adminLayout.match(/\.admin-shell__account\s*\{([^}]+)\}/)?.[1] ?? ''
+  const identity = adminLayout.match(/\.admin-shell__identity\s*\{([^}]+)\}/)?.[1] ?? ''
   const logout = adminLayout.match(/\.admin-shell__logout\s*\{([^}]+)\}/)?.[1] ?? ''
   assert.match(account, /justify-content:\s*flex-start/)
   assert.doesNotMatch(account, /border-left:/)
-  assert.match(adminLayout, /admin-shell__identity--account/)
-  assert.match(adminLayout, /admin-shell__identity--role/)
+  assert.match(adminLayout, /<strong class="admin-shell__account-label">当前账号：<\/strong>/)
+  assert.match(adminLayout, /<strong class="admin-shell__account-label">角色：<\/strong>/)
+  assert.match(adminLayout, /margin-left:\s*var\(--space-8\)/)
+  assert.doesNotMatch(identity, /border|background|padding/)
   assert.match(logout, /background:\s*var\(--color-primary\)/)
   assert.match(logout, /min-height:/)
   assert.match(adminLayout, /admin-shell__logout--|admin-shell__logout/)
@@ -47,6 +50,13 @@ test('文章、案件、品牌、律所与用户的新建入口都和搜索控�
   assert.match(articlesPage, /\.admin-articles__filter-form \{\s*display: flex;/)
   assert.match(casesPage, /\.admin-cases__filter-form \{\s*display: flex;/)
   assert.match(entityManager, /\.admin-entity__filter-form \{\s*display: flex;/)
+  assert.match(articlesPage, /\.admin-articles__filter-form \{[^}]*justify-content:\s*flex-start/s)
+  assert.match(casesPage, /\.admin-cases__filter-form \{[^}]*justify-content:\s*flex-start/s)
+  assert.match(entityManager, /\.admin-entity__filter-form \{[^}]*justify-content:\s*flex-start/s)
+  assert.match(articlesPage, /\.admin-articles__filter-form \.admin-articles__field \{[^}]*flex:\s*1 1 auto/)
+  assert.match(casesPage, /\.admin-cases__filter-form \.admin-cases__field \{[^}]*flex:\s*1 1 auto/)
+  assert.match(entityManager, /\.admin-entity__filter-form \.admin-entity__field \{[^}]*flex:\s*1 1 auto/)
+  assert.match(usersPage, /\.admin-users__filter \{[^}]*flex:\s*1 1 auto/s)
 })
 
 test('文章编辑移除辅助说明、HTML 原文入口和 slug 字段，但保留校验反馈和 slug 读写', () => {

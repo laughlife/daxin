@@ -481,7 +481,7 @@ function onPageSize(next: number) {
 
 .admin-entity__filters {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-4);
@@ -492,11 +492,14 @@ function onPageSize(next: number) {
 
 .admin-entity__filter-form {
   display: flex;
+  justify-content: flex-start;
   align-items: center;
   gap: var(--space-4);
 }
 
-.admin-entity__filter-form .admin-entity__field { flex: 0 1 360px; min-width: 220px; }
+.admin-entity__filter-form .admin-entity__field { display: flex; flex: 1 1 auto; min-width: 0; gap: var(--space-3); }
+.admin-entity__filter-form .admin-entity__label { flex: 0 0 auto; white-space: nowrap; }
+.admin-entity__filter-form .admin-entity__input { flex: 1 1 auto; min-width: 0; }
 
 @media (max-width: 520px) {
   .admin-entity__filter-form { flex-wrap: wrap; gap: var(--space-3); }

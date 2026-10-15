@@ -793,7 +793,7 @@ function onPageSize(next: number) {
 
 .admin-cases__filters {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   align-items: center;
   gap: var(--space-4);
   padding: var(--space-4);
@@ -804,11 +804,14 @@ function onPageSize(next: number) {
 
 .admin-cases__filter-form {
   display: flex;
+  justify-content: flex-start;
   align-items: center;
   gap: var(--space-4);
 }
 
-.admin-cases__filter-form .admin-cases__field { flex: 0 1 360px; min-width: 220px; }
+.admin-cases__filter-form .admin-cases__field { display: flex; flex: 1 1 auto; min-width: 0; gap: var(--space-3); }
+.admin-cases__filter-form .admin-cases__label { flex: 0 0 auto; white-space: nowrap; }
+.admin-cases__filter-form .admin-cases__input { flex: 1 1 auto; min-width: 0; }
 
 @media (max-width: 520px) {
   .admin-cases__filter-form { flex-wrap: wrap; gap: var(--space-3); }
