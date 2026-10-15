@@ -50,6 +50,7 @@ test('常见问题与二维码标题和首页数据指标字段标题处于同�
   assert.match(siteSettings, /\.admin-settings__field\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*minmax\(160px, 220px\) minmax\(0, 1fr\);/s)
   assert.match(siteSettings, /\.admin-settings__field-head--center\s*\{[^}]*grid-column:\s*1;[^}]*align-self:\s*center;[^}]*justify-content:\s*center;/s)
   assert.match(siteSettings, /\.admin-settings__rows--sidebar\s*\{[^}]*grid-column:\s*2;[^}]*grid-row:\s*1;[^}]*align-self:\s*start;/s)
+  assert.match(siteSettings, /\.admin-settings__rows--sidebar > \.admin-settings__cell\s*\{[^}]*display:\s*flex;[^}]*flex-direction:\s*column;[^}]*align-items:\s*stretch;/s)
   assert.match(siteSettings, /\.admin-settings__cell\s*\{[^}]*display:\s*grid;[^}]*grid-template-columns:\s*minmax\(72px, auto\) minmax\(0, 1fr\);/s)
   assert.match(siteSettings, /\.admin-settings__sidebar-title\s*\{[^}]*font-size:\s*14px;/s)
   assert.doesNotMatch(siteSettings, /group\.id === 'content'.*常见问题与二维码标题/)

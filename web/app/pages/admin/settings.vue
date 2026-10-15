@@ -1539,6 +1539,12 @@ function useTextarea(value: string): boolean {
   align-self: start;
 }
 
+.admin-settings__rows--sidebar > .admin-settings__cell {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
 .admin-settings__row {
   display: flex;
   flex-direction: column;
