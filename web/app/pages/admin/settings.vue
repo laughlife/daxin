@@ -809,9 +809,18 @@ function useTextarea(value: string): boolean {
           </p>
 
           <div class="admin-settings__group-list">
-          <section v-for="group in settingsGroups(tab.kind)" :key="group.id" class="admin-settings__group">
+          <section
+            v-for="group in settingsGroups(tab.kind)"
+            :key="group.id"
+            class="admin-settings__group"
+            :class="{
+              'admin-settings__group--content': group.id === 'content',
+              'admin-settings__group--stats': group.id === 'stats'
+            }"
+          >
             <header class="admin-settings__group-head">
               <h3 class="admin-settings__group-title">{{ group.title }}</h3>
+              <h4 v-if="group.id === 'content'" class="admin-settings__sidebar-title">常见问题与二维码标题</h4>
             </header>
           <div class="admin-settings__fields">
             <template v-for="item in group.items" :key="item.key">
@@ -904,7 +913,6 @@ function useTextarea(value: string): boolean {
 
                 <!-- content_sidebar：FAQ 顺序、显示状态与两类二维码标题 -->
                 <div v-else-if="item.key === 'content_sidebar'" class="admin-settings__rows">
-                  <h4 class="admin-settings__sidebar-title">常见问题与二维码标题</h4>
                   <div class="admin-settings__cell">
                     <label class="admin-settings__cell-label" for="sidebar-faq-title">常见问题标题</label>
                     <input
@@ -1418,11 +1426,18 @@ function useTextarea(value: string): boolean {
   color: var(--color-text);
 }
 
+.admin-settings__group--content .admin-settings__group-title,
+.admin-settings__group--stats .admin-settings__group-title {
+  font-size: 18px;
+  letter-spacing: normal;
+}
+
 .admin-settings__sidebar-title {
-  margin: 0 0 var(--space-2);
-  font-size: var(--text-base);
+  margin: var(--space-2) 0 0;
+  font-size: 18px;
   font-weight: 700;
   color: var(--color-text);
+  letter-spacing: normal;
 }
 
 .admin-settings__group-desc {

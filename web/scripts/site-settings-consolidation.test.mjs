@@ -36,6 +36,19 @@ test('常见问题编辑只显示名称与上下移动作，保留隐藏入口�
   assert.doesNotMatch(siteSettings, /v-model="link\.(path|enabled|sortOrder)"/)
 })
 
+test('常见问题与页面配色、首页数据指标标题恢复旧版字号与字距', () => {
+  assert.match(siteSettings, /title: '常见问题与页面配色'/)
+  assert.match(siteSettings, /title: '首页数据指标'/)
+  assert.match(siteSettings, /admin-settings__group--content/)
+  assert.match(siteSettings, /admin-settings__group--stats/)
+  assert.match(siteSettings, /\.admin-settings__group--(?:content|stats) \.admin-settings__group-title\s*\{[^}]*font-size:\s*18px;[^}]*letter-spacing:\s*normal;/s)
+})
+
+test('常见问题与二维码标题位于常见问题与页面配色标题下方、配置块上方', () => {
+  assert.match(siteSettings, /<header class="admin-settings__group-head">\s*<h3 class="admin-settings__group-title">\{\{ group\.title \}\}<\/h3>\s*<h4 v-if="group\.id === 'content'" class="admin-settings__sidebar-title">常见问题与二维码标题<\/h4>\s*<\/header>\s*<div class="admin-settings__fields">/)
+  assert.doesNotMatch(siteSettings, /v-else-if="item\.key === 'content_sidebar'" class="admin-settings__rows">\s*<h4[^>]*>常见问题与二维码标题/)
+})
+
 test('后台不再提供独立侧边栏管理和页脚与联系方式模块', () => {
   assert.doesNotMatch(adminHome, /label: '侧边栏管理'|to: '\/admin\/sidebar'/)
   assert.doesNotMatch(adminHome, /label: '页脚与联系方式'|to: '\/admin\/footer'/)
