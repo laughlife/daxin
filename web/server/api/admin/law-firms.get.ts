@@ -10,6 +10,7 @@ import { resolvePageWindow } from '../../utils/public/query'
 import {
   adminEntityCountSql,
   adminEntityListSql,
+  ADMIN_MAX_PAGE_SIZE,
   adminPageSize,
   buildEntityAdminFilterSql,
   mapAdminEntityRow,
@@ -32,7 +33,7 @@ export default defineEventHandler(async (event) => {
   try {
     const countRows = await queryTarget<CountRow>(`${adminEntityCountSql('law_firms')}${filter.sql}`, filter.params)
     const total = Number(countRows[0]?.total ?? 0)
-    const window = resolvePageWindow(total, query.page, adminPageSize(query.pageSize))
+    const window = resolvePageWindow(total, query.page, adminPageSize(query.pageSize), ADMIN_MAX_PAGE_SIZE)
     const meta = {
       page: window.page,
       pageSize: window.pageSize,

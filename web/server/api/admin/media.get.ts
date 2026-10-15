@@ -5,17 +5,16 @@
 //   - 先校验管理员登录态与 media:read 权限（异常转 401/403 JSON，同 media.post.ts）；
 //   - 默认排除软删除行（deleted_at IS NULL），includeDeleted=1 时一并返回；
 //   - 排序固定 created_at DESC, id DESC（新上传的排在最前）；
-//   - 分页复用 utils/public/query.ts 的夹取逻辑：page >= 1，pageSize 1..48，越界页夹到最后一页。
+//   - 分页复用 utils/public/query.ts 的夹取逻辑：page >= 1，pageSize 1..50，越界页夹到最后一页。
 import type { H3Event } from 'h3'
 import { requireAdmin } from '../../utils/auth/context'
 import { queryTarget } from '../../utils/db/query'
 import { escapeLikePattern } from '../../utils/public/article-query'
 import { normalizePage, normalizePageSize, normalizeText, resolvePageWindow } from '../../utils/public/query'
+import { ADMIN_DEFAULT_PAGE_SIZE, ADMIN_MAX_PAGE_SIZE } from '../../utils/admin/content-queries'
 
 type ApiError = { error: { code: string; message: string } }
 
-/** 后台列表默认每页条数（与契约一致：1..48，默认 20）。 */
-const DEFAULT_ADMIN_PAGE_SIZE = 20
 const MAX_SCOPE_LENGTH = 32
 const MAX_KEYWORD_LENGTH = 128
 
@@ -100,11 +99,11 @@ function parseIncludeDeleted(value: unknown): boolean {
   return text === '1' || text === 'true' || text === 'yes'
 }
 
-/** pageSize 缺省时用后台默认值 20（其余情况交给共享夹取函数）。 */
+/** pageSize 缺省时用后台统一默认值（其余情况交给共享夹取函数）。 */
 function resolvePageSize(value: unknown): number {
   const text = normalizeText(value)
-  if (!text) return DEFAULT_ADMIN_PAGE_SIZE
-  return normalizePageSize(value)
+  if (!text) return ADMIN_DEFAULT_PAGE_SIZE
+  return normalizePageSize(value, ADMIN_MAX_PAGE_SIZE)
 }
 
 function mapRow(row: MediaRow): MediaListItem {
@@ -166,7 +165,7 @@ export default defineEventHandler(async (event) => {
       params,
     )
     const total = Math.trunc(num(countRows[0]?.total))
-    const window = resolvePageWindow(total, normalizePage(query.page), resolvePageSize(query.pageSize))
+    const window = resolvePageWindow(total, normalizePage(query.page), resolvePageSize(query.pageSize), ADMIN_MAX_PAGE_SIZE)
 
     // 越界页按契约返回空数组，不再查库。
     const rows = window.beyondLastPage

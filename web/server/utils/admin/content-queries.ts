@@ -43,12 +43,10 @@ export interface AdminFilterSql {
 /**
  * 后台内容列表默认每页条数。
  *
- * 契约 task7 §二 要求「分页规则与公开接口一致：page >= 1、pageSize 1..48（默认 20）」，
- * 而 utils/public/query.ts 的 DEFAULT_PAGE_SIZE 是 12（公开页面口径）。为同时满足两者：
- * 夹取（下限 1、上限 48、越界页夹到最后一页）**完全复用** public 的
- * normalizePageSize / resolvePageWindow，本函数只负责在请求未给出 pageSize 时补 20。
+ * 后台页面默认 20 条，最多 50 条；页码与边界处理复用公开分页工具，后台上限单独传入。
  */
 export const ADMIN_DEFAULT_PAGE_SIZE = 20
+export const ADMIN_MAX_PAGE_SIZE = 50
 
 /** 未提供 pageSize 时补后台默认值；其余取值原样交给 resolvePageWindow 夹取。 */
 export function adminPageSize(value: unknown): unknown {

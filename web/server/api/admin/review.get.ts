@@ -5,12 +5,13 @@
 //   - 先校验管理员登录态与 review:read 权限；
 //   - 排序固定为 confidence ASC, id ASC —— 置信度最低（信息最少、最需要人看）的排在前面，
 //     同分时按 id 升序保证翻页稳定；若用 DESC，则前端第一页全是几乎确定的行，人工成本被浪费；
-//   - 分页沿用公开接口的 normalizePage/normalizePageSize/resolvePageWindow；
+//   - 分页沿用公开接口的 normalizePage/resolvePageWindow，并统一使用后台上限 50；
 //   - 所有筛选条件都进入参数数组，SQL 里只有 ? 占位符。
 import type { H3Event } from 'h3'
 import { requireAdmin } from '../../utils/auth/context'
 import { queryTarget } from '../../utils/db/query'
-import { normalizePage, normalizePageSize, resolvePageWindow } from '../../utils/public/query'
+import { normalizePage, resolvePageWindow } from '../../utils/public/query'
+import { ADMIN_DEFAULT_PAGE_SIZE, ADMIN_MAX_PAGE_SIZE } from '../../utils/admin/content-queries'
 import { mapReviewRow, normalizeEntityType, normalizeReviewStatus, type ReviewRow } from '../../utils/admin/review-queries'
 
 const DEFAULT_STATUS = 'open'
@@ -77,7 +78,10 @@ export default defineEventHandler(async (event) => {
     return { error: { code: 'REVIEW_READ_FAILED', message: '读取核验队列失败，请稍后重试' } }
   }
 
-  const window = resolvePageWindow(total, requestedPage, requestedPageSize)
+  const pageSize = requestedPageSize === undefined || requestedPageSize === null || String(requestedPageSize).trim() === ''
+    ? ADMIN_DEFAULT_PAGE_SIZE
+    : requestedPageSize
+  const window = resolvePageWindow(total, requestedPage, pageSize, ADMIN_MAX_PAGE_SIZE)
   const meta = {
     page: window.page,
     pageSize: window.pageSize,

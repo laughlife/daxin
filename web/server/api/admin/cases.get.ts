@@ -1,7 +1,7 @@
 // GET /api/admin/cases
 //
 // 后台案例列表。分页夹取复用 utils/public/query.ts 的 resolvePageWindow（与公开接口同一套规则：
-// page >= 1、pageSize 1..48 默认 20、越界页返回空数组并把 meta.page 夹到最后一页）。
+// page >= 1、pageSize 1..50 默认 20、越界页返回空数组并把 meta.page 夹到最后一页）。
 // 筛选：keyword 命中案件号 / 原告 / 内部标题 / 法院 / 关联品牌名 / 关联律所名；
 // status（以及别名 publishStatus）按 publish_status 过滤，非法取值一律忽略。
 // 权限：case:read。
@@ -11,6 +11,7 @@ import { resolvePageWindow } from '../../utils/public/query'
 import {
   ADMIN_CASE_COUNT_SQL,
   ADMIN_CASE_LIST_SQL,
+  ADMIN_MAX_PAGE_SIZE,
   adminPageSize,
   buildCaseAdminFilterSql,
   mapAdminCaseRow,
@@ -33,7 +34,7 @@ export default defineEventHandler(async (event) => {
   try {
     const countRows = await queryTarget<CountRow>(`${ADMIN_CASE_COUNT_SQL}${filter.sql}`, filter.params)
     const total = Number(countRows[0]?.total ?? 0)
-    const window = resolvePageWindow(total, query.page, adminPageSize(query.pageSize))
+    const window = resolvePageWindow(total, query.page, adminPageSize(query.pageSize), ADMIN_MAX_PAGE_SIZE)
     const meta = {
       page: window.page,
       pageSize: window.pageSize,

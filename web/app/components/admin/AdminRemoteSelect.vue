@@ -45,7 +45,7 @@ const props = withDefaults(defineProps<{
   /** 后端返回数组里的字段名 */
   labelKey: string
   hintKey?: string
-  /** 每页条数，服务端上限 48 */
+  /** 每页条数，服务端上限 50 */
   pageSize?: number
   /**
    * 允许「搜不到就直接用输入的名字新建」。
@@ -116,7 +116,7 @@ async function load(targetPage: number, replace: boolean) {
       query: toAdminQuery({
         keyword: keyword.value.trim(),
         page: targetPage,
-        // 服务端上限 48；这里显式夹取，避免把非法 pageSize 发出去
+        // 服务端上限 50；这里显式夹取，避免把非法 pageSize 发出去
         pageSize: Math.min(props.pageSize, ADMIN_MAX_PAGE_SIZE),
       }),
     })

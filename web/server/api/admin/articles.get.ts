@@ -1,7 +1,7 @@
 // GET /api/admin/articles
 //
 // 后台文章列表。分页夹取直接复用 utils/public/query.ts 的 resolvePageWindow（与公开接口同一套规则：
-// page >= 1、pageSize 1..48 默认 20、越界页返回空数组并把 meta.page 夹到最后一页），本文件不重复实现。
+// page >= 1、pageSize 1..50 默认 20、越界页返回空数组并把 meta.page 夹到最后一页），本文件不重复实现。
 // 筛选：keyword 命中标题 / 摘要 / slug，categoryId 精确匹配，status 只接受 draft|published|archived（非法值忽略）。
 // 权限：article:read（viewer 可读，editor / admin 读写）。
 import { requireAdmin } from '../../utils/auth/context'
@@ -10,6 +10,7 @@ import { resolvePageWindow } from '../../utils/public/query'
 import {
   ADMIN_ARTICLE_COUNT_SQL,
   ADMIN_ARTICLE_LIST_SQL,
+  ADMIN_MAX_PAGE_SIZE,
   adminPageSize,
   buildArticleAdminFilterSql,
   mapAdminArticleRow,
@@ -32,7 +33,7 @@ export default defineEventHandler(async (event) => {
   try {
     const countRows = await queryTarget<CountRow>(`${ADMIN_ARTICLE_COUNT_SQL}${filter.sql}`, filter.params)
     const total = Number(countRows[0]?.total ?? 0)
-    const window = resolvePageWindow(total, query.page, adminPageSize(query.pageSize))
+    const window = resolvePageWindow(total, query.page, adminPageSize(query.pageSize), ADMIN_MAX_PAGE_SIZE)
     const meta = {
       page: window.page,
       pageSize: window.pageSize,

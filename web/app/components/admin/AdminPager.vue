@@ -7,7 +7,7 @@ import { ADMIN_PAGE_SIZE_OPTIONS } from '~/utils/adminApi'
  *
  * 页码窗口与展示口径与 `cases/CasePagination.vue` 一致，但后台列表要求：
  *   - 必须展示服务端 `meta.total` / `meta.totalPages`，不自行估算；
- *   - 提供每页条数切换（服务端上限 48），方便管理员翻查大量品牌 / 律所。
+ *   - 提供每页条数切换（服务端上限 50），方便管理员翻查大量品牌 / 律所。
  * 总数与总页数全部来自父组件传入的 meta，本组件不做任何本地推算。
  */
 const props = withDefaults(defineProps<{

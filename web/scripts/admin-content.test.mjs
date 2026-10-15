@@ -13,6 +13,8 @@ import {
   ADMIN_ARTICLE_COUNT_SQL,
   ADMIN_ARTICLE_LIST_SQL,
   ARTICLE_WRITABLE_COLUMNS,
+  ADMIN_DEFAULT_PAGE_SIZE,
+  ADMIN_MAX_PAGE_SIZE,
   BRAND_WRITABLE_COLUMNS,
   CASE_WRITABLE_COLUMNS,
   LAW_FIRM_WRITABLE_COLUMNS,
@@ -371,19 +373,34 @@ test('日期与时间入参：非法值明确失败，null / 空串表示清空'
   assert.equal(toBooleanFlag(0), false)
 })
 
-test('后台列表分页：只补默认值 20，夹取规则仍完全复用公开接口的 resolvePageWindow', () => {
+test('后台列表分页：统一支持 10/20/30/40/50 条，接口最多返回 50 条', () => {
+  assert.equal(ADMIN_DEFAULT_PAGE_SIZE, 20)
+  assert.equal(ADMIN_MAX_PAGE_SIZE, 50)
   assert.equal(adminPageSize(undefined), 20)
   assert.equal(adminPageSize(null), 20)
   assert.equal(adminPageSize(''), 20)
-  assert.equal(adminPageSize('48'), '48', '显式取值原样交给公开 helper')
 
-  assert.equal(resolvePageWindow(100, undefined, adminPageSize(undefined)).pageSize, 20)
-  assert.equal(resolvePageWindow(100, 1, adminPageSize(999)).pageSize, 48, '上限 48 仍由公开 helper 夹取')
-  assert.equal(resolvePageWindow(100, 1, adminPageSize(0)).pageSize, 1, '下限 1 仍由公开 helper 夹取')
+  for (const size of [10, 20, 30, 40, 50]) {
+    assert.equal(resolvePageWindow(100, 1, adminPageSize(size), ADMIN_MAX_PAGE_SIZE).pageSize, size)
+  }
+  assert.equal(resolvePageWindow(100, 1, adminPageSize(999), ADMIN_MAX_PAGE_SIZE).pageSize, 50, '后台接口上限为 50')
+  assert.equal(resolvePageWindow(100, 1, adminPageSize(0), ADMIN_MAX_PAGE_SIZE).pageSize, 1, '下限 1 仍由共享 helper 夹取')
   const beyond = resolvePageWindow(100, 99, adminPageSize(20))
   assert.equal(beyond.beyondLastPage, true)
   assert.equal(beyond.page, 5)
   assert.equal(beyond.totalPages, 5)
+})
+
+test('后台所有分页接口使用后台 50 条上限，前端所有分页器共用五档选项', async () => {
+  const adminApiSource = await readFile(new URL('../app/utils/adminApi.ts', import.meta.url), 'utf8')
+  assert.match(adminApiSource, /ADMIN_MAX_PAGE_SIZE\s*=\s*50/)
+  assert.match(adminApiSource, /ADMIN_PAGE_SIZE_OPTIONS[^\n]*\[10,\s*20,\s*30,\s*40,\s*50\]/)
+
+  for (const file of ['articles.get.ts', 'cases.get.ts', 'brands.get.ts', 'law-firms.get.ts', 'media.get.ts', 'review.get.ts']) {
+    const source = await readFile(new URL(`../server/api/admin/${file}`, import.meta.url), 'utf8')
+    assert.match(source, /ADMIN_MAX_PAGE_SIZE/, `${file} must cap results at 50`)
+    assert.match(source, /resolvePageWindow\([\s\S]*?ADMIN_MAX_PAGE_SIZE\)/, `${file} must apply the 50-row cap to its query window`)
+  }
 })
 
 test('列表过滤片段：参数全部走占位符，非法筛选值被忽略', () => {  const article = buildArticleAdminFilterSql({ keyword: 'TRO', categoryId: '2', status: 'deleted' })
