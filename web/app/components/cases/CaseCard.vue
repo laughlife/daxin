@@ -35,7 +35,6 @@ const emit = defineEmits<{
       <span v-else>品牌待确认</span>
     </h3>
     <p class="case-card__number">案件号：{{ record.caseNumber || '—' }}</p>
-    <p class="case-card__summary">{{ record.summary }}</p>
     <dl class="case-card__meta">
       <div>
         <dt>起诉时间</dt>
@@ -118,11 +117,6 @@ const emit = defineEmits<{
 .case-card__number {
   font-size: var(--text-xs);
   font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
-  color: var(--color-text-muted);
-}
-
-.case-card__summary {
-  font-size: var(--text-sm);
   color: var(--color-text-muted);
 }
 

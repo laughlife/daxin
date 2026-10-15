@@ -1,7 +1,7 @@
 // PUT /api/admin/cases/[id]
 //
 // 更新案例。约定：
-//   - 只接受白名单字段（caseNumber / filedAt / plaintiff / court / title / summary / status / publishStatus）
+//   - 只接受白名单字段（caseNumber / filedAt / plaintiff / court / title / status / publishStatus）
 //     以及关联 brandId / lawFirmId / ipTypeId；请求体里的其它键（legacy_*、migration_batch_id、verified_at）一律忽略；
 //   - 只改请求里显式给出的字段；关联采用「按 id 覆盖式替换」，undefined 不碰、null 清空；
 //   - 改 caseNumber 时同步重算 case_year / case_seq / case_type，避免派生列与案件号不一致；
@@ -67,7 +67,6 @@ export default defineEventHandler(async (event) => {
       plaintiff: toText(current.plaintiff),
       court: toText(current.court),
       title: toText(current.title),
-      summary: toText(current.summary),
       status: readCaseStatus(current.status),
       publish_status: readPublishStatus(current.publish_status),
     }
@@ -101,7 +100,6 @@ export default defineEventHandler(async (event) => {
     if (hasOwn(body, 'plaintiff')) changes.plaintiff = toText(body.plaintiff)
     if (hasOwn(body, 'court')) changes.court = toText(body.court)
     if (hasOwn(body, 'title')) changes.title = toText(body.title)
-    if (hasOwn(body, 'summary')) changes.summary = toText(body.summary)
 
     if (hasOwn(body, 'status')) {
       const status = parseCaseStatus(body.status, 'open')

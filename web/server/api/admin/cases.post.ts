@@ -81,15 +81,14 @@ export default defineEventHandler(async (event) => {
     const plaintiff = toText(body.plaintiff)
     const court = toText(body.court)
     const title = toText(body.title)
-    const summary = toText(body.summary)
 
     const caseId = await withTargetTransaction(async (connection) => {
       const [header] = await connection.execute(
         `INSERT INTO cases
-           (case_number, case_year, case_seq, case_type, filed_at, plaintiff, court, title, summary,
+           (case_number, case_year, case_seq, case_type, filed_at, plaintiff, court, title,
             status, publish_status, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-        [caseNumber, parts.caseYear, parts.caseSeq, parts.caseType, filedAt, plaintiff, court, title, summary, status, publishStatus],
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+        [caseNumber, parts.caseYear, parts.caseSeq, parts.caseType, filedAt, plaintiff, court, title, status, publishStatus],
       )
       const insertId = Number((header as { insertId?: unknown })?.insertId ?? 0)
       for (const statement of buildCaseRelationStatements(insertId, relations.relations)) {
@@ -112,7 +111,6 @@ export default defineEventHandler(async (event) => {
         plaintiff,
         court,
         title,
-        summary,
         status,
         publishStatus,
         brandId: relations.relations.brandId ?? null,

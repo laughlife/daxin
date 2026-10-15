@@ -87,7 +87,6 @@ useSeoMeta({
               <h3>
                 <NuxtLink :to="`/tro/cases/${record.slug}`">{{ record.caseNumber }} · {{ record.plaintiffBrand }}</NuxtLink>
               </h3>
-              <p>{{ record.summary }}</p>
               <p>
                 原告：{{ record.plaintiffName || '—' }}
                 · 代理律所：

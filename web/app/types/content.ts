@@ -68,13 +68,11 @@ export interface CaseRecord {
   caseType: CaseType | ''
   caseTypes?: CaseType[]
   plaintiffName?: string
-  source?: { articleId: number; title: string; publishedAt: string; table: string; excerpt: string }
+  source?: { articleId: number; title: string; href: string }
   /** 展示分类，如 “商标侵权” */
   category: string
   /** 案件状态 */
   status: string
-  /** 摘要 */
-  summary: string
   /** 标签 */
   tags: string[]
   /** 是否“近 3 天”更新（固定标记，避免 SSR 时间不一致） */

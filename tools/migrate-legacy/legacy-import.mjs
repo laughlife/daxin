@@ -279,12 +279,12 @@ async function writeCasesAndFetchIds(target, caseBest, batchId) {
     const caseSeq = seqMatch ? Number(seqMatch[1]) : null
     const caseType = typeMatch ? typeMatch[1] : 'cv'
     return `INSERT INTO cases
-  (case_number, case_year, case_seq, case_type, court, filed_at, plaintiff, title, summary, status, publish_status,
+  (case_number, case_year, case_seq, case_type, court, filed_at, plaintiff, title, status, publish_status,
    legacy_source_table, legacy_source_id, migration_batch_id)
 VALUES
   (${quoteLiteral(caseNumber)}, ${caseYear ?? 'NULL'}, ${caseSeq ?? 'NULL'}, ${quoteLiteral(caseType)},
    ${quoteLiteral(candidate.court)}, ${candidate.filedAt ? quoteLiteral(candidate.filedAt) : 'NULL'},
-   ${quoteLiteral(candidate.plaintiff)}, ${quoteLiteral(article.title)}, ${quoteLiteral(article.summary)},
+   ${quoteLiteral(candidate.plaintiff)}, ${quoteLiteral(article.title)},
    'open', 'published', ${quoteLiteral(article.sourceTable)}, ${Number.parseInt(article.sourceId, 10) || 0}, ${batchId})
 ON DUPLICATE KEY UPDATE
   court = IF(VALUES(court) <> '', VALUES(court), court),

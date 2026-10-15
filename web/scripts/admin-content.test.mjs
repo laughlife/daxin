@@ -9,6 +9,7 @@ import { join, relative, resolve } from 'node:path'
 import { test } from 'node:test'
 import { resolvePageWindow } from '../server/utils/public/query.ts'
 const articleAdminSource = await readFile(new URL('../app/pages/admin/articles.vue', import.meta.url), 'utf8')
+const caseAdminSource = await readFile(new URL('../app/pages/admin/cases.vue', import.meta.url), 'utf8')
 import {
   ADMIN_ARTICLE_COUNT_SQL,
   ADMIN_ARTICLE_LIST_SQL,
@@ -208,6 +209,7 @@ test('可写列白名单不含只读 / 派生列', () => {
   }
   assert.ok(!BRAND_WRITABLE_COLUMNS.includes('region'), 'region 只属于律所')
   assert.ok(LAW_FIRM_WRITABLE_COLUMNS.includes('region'))
+  assert.ok(!CASE_WRITABLE_COLUMNS.includes('summary'), '案件摘要不再由后台写入')
   for (const column of ['legacy_source_table', 'legacy_source_id', 'migration_batch_id', 'verified_at']) {
     assert.ok(!ARTICLE_WRITABLE_COLUMNS.includes(column))
     assert.ok(!CASE_WRITABLE_COLUMNS.includes(column))
@@ -281,6 +283,30 @@ test('mapAdminCaseRow：NULL filed_at / plaintiff 收敛成空串，内部列不
   assert.equal(detail.lawFirmId, null)
   assert.equal(detail.ipTypeId, null)
   assert.equal(detail.caseNumber, '')
+  assert.ok(!Object.hasOwn(detail, 'summary'), '后台案件详情不返回摘要字段')
+})
+
+test('后台案件编辑与 API 不再保留或读写案件摘要', async () => {
+  assert.doesNotMatch(caseAdminSource, /case-summary|form\.summary/)
+  for (const file of [
+    '../server/api/admin/cases.post.ts',
+    '../server/api/admin/cases/[id].get.ts',
+    '../server/api/admin/cases/[id].put.ts',
+  ]) {
+    const source = await readFile(new URL(file, import.meta.url), 'utf8')
+    assert.doesNotMatch(source, /summary/, `${file} must not accept or return case summaries`)
+  }
+  const queries = await readFile(new URL('../server/utils/admin/content-queries.ts', import.meta.url), 'utf8')
+  const caseQuerySection = queries.slice(queries.indexOf('export const ADMIN_CASE_COLUMNS'), queries.indexOf('/** 品牌 / 律所：'))
+  assert.doesNotMatch(caseQuerySection, /summary/)
+  assert.doesNotMatch(queries.slice(queries.indexOf('export function mapAdminCaseRow'), queries.indexOf('/** 品牌 / 律所：')), /summary/)
+
+  const migration = await readFile(new URL('../../database/migrations/017_clear_case_summaries.sql', import.meta.url), 'utf8')
+  assert.match(migration, /UPDATE\s+cases\s+SET\s+summary\s*=\s*NULL/i)
+
+  const importer = await readFile(new URL('../../tools/migrate-legacy/legacy-import.mjs', import.meta.url), 'utf8')
+  const caseImport = importer.slice(importer.indexOf('async function writeCasesAndFetchIds'), importer.indexOf('/**\n * 旧站正文没有独立的品牌字段'))
+  assert.doesNotMatch(caseImport, /summary/)
 })
 
 test('mapAdminArticleRow：NULL 分类保留 null，内部列不外泄', () => {

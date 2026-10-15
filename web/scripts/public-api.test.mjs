@@ -270,10 +270,51 @@ test('映射：没有任何关联数据时仍产出合法 CaseRecord，并用空
   // cases.status 属内部状态，不对外暴露
   assert.equal(record.status, '')
   assert.equal(record.plaintiffName, 'DDC Technology, LLC')
-  assert.equal(record.summary, '案件摘要')
+  assert.ok(!Object.hasOwn(record, 'summary'), '案件摘要不再进入公开案件数据')
   assert.deepEqual(record.tags, [])
   assert.equal(record.isRecent, false)
   assert.equal(record.source, undefined)
+})
+
+test('案件来源只保留可跳转标题，案件摘要不进入公开页面展示', async () => {
+  const record = mapCaseRecord({
+    id: 8,
+    case_number: '25-cv-0008',
+    filed_at: '2025-01-02',
+    plaintiff: 'Example LLC',
+    summary: '仅供后台保留的案件摘要',
+  }, {
+    source: {
+      articleId: 31,
+      slug: 'tro-case-update-31',
+      title: 'TRO 案件进展',
+      publishedAt: '2025-01-03',
+      table: 'legacy_articles',
+      excerpt: '来源文章摘要不在案件详情重复展示',
+    },
+  })
+  assert.deepEqual(record.source, {
+    articleId: 31,
+    title: 'TRO 案件进展',
+    href: '/tro-case-update-31',
+  })
+
+  for (const file of [
+    '../app/components/cases/CaseCard.vue',
+    '../app/components/home/CasePreviewCard.vue',
+    '../app/components/content/EntityDetail.vue',
+    '../app/pages/tro/cases/[id].vue',
+  ]) {
+    const source = await readFileSync(new URL(file, import.meta.url), 'utf8')
+    assert.doesNotMatch(source, /(?:record|item)\.summary/, `${file} must not render case summaries`)
+  }
+  const caseDetail = readFileSync(new URL('../app/pages/tro/cases/[id].vue', import.meta.url), 'utf8')
+  assert.match(caseDetail, /NuxtLink[^>]*:to="record\.source\.href"[\s\S]*?\{\{ record\.source\.title \}\}/)
+  assert.doesNotMatch(caseDetail, /record\.source\.(?:excerpt|publishedAt)/)
+  const caseQueries = readFileSync(new URL('../server/utils/public/case-queries.ts', import.meta.url), 'utf8')
+  const sourceQuery = caseQueries.slice(caseQueries.indexOf('queryTarget<SourceRow>'), caseQueries.indexOf('const sources = new Map'))
+  assert.match(sourceQuery, /a\.slug AS slug[\s\S]*?a\.title AS title/)
+  assert.doesNotMatch(sourceQuery, /summary|excerpt|published_at/)
 })
 
 test('映射：slug 一律小写，字段缺失时不臆造内容', () => {
@@ -289,7 +330,7 @@ test('映射：slug 一律小写，字段缺失时不臆造内容', () => {
   assert.equal(record.caseNumber, '25-CV-00122')
   assert.equal(record.filedAt, '')
   assert.equal(record.plaintiffName, '')
-  assert.equal(record.summary, '')
+  assert.ok(!Object.hasOwn(record, 'summary'))
   assert.equal(record.isRecent, false)
 })
 
@@ -318,12 +359,13 @@ test('映射：关联品牌、律所与侵权类型参与分类与展示', () =>
   assert.equal(record.isRecent, true)
 })
 
-test('映射：来源文章只在标题存在时返回，日期统一为 YYYY-MM-DD', () => {
+test('映射：来源文章只返回可跳转标题，不返回摘要与日期', () => {
   const record = mapCaseRecord(
     { id: 1, case_number: '24-cv-0006', filed_at: '2024-01-15', plaintiff: 'DDC', summary: '' },
     {
       source: {
         articleId: 8,
+        slug: 'patent-update',
         title: '  八个专利，VR 眼镜都不能卖了？  ',
         publishedAt: new Date(2024, 0, 17),
         table: 'cn_list',
@@ -336,14 +378,12 @@ test('映射：来源文章只在标题存在时返回，日期统一为 YYYY-MM
   assert.deepEqual(record.source, {
     articleId: 8,
     title: '八个专利，VR 眼镜都不能卖了？',
-    publishedAt: '2024-01-17',
-    table: 'cn_list',
-    excerpt: '摘 要',
+    href: '/patent-update',
   })
 
   const noTitle = mapCaseRecord(
     { id: 2, case_number: '24-cv-0007', filed_at: null, plaintiff: '', summary: '' },
-    { source: { articleId: 9, title: '  ', publishedAt: null, table: 'cn_list', excerpt: '' } },
+    { source: { articleId: 9, slug: 'missing-title', title: '  ' } },
   )
   assert.equal(noTitle.source, undefined)
 })

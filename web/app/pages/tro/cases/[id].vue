@@ -51,9 +51,9 @@ const errorMessage = computed(() =>
 
 useSeoMeta({
   title: () => record.value ? `${record.value.plaintiffBrand || record.value.caseNumber} - TRO 案件详情` : 'TRO 案件详情',
-  description: () => record.value ? `${record.value.caseNumber}：${record.value.summary}` : 'TRO 案件详情',
+  description: () => record.value ? `案件号：${record.value.caseNumber} · TRO 案件详情` : 'TRO 案件详情',
   ogTitle: () => record.value ? `${record.value.plaintiffBrand || record.value.caseNumber} - TRO 案件详情` : 'TRO 案件详情',
-  ogDescription: () => record.value?.summary ?? ''
+  ogDescription: () => record.value ? `案件号：${record.value.caseNumber}` : ''
 })
 </script>
 
@@ -122,16 +122,10 @@ useSeoMeta({
 
         <section v-if="record.source" class="case-detail__section" aria-label="资料来源">
           <SectionHeading :level="2" title="资料来源" />
-          <p class="case-detail__summary">《{{ record.source.title }}》 · 发布于 {{ record.source.publishedAt || '—' }}</p>
-          <p v-if="record.source.excerpt" class="case-detail__summary">{{ record.source.excerpt }}</p>
-        </section>
-
-        <section v-if="record.summary" class="case-detail__section" aria-label="案件摘要">
-          <SectionHeading :level="2" title="案件摘要" />
-          <p class="case-detail__summary">{{ record.summary }}</p>
-          <ul v-if="record.tags.length" class="case-detail__tags">
-            <li v-for="tag in record.tags" :key="tag">{{ tag }}</li>
-          </ul>
+          <NuxtLink v-if="record.source.href" :to="record.source.href" class="case-detail__source-link">
+            {{ record.source.title }}
+          </NuxtLink>
+          <span v-else class="case-detail__source-link">{{ record.source.title }}</span>
         </section>
 
         <section
@@ -249,26 +243,7 @@ useSeoMeta({
   border-radius: var(--radius-lg);
 }
 
-.case-detail__summary {
-  margin-top: var(--space-3);
-  color: var(--color-text);
-  line-height: var(--leading-relaxed);
-}
-
-.case-detail__tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin-top: var(--space-4);
-}
-
-.case-detail__tags li {
-  padding: 2px var(--space-3);
-  border-radius: var(--radius-full);
-  background-color: var(--color-bg-light);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-}
+.case-detail__source-link { display:inline-block; margin-top:var(--space-3); color:var(--color-primary); font-weight:600; }
 
 .case-detail__related {
   display: flex;

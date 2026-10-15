@@ -51,18 +51,15 @@ type IpTypeRow = {
 
 type SourceRow = {
   case_id: number | string | null
-  source_table: string | null
   article_id: number | string | null
+  slug: string | null
   title: string | null
-  published_at: string | null
-  excerpt: string | null
 }
 
 const CASE_COLUMNS = `c.id,
   c.case_number,
   DATE_FORMAT(c.filed_at, '%Y-%m-%d') AS filed_at,
-  c.plaintiff,
-  c.summary`
+  c.plaintiff`
 
 /** NULL 日期排在最后，其余按起诉时间倒序、案件号倒序。 */
 const CASE_ORDER_BY = 'ORDER BY (c.filed_at IS NULL) ASC, c.filed_at DESC, c.case_number DESC'
@@ -144,11 +141,9 @@ async function loadCaseRelations(ids: number[]): Promise<CaseRelations> {
     // 只公开已发布文章的来源信息，草稿文章不对外暴露。
     queryTarget<SourceRow>(
       `SELECT cs.case_id AS case_id,
-              cs.source_table AS source_table,
               a.id AS article_id,
-              a.title AS title,
-              DATE_FORMAT(a.published_at, '%Y-%m-%d') AS published_at,
-              a.summary AS excerpt
+              a.slug AS slug,
+              a.title AS title
        FROM case_sources cs
        JOIN articles a ON a.legacy_source_table = cs.source_table AND a.legacy_source_id = cs.source_id
        WHERE cs.case_id IN (${placeholders}) AND a.status = 'published'
@@ -164,10 +159,8 @@ async function loadCaseRelations(ids: number[]): Promise<CaseRelations> {
     if (caseId <= 0 || sources.has(caseId)) continue
     sources.set(caseId, {
       articleId: toNumber(row.article_id),
+      slug: row.slug,
       title: row.title,
-      publishedAt: row.published_at,
-      table: row.source_table,
-      excerpt: row.excerpt,
     })
   }
 

@@ -25,7 +25,6 @@ defineProps<{
     <h3 class="case-preview-card__brand">
       <NuxtLink :to="`/tro/cases/${record.slug}`">{{ record.plaintiffBrand || record.caseNumber }}</NuxtLink>
     </h3>
-    <p class="case-preview-card__summary">{{ record.summary }}</p>
     <dl class="case-preview-card__meta">
       <div>
         <dt>案件号</dt>
@@ -108,15 +107,6 @@ defineProps<{
 
 .case-preview-card__brand a:hover {
   color: var(--color-primary);
-}
-
-.case-preview-card__summary {
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
 }
 
 .case-preview-card__meta {

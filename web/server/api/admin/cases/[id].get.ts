@@ -1,6 +1,6 @@
 // GET /api/admin/cases/[id]
 //
-// 后台案例详情：列表字段 + 可编辑字段（title / summary）+ 当前关联 id
+// 后台案例详情：列表字段 + 可编辑字段（title）+ 当前关联 id
 // （brandId / lawFirmId / ipTypeId）。案例的类型不在 cases 表上：caseType 来自
 // case_ip_types + ip_types.slug，后台改类型时替换该关联即可（见 buildCaseRelationStatements）。
 // 权限：case:read。

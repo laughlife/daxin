@@ -505,7 +505,7 @@ export const ARTICLE_WRITABLE_COLUMNS: readonly string[] = Object.freeze([
 /** cases 可写列；legacy_*、migration_batch_id、verified_at 一律不可写。 */
 export const CASE_WRITABLE_COLUMNS: readonly string[] = Object.freeze([
   'case_number', 'case_year', 'case_seq', 'case_type', 'filed_at', 'plaintiff',
-  'court', 'title', 'summary', 'status', 'publish_status',
+  'court', 'title', 'status', 'publish_status',
 ])
 
 /** brands 可写列；case_count 只读，region 不属于品牌，均不在此列。 */
@@ -801,7 +801,7 @@ LIMIT 1`
 /** 案例列表 / 详情共用列口径；品牌 / 律所 / 侵权类型各取一条用于列表展示。 */
 export const ADMIN_CASE_COLUMNS = `c.id, c.case_number,
   DATE_FORMAT(c.filed_at, '%Y-%m-%d') AS filed_at,
-  c.plaintiff, c.court, COALESCE(c.summary, '') AS summary,
+  c.plaintiff, c.court,
   c.status, c.publish_status,
   DATE_FORMAT(c.updated_at, '%Y-%m-%d %H:%i:%s') AS updated_at,
   (
@@ -988,7 +988,6 @@ export interface AdminCaseRow {
   plaintiff?: unknown
   court?: unknown
   title?: unknown
-  summary?: unknown
   status?: unknown
   publish_status?: unknown
   updated_at?: unknown
@@ -1023,7 +1022,6 @@ export function mapAdminCaseRow(row: AdminCaseRow): AdminCaseItem {
 /** 后台案例详情：列表字段 + 可编辑字段与当前关联 id。 */
 export interface AdminCaseDetail extends AdminCaseItem {
   title: string
-  summary: string
   brandId: number | null
   lawFirmId: number | null
   ipTypeId: number | null
@@ -1033,7 +1031,6 @@ export function mapAdminCaseDetail(row: AdminCaseRow): AdminCaseDetail {
   return {
     ...mapAdminCaseRow(row),
     title: toText(row.title),
-    summary: toText(row.summary),
     brandId: toNullableId(row.brand_id),
     lawFirmId: toNullableId(row.law_firm_id),
     ipTypeId: toNullableId(row.ip_type_id),

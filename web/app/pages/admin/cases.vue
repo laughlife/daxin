@@ -217,7 +217,6 @@ interface CaseForm {
   filedAt: string
   plaintiff: string
   title: string
-  summary: string
   status: string
   publishStatus: string
   brandId: number | null
@@ -230,7 +229,6 @@ const form = reactive<CaseForm>({
   filedAt: '',
   plaintiff: '',
   title: '',
-  summary: '',
   status: 'open',
   publishStatus: 'draft',
   brandId: null,
@@ -274,7 +272,6 @@ function resetForm() {
   form.filedAt = ''
   form.plaintiff = ''
   form.title = ''
-  form.summary = ''
   form.status = 'open'
   form.publishStatus = 'draft'
   form.brandId = null
@@ -317,7 +314,6 @@ async function openEdit(item: AdminCaseItem) {
     form.filedAt = toDateValue(record.filedAt)
     form.plaintiff = record.plaintiff
     form.title = record.title
-    form.summary = record.summary
     form.status = record.status || 'open'
     form.publishStatus = record.publishStatus || 'draft'
     form.brandId = record.brandId
@@ -436,7 +432,6 @@ async function onSubmit(publish = false) {
     filedAt: form.filedAt || '',
     plaintiff: form.plaintiff,
     title: form.title,
-    summary: form.summary,
     status: form.status,
     publishStatus: publish ? 'published' : form.publishStatus
   }
@@ -637,17 +632,6 @@ function onPageSize(next: number) {
         <div class="admin-cases__field">
           <label class="admin-cases__label" for="case-title">内部标题</label>
           <input id="case-title" v-model="form.title" class="admin-cases__input" type="text" maxlength="255" :disabled="!canWrite">
-        </div>
-
-        <div class="admin-cases__field">
-          <label class="admin-cases__label" for="case-summary">摘要</label>
-          <textarea
-            id="case-summary"
-            v-model="form.summary"
-            class="admin-cases__textarea"
-            rows="4"
-            :disabled="!canWrite"
-          />
         </div>
 
         <fieldset class="admin-cases__relations">

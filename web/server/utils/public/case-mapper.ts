@@ -83,16 +83,13 @@ export interface CaseRowInput {
   case_number: string | null
   filed_at: string | Date | null
   plaintiff: string | null
-  summary: string | null
 }
 
 /** case_sources + articles 关联出的来源信息。 */
 export interface CaseSourceInput {
   articleId: number | string | null
+  slug: string | null
   title: string | null
-  publishedAt: string | Date | null
-  table: string | null
-  excerpt: string | null
 }
 
 /** 关联数据由调用方批量查出后传入，避免在映射阶段逐条查库（N+1）。 */
@@ -131,12 +128,11 @@ function mapSource(source: CaseSourceInput | null | undefined): CaseRecord['sour
   if (!source) return undefined
   const title = normalizeText(source.title)
   if (!title) return undefined
+  const slug = normalizeText(source.slug)
   return {
     articleId: toCount(source.articleId),
     title,
-    publishedAt: toDateOnly(source.publishedAt),
-    table: normalizeText(source.table),
-    excerpt: normalizeText(source.excerpt).slice(0, 200),
+    href: slug ? `/${encodeURIComponent(slug)}` : '',
   }
 }
 
@@ -178,7 +174,6 @@ export function mapCaseRecord(row: CaseRowInput, relations: CaseRelationsInput =
     source: mapSource(relations.source),
     category,
     status: '',
-    summary: normalizeText(row.summary),
     tags: [],
     isRecent: isRecentFiledAt(toDateOnly(row.filed_at), relations.now ?? new Date()),
     slug: caseNumber.toLowerCase(),

@@ -49,7 +49,6 @@ export interface AdminCaseItem {
 /** 案例详情：列表字段 + 可编辑字段与当前关联 id */
 export interface AdminCaseDetail extends AdminCaseItem {
   title: string
-  summary: string
   brandId: number | null
   lawFirmId: number | null
   ipTypeId: number | null
