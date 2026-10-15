@@ -157,7 +157,7 @@ const eyebrow = computed(() => props.section.path.startsWith('/tro') ? 'TRO SERV
         <template v-else>
           <p class="listing-notice">共 {{ result.total }} 篇 · {{ result.total ? '公开资料' : '暂无对应文章' }}</p>
           <p v-if="isPending" class="listing-notice" role="status">正在加载文章…</p>
-          <ArticleList :articles="result.items" :hide-excerpt="section.group === 'tro'" />
+          <ArticleList :articles="result.items" />
           <CasePagination
             :page="result.page"
             :total-pages="result.totalPages"

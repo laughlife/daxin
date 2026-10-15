@@ -1,7 +1,7 @@
 // PUT /api/admin/articles/[id]
 //
 // 更新文章。约定：
-//   - 只接受白名单字段（title / slug / summary / contentHtml / categoryId / publishedAt / status / isFeatured / showInSidebar），
+//   - 只接受白名单字段（title / slug / contentHtml / categoryId / publishedAt / status / isFeatured / showInSidebar），
 //     请求体里的其它键（view_count、legacy_source_* 等）一律忽略；
 //   - 只改请求里显式给出的字段，未提供的保持不变；显式传 null 表示清空（发布日期、分类）；
 //   - 「不静默重算任何字段」：除了「发布时补当前发布时间」（见下）之外不做任何隐含推导；
@@ -45,7 +45,6 @@ const MAX_SLUG_LENGTH = 191
 interface CurrentArticleRow {
   slug: string | null
   title: string | null
-  summary: string | null
   content_html: string | null
   category_id: number | string | null
   published_at: string | null
@@ -69,7 +68,7 @@ export default defineEventHandler(async (event) => {
 
   try {
     const currentRows = await queryTarget<CurrentArticleRow>(
-      `SELECT slug, title, COALESCE(summary, '') AS summary, COALESCE(content_html, '') AS content_html,
+      `SELECT slug, title, COALESCE(content_html, '') AS content_html,
          category_id,
          DATE_FORMAT(published_at, '%Y-%m-%d %H:%i:%s') AS published_at,
          status, is_featured, show_in_sidebar
@@ -95,7 +94,6 @@ export default defineEventHandler(async (event) => {
       changes.status = status
     }
 
-    if (hasOwn(body, 'summary')) changes.summary = toText(body.summary)
     if (hasOwn(body, 'contentHtml')) {
       changes.content_html = typeof body.contentHtml === 'string' ? body.contentHtml : ''
     }
@@ -148,7 +146,6 @@ export default defineEventHandler(async (event) => {
     const before: Record<string, unknown> = {
       slug: current.slug,
       title: current.title,
-      summary: current.summary,
       content_html: current.content_html,
       category_id: current.category_id === null ? null : Number(current.category_id),
       published_at: current.published_at,

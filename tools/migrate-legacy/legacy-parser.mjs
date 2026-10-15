@@ -4,7 +4,7 @@
 //   1. 清洗正文 HTML（白名单标签与属性、去脚本/事件属性/危险链接）；
 //   2. 转纯文本并按字段标签提取案件号、立案时间、原告、代理律所；
 //   3. 抽取正文图片引用，供后续与 OSS 资源关联；
-//   4. 生成稳定 slug、摘要与人工核验原因。
+//   4. 生成稳定 slug 与人工核验原因。
 
 /** 案件号：两位年份 + cv/cc 等类型段 + 序号，允许全角与空格分隔。 */
 export const CASE_NUMBER_PATTERN = /[0-9０-９]{2}\s*[-–—_]\s*(?:cv|cc|mc|cr|ca|md)\s*[-–—_]\s*[0-9０-９]{1,6}/gi
@@ -37,7 +37,6 @@ const UGC_MARKERS = [/在线留言/, /姓名\s*[:：]/, /电话\s*[:：]/]
 
 const PHONE_PATTERN = /\b1[3-9]\d{9}\b/
 
-const MAX_SUMMARY_LENGTH = 120
 
 /** 把全角数字、字母、横线与空格归一化为半角。 */
 export function toHalfWidth(text) {
@@ -426,13 +425,6 @@ function shortHash(text) {
   return hash.toString(16).padStart(8, '0')
 }
 
-function buildSummary(plainText, title) {
-  const withoutTitle = plainText.startsWith(title) ? plainText.slice(title.length) : plainText
-  const compact = withoutTitle.replace(/\s+/g, ' ').trim()
-  if (compact.length <= MAX_SUMMARY_LENGTH) return compact
-  return `${compact.slice(0, MAX_SUMMARY_LENGTH)}…`
-}
-
 /** Unix 时间戳转北京时间日期（旧站 dateline 为秒级时间戳）。 */
 export function formatPublishedAt(dateline) {
   const seconds = Number.parseInt(String(dateline ?? ''), 10)
@@ -465,7 +457,6 @@ export function parseLegacyArticle(row, { legacyProjectTitle = '', usedSlugs = n
     sourceId,
     slug: buildArticleSlug(title, sourceTable, sourceId, usedSlugs),
     title,
-    summary: buildSummary(plainText, title),
     contentHtml: sanitized,
     contentText: plainText,
     publishedAt: formatPublishedAt(row.dateline),

@@ -154,7 +154,6 @@ interface ArticleForm {
   title: string
   slug: string
   categoryId: string
-  summary: string
   contentHtml: string
   publishedAt: string
   status: string
@@ -166,7 +165,6 @@ const form = reactive<ArticleForm>({
   title: '',
   slug: '',
   categoryId: '',
-  summary: '',
   contentHtml: '',
   publishedAt: '',
   status: 'draft',
@@ -177,7 +175,7 @@ const previewCategory = computed(() => categoryOptions.value.find(option => Stri
 
 /**
  * 列表里的「预览内容」独立于编辑器预览：
- * 列表接口只返回标题/摘要/分类，不含正文，所以点预览时按 id 拉一次详情。
+ * 列表接口只返回标题/分类，不含正文，所以点预览时按 id 拉一次详情。
  * 单独维护一份状态，避免与编辑器预览（previewOpen）互相干扰。
  */
 const listPreviewOpen = ref(false)
@@ -185,7 +183,6 @@ const listPreviewLoading = ref(false)
 const listPreviewError = ref('')
 const listPreviewArticle = ref<{
   title: string
-  summary: string
   contentHtml: string
   meta: string
 } | null>(null)
@@ -211,7 +208,6 @@ async function openListPreview(item: AdminArticleItem) {
   // 先用列表已有字段渲染骨架，正文到位后补齐，避免弹层空白
   listPreviewArticle.value = {
     title: item.title,
-    summary: item.summary,
     contentHtml: '',
     meta: toPreviewMeta(item),
   }
@@ -223,7 +219,6 @@ async function openListPreview(item: AdminArticleItem) {
     const article = detail.article
     listPreviewArticle.value = {
       title: article.title || item.title,
-      summary: article.summary,
       contentHtml: article.contentHtml,
       meta: toPreviewMeta(item),
     }
@@ -252,7 +247,6 @@ async function openCreate() {
   form.title = ''
   form.slug = ''
   form.categoryId = ''
-  form.summary = ''
   form.contentHtml = ''
   form.publishedAt = ''
   form.status = 'draft'
@@ -278,7 +272,6 @@ async function openEdit(item: AdminArticleItem) {
   form.isFeatured = item.isFeatured
   form.showInSidebar = item.showInSidebar === true
   form.publishedAt = toDateTimeLocal(item.publishedAt)
-  form.summary = item.summary
   form.contentHtml = ''
   try {
     const detail = await requestAdminApi<{ article: AdminArticleDetail }>(
@@ -289,7 +282,6 @@ async function openEdit(item: AdminArticleItem) {
     form.title = article.title
     form.slug = article.slug
     form.categoryId = article.categoryId === null ? '' : String(article.categoryId)
-    form.summary = article.summary
     form.contentHtml = article.contentHtml
     form.publishedAt = toDateTimeLocal(article.publishedAt)
     form.status = article.status || 'draft'
@@ -340,7 +332,6 @@ async function onSubmit(publish = false) {
   actionError.value = ''
   const body: Record<string, unknown> = {
     title: form.title.trim(),
-    summary: form.summary,
     contentHtml: form.contentHtml,
     categoryId: form.categoryId ? Number(form.categoryId) : null,
     publishedAt: form.publishedAt || '',
@@ -411,7 +402,6 @@ async function openFromQuery() {
     id,
     slug: '',
     title: '',
-    summary: '',
     categoryId: null,
     categoryName: '',
     publishedAt: '',
@@ -469,7 +459,7 @@ if (import.meta.client) {
             v-model="keyword"
             class="admin-articles__input"
             type="search"
-            placeholder="标题 / 摘要 / slug"
+            placeholder="标题 / slug"
           >
         </div>
         <BaseButton variant="secondary" size="sm" type="submit">搜索</BaseButton>
@@ -617,17 +607,6 @@ if (import.meta.client) {
         </div>
 
         <div class="admin-articles__field">
-          <label class="admin-articles__label" for="article-summary">摘要</label>
-          <textarea
-            id="article-summary"
-            v-model="form.summary"
-            class="admin-articles__textarea admin-articles__textarea--short"
-            rows="3"
-            :disabled="!canWrite"
-          />
-        </div>
-
-        <div class="admin-articles__field">
           <label class="admin-articles__label" for="article-content">正文</label>
           <AdminRichTextEditor v-model="form.contentHtml" :disabled="!canWrite" />
         </div>
@@ -669,7 +648,6 @@ if (import.meta.client) {
     <AdminArticlePreview
       :open="previewOpen"
       :title="form.title"
-      :summary="form.summary"
       :content-html="form.contentHtml"
       :meta="`${previewCategory} · ${form.publishedAt || '预览'} · 大信法务`"
       @close="previewOpen = false"
@@ -679,7 +657,6 @@ if (import.meta.client) {
     <AdminArticlePreview
       :open="listPreviewOpen"
       :title="listPreviewArticle?.title ?? ''"
-      :summary="listPreviewArticle?.summary ?? ''"
       :content-html="listPreviewArticle?.contentHtml ?? ''"
       :meta="listPreviewArticle?.meta ?? ''"
       :loading="listPreviewLoading"

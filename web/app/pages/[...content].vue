@@ -48,7 +48,7 @@ const errorMessage = computed(() =>
 
 useSeoMeta({
   title: () => article.value?.title ?? section?.title,
-  description: () => article.value?.excerpt ?? section?.description
+  description: () => section?.description
 })
 </script>
 

@@ -4,7 +4,7 @@ import { computed, onBeforeUnmount, onMounted, watch } from 'vue'
 /**
  * 文章预览弹层。
  *
- * 为什么抽成组件：编辑器里原本内联了一份预览（标题/摘要/白名单清洗后的正文），
+ * 为什么抽成组件：编辑器里原本内联了一份预览（标题/白名单清洗后的正文），
  * 需求又要求在**文章列表**上也提供预览。两处各写一份必然出现
  * 「编辑器里清洗了、列表里没清洗」这类安全口径不一致，因此统一到这里。
  *
@@ -15,7 +15,6 @@ const props = withDefaults(defineProps<{
   /** 是否显示 */
   open: boolean
   title: string
-  summary?: string
   /** 未清洗的正文 HTML，组件内部会做白名单清洗 */
   contentHtml?: string
   /** 头部元信息，例如「TRO 资讯 · 2026-10-12 · 大信法务」 */
@@ -25,7 +24,6 @@ const props = withDefaults(defineProps<{
   /** 加载失败提示 */
   error?: string
 }>(), {
-  summary: '',
   contentHtml: '',
   meta: '',
   loading: false,
@@ -75,7 +73,6 @@ onBeforeUnmount(() => {
       <p v-else-if="error" class="admin-article-preview__error" role="alert">{{ error }}</p>
       <template v-else>
         <h2 id="admin-article-preview-title">{{ title || '未填写标题' }}</h2>
-        <p v-if="summary" class="admin-article-preview__summary">{{ summary }}</p>
         <RichArticleBody v-if="sanitizedHtml" :html="sanitizedHtml" />
         <p v-else class="admin-article-preview__empty">暂无正文内容</p>
       </template>
@@ -125,12 +122,6 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 .admin-article-preview h2 { font-size: var(--heading-1); line-height: var(--leading-tight); }
-.admin-article-preview__summary {
-  margin-top: var(--space-5);
-  padding: var(--space-4);
-  border-left: 3px solid var(--color-primary);
-  background: var(--color-bg-light);
-}
 .admin-article-preview__empty,
 .admin-article-preview__status { margin-top: var(--space-6); color: var(--color-text-muted); }
 .admin-article-preview__error { margin-top: var(--space-6); color: var(--color-error); }

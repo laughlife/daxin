@@ -76,7 +76,6 @@ export default defineEventHandler(async (event) => {
   let slug = (requestedSlug ? slugifyTitle(requestedSlug) : slugifyTitle(title)).slice(0, MAX_SLUG_LENGTH)
   if (!slug) slug = slugifyTitle(title).slice(0, MAX_SLUG_LENGTH)
 
-  const summary = toText(body.summary)
   const contentHtml = typeof body.contentHtml === 'string' ? body.contentHtml : ''
   const isFeatured = toBooleanFlag(body.isFeatured)
   // 侧边栏管理：勾选后该文章进入首页侧栏「推荐阅读」
@@ -100,14 +99,14 @@ export default defineEventHandler(async (event) => {
 
     // published_at 要么走参数（?），要么走常量 NOW()：占位符数量由服务端决定，绝不来自请求体。
     const publishedAtExpression = autoPublishAt ? 'NOW()' : '?'
-    const insertParams: unknown[] = [slug, title, summary, contentHtml, categoryId]
+    const insertParams: unknown[] = [slug, title, contentHtml, categoryId]
     if (!autoPublishAt) insertParams.push(publishedAt)
     insertParams.push(status, isFeatured, showInSidebar)
 
     const result = await executeWrite(
       `INSERT INTO articles
-         (slug, title, summary, content_html, category_id, published_at, status, is_featured, show_in_sidebar, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ${publishedAtExpression}, ?, ?, ?, NOW(), NOW())`,
+         (slug, title, content_html, category_id, published_at, status, is_featured, show_in_sidebar, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ${publishedAtExpression}, ?, ?, ?, NOW(), NOW())`,
       insertParams,
     )
 

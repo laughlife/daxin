@@ -497,7 +497,7 @@ export function pickChangedFields(
 
 /** articles 可写列；view_count、legacy_*、migration_batch_id 等一律不可写。 */
 export const ARTICLE_WRITABLE_COLUMNS: readonly string[] = Object.freeze([
-  'slug', 'title', 'summary', 'content_html', 'category_id', 'published_at', 'status', 'is_featured',
+  'slug', 'title', 'content_html', 'category_id', 'published_at', 'status', 'is_featured',
   // 侧边栏管理：标记该文章是否进入首页侧栏「推荐阅读」
   'show_in_sidebar',
 ])
@@ -679,10 +679,9 @@ export function buildArticleAdminFilterSql(input: Record<string, unknown> = {}):
     const like = `%${escapeLikePattern(keyword)}%`
     clauses.push(`(
     a.title LIKE ? ESCAPE '!'
-    OR a.summary LIKE ? ESCAPE '!'
     OR a.slug LIKE ? ESCAPE '!'
   )`)
-    params.push(like, like, like)
+    params.push(like, like)
   }
 
   const categoryId = toNullableId(input.categoryId)
@@ -775,7 +774,7 @@ export function buildEntityAdminFilterSql(input: Record<string, unknown> = {}): 
 }
 
 /** 文章列表 / 详情共用列口径（published_at、updated_at 统一格式化成字符串）。 */
-export const ADMIN_ARTICLE_COLUMNS = `a.id, a.slug, a.title, COALESCE(a.summary, '') AS summary,
+export const ADMIN_ARTICLE_COLUMNS = `a.id, a.slug, a.title,
   a.category_id,
   c.name AS category_name,
   DATE_FORMAT(a.published_at, '%Y-%m-%d %H:%i:%s') AS published_at,
@@ -909,7 +908,6 @@ export interface AdminArticleItem {
   id: number
   slug: string
   title: string
-  summary: string
   categoryId: number | null
   categoryName: string
   publishedAt: string
@@ -924,7 +922,6 @@ export interface AdminArticleRow {
   id?: unknown
   slug?: unknown
   title?: unknown
-  summary?: unknown
   category_id?: unknown
   category_name?: unknown
   published_at?: unknown
@@ -941,7 +938,6 @@ export function mapAdminArticleRow(row: AdminArticleRow): AdminArticleItem {
     id: toId(row.id),
     slug: toText(row.slug),
     title: toText(row.title),
-    summary: toText(row.summary),
     categoryId: toNullableId(row.category_id),
     categoryName: toText(row.category_name),
     publishedAt: toDateTimeText(row.published_at),

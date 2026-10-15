@@ -202,7 +202,7 @@ test('parseLegacyArticle 产出完整结构', () => {
   assert.equal(article.caseCandidates.length, 1)
   assert.equal(article.mediaReferences.length, 1)
   assert.ok(article.slug.length > 0)
-  assert.ok(article.summary.length > 0)
+  assert.ok(!Object.hasOwn(article, 'summary'), '旧站解析不再生成文章摘要')
 })
 
 test('parseLegacyArticle 对缺正文的文章返回可核验标记', () => {

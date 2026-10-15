@@ -18,7 +18,6 @@ export interface ArticleSummary {
   id: string
   slug: string
   title: string
-  excerpt: string
   /** 中文展示分类，如 “TRO 侵权预警” */
   category: string
   publishedAt: string

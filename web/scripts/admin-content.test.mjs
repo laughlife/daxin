@@ -314,7 +314,6 @@ test('mapAdminArticleRow：NULL 分类保留 null，内部列不外泄', () => {
     id: 3,
     slug: 'tro-alert',
     title: '标题',
-    summary: null,
     category_id: null,
     category_name: null,
     published_at: null,
@@ -325,7 +324,7 @@ test('mapAdminArticleRow：NULL 分类保留 null，内部列不外泄', () => {
     legacy_source_id: 8,
     migration_batch_id: 1,
   })
-  assert.equal(mapped.summary, '')
+  assert.ok(!Object.hasOwn(mapped, 'summary'), '后台文章列表不返回摘要字段')
   assert.equal(mapped.categoryId, null)
   assert.equal(mapped.categoryName, '')
   assert.equal(mapped.publishedAt, '')
@@ -341,6 +340,33 @@ test('文章编辑表单隐藏推荐与侧边栏开关，但保存时保留已�
   assert.doesNotMatch(articleAdminSource, /article-featured|article-sidebar|设为推荐|在侧边栏显示/)
   assert.match(articleAdminSource, /isFeatured:\s*form\.isFeatured/)
   assert.match(articleAdminSource, /showInSidebar:\s*form\.showInSidebar/)
+})
+
+test('后台文章摘要已从表单、列表/API、预览与写入白名单移除', async () => {
+  assert.ok(!ARTICLE_WRITABLE_COLUMNS.includes('summary'))
+  assert.doesNotMatch(articleAdminSource, /form\.summary|article-summary|summary:\s*item\.summary|summary:\s*article\.summary/)
+  for (const file of [
+    '../server/api/admin/articles.post.ts',
+    '../server/api/admin/articles/[id].get.ts',
+    '../server/api/admin/articles/[id].put.ts',
+  ]) {
+    const source = await readFile(new URL(file, import.meta.url), 'utf8')
+    assert.doesNotMatch(source, /summary/, `${file} must not accept or return article summaries`)
+  }
+  const queries = await readFile(new URL('../server/utils/admin/content-queries.ts', import.meta.url), 'utf8')
+  const articleQuerySection = queries.slice(queries.indexOf('export const ADMIN_ARTICLE_COLUMNS'), queries.indexOf('export const ADMIN_CASE_COLUMNS'))
+  assert.doesNotMatch(articleQuerySection, /summary/)
+  assert.doesNotMatch(queries.slice(queries.indexOf('export interface AdminArticleItem'), queries.indexOf('/** 后台案例列表项')), /summary/)
+
+  const preview = await readFile(new URL('../app/components/admin/AdminArticlePreview.vue', import.meta.url), 'utf8')
+  assert.doesNotMatch(preview, /summary|摘要/)
+
+  const migration = await readFile(new URL('../../database/migrations/018_clear_article_summaries.sql', import.meta.url), 'utf8')
+  assert.match(migration, /UPDATE\s+articles\s+SET\s+summary\s*=\s*NULL/i)
+
+  const importer = await readFile(new URL('../../tools/migrate-legacy/legacy-import.mjs', import.meta.url), 'utf8')
+  const articleImport = importer.slice(importer.indexOf('阶段二：并发写入文章'), importer.indexOf('// 阶段三：并发取回文章主键'))
+  assert.doesNotMatch(articleImport, /summary/)
 })
 
 test('mapAdminEntityRow：caseCount 来自统计列，status 归一化成 0/1，品牌 region 恒为空串', () => {
@@ -432,7 +458,7 @@ test('后台所有分页接口使用后台 50 条上限，前端所有分页器�
 test('列表过滤片段：参数全部走占位符，非法筛选值被忽略', () => {  const article = buildArticleAdminFilterSql({ keyword: 'TRO', categoryId: '2', status: 'deleted' })
   assert.match(article.sql, /a\.category_id = \?/)
   assert.ok(!article.sql.includes('deleted'), '非法状态不应出现在 SQL 中')
-  assert.deepEqual(article.params, ['%TRO%', '%TRO%', '%TRO%', 2])
+  assert.deepEqual(article.params, ['%TRO%', '%TRO%', 2])
 
   const cases = buildCaseAdminFilterSql({ keyword: '', status: 'published' })
   assert.match(cases.sql, /c\.publish_status = \?/)

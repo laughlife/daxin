@@ -33,9 +33,10 @@ test('预览展示未保存字段且不会提交或改路由', () => {
   assert.match(template, /:content-html="form\.contentHtml"/)
   assert.match(template, /@close="previewOpen = false"/)
 
-  // 组件侧：负责渲染标题占位、摘要、正文，且不触发提交或跳转
+  // 组件侧：负责渲染标题占位与正文，且不触发提交或跳转
   assert.match(previewSource, /\{\{ title \|\| '未填写标题' \}\}/)
   assert.match(previewSource, /<RichArticleBody/)
+  assert.doesNotMatch(previewSource, /summary|摘要/)
   assert.doesNotMatch(previewSource, /navigateTo\(|onSubmit|\.post\(|put\(/)
 })
 

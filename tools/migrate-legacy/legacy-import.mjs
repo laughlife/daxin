@@ -121,15 +121,15 @@ export async function importBatch({ target, legacy, batchKey, includeUnmapped = 
 
   // 阶段二：并发写入文章。
   await executeSqlBatch(target, parsedArticles.map(({ article, categoryId, sourceId }) => `INSERT INTO articles
-  (slug, title, summary, content_html, content_text, category_id, published_at, status, is_featured,
+  (slug, title, content_html, content_text, category_id, published_at, status, is_featured,
    legacy_source_table, legacy_source_id, migration_batch_id, sort_order)
 VALUES
-  (${quoteLiteral(article.slug)}, ${quoteLiteral(article.title)}, ${quoteLiteral(article.summary)},
-   ${quoteLiteral(article.contentHtml)}, ${quoteLiteral(article.contentText)}, ${categoryId ?? 'NULL'},
+  (${quoteLiteral(article.slug)}, ${quoteLiteral(article.title)}, ${quoteLiteral(article.contentHtml)},
+   ${quoteLiteral(article.contentText)}, ${categoryId ?? 'NULL'},
    ${article.publishedAt ? quoteLiteral(article.publishedAt) : 'NULL'}, ${article.hasContent ? "'published'" : "'draft'"},
    0, ${quoteLiteral(article.sourceTable)}, ${sourceId}, ${batchId}, 0)
 ON DUPLICATE KEY UPDATE
-  title = VALUES(title), summary = VALUES(summary), content_html = VALUES(content_html),
+  title = VALUES(title), content_html = VALUES(content_html),
   content_text = VALUES(content_text), category_id = VALUES(category_id),
   published_at = VALUES(published_at), updated_at = NOW()`))
 

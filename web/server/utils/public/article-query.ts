@@ -16,7 +16,6 @@ export interface ArticleSummary {
   id: string
   slug: string
   title: string
-  excerpt: string
   category: string
   publishedAt: string
   href: string
@@ -36,8 +35,6 @@ export interface ArticleFilters {
 const CATEGORY_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/
 /** 关键词长度上限，避免超长输入拖垮 LIKE 查询。 */
 const MAX_KEYWORD_LENGTH = 60
-/** 列表摘要长度上限。 */
-const EXCERPT_MAX_LENGTH = 120
 
 /**
  * 解析文章列表查询参数。任何输入都不会被“拒绝”，只会被归一化：
@@ -136,8 +133,6 @@ export interface ArticleRow {
   id: number | string | null
   slug: string | null
   title: string | null
-  summary: string | null
-  content_text?: string | null
   published_at: string | Date | null
   category_slug?: string | null
   /** article_categories.name：对外的中文展示分类。 */
@@ -160,13 +155,6 @@ function toDateOnlyText(value: unknown): string {
   return match ? match[1]! : ''
 }
 
-function toExcerpt(summary: unknown, contentText: unknown): string {
-  const text = normalizeText(summary)
-  if (text) return text.slice(0, EXCERPT_MAX_LENGTH)
-  // 摘要为空时用正文纯文本兜底，而不是返回空串。
-  return normalizeText(contentText).slice(0, EXCERPT_MAX_LENGTH)
-}
-
 export function toArticleSummary(row: ArticleRow): ArticleSummary {
   const slug = normalizeText(row.slug)
   const title = normalizeText(row.title)
@@ -182,7 +170,6 @@ export function toArticleSummary(row: ArticleRow): ArticleSummary {
     id: row.id === null || row.id === undefined ? '' : String(row.id),
     slug,
     title,
-    excerpt: toExcerpt(row.summary, row.content_text),
     // 对外展示中文分类名（与 CaseRecord.category 的口径一致）；分类缺失时回落到 slug。
     category: normalizeText(row.category_name) || categorySlug,
     publishedAt: toDateOnlyText(row.published_at),

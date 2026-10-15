@@ -8,7 +8,7 @@ import { escapeLikePattern, type ArticleFilters, type ArticleRow } from './artic
  * 封面 OSS 地址 → 正文第一张配图的 OSS 地址 → 原文 https 外链 → null。
  * 这里把三个候选都取出来，不做 COALESCE，便于单测与后续替换 OSS。
  */
-const ARTICLE_COLUMNS = `a.id, a.slug, a.title, a.summary, a.content_text,
+const ARTICLE_COLUMNS = `a.id, a.slug, a.title,
   DATE_FORMAT(a.published_at, '%Y-%m-%d') AS published_at,
   c.slug AS category_slug,
   c.name AS category_name,
@@ -64,7 +64,7 @@ export interface ArticleFilterSql {
 
 /**
  * 拼装文章过滤条件（表别名固定为 a，分类别名 c）。
- * keyword 命中标题 / 摘要 / 正文纯文本；from、to 按 published_at 的自然日筛选。
+ * keyword 命中标题 / 正文纯文本；from、to 按 published_at 的自然日筛选。
  * LIKE 的通配符由 escapeLikePattern 转义，配合 SQL 中的 ESCAPE '!'。
  */
 export function buildArticleFilterSql(filters: ArticleFilters): ArticleFilterSql {
@@ -80,10 +80,9 @@ export function buildArticleFilterSql(filters: ArticleFilters): ArticleFilterSql
     const like = `%${escapeLikePattern(filters.keyword)}%`
     clauses.push(`(
     a.title LIKE ? ESCAPE '!'
-    OR a.summary LIKE ? ESCAPE '!'
     OR a.content_text LIKE ? ESCAPE '!'
   )`)
-    params.push(like, like, like)
+    params.push(like, like)
   }
 
   if (filters.from) {

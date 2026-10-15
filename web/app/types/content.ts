@@ -89,8 +89,6 @@ export interface ArticleRecord {
   category: string
   /** 标题 */
   title: string
-  /** 摘要 */
-  excerpt: string
   /** 发布日期（固定值） */
   publishedAt: string
   /** 是否置顶推荐 */

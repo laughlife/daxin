@@ -44,14 +44,6 @@ const related = computed(() =>
             {{ article.category }} · <time :datetime="article.publishedAt">{{ article.publishedAt }}</time> · 大信法务
           </p>
           <h1>{{ article.title }}</h1>
-          <p class="article-detail__lead">{{ article.excerpt }}</p>
-          <img
-            v-if="article.imageSrc"
-            class="article-detail__cover"
-            :src="article.imageSrc"
-            :alt="article.imageAlt"
-            loading="lazy"
-          >
           <RichArticleBody v-if="html" :html="html" />
           <p v-else class="article-detail__empty" role="status">该文章暂无正文内容。</p>
           <div class="article-detail__back">
@@ -61,7 +53,7 @@ const related = computed(() =>
         </article>
         <section class="article-detail__related">
           <h2>相关阅读</h2>
-          <ArticleList :articles="related" :hide-excerpt="section.group === 'tro'" />
+          <ArticleList :articles="related" />
         </section>
       </ContentColumns>
     </PageContainer>
@@ -74,8 +66,6 @@ const related = computed(() =>
 .article-detail__body { padding:var(--space-8); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
 .article-detail__meta { margin-bottom:var(--space-4); color:var(--color-text-muted); font-size:var(--text-sm); }
 h1 { font-size:var(--heading-1); line-height:var(--leading-tight); }
-.article-detail__lead { margin-top:var(--space-6); padding:var(--space-5); border-left:3px solid var(--color-primary); border-radius:0 var(--radius-md) var(--radius-md) 0; background:var(--color-bg-light); }
-.article-detail__cover { display:block; width:100%; max-height:480px; margin-top:var(--space-6); border-radius:var(--radius-md); background:var(--color-bg-light); object-fit:contain; }
 .article-detail__empty { margin-top:var(--space-6); color:var(--color-text-muted); }
 .article-detail__back { display:flex; flex-wrap:wrap; gap:var(--space-4); margin-top:var(--space-8); font-size:var(--text-sm); }
 @media(max-width:639px) { .article-detail__body { padding:var(--space-5); } }

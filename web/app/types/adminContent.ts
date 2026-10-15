@@ -10,7 +10,6 @@ export interface AdminArticleItem {
   id: number
   slug: string
   title: string
-  summary: string
   categoryId: number | null
   categoryName: string
   /** 'YYYY-MM-DD HH:mm:ss'，未发布为空串 */

@@ -75,11 +75,6 @@ const items = computed(() =>
                   <h4 class="article-preview-card__title">
                     <NuxtLink :to="article.href">{{ article.title }}</NuxtLink>
                   </h4>
-                  <p v-if="item.section !== 'tro'" class="article-preview-card__excerpt">{{ article.excerpt }}</p>
-                  <NuxtLink :to="article.href" class="article-preview-card__link">
-                    查看详情
-                    <span aria-hidden="true">→</span>
-                  </NuxtLink>
                 </div>
               </article>
             </li>
@@ -237,27 +232,6 @@ const items = computed(() =>
 
 .article-preview-card__title a:hover {
   color: var(--color-primary);
-}
-
-.article-preview-card__excerpt {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.article-preview-card__link {
-  margin-top: var(--space-1);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-primary);
-}
-
-.article-preview-card__body > .article-preview-card__link:last-child {
-  margin-top: auto;
 }
 
 @media (max-width: 1023px) {

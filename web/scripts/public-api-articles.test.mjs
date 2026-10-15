@@ -90,6 +90,18 @@ test('LIKE 通配符转义，用户输入不会变成隐式通配匹配', () => 
   assert.equal(escapeLikePattern(''), '')
 })
 
+test('公开文章搜索只查标题与正文，不查询文章摘要字段', async () => {
+  const sql = await (await import('node:fs/promises')).readFile(
+    new URL('../server/utils/public/article-sql.ts', import.meta.url),
+    'utf8',
+  )
+  const filterSection = sql.slice(sql.indexOf('export function buildArticleFilterSql'), sql.indexOf('export interface ArticleCountRow'))
+  assert.doesNotMatch(filterSection, /a\.summary/)
+  assert.match(filterSection, /a\.title/)
+  assert.match(filterSection, /a\.content_text/)
+  assert.match(filterSection, /params\.push\(like, like\)/)
+})
+
 test('配图选择：封面 OSS 地址 → 正文首图 OSS 地址 → 原文 https 外链 → null', () => {
   assert.equal(
     pickArticleImageSrc({
@@ -123,7 +135,7 @@ test('旧站 res/... 本地路径绝不作为图片地址返回', () => {
   }
 })
 
-test('列表映射：日期、详情路径、摘要兜底与配图字段，且不泄漏内部迁移字段', () => {
+test('列表映射：日期、详情路径、配图字段，且不泄漏摘要与内部迁移字段', () => {
   const summary = toArticleSummary({
     id: 288,
     slug: 'frisbee-24-7',
@@ -145,11 +157,10 @@ test('列表映射：日期、详情路径、摘要兜底与配图字段，且�
   assert.equal(summary.href, '/tro/alerts/frisbee-24-7')
   assert.equal(summary.imageSrc, null)
   assert.equal(summary.imageAlt, 'Frisbee 飞盘商标再发案')
-  // 摘要为空时用正文纯文本兜底
-  assert.equal(summary.excerpt.length, 120)
+  // 即使旧行仍带摘要或正文纯文本，也不进入公开响应。
   assert.deepEqual(
     Object.keys(summary).sort(),
-    ['category', 'excerpt', 'href', 'id', 'imageAlt', 'imageSrc', 'publishedAt', 'slug', 'title'],
+    ['category', 'href', 'id', 'imageAlt', 'imageSrc', 'publishedAt', 'slug', 'title'],
   )
   assert.equal(articleHref('tro-success', 'x'), '/tro/success-cases/x')
   assert.equal(articleHref('news', 'x'), '/tro/news/x')

@@ -43,10 +43,6 @@ defineProps<{
         <dd>{{ record.filedAt || '—' }}</dd>
       </div>
     </dl>
-    <NuxtLink :to="`/tro/cases/${record.slug}`" class="case-preview-card__more">
-      查看案件详情
-      <span aria-hidden="true">→</span>
-    </NuxtLink>
   </article>
 </template>
 
@@ -136,14 +132,4 @@ defineProps<{
   white-space: nowrap;
 }
 
-.case-preview-card__more {
-  margin-top: auto;
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-primary);
-}
-
-.case-preview-card__more:hover {
-  color: var(--color-primary-dark);
-}
 </style>

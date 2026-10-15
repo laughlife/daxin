@@ -78,7 +78,7 @@ export function fetchLawFirmDetail(slug: string): Promise<{ firm: FirmSummary; c
 ### `web/app/repositories/articles.ts`
 ```ts
 export interface ArticleSummary {
-  id: string; slug: string; title: string; excerpt: string; category: string
+  id: string; slug: string; title: string; category: string
   publishedAt: string; href: string; imageSrc: string | null; imageAlt: string
 }
 export interface ArticleQuery { category?: string; keyword?: string; from?: string; to?: string; page?: number; pageSize?: number }

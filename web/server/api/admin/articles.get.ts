@@ -2,7 +2,7 @@
 //
 // 后台文章列表。分页夹取直接复用 utils/public/query.ts 的 resolvePageWindow（与公开接口同一套规则：
 // page >= 1、pageSize 1..50 默认 20、越界页返回空数组并把 meta.page 夹到最后一页），本文件不重复实现。
-// 筛选：keyword 命中标题 / 摘要 / slug，categoryId 精确匹配，status 只接受 draft|published|archived（非法值忽略）。
+// 筛选：keyword 命中标题 / slug，categoryId 精确匹配，status 只接受 draft|published|archived（非法值忽略）。
 // 权限：article:read（viewer 可读，editor / admin 读写）。
 import { requireAdmin } from '../../utils/auth/context'
 import { queryTarget } from '../../utils/db/query'

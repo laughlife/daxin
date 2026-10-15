@@ -110,7 +110,7 @@ Body：`{ kind, items }`，`items` 为该 kind 对应的数组。用 `settings:w
 | `web/app/pages/admin/settings.vue` | 站点/首页/关于/SEO 文案表单（key-value），支持图片字段接 `useOssUpload` |
 | `web/app/pages/admin/services.vue` | 业务板块与子项编辑（Core 业务四块 + 子项增删改） |
 | `web/app/pages/admin/footer.vue` | 页脚业务项、导航链接、联系渠道、二维码 |
-| `web/app/pages/admin/articles.vue` | 文章列表 + 新建/编辑（标题、slug、分类、摘要、正文 HTML、发布状态） |
+| `web/app/pages/admin/articles.vue` | 文章列表 + 新建/编辑（标题、slug、分类、正文 HTML、发布状态） |
 | `web/app/pages/admin/cases.vue` | 案件列表 + 编辑（六列字段 + 品牌/律所/侵权类型关联 + 发布状态） |
 | `web/app/pages/admin/brands.vue` / `law-firms.vue` | 品牌/律所列表与编辑 |
 | `web/app/pages/admin/review.vue` | 核验队列：按状态筛选、确认/驳回、可回填案件字段 |
