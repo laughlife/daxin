@@ -140,10 +140,12 @@ const eyebrow = computed(() => props.section.path.startsWith('/tro') ? 'TRO SERV
         <ContentSectionTabs :path="section.path" />
 
         <form class="listing-search" role="search" @submit.prevent>
-          <label><span>关键词</span><input v-model="keyword" type="search" placeholder="标题、案件号、品牌名或律所名"></label>
-          <label><span>发布日期从</span><input v-model="from" type="date" :max="to || undefined"></label>
-          <label><span>发布日期至</span><input v-model="to" type="date" :min="from || undefined"></label>
-          <button type="button" @click="reset">清空</button>
+          <label class="listing-search__keyword"><span>关键词</span><input v-model="keyword" type="search" placeholder="标题、案件号、品牌名或律所名"></label>
+          <div class="listing-search__filters">
+            <label class="listing-search__date"><span>发布日期从</span><input v-model="from" type="date" :max="to || undefined"></label>
+            <label class="listing-search__date"><span>发布日期至</span><input v-model="to" type="date" :min="from || undefined"></label>
+            <button class="listing-search__reset" type="button" @click="reset">清空</button>
+          </div>
         </form>
         <p v-if="invalidRange" class="listing-notice" role="alert">开始日期不能晚于结束日期。</p>
 
@@ -175,12 +177,15 @@ const eyebrow = computed(() => props.section.path.startsWith('/tro') ? 'TRO SERV
 .listing-page { padding-block:var(--space-section); background:var(--color-bg-light); }
 .listing-page__head { margin-bottom:var(--space-8); }
 .listing-page__eyebrow { margin-bottom:var(--space-3); color:var(--color-primary); font-size:var(--text-sm); font-weight:700; letter-spacing:.12em; }
-.listing-search { display:grid; grid-template-columns:minmax(0,2fr) minmax(140px,1fr) minmax(140px,1fr) auto; gap:var(--space-4); padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
+.listing-search { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--space-4); padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
 .listing-search label { display:grid; grid-template-columns:max-content minmax(0,1fr); align-items:center; gap:var(--space-3); min-width:0; font-size:var(--text-sm); color:var(--color-text-muted); }
+.listing-search__keyword { grid-column:1/-1; }
+.listing-search__filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); align-items:end; gap:var(--space-4); min-width:0; }
+.listing-search__date { display:flex !important; flex-direction:column; align-items:stretch !important; gap:var(--space-2) !important; min-width:0; }
+.listing-search__date input { min-width:0; }
 input { width:100%; min-width:0; }
 button { align-self:end; min-height:48px; padding:var(--space-3) var(--space-5); border:1px solid var(--color-primary); border-radius:var(--radius-control); background:var(--color-primary); color:var(--color-text-on-primary); font-weight:600; transition:background-color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base); }
 button:hover { background:var(--color-primary-dark); box-shadow:var(--shadow-sm); transform:translateY(-1px); }
 .listing-notice { margin:var(--space-5) 0; color:var(--color-text-muted); font-size:var(--text-sm); }
-@media(max-width:767px) { .listing-search { grid-template-columns:repeat(2,minmax(0,1fr)); } label:first-child { grid-column:1/-1; } }
 @media(max-width:639px) { .listing-search { gap:var(--space-3); padding:var(--space-4); } }
 </style>

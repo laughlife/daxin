@@ -46,36 +46,36 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
           autocomplete="off"
         >
       </div>
-      <div class="case-search-panel__field case-search-panel__field--type">
-        <label for="case-search-type">侵权类型</label>
-        <select id="case-search-type" v-model="filters.caseType">
-          <option
-            v-for="option in caseTypeOptions"
-            :key="option.value"
-            :value="option.value"
+      <div class="case-search-panel__filters">
+        <div class="case-search-panel__field case-search-panel__field--type">
+          <label for="case-search-type">侵权类型</label>
+          <select id="case-search-type" v-model="filters.caseType">
+            <option
+              v-for="option in caseTypeOptions"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </div>
+        <div class="case-search-panel__field case-search-panel__field--date">
+          <label for="case-search-date">起诉时间</label>
+          <input
+            id="case-search-date"
+            v-model="filters.date"
+            type="date"
           >
-            {{ option.label }}
-          </option>
-        </select>
-      </div>
-      <div class="case-search-panel__field case-search-panel__field--date">
-        <label for="case-search-date">起诉时间</label>
-        <input
-          id="case-search-date"
-          v-model="filters.date"
-          type="date"
+        </div>
+        <button
+          type="button"
+          class="case-search-panel__reset"
+          :disabled="!hasActiveFilters"
+          @click="emit('reset')"
         >
+          清空搜索条件
+        </button>
       </div>
-    </div>
-    <div class="case-search-panel__actions">
-      <button
-        type="button"
-        class="case-search-panel__reset"
-        :disabled="!hasActiveFilters"
-        @click="emit('reset')"
-      >
-        清空搜索条件
-      </button>
     </div>
   </form>
 </template>
@@ -93,6 +93,15 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-4);
+}
+
+.case-search-panel__filters {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  align-items: end;
+  gap: var(--space-4);
+  min-width: 0;
 }
 
 .case-search-panel__field {
@@ -131,15 +140,6 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
 .case-search-panel__field input:focus-visible,
 .case-search-panel__field select:focus-visible {
   border-color: var(--color-primary);
-}
-
-.case-search-panel__actions {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-  margin-top: var(--space-4);
 }
 
 .case-search-panel__reset {

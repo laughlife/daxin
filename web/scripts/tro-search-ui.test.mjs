@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises'
 const searchSource = await readFile(new URL('../app/composables/useCaseSearch.ts', import.meta.url), 'utf8')
 const pageSource = await readFile(new URL('../app/pages/tro/cases/index.vue', import.meta.url), 'utf8')
 const panelSource = await readFile(new URL('../app/components/cases/CaseSearchPanel.vue', import.meta.url), 'utf8')
+const listingSource = await readFile(new URL('../app/components/content/ContentListing.vue', import.meta.url), 'utf8')
 const querySource = await readFile(new URL('../server/utils/public/query.ts', import.meta.url), 'utf8')
 const casesApiSource = await readFile(new URL('../server/api/public/cases.get.ts', import.meta.url), 'utf8')
 
@@ -22,6 +23,22 @@ test('keyword spans a full row and the type/date filters share the next row', ()
   assert.match(panelSource, /case-search-panel__field--date/)
   assert.match(panelSource, /@media \(max-width: 639px\)[\s\S]*?grid-template-columns: minmax\(0, 1fr\)/)
   assert.doesNotMatch(panelSource, /case-search-panel__field--full/)
+})
+
+test('TRO案件查询的清空按钮与侵权类型、起诉时间同排并可自动换行', () => {
+  assert.match(panelSource, /case-search-panel__filters/)
+  assert.match(panelSource, /case-search-panel__filters[\s\S]*?case-search-panel__reset/)
+  assert.match(panelSource, /case-search-panel__filters\s*\{[^}]*repeat\(auto-fit,\s*minmax\(min\(100%,\s*220px\),\s*1fr\)\)/s)
+  assert.doesNotMatch(panelSource, /case-search-panel__actions/)
+})
+
+test('文章日期筛选在关键词下一行排列，窄屏控件自动换行且日期输入有足够宽度', () => {
+  assert.match(listingSource, /listing-search__keyword/)
+  assert.match(listingSource, /listing-search__date/)
+  assert.match(listingSource, /listing-search__reset/)
+  assert.match(listingSource, /\.listing-search__keyword\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/s)
+  assert.match(listingSource, /\.listing-search__filters\s*\{[^}]*repeat\(auto-fit,\s*minmax\(min\(100%,\s*220px\),\s*1fr\)\)/s)
+  assert.match(listingSource, /\.listing-search__date\s*\{[^}]*flex-direction:\s*column/s)
 })
 
 test('home service cards use the supplied red 3D icons by service category', async () => {
