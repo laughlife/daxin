@@ -82,7 +82,8 @@ async function main() {
   }
   const reportPath = resolve(get('--report', 'tmp/dxfw-migration-dry-run.json'))
   const outPath = resolve(get('--out', 'tmp/dxfw-media-map.json'))
-  const concurrency = Math.max(1, Math.min(12, Number(get('--concurrency', '6')) || 6))
+  await mkdir(dirname(outPath), { recursive: true })
+  const concurrency = Math.max(1, Math.min(32, Number(get('--concurrency', '16')) || 16))
   const report = JSON.parse(await readFile(reportPath, 'utf8'))
   const paths = [...new Set((report.media ?? []).map((item) => String(item.sourcePath ?? '').trim()).filter(Boolean))]
   const env = readEnvFile('web/.env')
@@ -93,12 +94,22 @@ async function main() {
   const publicBase = String(env.ALIYUN_OSS_PUBLIC_BASE_URL ?? '').trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '') || `${bucket}.${endpoint}`
   if (!accessKeyId || !accessKeySecret || !endpoint || !bucket) throw new Error('OSS 配置不完整')
   const dateFolder = shanghaiDateFolder()
-  const map = {}
+  let previous = {}
+  try { previous = JSON.parse(await readFile(outPath, 'utf8')) } catch {}
+  const map = previous.mediaMap ?? {}
   const failures = []
-  let completed = 0
+  let completed = Object.keys(map).length
+  let newlyUploaded = 0
   const host = `https://${bucket}.${endpoint}`
+  let checkpoint = Promise.resolve()
+  const saveCheckpoint = () => {
+    const snapshot = { generatedAt: new Date().toISOString(), dateFolder, total: paths.length, uploaded: completed, failures, mediaMap: map }
+    checkpoint = checkpoint.then(() => writeFile(outPath, `${JSON.stringify(snapshot)}\n`, 'utf8'))
+    return checkpoint
+  }
 
   await runPool(paths, concurrency, async (sourceUrl, index) => {
+    if (map[sourceUrl]?.objectKey && map[sourceUrl]?.publicUrl) return
     let lastError = ''
     for (const referer of ['', 'https://www.toutiao.com/']) {
       try {
@@ -121,7 +132,11 @@ async function main() {
           byteSize: body.length,
         }
         completed += 1
-        if (completed % 100 === 0 || completed === paths.length) console.log(`图片迁移 ${completed}/${paths.length}`)
+        newlyUploaded += 1
+        if (newlyUploaded % 500 === 0 || completed === paths.length) {
+          await saveCheckpoint()
+          console.log(`图片迁移 ${completed}/${paths.length}`)
+        }
         return
       } catch (error) {
         lastError = error.message
@@ -133,6 +148,7 @@ async function main() {
 
   const output = { generatedAt: new Date().toISOString(), dateFolder, total: paths.length, uploaded: completed, failures, mediaMap: map }
   await mkdir(dirname(outPath), { recursive: true })
+  await checkpoint
   await writeFile(outPath, `${JSON.stringify(output)}\n`, 'utf8')
   console.log(`结果写入 ${outPath}；完成 ${completed}，失败 ${failures.length}`)
   if (failures.length) process.exitCode = 1
