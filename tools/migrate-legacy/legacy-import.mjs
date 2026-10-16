@@ -10,15 +10,23 @@
 import { executeSql, executeSqlBatch, queryRows, queryRowsBatch, quoteLiteral } from './mysql-client.mjs'
 import { PROJECT_CATEGORY_MAP } from './legacy-source.mjs'
 import { parseLegacyArticle } from './legacy-parser.mjs'
+import { readFile } from 'node:fs/promises'
 
 const ARTICLE_CATEGORY_ROWS = [
   { slug: 'news', name: '新闻资讯', section: 'news', sort: 10 },
-  { slug: 'tro-alert', name: 'TRO 侵权预警', section: 'tro', sort: 20 },
-  { slug: 'tro-success', name: 'TRO 成功案例', section: 'tro', sort: 30 },
-  { slug: 'knowledge', name: '干货知识', section: 'knowledge', sort: 40 },
-  { slug: 'labor-case', name: '劳动法案例', section: 'labor', sort: 50 },
-  { slug: 'freight-case', name: '货代案例', section: 'freight', sort: 60 },
+  { slug: 'tro-alert', name: 'TRO案例', section: 'tro', sort: 20 },
+  { slug: 'tro-success', name: '成功案例', section: 'tro', sort: 30 },
+  { slug: 'knowledge', name: '跨境干货', section: 'knowledge', sort: 40 },
+  { slug: 'legal-dynamics', name: '普法动态', section: 'knowledge', sort: 45 },
+  { slug: 'overseas-business', name: '国外业务', section: 'freight', sort: 50 },
+  { slug: 'domestic-business', name: '国内业务', section: 'freight', sort: 55 },
+  { slug: 'legal-guides', name: '普法干货', section: 'knowledge', sort: 58 },
+  { slug: 'about', name: '关于我们', section: 'about', sort: 59 },
+  { slug: 'labor-case', name: '劳动法案例', section: 'labor', sort: 60 },
+  { slug: 'freight-case', name: '货代案例', section: 'freight', sort: 70 },
 ]
+
+const IP_TYPE_SLUGS = Object.freeze({ trademark: 'trademark', copyright: 'copyright', patent: 'patent' })
 
 const IP_TYPE_ROWS = [
   { slug: 'trademark', name: '商标侵权', description: '商标权维权案件', sort: 10 },
@@ -73,7 +81,13 @@ ON DUPLICATE KEY UPDATE status = 'running', started_at = NOW(), mode = VALUES(mo
  * 因此这里按阶段并发执行（默认并发 8），而不是逐条串行。
  * 需要调用方已通过 --dry-run 生成报告并确认；本函数不做二次确认。
  */
-export async function importBatch({ target, legacy, batchKey, includeUnmapped = false, articles, report }) {
+export async function importBatch({ target, legacy, batchKey, includeUnmapped = false, articles, report, mediaMapPath }) {
+  if (!mediaMapPath) throw new Error('导入必须提供已完成的 OSS 图片映射文件 --media-map')
+  const mediaMapFile = JSON.parse(await readFile(mediaMapPath, 'utf8'))
+  const mediaMap = mediaMapFile.mediaMap ?? mediaMapFile
+  const unavailableMedia = new Set((mediaMapFile.failures ?? []).map((failure) => failure.sourceUrl))
+  const missingMedia = (report.media ?? []).filter((item) => !mediaMap[item.sourcePath]?.objectKey && !unavailableMedia.has(item.sourcePath))
+  if (missingMedia.length) throw new Error(`仍有 ${missingMedia.length} 张图片未完成 OSS 迁移；目标库未写入`)
   const batchId = await ensureBatch(target, { batchKey, sourceName: legacy.database })
   await seedReferenceData(target)
 
@@ -93,26 +107,32 @@ export async function importBatch({ target, legacy, batchKey, includeUnmapped = 
   const caseBest = new Map()
   const mediaPaths = new Set()
 
+  for (const entity of report.brands ?? []) brandSlugs.set(entity.slug, entity)
+  for (const entity of report.lawFirms ?? []) lawFirmSlugs.set(entity.slug, entity)
+
   for (const row of articles) {
     const project = PROJECT_CATEGORY_MAP[row.projectId]
     if (!project && !includeUnmapped) continue
     const article = parseLegacyArticle(row, { legacyProjectTitle: row.projectTitle, usedSlugs })
+    article.contentHtml = rewriteArticleImages(article.contentHtml, mediaMap, unavailableMedia)
+    article.mediaReferences = article.mediaReferences.filter((reference) => mediaMap[reference.sourcePath]?.objectKey)
     const categoryId = project ? categoryIdBySlug.get(project.slug) ?? null : null
     const sourceId = Number.parseInt(article.sourceId, 10) || 0
 
     for (const reference of article.mediaReferences) mediaPaths.add(reference.sourcePath)
+    if (row.thumb && mediaMap[row.thumb]?.objectKey) mediaPaths.add(row.thumb)
 
-    const caseCandidates = article.caseCandidates.map((candidate) => {
-      // 同一案件号出现在多篇文章时，保留字段最完整的那一份作为案件主体数据。
+    const completeCandidates = row.isTroEntitySource
+      ? article.caseCandidates.filter((candidate) => candidate.complete)
+      : []
+    const caseCandidates = completeCandidates.map((candidate) => {
+      // 同一案件号出现在多篇 TRO 案例文章时，以完整字段候选做唯一案件主体。
       const existing = caseBest.get(candidate.caseNumber)
       if (!existing || candidate.confidence > existing.candidate.confidence) {
         caseBest.set(candidate.caseNumber, { candidate, article })
       }
-      const brandName = deriveBrandName(candidate)
-      const brandSlug = brandName ? slugifyAscii(`brand-${brandName}`) : ''
-      if (brandSlug) brandSlugs.set(brandSlug, brandName)
-      const lawFirmSlug = candidate.lawFirmName ? slugifyAscii(`law-firm-${candidate.lawFirmName}`) : ''
-      if (lawFirmSlug) lawFirmSlugs.set(lawFirmSlug, candidate.lawFirmName)
+      const brandSlug = candidate.brandName ? slugifyAscii(candidate.brandName) : ''
+      const lawFirmSlug = candidate.lawFirmName ? slugifyAscii(candidate.lawFirmName) : ''
       return { candidate, brandSlug, lawFirmSlug }
     })
 
@@ -142,20 +162,25 @@ ON DUPLICATE KEY UPDATE
   // 阶段四：并发写入独立主体（案件、品牌、律所、媒体）。
   const caseNumberList = [...caseBest.keys()]
   const caseIdRows = await writeCasesAndFetchIds(target, caseBest, batchId)
-  await executeSqlBatch(target, [...brandSlugs].map(([slug, name]) => upsertNamedEntityStatement('brands', slug, name)))
-  await executeSqlBatch(target, [...lawFirmSlugs].map(([slug, name]) => upsertNamedEntityStatement('law_firms', slug, name)))
-  await executeSqlBatch(target, [...mediaPaths].map((sourcePath) => registerLegacyMediaStatement(sourcePath)))
+  await executeSqlBatch(target, [...brandSlugs].map(([slug, entity]) => upsertNamedEntityStatement('brands', slug, entity)))
+  await executeSqlBatch(target, [...lawFirmSlugs].map(([slug, entity]) => upsertNamedEntityStatement('law_firms', slug, entity)))
+  await executeSqlBatch(target, [...mediaPaths].map((sourcePath) => registerLegacyMediaStatement(sourcePath, mediaMap[sourcePath])))
 
   // 阶段五：并发取回全部主键。
-  const [brandIdRows, lawFirmIdRows, mediaIdRows] = await Promise.all([
+  const [brandIdRows, lawFirmIdRows, mediaIdRows, ipTypeIdRows] = await Promise.all([
     queryRowsBatch(target, [...brandSlugs.keys()].map((slug) => `SELECT id FROM brands WHERE slug = ${quoteLiteral(slug)}`)),
     queryRowsBatch(target, [...lawFirmSlugs.keys()].map((slug) => `SELECT id FROM law_firms WHERE slug = ${quoteLiteral(slug)}`)),
-    queryRowsBatch(target, [...mediaPaths].map((sourcePath) => `SELECT id FROM media_assets WHERE object_key = ${quoteLiteral(mediaObjectKey(sourcePath))}`)),
+    queryRowsBatch(target, [...mediaPaths].map((sourcePath) => `SELECT id FROM media_assets WHERE object_key = ${quoteLiteral(mediaMap[sourcePath]?.objectKey ?? mediaObjectKey(sourcePath))}`)),
+    queryRowsBatch(target, Object.values(IP_TYPE_SLUGS).map((slug) => `SELECT id FROM ip_types WHERE slug = ${quoteLiteral(slug)}`)),
   ])
   const caseIdByNumber = new Map(caseNumberList.map((caseNumber, index) => [caseNumber, Number(caseIdRows[index]?.[0]?.[0] ?? 0)]))
   const brandIdBySlug = new Map([...brandSlugs.keys()].map((slug, index) => [slug, Number(brandIdRows[index]?.[0]?.[0] ?? 0)]))
   const lawFirmIdBySlug = new Map([...lawFirmSlugs.keys()].map((slug, index) => [slug, Number(lawFirmIdRows[index]?.[0]?.[0] ?? 0)]))
   const mediaIdByPath = new Map([...mediaPaths].map((sourcePath, index) => [sourcePath, Number(mediaIdRows[index]?.[0]?.[0] ?? 0)]))
+  const ipTypeIdBySlug = new Map(Object.values(IP_TYPE_SLUGS).map((slug, index) => [slug, Number(ipTypeIdRows[index]?.[0]?.[0] ?? 0)]))
+  const coverStatements = parsedArticles.filter(({ row }) => row.thumb && mediaIdByPath.get(row.thumb)).map(({ row, article, sourceId }) =>
+    `UPDATE articles SET cover_media_id = ${mediaIdByPath.get(row.thumb)} WHERE legacy_source_table = ${quoteLiteral(article.sourceTable)} AND legacy_source_id = ${sourceId}`)
+  await executeSqlBatch(target, coverStatements)
 
   // 阶段六：并发写入图片关联、案件来源与多对多关系。
   const imageStatements = []
@@ -170,7 +195,7 @@ ON DUPLICATE KEY UPDATE
     for (const reference of article.mediaReferences) {
       const mediaId = mediaIdByPath.get(reference.sourcePath)
       imageStatements.push(`INSERT INTO article_images (article_id, media_id, source_url, position, alt_text)
-VALUES (${articleId}, ${mediaId || 'NULL'}, ${quoteLiteral(reference.sourcePath)}, ${reference.position}, ${quoteLiteral(reference.altText)})
+VALUES (${articleId}, ${mediaId || 'NULL'}, ${quoteLiteral(mediaMap[reference.sourcePath]?.publicUrl ?? '')}, ${reference.position}, ${quoteLiteral(reference.altText)})
 ON DUPLICATE KEY UPDATE media_id = VALUES(media_id), source_url = VALUES(source_url), alt_text = VALUES(alt_text)`)
     }
 
@@ -195,6 +220,11 @@ VALUES (${caseId}, ${lawFirmId}, 1) ON DUPLICATE KEY UPDATE is_primary = 1`)
       if (brandId) {
         relationStatements.push(`INSERT INTO case_brands (case_id, brand_id)
 VALUES (${caseId}, ${brandId}) ON DUPLICATE KEY UPDATE brand_id = VALUES(brand_id)`)
+      }
+      for (const ipType of candidate.ipTypes ?? []) {
+        const ipTypeId = ipTypeIdBySlug.get(IP_TYPE_SLUGS[ipType])
+        if (ipTypeId) relationStatements.push(`INSERT INTO case_ip_types (case_id, ip_type_id)
+VALUES (${caseId}, ${ipTypeId}) ON DUPLICATE KEY UPDATE ip_type_id = VALUES(ip_type_id)`)
       }
     }
   })
@@ -248,21 +278,35 @@ ON DUPLICATE KEY UPDATE candidate_value = VALUES(candidate_value), context_snipp
 
 /** 品牌或律所的幂等写入语句。 */
 function upsertNamedEntityStatement(table, slug, name) {
-  return `INSERT INTO ${table} (slug, name, name_en, status)
-VALUES (${quoteLiteral(slug)}, ${quoteLiteral(name)}, '', 1)
-ON DUPLICATE KEY UPDATE name = VALUES(name), updated_at = NOW()`
+  const entity = typeof name === 'string' ? { name, summary: '', aliases: [] } : name
+  const aliases = Array.isArray(entity.aliases) ? entity.aliases.join(' | ') : String(entity.aliases ?? '')
+  if (table === 'brands') return `INSERT INTO brands (slug, name, name_en, aliases, summary, status)
+VALUES (${quoteLiteral(slug)}, ${quoteLiteral(entity.name)}, '', ${quoteLiteral(aliases)}, ${quoteLiteral(entity.summary ?? '')}, 1)
+ON DUPLICATE KEY UPDATE aliases = VALUES(aliases), summary = IF(CHAR_LENGTH(VALUES(summary)) > CHAR_LENGTH(summary), VALUES(summary), summary), updated_at = NOW()`
+  return `INSERT INTO law_firms (slug, name, name_en, aliases, region, summary, status)
+VALUES (${quoteLiteral(slug)}, ${quoteLiteral(entity.name)}, '', ${quoteLiteral(aliases)}, '', ${quoteLiteral(entity.summary ?? '')}, 1)
+ON DUPLICATE KEY UPDATE aliases = VALUES(aliases), summary = IF(CHAR_LENGTH(VALUES(summary)) > CHAR_LENGTH(summary), VALUES(summary), summary), updated_at = NOW()`
 }
 
 /** 旧站图片登记语句；本地 res/ 路径上传 OSS 后再补 public_url。 */
-function registerLegacyMediaStatement(sourcePath) {
+function registerLegacyMediaStatement(sourcePath, mapped) {
   const text = String(sourcePath ?? '').trim()
-  const isExternal = /^https?:/i.test(text)
+  if (!mapped?.objectKey || !mapped?.publicUrl) throw new Error(`图片未完成 OSS 迁移：${text}`)
   return `INSERT INTO media_assets
   (object_key, public_url, file_name, mime_type, byte_size, usage_scope, title, legacy_source_table, legacy_source_id)
 VALUES
-  (${quoteLiteral(mediaObjectKey(text))}, ${quoteLiteral(isExternal ? text : '')},
-   ${quoteLiteral(text.split('/').pop() ?? '')}, '', 0, 'article', '', 'cn_res', 0)
-ON DUPLICATE KEY UPDATE updated_at = NOW()`
+  (${quoteLiteral(mapped.objectKey)}, ${quoteLiteral(mapped.publicUrl)},
+   ${quoteLiteral(mapped.fileName ?? text.split('/').pop() ?? '')}, ${quoteLiteral(mapped.mimeType ?? '')}, ${Number(mapped.byteSize) || 0}, 'article', '', 'dr_1_news', 0)
+ON DUPLICATE KEY UPDATE public_url = VALUES(public_url), file_name = VALUES(file_name), mime_type = VALUES(mime_type), byte_size = VALUES(byte_size), deleted_at = NULL, updated_at = NOW()`
+}
+
+function rewriteArticleImages(html, mediaMap, unavailableMedia) {
+  return String(html ?? '').replace(/<img\b[^>]*>/gi, (imageTag) => {
+    const source = /\bsrc\s*=\s*["']([^"']+)["']/i.exec(imageTag)?.[1]?.replace(/&amp;/gi, '&') ?? ''
+    if (unavailableMedia.has(source)) return ''
+    const publicUrl = mediaMap[source]?.publicUrl
+    return publicUrl ? imageTag.replace(source.replace(/&/g, '&amp;'), publicUrl) : imageTag
+  })
 }
 
 /**
@@ -272,10 +316,10 @@ ON DUPLICATE KEY UPDATE updated_at = NOW()`
 async function writeCasesAndFetchIds(target, caseBest, batchId) {
   const entries = [...caseBest.entries()]
   await executeSqlBatch(target, entries.map(([caseNumber, { candidate, article }]) => {
-    const yearMatch = /^([0-9]{2})/.exec(caseNumber)
+    const yearMatch = /^([0-9]{2}(?:[0-9]{2})?)/.exec(caseNumber)
     const seqMatch = /-([0-9]+)$/.exec(caseNumber)
-    const typeMatch = /^[0-9]{2}-([a-z]{2})/.exec(caseNumber)
-    const caseYear = yearMatch ? 2000 + Number(yearMatch[1]) : null
+    const typeMatch = /^[0-9]{2}(?:[0-9]{2})?-([a-z]{2})/.exec(caseNumber)
+    const caseYear = yearMatch ? (yearMatch[1].length === 2 ? 2000 + Number(yearMatch[1]) : Number(yearMatch[1])) : null
     const caseSeq = seqMatch ? Number(seqMatch[1]) : null
     const caseType = typeMatch ? typeMatch[1] : 'cv'
     return `INSERT INTO cases
