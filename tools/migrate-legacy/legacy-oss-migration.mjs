@@ -83,7 +83,8 @@ async function main() {
   const reportPath = resolve(get('--report', 'tmp/dxfw-migration-dry-run.json'))
   const outPath = resolve(get('--out', 'tmp/dxfw-media-map.json'))
   await mkdir(dirname(outPath), { recursive: true })
-  const concurrency = Math.max(1, Math.min(48, Number(get('--concurrency', '40')) || 40))
+  const concurrency = Math.max(1, Math.min(24, Number(get('--concurrency', '16')) || 16))
+  const retryFailures = args.includes('--retry-failures')
   const report = JSON.parse(await readFile(reportPath, 'utf8'))
   const paths = [...new Set((report.media ?? []).map((item) => String(item.sourcePath ?? '').trim()).filter(Boolean))]
   const env = readEnvFile('web/.env')
@@ -97,7 +98,9 @@ async function main() {
   let previous = {}
   try { previous = JSON.parse(await readFile(outPath, 'utf8')) } catch {}
   const map = previous.mediaMap ?? {}
-  const failures = []
+  const previousFailures = previous.failures ?? []
+  const previousFailureUrls = new Set(previousFailures.map((failure) => failure.sourceUrl))
+  const failures = retryFailures ? [] : [...previousFailures]
   let completed = Object.keys(map).length
   let newlyUploaded = 0
   const host = `https://${bucket}.${endpoint}`
@@ -110,6 +113,7 @@ async function main() {
 
   await runPool(paths, concurrency, async (sourceUrl, index) => {
     if (map[sourceUrl]?.objectKey && map[sourceUrl]?.publicUrl) return
+    if (!retryFailures && previousFailureUrls.has(sourceUrl)) return
     let lastError = ''
     const fetchUrls = [sourceUrl]
     try {
@@ -152,7 +156,8 @@ async function main() {
     if (failures.length <= 10) console.error(`图片失败 ${index + 1}/${paths.length}: ${sourceUrl} (${lastError})`)
   })
 
-  const output = { generatedAt: new Date().toISOString(), dateFolder, total: paths.length, uploaded: completed, failures, mediaMap: map }
+  const uniqueFailures = [...new Map(failures.map((failure) => [failure.sourceUrl, failure])).values()]
+  const output = { generatedAt: new Date().toISOString(), dateFolder, total: paths.length, uploaded: completed, failures: uniqueFailures, mediaMap: map }
   await mkdir(dirname(outPath), { recursive: true })
   await checkpoint
   await writeFile(outPath, `${JSON.stringify(output)}\n`, 'utf8')
