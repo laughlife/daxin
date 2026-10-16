@@ -83,7 +83,7 @@ async function main() {
   const reportPath = resolve(get('--report', 'tmp/dxfw-migration-dry-run.json'))
   const outPath = resolve(get('--out', 'tmp/dxfw-media-map.json'))
   await mkdir(dirname(outPath), { recursive: true })
-  const concurrency = Math.max(1, Math.min(12, Number(get('--concurrency', '8')) || 8))
+  const concurrency = Math.max(1, Math.min(32, Number(get('--concurrency', '24')) || 24))
   const report = JSON.parse(await readFile(reportPath, 'utf8'))
   const paths = [...new Set((report.media ?? []).map((item) => String(item.sourcePath ?? '').trim()).filter(Boolean))]
   const env = readEnvFile('web/.env')
