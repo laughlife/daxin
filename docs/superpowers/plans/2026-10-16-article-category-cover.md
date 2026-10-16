@@ -34,6 +34,7 @@
 
 **Files:**
 - Modify: `tools/migrate-legacy/legacy-source.mjs`
+- Modify: `tools/migrate-legacy/legacy-migrate.mjs`
 - Test: `tools/migrate-legacy/legacy-source.test.mjs`
 
 **Interfaces:**
@@ -50,9 +51,9 @@
 Run: `node --test tools/migrate-legacy/legacy-source.test.mjs`
 Expected: 新增的分类与附件 URL 测试因函数或当前映射不符而失败。
 
-- [ ] **Step 3: 实现分类解析和 URL 规范化**
+- [ ] **Step 3: 实现分类解析和 URL 规范化，并让 dry-run 报告使用新分类**
 
-在 `legacy-source.mjs` 为相对路径去除开头斜线和已有 `uploadfile/` 前缀，再拼接基址；完整 HTTP(S) 地址保持原样。用源文章 ID 和栏目 ID 执行已确认的分类规则，返回对应新版名称和 section。更新旧库读取 SQL，使 `dr_attachment_data.attachment` 按此规则生成 `cover_url`。
+在 `legacy-source.mjs` 为相对路径去除开头斜线和已有 `uploadfile/` 前缀，再拼接基址；完整 HTTP(S) 地址保持原样。用源文章 ID 和栏目 ID 执行已确认的分类规则，返回对应新版名称和 section。更新旧库读取 SQL，使 `dr_attachment_data.attachment` 按此规则生成 `cover_url`。`legacy-migrate.mjs` 的报告生成必须优先使用解析后的 slug，同时保持 TRO 案例实体抽取不依赖展示名称。
 
 - [ ] **Step 4: 运行旧库映射测试并检查迁移报告计数**
 
@@ -62,7 +63,7 @@ Expected: PASS；随后运行迁移 dry-run，报告仍为 858 篇，9 个咨询
 - [ ] **Step 5: 提交**
 
 ```powershell
-git add -- tools/migrate-legacy/legacy-source.mjs tools/migrate-legacy/legacy-source.test.mjs
+git add -- tools/migrate-legacy/legacy-source.mjs tools/migrate-legacy/legacy-migrate.mjs tools/migrate-legacy/legacy-source.test.mjs
 git commit -m "fix: 修正旧文章分类与封面路径映射"
 ```
 
