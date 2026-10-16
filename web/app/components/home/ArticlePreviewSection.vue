@@ -151,7 +151,7 @@ const items = computed(() =>
   flex-direction: column;
   align-items: stretch;
   gap: var(--space-3);
-  height: 388px;
+  height: 320px;
   padding: var(--space-5);
   background-color: var(--color-bg-page);
   border: 1px solid var(--color-border);
@@ -164,9 +164,9 @@ const items = computed(() =>
 /* 每篇最左侧的配图 */
 .article-preview-card__thumb {
   display: block;
-  flex: 0 0 156px;
+  flex: 0 0 136px;
   width: 100%;
-  height: 156px;
+  height: 136px;
   overflow: hidden;
   border-radius: var(--radius-md);
 }
@@ -261,7 +261,7 @@ const items = computed(() =>
   }
 
   .article-preview-card {
-    height: 388px;
+    height: 320px;
     padding: var(--space-4);
   }
 }

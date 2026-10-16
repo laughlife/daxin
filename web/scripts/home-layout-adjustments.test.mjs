@@ -31,6 +31,11 @@ test('team introduction centers About US and keeps the copy compact beside the s
   assert.doesNotMatch(indexSource, /eyebrow="About US"/)
   assert.match(indexSource, /line-height:\s*1\.55/)
   assert.match(indexSource, /teamDisplayTitle = computed/)
+  assert.match(indexSource, /readSettingText\('about_team_title'\)/)
+  assert.doesNotMatch(indexSource, /teamTitleFromSettings\.value\.replace/)
+  assert.match(indexSource, /teamDisplayTitle = computed\(\(\) => teamTitleFromSettings\.value/)
+  assert.match(indexSource, /\.home-about__paragraph\s*\{[\s\S]*?font-size:\s*var\(--text-lg\)/)
+  assert.match(indexSource, /\.home-about__paragraph\s*\{[\s\S]*?color:\s*color-mix\(in srgb, var\(--color-text\) 82%, var\(--color-text-muted\)\)/)
 })
 
 test('service cards omit redundant summaries but keep all configured items, with a subtle hover state', () => {

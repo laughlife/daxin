@@ -74,7 +74,7 @@ const statsFromSettings = computed(() => {
 })
 
 const teamTitleFromSettings = computed(() => readSettingText('about_team_title') || teamIntro.title)
-const teamDisplayTitle = computed(() => teamTitleFromSettings.value.replace(/^About\s*US\s*[·|｜—-]?\s*/i, '') || '大信法务团队')
+const teamDisplayTitle = computed(() => teamTitleFromSettings.value || '大信法务团队')
 const teamParagraphsFromSettings = computed(() => {
   const value = siteSettings.value?.settings?.about_team_paragraphs
   if (!Array.isArray(value)) return teamIntro.paragraphs
@@ -261,7 +261,8 @@ useHead({
 }
 
 .home-about__paragraph {
-  color: var(--color-text-muted);
+  color: color-mix(in srgb, var(--color-text) 82%, var(--color-text-muted));
+  font-size: var(--text-lg);
   line-height: 1.55;
 }
 
