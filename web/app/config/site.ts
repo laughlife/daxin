@@ -65,7 +65,7 @@ export const siteConfig: SiteConfig = {
       children: [
         { label: '劳动纠纷', to: '/domestic/labor-disputes' },
         { label: '货代案例', to: '/domestic/freight-cases' },
-        { label: '跨境资讯', to: '/domestic/cross-border-news' }
+        { label: '跨境咨询', to: '/domestic/cross-border-news' }
       ]
     },
     { label: '侵权品牌库', to: '/brands' },

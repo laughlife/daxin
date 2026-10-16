@@ -115,10 +115,12 @@ export function pickArticleImageAlt(input: ArticleImageInput): string {
 const SECTION_PATHS: Record<string, string> = {
   'tro-alert': '/tro/alerts',
   'tro-success': '/tro/success-cases',
+  'cpsc-recalls': '/tro/cpsc-recalls',
   knowledge: '/tro/guides',
   news: '/tro/news',
   'labor-case': '/domestic/labor-disputes',
   'freight-case': '/domestic/freight-cases',
+  'cross-border-consulting': '/domestic/cross-border-news',
 }
 
 export const DEFAULT_ARTICLE_SECTION_PATH = '/tro/news'

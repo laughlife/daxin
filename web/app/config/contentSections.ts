@@ -42,7 +42,7 @@ export const contentSections: ContentSection[] = [
     title: 'CPSC 召回',
     group: 'tro',
     description: '聚焦美国产品安全、召回沟通与资料准备。',
-    category: ''
+    category: 'cpsc-recalls'
   },
   {
     path: '/tro/guides',
@@ -74,10 +74,10 @@ export const contentSections: ContentSection[] = [
   },
   {
     path: '/domestic/cross-border-news',
-    title: '跨境资讯',
+    title: '跨境咨询',
     group: 'labor',
     description: '跨境企业经营、物流与合同风控资讯。',
-    category: ''
+    category: 'cross-border-consulting'
   },
   {
     path: '/faq/tro',

@@ -14,9 +14,9 @@ const props = defineProps<{
 
 /** 各分类的展示标题与「更多」入口。 */
 const CATEGORY_META: Record<string, { title: string, moreLabel: string, moreHref: string }> = {
-  'tro-alert': { title: 'TRO 案件预警', moreLabel: '更多 TRO 预警', moreHref: '/tro/alerts' },
+  'tro-alert': { title: 'TRO 侵权预警', moreLabel: '更多 TRO 预警', moreHref: '/tro/alerts' },
   'tro-success': { title: 'TRO 成功案例', moreLabel: '更多成功案例', moreHref: '/tro/success-cases' },
-  'labor-case': { title: '劳动法案例', moreLabel: '更多劳动法文章', moreHref: '/domestic/labor-disputes' },
+  'labor-case': { title: '劳动纠纷', moreLabel: '更多劳动纠纷', moreHref: '/domestic/labor-disputes' },
   'freight-case': { title: '货代案例', moreLabel: '更多货代案例', moreHref: '/domestic/freight-cases' },
 }
 

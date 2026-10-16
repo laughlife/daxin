@@ -15,6 +15,7 @@ import {
   toPublicImageUrl,
 } from '../server/utils/public/article-query.ts'
 import { sanitizeHtml } from '../server/utils/public/sanitize.ts'
+import { findContentSection } from '../app/config/contentSections.ts'
 
 test('分页参数夹取：page 最小 1，pageSize 默认 12、上限 48', () => {
   for (const [input, expected] of [[undefined, 1], ['abc', 1], [0, 1], [-3, 1], [2.9, 2], ['5', 5], [1, 1]]) {
@@ -180,6 +181,16 @@ test('列表映射：日期、详情路径、配图字段，且不泄漏摘要�
   assert.equal(withImage.imageAlt, '封面')
   // 分类名缺失时回落到 slug，而不是留空
   assert.equal(withImage.category, 'news')
+})
+
+test('CPSC 与跨境咨询栏目按新分类查询并为文章生成原栏目详情路径', () => {
+  const cpsc = findContentSection('/tro/cpsc-recalls')
+  const crossBorder = findContentSection('/domestic/cross-border-news')
+  assert.equal(cpsc?.category, 'cpsc-recalls')
+  assert.equal(crossBorder?.category, 'cross-border-consulting')
+  assert.equal(crossBorder?.title, '跨境咨询')
+  assert.equal(articleHref('cpsc-recalls', 'recall-article'), '/tro/cpsc-recalls/recall-article')
+  assert.equal(articleHref('cross-border-consulting', 'consulting-article'), '/domestic/cross-border-news/consulting-article')
 })
 
 test('服务端清洗：去掉 script、iframe、事件属性、style 与危险链接', () => {
