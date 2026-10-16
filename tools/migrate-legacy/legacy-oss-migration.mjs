@@ -83,7 +83,7 @@ async function main() {
   const reportPath = resolve(get('--report', 'tmp/dxfw-migration-dry-run.json'))
   const outPath = resolve(get('--out', 'tmp/dxfw-media-map.json'))
   await mkdir(dirname(outPath), { recursive: true })
-  const concurrency = Math.max(1, Math.min(32, Number(get('--concurrency', '16')) || 16))
+  const concurrency = Math.max(1, Math.min(12, Number(get('--concurrency', '8')) || 8))
   const report = JSON.parse(await readFile(reportPath, 'utf8'))
   const paths = [...new Set((report.media ?? []).map((item) => String(item.sourcePath ?? '').trim()).filter(Boolean))]
   const env = readEnvFile('web/.env')
@@ -111,11 +111,17 @@ async function main() {
   await runPool(paths, concurrency, async (sourceUrl, index) => {
     if (map[sourceUrl]?.objectKey && map[sourceUrl]?.publicUrl) return
     let lastError = ''
-    for (const referer of ['', 'https://www.toutiao.com/']) {
+    const fetchUrls = [sourceUrl]
+    try {
+      const original = new URL(sourceUrl)
+      if (original.hostname === 'daxin.qinianyun.com') fetchUrls.push(`https://daxinfawu.com${original.pathname}${original.search}`)
+    } catch {}
+    const referers = sourceUrl.includes('toutiao.com') ? ['', 'https://www.toutiao.com/'] : ['']
+    for (const fetchUrl of [...new Set(fetchUrls)]) for (const referer of referers) {
       try {
         const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/126 Safari/537.36' }
         if (referer) headers.Referer = referer
-        const response = await fetch(sourceUrl, { headers, signal: AbortSignal.timeout(30000) })
+        const response = await fetch(fetchUrl, { headers, signal: AbortSignal.timeout(90000) })
         if (!response.ok) throw new Error(`源站 HTTP ${response.status}`)
         const contentType = String(response.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase()
         const extension = MIME_EXTENSIONS[contentType]
