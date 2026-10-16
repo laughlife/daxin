@@ -1,6 +1,6 @@
-import { createHmac } from 'node:crypto'
-import { mkdir, readFile, writeFile } from 'node:fs/promises'
-import { dirname, resolve } from 'node:path'
+import { createHmac, randomUUID } from 'node:crypto'
+import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises'
+import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { buildDxfwAttachmentUrl } from './legacy-source.mjs'
@@ -262,6 +262,29 @@ async function putOssObject(oss, objectKey, body, contentType) {
   if (!response.ok) throw new Error(`OSS 上传 HTTP ${response.status}`)
 }
 
+export async function writeCheckpointSnapshot(path, value) {
+  const directory = `${path}.snapshots`
+  await mkdir(directory, { recursive: true })
+  const sequence = positiveId(value.checkpointSequence) || 1
+  const finalPath = join(directory, `${String(sequence).padStart(8, '0')}-${randomUUID()}.json`)
+  const payload = `${JSON.stringify({ ...value, checkpointSequence: sequence }, null, 2)}\n`
+  // Every snapshot has a new path and is never overwritten. A reader that sees the directory
+  // entry before the write closes will fail JSON parsing and fall back to the previous snapshot.
+  await writeFile(finalPath, payload, { encoding: 'utf8', flag: 'wx' })
+  return { ...value, checkpointSequence: sequence }
+}
+
+export async function readLatestCheckpoint(path) {
+  const directory = `${path}.snapshots`
+  try {
+    const names = (await readdir(directory)).filter(name => /^\d{8}-[0-9a-f-]+\.json$/i.test(name)).sort().reverse()
+    for (const name of names) {
+      try { return JSON.parse(await readFile(join(directory, name), 'utf8')) } catch {}
+    }
+  } catch {}
+  return readJson(path, {})
+}
+
 async function saveJson(path, value) {
   await mkdir(dirname(path), { recursive: true })
   await writeFile(path, `${JSON.stringify(value, null, 2)}\n`, 'utf8')
@@ -299,7 +322,9 @@ async function fetchAndUploadAttachments(attachments, { state, statePath, mediaP
   let checkpoint = Promise.resolve()
   const saveCheckpoint = () => {
     const snapshot = JSON.parse(JSON.stringify(state))
-    checkpoint = checkpoint.then(() => saveJson(statePath, snapshot))
+    snapshot.checkpointSequence = (Number(state.checkpointSequence) || 0) + 1
+    state.checkpointSequence = snapshot.checkpointSequence
+    checkpoint = checkpoint.then(() => writeCheckpointSnapshot(statePath, snapshot))
     return checkpoint
   }
   await runPool(attachments, concurrency, async (item) => {
@@ -326,7 +351,8 @@ async function fetchAndUploadAttachments(attachments, { state, statePath, mediaP
       state.uploaded = (state.uploaded ?? 0) + 1
       uploadedCount += 1
       mapped.set(item.sourceUrl, result)
-      await saveCheckpoint()
+      if (uploadedCount % 100 === 0) console.log(`封面上传进度 ${uploadedCount}/${attachments.length}`)
+      if (uploadedCount % 20 === 0) await saveCheckpoint()
     } catch (error) {
       failures.push({ sourceUrl: item.sourceUrl, error: String(error?.message ?? error) })
     }
@@ -394,12 +420,24 @@ export async function runCoverBackfill(args = process.argv.slice(2)) {
   const existingMediaMap = priorMediaFile.mediaMap ?? priorMediaFile
   const mediaPathIndex = buildMediaPathIndex(existingMediaMap)
   const mappedExistingCount = countMappedCoverAttachments(plan.attachments, mediaPathIndex)
-  const priorState = await readJson(options.statePath, {})
+  const priorState = await readLatestCheckpoint(options.statePath)
   const state = {
     dateFolder: priorState.dateFolder || shanghaiDateFolder(),
     uploaded: Number(priorState.uploaded) || 0,
+    checkpointSequence: Number(priorState.checkpointSequence) || 0,
     mediaMap: priorState.mediaMap && typeof priorState.mediaMap === 'object' ? priorState.mediaMap : {},
   }
+  const checkpointMappedUrls = new Set(plan.attachments
+    .filter(item => state.mediaMap[item.sourceUrl]?.objectKey && state.mediaMap[item.sourceUrl]?.publicUrl)
+    .map(item => item.sourceUrl))
+  const existingMappedUrls = new Set(plan.attachments
+    .filter(item => resolveMappedCover(item.sourceUrl, mediaPathIndex))
+    .map(item => item.sourceUrl))
+  const allMappedUrls = new Set([...checkpointMappedUrls, ...existingMappedUrls])
+  const mappedObjectKeys = new Set(plan.attachments.flatMap((item) => {
+    const mapped = state.mediaMap[item.sourceUrl] ?? resolveMappedCover(item.sourceUrl, mediaPathIndex)
+    return mapped?.objectKey && mapped?.publicUrl ? [mapped.objectKey] : []
+  }))
   const summary = {
     mode: options.apply ? 'apply' : 'dry-run',
     sourceId: options.sourceId,
@@ -409,7 +447,8 @@ export async function runCoverBackfill(args = process.argv.slice(2)) {
     directUrlCoverReferences: plan.directUrlReferenceCount,
     uniqueAttachmentPaths: plan.uniqueAttachmentCount,
     existingOssPathMatches: mappedExistingCount,
-    needDownloadCount: plan.uniqueAttachmentCount - mappedExistingCount,
+    resumableCheckpointMappings: checkpointMappedUrls.size,
+    needDownloadCount: plan.uniqueAttachmentCount - allMappedUrls.size,
     missingSourceCount: plan.missingSourceCount,
     missingAttachmentCount: plan.missingAttachmentCount,
     dateFolder: state.dateFolder,
@@ -419,12 +458,10 @@ export async function runCoverBackfill(args = process.argv.slice(2)) {
   }
 
   if (!options.apply) {
-    const mapKeys = [...new Set(plan.attachments
-      .map(item => resolveMappedCover(item.sourceUrl, mediaPathIndex)?.objectKey)
-      .filter(Boolean))]
+    const mapKeys = [...mappedObjectKeys]
     const existingRows = await readMediaRowsByObjectKey(target, mapKeys)
     summary.alreadyRegisteredMediaCount = existingRows.filter(row => row.usage_scope === 'article' && !row.deleted_at).length
-    summary.mediaObjectsToRegister = Math.max(0, mappedExistingCount - summary.alreadyRegisteredMediaCount)
+    summary.mediaObjectsToRegister = Math.max(0, mapKeys.length - summary.alreadyRegisteredMediaCount)
     await saveJson(options.reportPath, summary)
     console.log(JSON.stringify(summary, null, 2))
     console.log(`预演报告：${options.reportPath}`)
@@ -439,7 +476,7 @@ export async function runCoverBackfill(args = process.argv.slice(2)) {
   }
   const oss = readOssConfig()
   state.dateFolder = priorState.dateFolder || shanghaiDateFolder()
-  await saveJson(options.statePath, state)
+  Object.assign(state, await writeCheckpointSnapshot(options.statePath, state))
   const uploadResult = await fetchAndUploadAttachments(plan.attachments, {
     state,
     statePath: options.statePath,
@@ -456,7 +493,8 @@ export async function runCoverBackfill(args = process.argv.slice(2)) {
   summary.failures.push(...uploaded.bindFailures)
   summary.unboundArticleReferences = plan.referenceCount - uploaded.boundArticleCount
   await saveJson(options.reportPath, summary)
-  await saveJson(options.statePath, state)
+  state.checkpointSequence = (Number(state.checkpointSequence) || 0) + 1
+  Object.assign(state, await writeCheckpointSnapshot(options.statePath, state))
   console.log(JSON.stringify(summary, null, 2))
   console.log(`回填报告：${options.reportPath}`)
   if (summary.failures.length) process.exitCode = 1

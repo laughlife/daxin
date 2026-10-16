@@ -1,4 +1,7 @@
 import assert from 'node:assert/strict'
+import { mkdtemp, readdir, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { test } from 'node:test'
 
 import * as coverBackfill from './legacy-cover-backfill.mjs'
@@ -105,4 +108,45 @@ test('封面回填默认只预演，只有显式 --apply 才允许写入', () =>
   assert.equal(coverBackfill.parseCoverBackfillArgs([]).apply, false)
   assert.equal(coverBackfill.parseCoverBackfillArgs(['--apply']).apply, true)
   assert.equal(coverBackfill.parseCoverBackfillArgs(['--source-id', '1977']).sourceId, 1977)
+})
+
+test('检查点写入只创建完整版本文件，读取者不会读到半截 JSON', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'daxin-cover-checkpoint-'))
+  const path = join(directory, 'checkpoint.json')
+  const { readLatestCheckpoint, writeCheckpointSnapshot } = await import('./legacy-cover-backfill.mjs')
+  const errors = []
+  let finished = false
+  const reader = (async () => {
+    while (!finished) {
+      try {
+        const value = await readLatestCheckpoint(path)
+        if (!Number.isInteger(value.checkpointSequence)) continue
+        assert.ok(Number.isInteger(value.sequence))
+        assert.ok(Array.isArray(value.items))
+      } catch (error) {
+        errors.push(error)
+      }
+      await new Promise(resolvePromise => setTimeout(resolvePromise, 2))
+    }
+  })()
+  try {
+    for (let sequence = 0; sequence < 40; sequence += 1) {
+      await writeCheckpointSnapshot(path, {
+        checkpointSequence: sequence + 1,
+        sequence,
+        items: Array(100).fill(String(sequence).repeat(100)),
+      })
+    }
+  } finally {
+    finished = true
+    await reader
+  }
+  assert.deepEqual(errors, [])
+  assert.deepEqual(await readdir(directory), ['checkpoint.json.snapshots'])
+  const snapshotDirectory = join(directory, 'checkpoint.json.snapshots')
+  const snapshots = await readdir(snapshotDirectory)
+  assert.equal(snapshots.length, 40)
+  assert.ok(snapshots.every(name => name.endsWith('.json')))
+  assert.equal((await readLatestCheckpoint(path)).sequence, 39)
+  await rm(directory, { recursive: true, force: true })
 })
