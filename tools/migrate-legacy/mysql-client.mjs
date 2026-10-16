@@ -2,7 +2,7 @@
 //
 // 只通过本机 mysql 命令行客户端执行语句，不引入 Node MySQL 驱动依赖，
 // 也不使用 web 项目的连接池，保证迁移脚本与运行时完全隔离。
-import { execFile } from 'node:child_process'
+import { spawn } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
@@ -112,25 +112,50 @@ function buildArgs(connection, { database, batch }) {
 function execute(connection, sql, { database, timeoutMs, stdoutLimit, batch = true, skipColumnNames = true }) {
   const args = buildArgs(connection, { database: database === undefined ? connection.database : database, batch })
   if (batch && skipColumnNames) args.push('--skip-column-names')
-  args.push(`--execute=${sql}`)
   return new Promise((resolvePromise, rejectPromise) => {
-    execFile(connection.client, args, {
-      timeout: timeoutMs,
+    const child = spawn(connection.client, args, {
       windowsHide: true,
-      maxBuffer: stdoutLimit,
       env: connection.password ? { ...process.env, MYSQL_PWD: connection.password } : process.env,
-    }, (error, stdout, stderr) => {
-      if (error) {
-        rejectPromise(new Error(`mysql 执行失败（库 ${database ?? connection.database}）：${(stderr || error.message).trim().slice(0, 600)}`))
-        return
-      }
-      const warnings = String(stderr).trim()
-      if (warnings && /error/i.test(warnings)) {
-        rejectPromise(new Error(`mysql 报告错误：${warnings.slice(0, 600)}`))
-        return
-      }
-      resolvePromise(String(stdout))
     })
+    let stdout = ''
+    let stderr = ''
+    let outputBytes = 0
+    let settled = false
+    const timer = setTimeout(() => {
+      child.kill()
+      finish(new Error(`执行超时（${timeoutMs}ms）`))
+    }, timeoutMs)
+    const finish = (error, value) => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      if (error) rejectPromise(error)
+      else resolvePromise(value)
+    }
+    child.stdout.setEncoding('utf8')
+    child.stderr.setEncoding('utf8')
+    child.stdout.on('data', (chunk) => {
+      outputBytes += Buffer.byteLength(chunk)
+      if (outputBytes > stdoutLimit) {
+        child.kill()
+        finish(new Error(`mysql 输出超过 ${stdoutLimit} bytes`))
+        return
+      }
+      stdout += chunk
+    })
+    child.stderr.on('data', (chunk) => { stderr += chunk })
+    child.on('error', (error) => finish(new Error(`mysql 启动失败：${error.message}`)))
+    child.on('close', (code) => {
+      if (settled) return
+      const detail = stderr.trim()
+      if (code !== 0) {
+        finish(new Error(`mysql 执行失败（库 ${database ?? connection.database}）：${(detail || `exit ${code}`).slice(0, 600)}`))
+      } else if (detail && /error/i.test(detail)) {
+        finish(new Error(`mysql 报告错误：${detail.slice(0, 600)}`))
+      } else finish(null, stdout)
+    })
+    child.stdin.on('error', (error) => finish(new Error(`mysql 输入失败：${error.message}`)))
+    child.stdin.end(sql)
   })
 }
 
@@ -177,24 +202,43 @@ export async function executeSql(connection, sql, options = {}) {
  * 因此可以并发执行；串行执行 288 篇文章会产生数千次往返，实测需要数十分钟。
  * 并发度默认 8，避免本机 MySQL 连接数被打满。
  */
-export async function executeSqlBatch(connection, statements, { concurrency = 8, ...options } = {}) {
+export function chunkSqlStatements(statements, { maxBytes = 2 * 1024 * 1024, maxStatements = 100 } = {}) {
+  const chunks = []
+  let current = []
+  let currentBytes = 0
+  for (const statement of statements.filter(Boolean)) {
+    const statementBytes = Buffer.byteLength(statement, 'utf8') + 2
+    if (current.length && (currentBytes + statementBytes > maxBytes || current.length >= maxStatements)) {
+      chunks.push(current)
+      current = []
+      currentBytes = 0
+    }
+    current.push(statement)
+    currentBytes += statementBytes
+  }
+  if (current.length) chunks.push(current)
+  return chunks
+}
+
+export async function executeSqlBatch(connection, statements, { concurrency = 8, maxBatchBytes, maxBatchStatements, ...options } = {}) {
   const list = statements.filter(Boolean)
+  const chunks = chunkSqlStatements(list, { maxBytes: maxBatchBytes, maxStatements: maxBatchStatements })
   const errors = []
   let cursor = 0
-  const workers = Array.from({ length: Math.max(1, Math.min(concurrency, list.length)) }, async () => {
-    while (cursor < list.length) {
+  const workers = Array.from({ length: Math.max(1, Math.min(concurrency, chunks.length)) }, async () => {
+    while (cursor < chunks.length) {
       const index = cursor
       cursor += 1
       try {
-        await executeSql(connection, list[index], options)
+        await executeSql(connection, `${chunks[index].map((statement) => `${statement.replace(/;\s*$/, '')};`).join('\n')}\n`, options)
       } catch (error) {
-        errors.push(`语句 #${index} 失败：${error.message}`)
+        errors.push(`语句批次 #${index} 失败（${chunks[index].length} 条）：${error.message}`)
       }
     }
   })
   await Promise.all(workers)
   if (errors.length > 0) {
-    throw new Error(`批量写入失败 ${errors.length} 条，首条：${errors[0]}`)
+    throw new Error(`批量写入失败 ${errors.length} 组，首组：${errors[0]}`)
   }
 }
 
