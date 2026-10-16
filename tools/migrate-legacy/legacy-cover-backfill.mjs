@@ -91,6 +91,7 @@ export function buildArticleCoverPlan({ articles = [], sourceRows = [] } = {}) {
       continue
     }
     const sourceId = String(article.source_id ?? article.legacy_source_id ?? '').trim()
+    const previousCoverMediaId = positiveId(article.existing_cover_media_id)
     const source = sourceById.get(sourceId)
     if (!source) {
       missingSourceCount += 1
@@ -118,9 +119,11 @@ export function buildArticleCoverPlan({ articles = [], sourceRows = [] } = {}) {
       sourceKind,
       articleIds: [],
       sourceIds: [],
+      previousCoverMediaIds: [],
     }
     entry.articleIds.push(positiveId(article.article_id ?? article.id))
     entry.sourceIds.push(positiveId(sourceId))
+    entry.previousCoverMediaIds.push(previousCoverMediaId)
     attachments.set(sourceUrl, entry)
   }
 
@@ -172,7 +175,8 @@ WHERE n.id IN (${ids.join(', ')})`
 
 async function readCoverCandidates(target, sourceId = null) {
   const articles = await queryObjects(target, `SELECT a.id AS article_id, a.legacy_source_id AS source_id,
-  CASE WHEN bound.id IS NOT NULL THEN a.cover_media_id ELSE NULL END AS cover_media_id
+  CASE WHEN bound.id IS NOT NULL THEN a.cover_media_id ELSE NULL END AS cover_media_id,
+  a.cover_media_id AS existing_cover_media_id
 FROM articles a
 LEFT JOIN media_assets bound ON bound.id = a.cover_media_id
   AND bound.usage_scope = 'article' AND bound.deleted_at IS NULL
@@ -194,6 +198,23 @@ async function readMediaRowsByObjectKey(target, objectKeys) {
 FROM media_assets WHERE object_key IN (${batch.map(quoteLiteral).join(', ')})`))
   }
   return rows
+}
+
+export function createCoverBindStatement({ articleId, sourceId, mediaId, previousCoverMediaId = 0 }) {
+  const article = positiveId(articleId)
+  const source = positiveId(sourceId)
+  const media = positiveId(mediaId)
+  const previous = positiveId(previousCoverMediaId)
+  if (!article || !source || !media) throw new Error('封面关联缺少有效文章、来源或媒体 ID')
+  const coverGuard = previous
+    ? `(cover_media_id IS NULL OR cover_media_id = ${previous})`
+    : 'cover_media_id IS NULL'
+  const sourceGuard = `id = ${article} AND legacy_source_table = 'dr_1_news' AND legacy_source_id = ${source}`
+  return {
+    articleId: article,
+    updateSql: `UPDATE articles SET cover_media_id = ${media}, updated_at = NOW()\nWHERE ${sourceGuard} AND ${coverGuard}`,
+    verifySql: `SELECT id FROM articles WHERE ${sourceGuard} AND cover_media_id = ${media} LIMIT 1`,
+  }
 }
 
 function readOssConfig() {
@@ -401,13 +422,32 @@ WHERE object_key = ${quoteLiteral(key)} AND usage_scope = 'article' AND deleted_
       const articleId = positiveId(item.articleIds[index])
       const sourceId = positiveId(item.sourceIds[index])
       if (!articleId || !sourceId) continue
-      statements.push(`UPDATE articles SET cover_media_id = ${mediaId}, updated_at = NOW()
-WHERE id = ${articleId} AND legacy_source_table = 'dr_1_news' AND legacy_source_id = ${sourceId}
-  AND cover_media_id IS NULL`)
+      statements.push({
+        ...createCoverBindStatement({
+          articleId,
+          sourceId,
+          mediaId,
+          previousCoverMediaId: item.previousCoverMediaIds?.[index],
+        }),
+        sourceUrl: item.sourceUrl,
+      })
     }
   }
-  await executeSqlBatch(target, statements, { concurrency: 8, maxBatchStatements: 80 })
-  return { boundArticleCount: statements.length, bindFailures }
+  await executeSqlBatch(target, statements.map(statement => statement.updateSql), { concurrency: 8, maxBatchStatements: 80 })
+  const verificationRows = await queryRowsBatch(target, statements.map(statement => statement.verifySql), { concurrency: 12 })
+  let boundArticleCount = 0
+  statements.forEach((statement, index) => {
+    if (positiveId(verificationRows[index]?.[0]?.[0]) === statement.articleId) {
+      boundArticleCount += 1
+      return
+    }
+    bindFailures.push({
+      sourceUrl: statement.sourceUrl,
+      articleId: statement.articleId,
+      error: '封面关联未通过核验（文章来源或当前封面已变化）',
+    })
+  })
+  return { boundArticleCount, bindFailures }
 }
 
 export async function runCoverBackfill(args = process.argv.slice(2)) {

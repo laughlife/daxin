@@ -48,6 +48,38 @@ test('封面回填计划跳过已绑定文章并统计缺失源文章或附件',
   assert.deepEqual(plan.attachments, [])
 })
 
+test('封面回填计划保留无效的旧媒体 ID，以便安全替换', () => {
+  const plan = coverBackfill.buildArticleCoverPlan({
+    articles: [{
+      article_id: '36',
+      source_id: '1982',
+      cover_media_id: null,
+      existing_cover_media_id: '777',
+    }],
+    sourceRows: [{ id: '1982', thumb: '11455', attachment: '202610/stale-cover.png' }],
+  })
+
+  assert.equal(plan.alreadyBoundCount, 0)
+  assert.equal(plan.referenceCount, 1)
+  assert.deepEqual(plan.attachments[0].articleIds, [36])
+  assert.deepEqual(plan.attachments[0].previousCoverMediaIds, [777])
+})
+
+test('封面绑定 SQL 仅替换读取时的无效媒体 ID，并提供真实关联验证查询', () => {
+  const statement = coverBackfill.createCoverBindStatement({
+    articleId: 36,
+    sourceId: 1982,
+    mediaId: 902,
+    previousCoverMediaId: 777,
+  })
+
+  assert.match(statement.updateSql, /cover_media_id IS NULL OR cover_media_id = 777/)
+  assert.match(statement.updateSql, /legacy_source_id = 1982/)
+  assert.match(statement.verifySql, /cover_media_id = 902/)
+  assert.match(statement.verifySql, /legacy_source_id = 1982/)
+  assert.equal(statement.articleId, 36)
+})
+
 test('thumb 已是旧站官网 URL 时仅接受同域 uploadfile 路径并升级为 HTTPS', () => {
   const plan = coverBackfill.buildArticleCoverPlan({
     articles: [{ article_id: 34, source_id: 1980, cover_media_id: null }],
