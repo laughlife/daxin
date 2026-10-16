@@ -45,6 +45,30 @@ const requestFetch = useRequestFetch()
 const canWrite = computed(() => canWriteContent(user.value))
 const readOnlyReason = READ_ONLY_NOTICE
 
+interface ArticleCategoryOption {
+  id: number
+  slug: string
+  name: string
+}
+
+const {
+  data: categoryData,
+  status: categoryStatus,
+  error: categoryError,
+  refresh: refreshCategories,
+} = await useAsyncData<ArticleCategoryOption[]>(
+  'admin-article-categories',
+  async () => {
+    const payload = await requestFetch<{ data?: ArticleCategoryOption[] }>('/api/admin/article-categories')
+    return Array.isArray(payload?.data) ? payload.data : []
+  },
+  { default: () => [] },
+)
+const categoryOptions = computed(() => categoryData.value ?? [])
+const categoryErrorMessage = computed(() => categoryError.value
+  ? adminRequestErrorMessage(categoryError.value, '文章分类加载失败，请稍后重试')
+  : '')
+
 /** 列表查询条件 */
 const keyword = ref('')
 const page = ref(1)
@@ -114,17 +138,6 @@ const items = computed(() => listData.value.items)
 const meta = computed<AdminPageMeta>(() => listData.value.meta)
 const isLoading = computed(() => listStatus.value === 'pending')
 const listErrorMessage = computed(() => adminRequestErrorMessage(listError.value, '文章列表加载失败，请稍后重试'))
-
-/** 分类选项：列表接口不提供分类字典接口，因此从当前列表响应里的 categoryId/categoryName 派生。 */
-const categoryOptions = computed(() => {
-  const seen = new Map<number, string>()
-  for (const item of items.value) {
-    if (item.categoryId !== null && item.categoryName && !seen.has(item.categoryId)) {
-      seen.set(item.categoryId, item.categoryName)
-    }
-  }
-  return [...seen.entries()].map(([id, name]) => ({ id, name }))
-})
 
 /** 关键字 / 状态变化后回到第一页 */
 watch(keyword, () => { page.value = 1 }, { flush: 'sync' })
@@ -567,6 +580,10 @@ if (import.meta.client) {
       <p v-if="detailError" class="admin-articles__error" role="alert">{{ detailError }}</p>
 
       <form class="admin-articles__form" novalidate @submit.prevent="onFormSubmit">
+        <div v-if="categoryErrorMessage" class="admin-articles__error" role="alert">
+          <span>{{ categoryErrorMessage }}</span>
+          <BaseButton type="button" variant="ghost" size="sm" @click="refreshCategories">重试</BaseButton>
+        </div>
         <div class="admin-articles__field">
           <label class="admin-articles__label" for="article-title">标题（必填）</label>
           <input
@@ -587,7 +604,7 @@ if (import.meta.client) {
             id="article-category"
             v-model="form.categoryId"
             class="admin-articles__select"
-            :disabled="!canWrite"
+            :disabled="!canWrite || categoryStatus === 'pending' || Boolean(categoryError)"
           >
             <option value="">未分类</option>
             <option
@@ -601,7 +618,7 @@ if (import.meta.client) {
               v-if="form.categoryId && !categoryOptions.some(option => String(option.id) === form.categoryId)"
               :value="form.categoryId"
             >
-              当前分类（#{{ form.categoryId }}，不在当前页候选中）
+              当前分类（#{{ form.categoryId }}）
             </option>
           </select>
         </div>

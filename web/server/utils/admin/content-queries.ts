@@ -1078,3 +1078,28 @@ export function mapAdminEntityRow(row: AdminEntityRow): AdminEntityItem {
     updatedAt: toDateTimeText(row.updated_at),
   }
 }
+
+export interface AdminArticleCategoryRow {
+  id?: unknown
+  slug?: unknown
+  name?: unknown
+  status?: unknown
+}
+
+export interface AdminArticleCategoryOption {
+  id: number
+  slug: string
+  name: string
+}
+
+/** 返回文章编辑器可选的活动分类字典；不依赖文章列表当前页。 */
+export function mapAdminArticleCategoryRows(rows: AdminArticleCategoryRow[]): AdminArticleCategoryOption[] {
+  return rows.flatMap((row) => {
+    const id = toId(row.id)
+    const slug = toText(row.slug)
+    const name = toText(row.name)
+    const active = row.status === 1 || row.status === '1' || row.status === true
+    if (!active || id <= 0 || !slug || !name) return []
+    return [{ id, slug, name }]
+  })
+}
