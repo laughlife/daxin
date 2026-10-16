@@ -20,23 +20,74 @@ export const SOURCE_CATEGORY_MAP = Object.freeze({
 /** 保持旧报表字段名兼容；键现在是源栏目 ID。 */
 export const PROJECT_CATEGORY_MAP = SOURCE_CATEGORY_MAP
 
+const CROSS_BORDER_CONSULTING_IDS = new Set([1838, 1839, 1840, 1844, 1863, 1864, 1874, 1894, 1951])
+const CPSC_RECALL_IDS = new Set([1909, 1918])
+const FREIGHT_CASE_IDS = new Set([1661, 1663])
+
+const DXFW_CATEGORY = Object.freeze({
+  troAlert: { slug: 'tro-alert', name: 'TRO侵权预警', section: 'tro' },
+  troSuccess: { slug: 'tro-success', name: 'TRO成功案例', section: 'tro' },
+  cpsc: { slug: 'cpsc-recalls', name: 'CPSC召回', section: 'tro' },
+  freight: { slug: 'freight-case', name: '货代案例', section: 'freight' },
+  crossBorder: { slug: 'cross-border-consulting', name: '跨境咨询', section: 'domestic' },
+  knowledge: { slug: 'knowledge', name: '科普干货', section: 'knowledge' },
+  news: { slug: 'news', name: '热点资讯', section: 'news' },
+})
+
+/** 按旧栏目及已核定的源文章 ID 映射新版文章分类。 */
+export function resolveDxfwArticleCategory(row = {}) {
+  const categoryId = Number.parseInt(String(row.catid ?? ''), 10)
+  const articleId = Number.parseInt(String(row.id ?? ''), 10)
+  if (categoryId === 1) return DXFW_CATEGORY.troAlert
+  if (categoryId === 2) return DXFW_CATEGORY.troSuccess
+  if (categoryId === 4) {
+    if (CPSC_RECALL_IDS.has(articleId)) return DXFW_CATEGORY.cpsc
+    if (FREIGHT_CASE_IDS.has(articleId)) return DXFW_CATEGORY.freight
+    return null
+  }
+  if (categoryId === 5) return CROSS_BORDER_CONSULTING_IDS.has(articleId)
+    ? DXFW_CATEGORY.crossBorder
+    : DXFW_CATEGORY.freight
+  if (categoryId === 9) return DXFW_CATEGORY.knowledge
+  if (categoryId === 10) return DXFW_CATEGORY.news
+  if (categoryId === 11 && articleId === 1627) return DXFW_CATEGORY.troAlert
+  if (categoryId === 11 && articleId === 1979) return DXFW_CATEGORY.knowledge
+  return null
+}
+
+/** 把 dr_attachment_data.attachment 相对路径转换为旧站封面地址。 */
+export function buildDxfwAttachmentUrl(attachment) {
+  const value = String(attachment ?? '').trim()
+  if (!value || /[\u0000-\u001F]/.test(value)) return ''
+  if (/^https?:\/\//i.test(value)) return value
+  if (/^[a-z][a-z0-9+.-]*:/i.test(value)) return ''
+  const relativePath = value
+    .replace(/\\/g, '/')
+    .replace(/^\/+/, '')
+    .replace(/^(?:uploadfile\/)+/i, '')
+  return relativePath ? `https://daxinfawu.com/uploadfile/${relativePath}` : ''
+}
+
 export function mapDxfwArticleRow(row) {
   const categoryId = Number.parseInt(String(row.catid ?? ''), 10)
-  const category = SOURCE_CATEGORY_MAP[categoryId]
+  const sourceCategory = SOURCE_CATEGORY_MAP[categoryId]
+  const category = resolveDxfwArticleCategory(row)
   return {
     legacy_source_table: 'dr_1_news',
     legacy_source_id: String(row.id ?? ''),
     title: String(row.title ?? ''),
     cateId: categoryId,
     projectId: categoryId,
-    projectTitle: String(row.category_name ?? category?.name ?? ''),
-    categoryName: String(row.category_name ?? category?.name ?? ''),
+    projectTitle: String(category?.name ?? row.category_name ?? sourceCategory?.name ?? ''),
+    categoryName: String(category?.name ?? row.category_name ?? sourceCategory?.name ?? ''),
+    categorySlug: String(category?.slug ?? sourceCategory?.slug ?? ''),
+    section: String(category?.section ?? ''),
     dateline: row.inputtime,
     status: row.status,
     hidden: 0,
     content: String(row.content ?? ''),
     note: '',
-    thumb: String(row.cover_url ?? row.thumb ?? ''),
+    thumb: buildDxfwAttachmentUrl(row.cover_attachment ?? row.cover_url ?? row.thumb),
     isTroEntitySource: categoryId === 1,
   }
 }
@@ -81,12 +132,7 @@ async function fetchDxfwArticles(connection, { includeUnmapped = false } = {}) {
   const rows = await queryObjects(connection, `
 SELECT n.id, n.title, n.catid, c.name AS category_name, n.inputtime, n.status,
   d.content,
-  CASE
-    WHEN a.attachment LIKE 'http://%' OR a.attachment LIKE 'https://%' THEN a.attachment
-    WHEN LEFT(a.attachment, 1) = '/' THEN CONCAT('https://daxinfawu.com', a.attachment)
-    WHEN a.attachment <> '' THEN CONCAT('https://daxinfawu.com/', a.attachment)
-    ELSE ''
-  END AS cover_url
+  a.attachment AS cover_attachment
 FROM dxfw.dr_1_news n
 LEFT JOIN dxfw.dr_1_news_data_0 d ON d.id = n.id
 LEFT JOIN dxfw.dr_1_share_category c ON c.id = n.catid

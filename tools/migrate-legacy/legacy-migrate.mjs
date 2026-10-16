@@ -69,7 +69,9 @@ function buildReport({ articles, projectStats, includeUnmapped, batchKey }) {
   let incompleteTroCaseBlocks = 0
 
   for (const row of articles) {
-    const project = PROJECT_CATEGORY_MAP[row.projectId]
+    const project = row.categorySlug
+      ? { slug: row.categorySlug, name: row.categoryName ?? row.projectTitle }
+      : PROJECT_CATEGORY_MAP[row.projectId]
     const article = parseLegacyArticle(row, {
       legacyProjectTitle: row.projectTitle,
       usedSlugs,
@@ -91,7 +93,7 @@ function buildReport({ articles, projectStats, includeUnmapped, batchKey }) {
       })
     }
 
-    const troCandidates = row.isTroEntitySource && row.categoryName === 'TRO案例'
+    const troCandidates = row.isTroEntitySource
       ? article.caseCandidates
       : []
     const completeCandidates = troCandidates.filter((candidate) => candidate.complete)
