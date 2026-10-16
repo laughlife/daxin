@@ -80,6 +80,22 @@ test('封面绑定 SQL 仅替换读取时的无效媒体 ID，并提供真实关
   assert.equal(statement.articleId, 36)
 })
 
+test('封面绑定也能安全替换数据库中的零值无效关联', () => {
+  const plan = coverBackfill.buildArticleCoverPlan({
+    articles: [{ article_id: '37', source_id: '1983', cover_media_id: null, existing_cover_media_id: '0' }],
+    sourceRows: [{ id: '1983', thumb: '11456', attachment: '202610/zero-cover.png' }],
+  })
+  const statement = coverBackfill.createCoverBindStatement({
+    articleId: 37,
+    sourceId: 1983,
+    mediaId: 903,
+    previousCoverMediaId: plan.attachments[0].previousCoverMediaIds[0],
+  })
+
+  assert.deepEqual(plan.attachments[0].previousCoverMediaIds, [0])
+  assert.match(statement.updateSql, /cover_media_id IS NULL OR cover_media_id = 0/)
+})
+
 test('thumb 已是旧站官网 URL 时仅接受同域 uploadfile 路径并升级为 HTTPS', () => {
   const plan = coverBackfill.buildArticleCoverPlan({
     articles: [{ article_id: 34, source_id: 1980, cover_media_id: null }],

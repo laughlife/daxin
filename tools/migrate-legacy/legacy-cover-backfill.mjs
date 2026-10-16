@@ -18,6 +18,12 @@ function positiveId(value) {
   return Number.isSafeInteger(id) && id > 0 ? id : 0
 }
 
+function nullableNonNegativeId(value) {
+  if (value === null || value === undefined || String(value).trim() === '') return null
+  const id = Number(value)
+  return Number.isSafeInteger(id) && id >= 0 ? id : null
+}
+
 function normalizedUploadPath(value) {
   try {
     const url = new URL(String(value ?? ''))
@@ -91,7 +97,7 @@ export function buildArticleCoverPlan({ articles = [], sourceRows = [] } = {}) {
       continue
     }
     const sourceId = String(article.source_id ?? article.legacy_source_id ?? '').trim()
-    const previousCoverMediaId = positiveId(article.existing_cover_media_id)
+    const previousCoverMediaId = nullableNonNegativeId(article.existing_cover_media_id)
     const source = sourceById.get(sourceId)
     if (!source) {
       missingSourceCount += 1
@@ -200,13 +206,13 @@ FROM media_assets WHERE object_key IN (${batch.map(quoteLiteral).join(', ')})`))
   return rows
 }
 
-export function createCoverBindStatement({ articleId, sourceId, mediaId, previousCoverMediaId = 0 }) {
+export function createCoverBindStatement({ articleId, sourceId, mediaId, previousCoverMediaId = null }) {
   const article = positiveId(articleId)
   const source = positiveId(sourceId)
   const media = positiveId(mediaId)
-  const previous = positiveId(previousCoverMediaId)
+  const previous = nullableNonNegativeId(previousCoverMediaId)
   if (!article || !source || !media) throw new Error('封面关联缺少有效文章、来源或媒体 ID')
-  const coverGuard = previous
+  const coverGuard = previous !== null
     ? `(cover_media_id IS NULL OR cover_media_id = ${previous})`
     : 'cover_media_id IS NULL'
   const sourceGuard = `id = ${article} AND legacy_source_table = 'dr_1_news' AND legacy_source_id = ${source}`
