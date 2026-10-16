@@ -1,6 +1,6 @@
 # 文章栏目与封面迁移实施计划
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 将 dxfw 文章按新官网栏目归类，接入完整后台分类选择和封面编辑，并从旧附件路径下载封面上传 OSS、关联到新库文章。
 
@@ -42,25 +42,25 @@
 - 产出纯函数 `buildDxfwAttachmentUrl(attachment)`，把附件相对路径转换为旧站访问 URL。
 - `mapDxfwArticleRow()` 和 `fetchDxfwArticles()` 共用以上映射，分类和封面来源不再由两份规则决定。
 
-- [ ] **Step 1: 为分类拆分和封面地址规则写失败测试**
+- [x] **Step 1: 为分类拆分和封面地址规则写失败测试**
 
 验证：国外 ID 1909、1918 为 CPSC，1661、1663 为货代；国内已确认 9 个 ID 为跨境咨询、其余为货代；1977 的附件路径得到 `/uploadfile/202610/d3a71f84fefdfee.png`；`/83/3b/.../380x250_crop.jpg` 不产生双斜线或重复 `uploadfile` 前缀；空附件返回空串。
 
-- [ ] **Step 2: 运行对应测试确认失败**
+- [x] **Step 2: 运行对应测试确认失败**
 
 Run: `node --test tools/migrate-legacy/legacy-source.test.mjs`
 Expected: 新增的分类与附件 URL 测试因函数或当前映射不符而失败。
 
-- [ ] **Step 3: 实现分类解析和 URL 规范化，并让 dry-run 报告使用新分类**
+- [x] **Step 3: 实现分类解析和 URL 规范化，并让 dry-run 报告使用新分类**
 
 在 `legacy-source.mjs` 为相对路径去除开头斜线和已有 `uploadfile/` 前缀，再拼接基址；完整 HTTP(S) 地址保持原样。用源文章 ID 和栏目 ID 执行已确认的分类规则，返回对应新版名称和 section。更新旧库读取 SQL，使 `dr_attachment_data.attachment` 按此规则生成 `cover_url`。`legacy-migrate.mjs` 的报告生成必须优先使用解析后的 slug，同时保持 TRO 案例实体抽取不依赖展示名称。
 
-- [ ] **Step 4: 运行旧库映射测试并检查迁移报告计数**
+- [x] **Step 4: 运行旧库映射测试并检查迁移报告计数**
 
 Run: `node --test tools/migrate-legacy/legacy-source.test.mjs`
 Expected: PASS；随后运行迁移 dry-run，报告仍为 858 篇，9 个咨询 ID 与国外 4 篇分类准确，封面为 858 条引用、834 个唯一附件路径。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```powershell
 git add -- tools/migrate-legacy/legacy-source.mjs tools/migrate-legacy/legacy-migrate.mjs tools/migrate-legacy/legacy-source.test.mjs
@@ -78,25 +78,25 @@ git commit -m "fix: 修正旧文章分类与封面路径映射"
 - 产出 CLI：默认 `--dry-run`，仅传入 `--apply` 时更新 `daxin`；不重新导入或覆盖正文。
 - 目标行只限定 `legacy_source_table='dr_1_news'`，新旧分类通过 slug 定位，不硬编码自增 ID。
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 测试重分类生成的映射/SQL：国外 2 篇进入 `cpsc-recalls`、2 篇进入 `freight-case`；国内 9 个指定 ID 进入 `cross-border-consulting`、余下 85 篇进入 `freight-case`；ID 1627 进入 `tro-alert`，ID 1979 进入 `knowledge`；其他文章不匹配更新条件。
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `node --test tools/migrate-legacy/legacy-reclassify-articles.test.mjs`
 Expected: FAIL，脚本与分类构造器尚未实现。
 
-- [ ] **Step 3: 实现 dry-run/apply 和活动分类种子**
+- [x] **Step 3: 实现 dry-run/apply 和活动分类种子**
 
 dry-run 输出写入前后分类计数及预计更新篇数；`--apply` 只改 `category_id` 与分类名称/section/status，不修改文章正文、日期、发布状态或媒体。重跑 `--apply` 结果不变。停用无引用旧分类，保留记录。
 
-- [ ] **Step 4: 运行测试并执行数据库变更**
+- [x] **Step 4: 运行测试并执行数据库变更**
 
 Run: `node --test tools/migrate-legacy/legacy-reclassify-articles.test.mjs`，再先运行脚本 dry-run 核对 858 篇总量和分类计数，核对无误后以 `--apply` 执行并查询验证。旧库连接仅 SELECT。
 Expected: 分类计数与 spec 一致；文章总量和非分类字段保持不变。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```powershell
 git add -- tools/migrate-legacy/legacy-reclassify-articles.mjs tools/migrate-legacy/legacy-reclassify-articles.test.mjs tools/migrate-legacy/legacy-import.mjs
@@ -117,22 +117,22 @@ git commit -m "feat: 按新版栏目重分类迁移文章"
 - `/domestic/cross-border-news` 查询 `cross-border-consulting`，保留现有 URL 并显示“跨境咨询”。
 - `articleHref(categorySlug, slug)` 对 CPSC、跨境咨询和科普干货生成正确详情 URL。
 
-- [ ] **Step 1: 为栏目查询与详情链接写失败测试**
+- [x] **Step 1: 为栏目查询与详情链接写失败测试**
 
 测试 CPSC 读取 `cpsc-recalls`、跨境页面读取 `cross-border-consulting`，以及新旧分类的详情 URL 前缀。
 
-- [ ] **Step 2: 运行测试确认新 slug 当前无法正确查找或生成详情链接**
+- [x] **Step 2: 运行测试确认新 slug 当前无法正确查找或生成详情链接**
 
 Run: `node --test scripts/public-api-articles.test.mjs`（工作目录 `web`）
 Expected: 新增的 CPSC/跨境详情路径断言失败。
 
-- [ ] **Step 3: 更新栏目配置、导航名称和详情路径映射**
-- [ ] **Step 4: 运行公开文章测试**
+- [x] **Step 3: 更新栏目配置、导航名称和详情路径映射**
+- [x] **Step 4: 运行公开文章测试**
 
 Run: `node --test scripts/public-api-articles.test.mjs`（工作目录 `web`）
 Expected: PASS；新栏目路由使用指定 slug，旧跨境 URL 保持有效。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```powershell
 git add -- web/app/config/contentSections.ts web/app/config/site.ts web/app/components/home/ArticlePreviewSection.vue web/server/utils/public/article-query.ts web/scripts/public-api-articles.test.mjs
@@ -150,22 +150,22 @@ git commit -m "feat: 接通CPSC与跨境咨询文章栏目"
 - `GET /api/admin/article-categories` 要求 `article:read`，返回活动分类 `{ id, slug, name }[]`。
 - 新建与编辑文章共用完整字典；分类选择不从当前分页数据推导。
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 测试有权限时只返回 `status=1` 的全部分类，无权限时拒绝；当当前文章分类未在本页文章结果中时，表单仍能显示它。
 
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `node --test scripts/admin-article-categories.test.mjs`（工作目录 `web`）
 Expected: FAIL，活动分类 API 不存在，分页外类别无法验证。
 
-- [ ] **Step 3: 实现活动分类 API 与表单数据加载**
-- [ ] **Step 4: 运行管理文章测试和类型检查**
+- [x] **Step 3: 实现活动分类 API 与表单数据加载**
+- [x] **Step 4: 运行管理文章测试和类型检查**
 
 Run: `npm test`、`npm run typecheck`（工作目录 `web`）
 Expected: PASS；分类加载与文章列表分页彼此独立。
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 ```powershell
 git add -- web/server/api/admin/article-categories.get.ts web/app/pages/admin/articles.vue web/scripts/admin-article-categories.test.mjs
@@ -190,20 +190,20 @@ git commit -m "feat: 后台文章使用完整分类字典"
 - POST/PUT 接受可空 `coverMediaId`，且只允许绑定未软删除、`usage_scope='article'` 的媒体记录。
 - 上传控件走 `useOssUpload`，用途 `article`；上传只更新表单暂存值，点击保存后才写文章。
 
-- [ ] **Step 1: 为封面详情读取、合法媒体绑定、停用分类拒绝与清空关联写失败测试**
-- [ ] **Step 2: 运行相关测试确认失败**
+- [x] **Step 1: 为封面详情读取、合法媒体绑定、停用分类拒绝与清空关联写失败测试**
+- [x] **Step 2: 运行相关测试确认失败**
 
 Run: `npm test`（工作目录 `web`）
 Expected: 新增封面字段测试失败，现有测试不回归。
 
-- [ ] **Step 3: 扩展详情 SQL、POST/PUT 校验与字段持久化；拒绝已停用分类**
-- [ ] **Step 4: 在新建/编辑表单添加封面预览、上传/替换/清除和保存状态**
-- [ ] **Step 5: 运行管理 API、OSS 上传和类型检查**
+- [x] **Step 3: 扩展详情 SQL、POST/PUT 校验与字段持久化；拒绝已停用分类**
+- [x] **Step 4: 在新建/编辑表单添加封面预览、上传/替换/清除和保存状态**
+- [x] **Step 5: 运行管理 API、OSS 上传和类型检查**
 
 Run: `npm test`、`npm run typecheck`（工作目录 `web`）
 Expected: PASS；保存后刷新仍有封面，详情正文不自动重复插入封面。
 
-- [ ] **Step 6: 提交**
+- [x] **Step 6: 提交**
 
 ```powershell
 git add -- web/app/components/admin/AdminArticleCoverField.vue web/app/pages/admin/articles.vue web/app/types/adminContent.ts web/server/utils/admin/content-queries.ts web/server/api/admin/articles.post.ts web/server/api/admin/articles/[id].get.ts web/server/api/admin/articles/[id].put.ts web/scripts/admin-content.test.mjs web/scripts/oss-upload.test.mjs
@@ -235,11 +235,11 @@ Expected: FAIL，回填执行器尚未实现。
 
 验证地址：`https://daxinfawu.com/uploadfile/202610/d3a71f84fefdfee.png`；成功后 OSS 对象位于 `Img/YYYYMMDD/`，文章 1977 的 `cover_media_id` 指向已登记的 `media_assets` 行。
 
-- [ ] **Step 6: 查询验证封面关联和公开卡片 URL**
+- [x] **Step 6: 查询验证封面关联和公开卡片 URL**
 
 Expected: 成功上传的文章有 `cover_media_id` 和 OSS `public_url`；失败项仍为空且写入报告，不关联外链。
 
-- [ ] **Step 7: 提交**
+- [x] **Step 7: 提交**
 
 ```powershell
 git add -- tools/migrate-legacy/legacy-cover-backfill.mjs tools/migrate-legacy/legacy-cover-backfill.test.mjs
@@ -251,17 +251,21 @@ git commit -m "feat: 从旧站附件回填文章封面"
 **Files:**
 - Test existing affected suites; no additional product files unless verification reveals a defect.
 
-- [ ] **Step 1: 运行全部项目测试、静态检查、类型检查和构建**
+- [x] **Step 1: 运行全部项目测试、静态检查、类型检查和构建**
 
 Run: `npm test`、`npm run check:static`、`npm run typecheck`、`npm run build`（工作目录 `web`）
 Expected: 全部 PASS。
 
-- [ ] **Step 2: 检查新分类页面、文章卡片封面和后台新建/编辑表单**
+- [x] **Step 2: 检查新分类页面、文章卡片封面和后台新建/编辑表单**
 
 Expected: CPSC 和跨境咨询列表有正确文章；公开卡片显示已上传封面；详情正文不重复显示封面；后台能选完整分类并上传、替换、清除封面。
 
-- [ ] **Step 3: 按此前约定在端口 3002 启动新项目并报告数据库/OSS回填数量**
+- [x] **Step 3: 按此前约定在端口 3002 启动新项目并报告数据库/OSS回填数量**
 
 若 3002 被占用，先确认占用进程并按用户此前约定停止当前监听进程，再启动新项目；打开首页、文章栏目页和后台文章管理页面验证。
 
-- [ ] **Step 4: 仅提交本任务实际修改文件，并报告验证结果**
+- [x] **Step 4: 仅提交本任务实际修改文件，并报告验证结果**
+
+**执行结果：** 文章分类与封面迁移完成。数据库核对：858 篇目标文章，854 篇绑定封面、852 个唯一封面媒体，4 篇旧数据无封面源值；封面关联无效数 0。公开接口：CPSC 2 篇、跨境咨询 9 篇且封面地址齐全。
+
+验证：web 全量测试 342/342、类型检查通过、在线静态/SSR 路由检查通过（3 个预渲染页面、105 处资源、97 个链接）；3002 预览中的首页、关于我们、CPSC、跨境咨询均 HTTP 200；CPSC 与跨境咨询 API 共返回 11 篇文章且封面地址齐全。构建已输出完整 `.output` 并显示 `Build complete`，但构建子进程在完成后未自行退出，故命令最终由 Ctrl+C 收尾，未把进程退出码记作通过。最终审查补充无效媒体 ID 的安全替换和实际关联核验，提交 `975581d`。
