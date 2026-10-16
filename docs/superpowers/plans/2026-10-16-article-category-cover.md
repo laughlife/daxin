@@ -219,18 +219,19 @@ git commit -m "feat: 后台文章支持封面上传与编辑"
 
 **Interfaces:**
 - CLI 默认 dry-run；`--apply` 才下载、上传、写媒体记录和更新文章。
-- 仅处理 `dr_1_news.thumb` 有效且目标文章 `legacy_source_table='dr_1_news'` 的文章；不修改正文或其他迁移内容。
+- 仅处理目标文章 `legacy_source_table='dr_1_news'`。`thumb` 为附件 ID 时从 `dr_attachment_data.id` 取相对路径并拼接官网 `/uploadfile/`；thumb 已是官网直链时，仅接受官网 HTTPS `/uploadfile/` 路径。空 thumb 不猜图片。不修改正文或其他迁移内容。
 - 同一附件路径只上传/登记一次；多个文章通过 `cover_media_id` 共享媒体 ID。
+- 只读核对基线：858 篇目标文章中，835 篇有附件 ID，19 篇 thumb 是官网直链，4 篇 thumb 为空；854 篇有封面，共 852 个唯一路径。已有 OSS 映射可复用 19 个路径。
 
-- [ ] **Step 1: 为附件路径、媒体复用、失败不关联写测试**
-- [ ] **Step 2: 运行测试确认失败**
+- [x] **Step 1: 为附件路径、媒体复用、失败不关联写测试**
+- [x] **Step 2: 运行测试确认失败**
 
 Run: `node --test tools/migrate-legacy/legacy-cover-backfill.test.mjs`
 Expected: FAIL，回填执行器尚未实现。
 
-- [ ] **Step 3: 实现源附件选择、20 MB 图片下载校验、日期目录 OSS 上传、媒体登记和文章封面关联**
-- [ ] **Step 4: dry-run 列出文章数、唯一附件数、已有绑定数和缺失目标行，不写库**
-- [ ] **Step 5: 运行样例 1977 源图片验证并执行封面回填**
+- [x] **Step 3: 实现源附件选择、20 MB 图片下载校验、日期目录 OSS 上传、媒体登记和文章封面关联**
+- [x] **Step 4: dry-run 列出文章数、唯一附件数、已有绑定数和缺失目标行，不写库**
+- [x] **Step 5: 运行样例 1977 源图片验证并执行封面回填**
 
 验证地址：`https://daxinfawu.com/uploadfile/202610/d3a71f84fefdfee.png`；成功后 OSS 对象位于 `Img/YYYYMMDD/`，文章 1977 的 `cover_media_id` 指向已登记的 `media_assets` 行。
 

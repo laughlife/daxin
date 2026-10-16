@@ -44,7 +44,7 @@
 
 目标库当前迁移批次有 858 篇文章，`cover_media_id` 均未关联。旧库文章表 `dr_1_news.thumb` 存附件 ID，关联 `dr_attachment_data.id` 后，从 `attachment` 取得相对路径。文章 ID 1977 的附件记录为 ID 11454，路径是 `202610/d3a71f84fefdfee.png`。图片读取地址应拼为 `https://daxinfawu.com/uploadfile/{attachment}`；该样例地址已验证返回 HTTP 200、PNG、315740 字节。
 
-旧迁移曾把相对路径拼在域名根目录，导致封面下载失败。按本次 `/uploadfile/` 规则进行的只读 dry-run 统计出 858 条封面引用、834 个唯一附件路径；此前使用的 833 个唯一路径是估算值，已由全量读取更正。因此封面尚未导入 OSS；实施时按修正后的附件表路径重新生成封面来源地址和媒体映射，下载成功后按现有日期目录上传，并仅对有 OSS 媒体记录的文章设置 `cover_media_id`。单张图片下载或上传失败时保留空封面并记录源文章 ID、附件 ID、地址及失败原因，不能绑定失效 URL。
+旧迁移曾把相对路径拼在域名根目录，导致封面下载失败。按 `dr_1_news.thumb` 关联附件表核对：858 篇中 835 篇通过附件 ID 找到相对路径，另有 19 篇的 `thumb` 已是官网 `/uploadfile/` 直链，4 篇没有封面值；共 854 篇有封面、852 个唯一图片路径。既有 OSS 图片映射按相对路径可复用其中 19 个对象，其余图片按 `https://daxinfawu.com/uploadfile/{attachment}` 下载并放入 `Img/YYYYMMDD/`。回填只对有有效 OSS 媒体记录的文章设置 `cover_media_id`。单张图片下载或上传失败时保留空封面并记录源文章 ID、附件 ID、地址及失败原因，不能绑定失效 URL。
 
 正文内图片已按日期写入 OSS `Img/YYYYMMDD/` 目录；例如当前批次中的对象：
 
