@@ -84,12 +84,60 @@ test('案件号归一化统一大小写并补零到四位', () => {
   // 旧站序号长度不统一（251 与 62369 并存），统一补零到四位，超过四位保持原样。
   assert.equal(normalizeCaseNumber(' 24 - cv - 1234 '), '24-cv-1234')
   assert.equal(normalizeCaseNumber('24-cv-12345'), '24-cv-12345')
+  assert.equal(normalizeCaseNumber('2023-cv-04187'), '2023-cv-04187')
   assert.equal(normalizeCaseNumber('不是案件号'), '')
 })
 
 test('案件号正则能识别全角与空格分隔写法', () => {
   assert.match('案件号：２４-cv-01889', CASE_NUMBER_PATTERN)
   assert.equal(normalizeCaseNumber('案件号：２４-cv-01889'), '24-cv-01889')
+})
+
+test('解码 CMS 实体编码的 TRO 正文并按案件信息区块提取完整案件', async () => {
+  const { extractTroCaseEntries } = await import('./legacy-parser.mjs')
+  const encoded = [
+    '&lt;p&gt;Wham-O品牌商标维权&lt;/p&gt;',
+    '&lt;p&gt;案件信息&lt;/p&gt;',
+    '&lt;p&gt;案件号：2023-cv-04187&lt;/p&gt;',
+    '&lt;p&gt;起诉时间：2023年6月29日&lt;/p&gt;',
+    '&lt;p&gt;原告：Wham-O Holding, Ltd&lt;/p&gt;',
+    '&lt;p&gt;代理律所：Keith&lt;/p&gt;',
+    '&lt;p&gt;受理法院：伊利诺伊州北区联邦法院&lt;/p&gt;',
+    '&lt;p&gt;涉案信息&lt;/p&gt;',
+    '&lt;p&gt;Wham-O 是知名玩具品牌，拥有 Frisbee 等产品品牌。&lt;/p&gt;',
+    '&lt;p&gt;产品展示&lt;/p&gt;',
+    '&lt;p&gt;Noga Levi版权图&lt;/p&gt;',
+    '&lt;p&gt;案件信息&lt;/p&gt;',
+    '&lt;p&gt;案件号：26-cv-02154&lt;/p&gt;',
+    '&lt;p&gt;原告：Noga Levi&lt;/p&gt;',
+    '&lt;p&gt;代理律所：Keith&lt;/p&gt;',
+    '&lt;p&gt;涉案信息&lt;/p&gt;',
+    '&lt;p&gt;插画师 Noga Levi 的作品。&lt;/p&gt;',
+    '&lt;p&gt;产品展示&lt;/p&gt;',
+  ].join('')
+  const entries = extractTroCaseEntries('TRO案例', encoded)
+  assert.equal(entries.length, 2)
+  assert.equal(entries[0].caseNumber, '2023-cv-04187')
+  assert.equal(entries[0].filedAt, '2023-06-29')
+  assert.equal(entries[0].plaintiff, 'Wham-O Holding, Ltd')
+  assert.equal(entries[0].lawFirmName, 'Keith')
+  assert.equal(entries[0].brandName, 'Wham-O Holding, Ltd')
+  assert.equal(entries[0].brandSummary, 'Wham-O 是知名玩具品牌，拥有 Frisbee 等产品品牌。')
+  assert.deepEqual(entries[0].ipTypes, ['trademark'])
+  assert.ok(entries[1].missingFields.includes('filedAt'))
+})
+
+test('案号块中的占位原告、律所或日期不视为字段齐全', async () => {
+  const { extractTroCaseEntries } = await import('./legacy-parser.mjs')
+  const html = [
+    '<p>测试商标维权</p><p>案件号：26-cv-12345</p>',
+    '<p>起诉时间：2026年1月2日</p><p>原告：匿名</p>',
+    '<p>代理律所：暂未披露</p><p>案件分析</p><p>此案为商标维权</p>',
+  ].join('')
+  const [candidate] = extractTroCaseEntries('TRO案例', html)
+  assert.equal(candidate.complete, false)
+  assert.ok(candidate.missingFields.includes('plaintiff'))
+  assert.ok(candidate.missingFields.includes('lawFirmName'))
 })
 
 test('日期解析支持多种旧站写法', () => {
@@ -203,6 +251,18 @@ test('parseLegacyArticle 产出完整结构', () => {
   assert.equal(article.mediaReferences.length, 1)
   assert.ok(article.slug.length > 0)
   assert.ok(!Object.hasOwn(article, 'summary'), '旧站解析不再生成文章摘要')
+})
+
+test('只有 TRO案例 栏目参与案件实体抽取', () => {
+  const article = parseLegacyArticle({
+    legacy_source_table: 'dr_1_news',
+    legacy_source_id: '1900',
+    categoryName: '跨境干货',
+    isTroEntitySource: false,
+    title: '公开案件分析 26-cv-12345',
+    content: '<p>案件号：26-cv-12345</p><p>起诉时间：2026年1月2日</p><p>原告：Example LLC</p><p>代理律所：Keith</p>',
+  })
+  assert.deepEqual(article.caseCandidates, [])
 })
 
 test('parseLegacyArticle 对缺正文的文章返回可核验标记', () => {

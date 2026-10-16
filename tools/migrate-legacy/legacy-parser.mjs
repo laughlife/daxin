@@ -7,7 +7,7 @@
 //   4. 生成稳定 slug 与人工核验原因。
 
 /** 案件号：两位年份 + cv/cc 等类型段 + 序号，允许全角与空格分隔。 */
-export const CASE_NUMBER_PATTERN = /[0-9０-９]{2}\s*[-–—_]\s*(?:cv|cc|mc|cr|ca|md)\s*[-–—_]\s*[0-9０-９]{1,6}/gi
+export const CASE_NUMBER_PATTERN = /[0-9０-９]{2}(?:[0-9０-９]{2})?\s*[-–—_]\s*(?:cv|cc|mc|cr|ca|md)\s*[-–—_]\s*[0-9０-９]{1,6}/gi
 
 /** 字段标签：同一行内冒号后的内容即字段值。 */
 const FIELD_LABELS = {
@@ -16,6 +16,8 @@ const FIELD_LABELS = {
   plaintiff: ['原告人', '原告'],
   lawFirmName: ['代理律所', '原告律所', '代理律所名称'],
   court: ['受理法院', '法院'],
+  brandName: ['涉案品牌', '品牌名称', '品牌方', '品牌'],
+  ipType: ['起诉类型', '侵权类型', '维权类型'],
 }
 
 const ALLOWED_TAGS = new Set([
@@ -84,6 +86,13 @@ export function decodeEntities(text) {
     const named = NAMED_ENTITIES[entity.toLowerCase()]
     return named ?? match
   })
+}
+
+/** dxfw CMS 正文常把整段 HTML 实体编码；只解一层后仍经过白名单清洗。 */
+export function decodeLegacyMarkup(html) {
+  const source = String(html ?? '')
+  if (!/&lt;\/?(?:p|div|section|h[1-6]|img|table|ul|ol|li|br)\b/i.test(source)) return source
+  return decodeEntities(source)
 }
 
 function safeFromCodePoint(code, fallback) {
@@ -215,7 +224,7 @@ function escapeAttribute(text) {
 /** 案件号归一化：半角化、统一小写、序号补零到四位（超过四位保持不变）。 */
 export function normalizeCaseNumber(input) {
   const text = toHalfWidth(input)
-  const match = /([0-9]{2})\s*-\s*([a-z]{2})\s*-\s*([0-9]{1,6})/i.exec(text)
+  const match = /([0-9]{2}(?:[0-9]{2})?)\s*-\s*([a-z]{2})\s*-\s*([0-9]{1,6})/i.exec(text)
   if (!match) return ''
   const [, year, type, rawSequence] = match
   const sequence = rawSequence.length > 4 ? rawSequence : rawSequence.padStart(4, '0')
@@ -310,7 +319,7 @@ export function findLabeledCaseNumbers(plainText) {
  *      “历史案件参考”“其他案件提及”误当成本文案件而虚增案件数。
  */
 export function extractCaseCandidates(title, content) {
-  const plainText = htmlToPlainText(content)
+  const plainText = htmlToPlainText(decodeLegacyMarkup(content)).replace(/代理\s*\n\s*律所/g, '代理律所')
   const fields = extractLabeledFields(plainText)
   const labeled = findLabeledCaseNumbers(plainText)
   const fromTitle = findCaseNumbers(title)
@@ -346,6 +355,137 @@ export function extractCaseCandidates(title, content) {
       missingFields: missingFields.filter((field, index, list) => list.indexOf(field) === index),
     }
   })
+}
+
+/**
+ * 从 dxfw 的 TRO 案例文章逐个读取“案件信息”区块。
+ * 只把案号、起诉日期、原告、代理律所、品牌名和侵权类型齐全的候选标记为 complete；
+ * 多案号共用一个信息区块时按歧义处理，不把同一组字段错误关联给多个案件。
+ */
+export function extractTroCaseEntries(title, content) {
+  const plainText = htmlToPlainText(decodeLegacyMarkup(content)).replace(/代理\s*\n\s*律所/g, '代理律所')
+  const markers = [...plainText.matchAll(/(?:^|\n)\s*(?:案件号|案件编号|案号)\s*[:：]\s*([^\n]{1,200})/g)]
+  const entries = []
+
+  for (let index = 0; index < markers.length; index += 1) {
+    const marker = markers[index]
+    const markerStart = marker.index ?? 0
+    const markerEnd = markerStart + marker[0].length
+    const previousCaseEnd = index > 0 ? (markers[index - 1].index ?? 0) + markers[index - 1][0].length : 0
+    const header = lastMeaningfulLine(plainText.slice(previousCaseEnd, markerStart))
+    const nextCase = plainText.indexOf('案件信息', markerEnd)
+    const nextLabel = index + 1 < markers.length ? (markers[index + 1].index ?? plainText.length) : plainText.length
+    const blockEnd = nextLabel
+    const block = plainText.slice(markerStart, blockEnd)
+    const metadataEndMarkers = ['原告介绍', '涉案信息', '案件分析', '产品展示', '案件信息']
+      .map((boundary) => plainText.indexOf(boundary, markerEnd))
+      .filter((position) => position >= 0 && position < blockEnd)
+    const metadataEnd = metadataEndMarkers.length ? Math.min(...metadataEndMarkers) : blockEnd
+    const metadata = plainText.slice(markerEnd, metadataEnd)
+    const fields = extractLabeledFields(metadata)
+    fields.plaintiff = cleanEntityField(fields.plaintiff)
+    fields.lawFirmName = cleanEntityField(fields.lawFirmName)
+    fields.brandName = cleanEntityField(fields.brandName)
+    const numbers = findCaseNumbers(marker[1])
+    const caseNumber = numbers.length === 1 ? numbers[0] : ''
+    if (!caseNumber) continue
+    const brandName = cleanBrandName(fields.brandName || fields.plaintiff || '')
+    const brandSummary = extractMarkerSection(block, '原告介绍', ['案件分析', '涉案信息', '产品展示', '案件信息'])
+      || extractMarkerSection(block, '涉案信息', ['案件分析', '产品展示', '案件信息'])
+    const analysis = extractMarkerSection(block, '案件分析', ['产品展示', '案件信息'])
+    const ipTypes = extractCaseIpTypes(fields.ipType, header, analysis)
+    const filedAt = fields.filedAt ? parseDateText(fields.filedAt) : null
+    const firmSummary = extractFirmSummary(block)
+
+    const missingFields = []
+    if (!filedAt) missingFields.push('filedAt')
+    if (!fields.plaintiff) missingFields.push('plaintiff')
+    if (!fields.lawFirmName) missingFields.push('lawFirmName')
+    if (!brandName) missingFields.push('brandName')
+    if (ipTypes.length === 0) missingFields.push('ipType')
+    const confidence = missingFields.length === 0 ? 1 : Number((1 - missingFields.length / 5).toFixed(4))
+    entries.push({
+      caseNumber,
+      filedAt,
+      plaintiff: fields.plaintiff ?? '',
+      lawFirmName: fields.lawFirmName ?? '',
+      court: fields.court ?? '',
+      brandName,
+      brandSummary,
+      lawFirmSummary: firmSummary,
+      ipTypes,
+      extractionRule: 'tro-case-info-block',
+      missingFields,
+      confidence,
+      complete: missingFields.length === 0,
+      sourceTitle: String(title ?? '').trim(),
+    })
+  }
+
+  return entries
+}
+
+function lastMeaningfulLine(text) {
+  const lines = String(text ?? '').split('\n').map((line) => line.trim()).filter(Boolean)
+  for (let index = lines.length - 1; index >= 0; index -= 1) {
+    const line = lines[index]
+    if (/^(?:\d{1,3}|本期案例预览|案件信息|涉案信息|产品展示)$/.test(line)) continue
+    if (/^\(?\d+\s*家被告\)?$/.test(line)) continue
+    return line
+  }
+  return ''
+}
+
+function cleanBrandName(value) {
+  let name = String(value ?? '')
+    .replace(/^\s*\d{1,3}[、.．)]\s*/, '')
+    .replace(/\s*[（(]?\d+\s*家被告[)）]?\s*$/, '')
+    .replace(/[：:：，,;；|｜\s]+$/, '')
+    .trim()
+  const suffix = /(?:婚纱版权|服装版权|版权图|自然插画|品牌商标|商标维权|版权维权|专利维权|商标侵权|版权侵权|专利侵权|商标|版权|专利|品牌)$/i
+  while (suffix.test(name)) name = name.replace(suffix, '').trim()
+  return name
+}
+
+function cleanEntityField(value) {
+  const text = String(value ?? '').replace(/\s+/g, ' ').trim()
+  if (!text || /^(?:未知|匿名|暂未披露|未披露|暂无|待确认|不详|无)$/i.test(text)) return ''
+  if (/^(?:起诉类型|侵权类型|维权类型|案件号|案件编号|原告|代理律所|受理法院)\s*[:：]/.test(text)) return ''
+  if (/^(?:19|20|21)\d{2}[.\-/年]\d{1,2}(?:[.\-/月]\d{1,2}日?)?$/.test(text)) return ''
+  if (!/[\p{L}]/u.test(text)) return ''
+  return text
+}
+
+function deriveIpTypes(value) {
+  const text = String(value ?? '')
+  const types = []
+  if (/商标/.test(text)) types.push('trademark')
+  if (/版权|著作权|插画/.test(text)) types.push('copyright')
+  if (/专利/.test(text)) types.push('patent')
+  return [...new Set(types)]
+}
+
+function extractCaseIpTypes(explicitValue, heading, analysis) {
+  const explicit = deriveIpTypes(explicitValue)
+  if (explicit.length) return explicit
+  const headingTypes = deriveIpTypes(heading)
+  if (headingTypes.length) return headingTypes
+  const statement = /(?:此案为|本案(?:为|涉及|属于)|(?:起诉|侵权|维权)类型\s*[:：]?)\s*([^。\n，,;；]{1,100})/.exec(String(analysis ?? ''))
+  return statement ? deriveIpTypes(statement[1]) : []
+}
+
+function extractMarkerSection(text, marker, stopMarkers) {
+  const start = String(text ?? '').indexOf(marker)
+  if (start < 0) return ''
+  const bodyStart = start + marker.length
+  const endCandidates = stopMarkers.map((item) => String(text ?? '').indexOf(item, bodyStart)).filter((position) => position >= 0)
+  const end = endCandidates.length ? Math.min(...endCandidates) : String(text ?? '').length
+  return String(text ?? '').slice(bodyStart, end).split('\n').map((line) => line.trim()).filter(Boolean).join('\n').slice(0, 12000)
+}
+
+function extractFirmSummary(text) {
+  const match = /(?:代理律所|律所)(?:简介|介绍|背景)\s*[:：]?\s*([\s\S]{1,1200}?)(?=\n(?:受理法院|涉案信息|产品展示|案件信息)|$)/.exec(String(text ?? ''))
+  return match?.[1]?.trim() ?? ''
 }
 
 /** 抽取正文图片引用：去重、保留顺序、标记外链。 */
@@ -443,7 +583,8 @@ export function formatPublishedAt(dateline) {
 export function parseLegacyArticle(row, { legacyProjectTitle = '', usedSlugs = new Set() } = {}) {
   const title = String(row.title ?? '').trim()
   const rawContent = String(row.content ?? '')
-  const sanitized = sanitizeHtml(rawContent)
+  const decodedContent = decodeLegacyMarkup(rawContent)
+  const sanitized = sanitizeHtml(decodedContent)
   const plainText = stripLegacyUgc(htmlToPlainText(sanitized))
   const reviewReasons = []
   if (!title) reviewReasons.push('empty_title')
@@ -461,7 +602,9 @@ export function parseLegacyArticle(row, { legacyProjectTitle = '', usedSlugs = n
     contentText: plainText,
     publishedAt: formatPublishedAt(row.dateline),
     sourceProjectTitle: legacyProjectTitle,
-    caseCandidates: extractCaseCandidates(title, rawContent),
+    caseCandidates: row.categoryName === 'TRO案例' || row.isTroEntitySource === true
+      ? extractTroCaseEntries(title, rawContent)
+      : (row.isTroEntitySource === false || row.categoryName ? [] : extractCaseCandidates(title, rawContent)),
     mediaReferences: extractMediaReferences(sanitized),
     hasContent: plainText.length > 0,
     reviewReasons,

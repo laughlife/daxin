@@ -13,12 +13,12 @@ import { dirname, join, resolve } from 'node:path'
 
 import { resolveLegacyConnection, resolveTargetConnection } from './mysql-client.mjs'
 import { applyMigrations, createTestDatabase, isTestDatabaseName } from './schema-check.mjs'
-import { parseLegacyArticle } from './legacy-parser.mjs'
+import { parseLegacyArticle, slugify } from './legacy-parser.mjs'
 import { PROJECT_CATEGORY_MAP, fetchLegacyArticles, fetchLegacyProjectStats, parseResourcePath } from './legacy-source.mjs'
 import { importBatch, verifyBatch } from './legacy-import.mjs'
 
 function parseArgs(argv) {
-  const options = { dryRun: false, doImport: false, includeUnmapped: false, batch: '', out: '', database: '', ensureSchema: false }
+  const options = { dryRun: false, doImport: false, includeUnmapped: false, batch: '', out: '', database: '', sourceDatabase: 'dxfw', ensureSchema: false, mediaMap: '' }
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index]
     if (arg === '--dry-run') options.dryRun = true
@@ -29,8 +29,12 @@ function parseArgs(argv) {
     else if (arg.startsWith('--batch=')) options.batch = arg.slice('--batch='.length)
     else if (arg === '--out') options.out = argv[++index] ?? ''
     else if (arg.startsWith('--out=')) options.out = arg.slice('--out='.length)
+    else if (arg === '--media-map') options.mediaMap = argv[++index] ?? ''
+    else if (arg.startsWith('--media-map=')) options.mediaMap = arg.slice('--media-map='.length)
     else if (arg === '--database') options.database = argv[++index] ?? ''
     else if (arg.startsWith('--database=')) options.database = arg.slice('--database='.length)
+    else if (arg === '--source-database') options.sourceDatabase = argv[++index] ?? ''
+    else if (arg.startsWith('--source-database=')) options.sourceDatabase = arg.slice('--source-database='.length)
     else if (arg === '--help' || arg === '-h') options.help = true
     else throw new Error(`未知参数：${arg}`)
   }
@@ -47,6 +51,8 @@ const USAGE = `用法：node tools/migrate-legacy/legacy-migrate.mjs <模式> [�
   --batch <key>             迁移批次标识，建议使用北京时间日期，例如 20261009-01
   --out <file>              报告输出路径，默认 docs/migration-dry-run.json
   --database <name>         导入到指定库（默认取 web/.env 的 DB_NAME）
+  --media-map <file>        图片已上传 OSS 后生成的映射文件（--import 必填）
+  --source-database <name>  只读源库（本次迁移使用 dxfw，默认 dxfw）
   --ensure-schema           导入前先执行 database/migrations 下的 DDL
   --include-unmapped        同时解析未映射栏目（默认只处理已确认的四个栏目）
   -h, --help                显示本帮助
@@ -56,8 +62,11 @@ function buildReport({ articles, projectStats, includeUnmapped, batchKey }) {
   const usedSlugs = new Set()
   const parsed = []
   const caseIndex = new Map()
+  const brandIndex = new Map()
+  const lawFirmIndex = new Map()
   const reviewItems = []
   const mediaByPath = new Map()
+  let incompleteTroCaseBlocks = 0
 
   for (const row of articles) {
     const project = PROJECT_CATEGORY_MAP[row.projectId]
@@ -82,7 +91,18 @@ function buildReport({ articles, projectStats, includeUnmapped, batchKey }) {
       })
     }
 
-    for (const candidate of article.caseCandidates) {
+    const troCandidates = row.isTroEntitySource && row.categoryName === 'TRO案例'
+      ? article.caseCandidates
+      : []
+    const completeCandidates = troCandidates.filter((candidate) => candidate.complete)
+    incompleteTroCaseBlocks += troCandidates.length - completeCandidates.length
+
+    for (const candidate of completeCandidates) {
+      if (candidate.brandName) mergeEntityCandidate(brandIndex, candidate.brandName, candidate.brandSummary)
+      if (candidate.lawFirmName) mergeEntityCandidate(lawFirmIndex, candidate.lawFirmName, candidate.lawFirmSummary)
+    }
+
+    for (const candidate of completeCandidates) {
       const existing = caseIndex.get(candidate.caseNumber)
       if (existing) {
         existing.sources.push({ table: article.sourceTable, id: article.sourceId, title: article.title })
@@ -99,21 +119,6 @@ function buildReport({ articles, projectStats, includeUnmapped, batchKey }) {
       })
     }
 
-    for (const candidate of article.caseCandidates) {
-      for (const field of candidate.missingFields) {
-        reviewItems.push({
-          entityType: 'case',
-          legacySourceTable: article.sourceTable,
-          legacySourceId: article.sourceId,
-          fieldName: field,
-          candidateValue: candidate.caseNumber,
-          normalizedValue: candidate.caseNumber,
-          contextSnippet: article.title.slice(0, 200),
-          confidence: candidate.confidence,
-        })
-      }
-    }
-
     for (const reference of article.mediaReferences) {
       const resource = parseResourcePath(reference.sourcePath)
       if (!mediaByPath.has(reference.sourcePath)) {
@@ -127,7 +132,17 @@ function buildReport({ articles, projectStats, includeUnmapped, batchKey }) {
       mediaByPath.get(reference.sourcePath).articleCount += 1
     }
 
-    parsed.push(article)
+    // 封面图不在正文 img 标签中，也必须进入媒体迁移清单。
+    const coverPath = String(row.thumb ?? '').trim()
+    if (coverPath) {
+      const resource = parseResourcePath(coverPath)
+      if (!mediaByPath.has(coverPath)) {
+        mediaByPath.set(coverPath, { sourcePath: coverPath, isExternal: /^https?:/i.test(coverPath), resource, articleCount: 0, coverCount: 0 })
+      }
+      mediaByPath.get(coverPath).coverCount = (mediaByPath.get(coverPath).coverCount ?? 0) + 1
+    }
+
+    parsed.push({ ...article, caseCandidates: completeCandidates })
   }
 
   const cases = [...caseIndex.values()].sort((left, right) => left.caseNumber.localeCompare(right.caseNumber))
@@ -152,7 +167,8 @@ function buildReport({ articles, projectStats, includeUnmapped, batchKey }) {
       articlesWithContent: parsed.filter((article) => article.hasContent).length,
       mappedArticles: parsed.filter((article) => article.mapped).length,
       distinctCaseNumbers: cases.length,
-      casesWithAllFields: cases.filter((item) => item.best.confidence === 1).length,
+      casesWithAllFields: cases.length,
+      incompleteTroCaseBlocks,
       caseOccurrences: cases.reduce((sum, item) => sum + item.occurrences, 0),
       duplicateCaseNumbers: dupes.length,
       distinctMediaReferences: media.length,
@@ -167,12 +183,18 @@ function buildReport({ articles, projectStats, includeUnmapped, batchKey }) {
       filedAt: item.best.filedAt,
       plaintiff: item.best.plaintiff,
       lawFirmName: item.best.lawFirmName,
+      brandName: item.best.brandName,
+      ipTypes: item.best.ipTypes,
       court: item.best.court,
+      brandSummary: item.best.brandSummary,
+      lawFirmSummary: item.best.lawFirmSummary,
       confidence: item.best.confidence,
       missingFields: item.best.missingFields,
       extractionRule: item.best.extractionRule,
       sources: item.sources,
     })),
+    brands: [...brandIndex.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    lawFirms: [...lawFirmIndex.values()].sort((a, b) => a.name.localeCompare(b.name)),
     reviewItems,
     media,
     statusBreakdown,
@@ -189,6 +211,21 @@ function buildReport({ articles, projectStats, includeUnmapped, batchKey }) {
       reviewReasons: article.reviewReasons,
     })),
   }
+}
+
+function mergeEntityCandidate(index, rawName, summary) {
+  const name = String(rawName ?? '').trim()
+  if (!name) return
+  const slug = slugify(name)
+  const existing = index.get(slug)
+  if (!existing) {
+    index.set(slug, { slug, name, aliases: [], summary: String(summary ?? '').trim(), occurrences: 1 })
+    return
+  }
+  existing.occurrences += 1
+  if (name !== existing.name && !existing.aliases.includes(name)) existing.aliases.push(name)
+  const candidateSummary = String(summary ?? '').trim()
+  if (candidateSummary.length > existing.summary.length) existing.summary = candidateSummary
 }
 
 async function main() {
@@ -218,6 +255,12 @@ async function main() {
     process.exitCode = 2
     return
   }
+  if (options.sourceDatabase !== 'dxfw') {
+    console.error('本次 CMS 数据迁移只允许源库 dxfw；旧库仅执行只读查询。')
+    process.exitCode = 2
+    return
+  }
+  legacy.database = options.sourceDatabase
   console.log(`旧库 ${legacy.database}（${legacy.host}:${legacy.port}，认证 ${legacy.auth}，凭据来源 ${legacy.credentialSource}），只读`)
 
   const articles = await fetchLegacyArticles(legacy, { includeUnmapped: options.includeUnmapped })
@@ -280,7 +323,7 @@ async function main() {
     console.log(`结构准备：本次执行 ${migrations.applied.length} 个迁移，跳过 ${migrations.skipped.length} 个`)
   }
   console.log(`目标库 ${target.database}，批次 ${options.batch}`)
-  const result = await importBatch({ target, legacy, batchKey: options.batch, includeUnmapped: options.includeUnmapped, articles, report })
+  const result = await importBatch({ target, legacy, batchKey: options.batch, includeUnmapped: options.includeUnmapped, articles, report, mediaMapPath: options.mediaMap })
   console.log(`导入完成：批次 ${result.batchKey}（id=${result.batchId}），文章 ${result.articlesCreated}，案件 ${result.casesCreated}，品牌 ${result.brandsCreated}，律所 ${result.lawFirmsCreated}，核验项 ${result.reviewItemsCreated}`)
   const verification = await verifyBatch({ target, batchId: result.batchId })
   console.log(`校验：${verification.ok ? '通过' : '失败'}`)
