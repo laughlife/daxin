@@ -154,7 +154,7 @@ test('从带标签正文提取完整案件候选', () => {
   const candidates = extractCaseCandidates(richArticle.title, richArticle.content)
   assert.equal(candidates.length, 1)
   const [candidate] = candidates
-  assert.equal(candidate.caseNumber, '23-cv-0774')
+  assert.equal(candidate.caseNumber, '23-cv-774')
   assert.equal(candidate.filedAt, '2023-01-30')
   assert.equal(candidate.plaintiff, 'RUN-TIGER LLC, d/b/a RUN-CHICKEN')
   assert.equal(candidate.lawFirmName, 'THOITS LAW')
