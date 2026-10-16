@@ -221,14 +221,13 @@ function escapeAttribute(text) {
   return String(text ?? '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-/** 案件号归一化：半角化、统一小写、序号补零到四位（超过四位保持不变）。 */
+/** 案件号归一化：半角化、统一小写和连接符，保留源序号位数。 */
 export function normalizeCaseNumber(input) {
   const text = toHalfWidth(input)
   const match = /([0-9]{2}(?:[0-9]{2})?)\s*-\s*([a-z]{2})\s*-\s*([0-9]{1,6})/i.exec(text)
   if (!match) return ''
   const [, year, type, rawSequence] = match
-  const sequence = rawSequence.length > 4 ? rawSequence : rawSequence.padStart(4, '0')
-  return `${year}-${type.toLowerCase()}-${sequence}`
+  return `${year}-${type.toLowerCase()}-${rawSequence}`
 }
 
 /** 解析日期文本，支持 -、/、.、年月日 分隔；非法日期返回 null。 */

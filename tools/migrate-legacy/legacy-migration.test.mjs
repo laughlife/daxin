@@ -76,12 +76,12 @@ test('清洗保留正文图片 src 供后续关联 OSS 资源', () => {
   assert.match(clean, /alt="41"/)
 })
 
-test('案件号归一化统一大小写并补零到四位', () => {
+test('案件号归一化统一大小写并保留原始序号位数', () => {
   assert.equal(normalizeCaseNumber('24-CV-0006'), '24-cv-0006')
   assert.equal(normalizeCaseNumber('24-cv-1006'), '24-cv-1006')
-  assert.equal(normalizeCaseNumber('23-cv-251'), '23-cv-0251')
+  assert.equal(normalizeCaseNumber('23-cv-251'), '23-cv-251')
   assert.equal(normalizeCaseNumber('22-cv-62369'), '22-cv-62369')
-  // 旧站序号长度不统一（251 与 62369 并存），统一补零到四位，超过四位保持原样。
+  // 不改源序号位数，避免把原始案号展示成另一个字符串。
   assert.equal(normalizeCaseNumber(' 24 - cv - 1234 '), '24-cv-1234')
   assert.equal(normalizeCaseNumber('24-cv-12345'), '24-cv-12345')
   assert.equal(normalizeCaseNumber('2023-cv-04187'), '2023-cv-04187')
