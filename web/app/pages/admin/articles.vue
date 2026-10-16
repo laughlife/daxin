@@ -167,6 +167,8 @@ interface ArticleForm {
   title: string
   slug: string
   categoryId: string
+  coverMediaId: number | null
+  coverUrl: string
   contentHtml: string
   publishedAt: string
   status: string
@@ -178,12 +180,20 @@ const form = reactive<ArticleForm>({
   title: '',
   slug: '',
   categoryId: '',
+  coverMediaId: null,
+  coverUrl: '',
   contentHtml: '',
   publishedAt: '',
   status: 'draft',
   isFeatured: false,
   showInSidebar: false
 })
+const coverUploading = ref(false)
+
+function onCoverUploaded(payload: { mediaId: number, mediaUrl: string }) {
+  form.coverMediaId = payload.mediaId
+  form.coverUrl = payload.mediaUrl
+}
 const previewCategory = computed(() => categoryOptions.value.find(option => String(option.id) === form.categoryId)?.name || '未分类')
 
 /**
@@ -260,6 +270,8 @@ async function openCreate() {
   form.title = ''
   form.slug = ''
   form.categoryId = ''
+  form.coverMediaId = null
+  form.coverUrl = ''
   form.contentHtml = ''
   form.publishedAt = ''
   form.status = 'draft'
@@ -281,6 +293,8 @@ async function openEdit(item: AdminArticleItem) {
   form.title = item.title
   form.slug = item.slug
   form.categoryId = item.categoryId === null ? '' : String(item.categoryId)
+  form.coverMediaId = null
+  form.coverUrl = ''
   form.status = item.status || 'draft'
   form.isFeatured = item.isFeatured
   form.showInSidebar = item.showInSidebar === true
@@ -295,6 +309,8 @@ async function openEdit(item: AdminArticleItem) {
     form.title = article.title
     form.slug = article.slug
     form.categoryId = article.categoryId === null ? '' : String(article.categoryId)
+    form.coverMediaId = article.coverMediaId
+    form.coverUrl = article.coverUrl
     form.contentHtml = article.contentHtml
     form.publishedAt = toDateTimeLocal(article.publishedAt)
     form.status = article.status || 'draft'
@@ -347,6 +363,7 @@ async function onSubmit(publish = false) {
     title: form.title.trim(),
     contentHtml: form.contentHtml,
     categoryId: form.categoryId ? Number(form.categoryId) : null,
+    coverMediaId: form.coverMediaId,
     publishedAt: form.publishedAt || '',
     status: publish ? 'published' : form.status,
     isFeatured: form.isFeatured,
@@ -624,8 +641,21 @@ if (import.meta.client) {
         </div>
 
         <div class="admin-articles__field">
+          <span class="admin-articles__label">封面图片</span>
+          <AdminArticleCoverField
+            :model-value="form.coverMediaId"
+            :media-url="form.coverUrl"
+            :disabled="!canWrite || saving || detailLoading"
+            @update:model-value="form.coverMediaId = $event"
+            @uploaded="onCoverUploaded"
+            @cleared="form.coverUrl = ''"
+            @uploading="coverUploading = $event"
+          />
+        </div>
+
+        <div class="admin-articles__field">
           <label class="admin-articles__label" for="article-content">正文</label>
-          <AdminRichTextEditor v-model="form.contentHtml" :disabled="!canWrite" />
+          <AdminRichTextEditor v-model="form.contentHtml" :disabled="!canWrite || coverUploading" />
         </div>
 
         <div class="admin-articles__grid">
@@ -648,14 +678,14 @@ if (import.meta.client) {
         <div class="admin-articles__actions">
           <BaseButton
             type="submit"
-            :disabled="!canWrite || !formValid || saving || detailLoading"
+            :disabled="!canWrite || !formValid || saving || detailLoading || coverUploading"
             :title="canWrite ? undefined : readOnlyReason"
           >
             {{ saving ? '保存中…' : '保存' }}
           </BaseButton>
-          <BaseButton type="button" variant="secondary" :disabled="!canWrite || !formValid || saving || detailLoading" @click="onSubmit(true)">发布文章</BaseButton>
+          <BaseButton type="button" variant="secondary" :disabled="!canWrite || !formValid || saving || detailLoading || coverUploading" @click="onSubmit(true)">发布文章</BaseButton>
           <BaseButton type="button" variant="ghost" :disabled="detailLoading" @click="previewOpen = true">文章预览</BaseButton>
-          <BaseButton type="button" variant="secondary" :disabled="saving" @click="closeEditor">取消</BaseButton>
+          <BaseButton type="button" variant="secondary" :disabled="saving || coverUploading" @click="closeEditor">取消</BaseButton>
         </div>
       </form>
       </BaseCard>

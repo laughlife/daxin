@@ -21,6 +21,7 @@ import {
   mapAdminArticleDetail,
   parseDateTimeInput,
   pickChangedFields,
+  parseArticleCoverMediaId,
   readContentStatus,
   slugifyTitle,
   sqlNow,
@@ -51,6 +52,7 @@ interface CurrentArticleRow {
   status: string | null
   is_featured: number | string | null
   show_in_sidebar: number | string | null
+  cover_media_id: number | string | null
 }
 
 export default defineEventHandler(async (event) => {
@@ -71,7 +73,7 @@ export default defineEventHandler(async (event) => {
       `SELECT slug, title, COALESCE(content_html, '') AS content_html,
          category_id,
          DATE_FORMAT(published_at, '%Y-%m-%d %H:%i:%s') AS published_at,
-         status, is_featured, show_in_sidebar
+         status, is_featured, show_in_sidebar, cover_media_id
        FROM articles WHERE id = ? LIMIT 1`,
       [id],
     )
@@ -100,6 +102,12 @@ export default defineEventHandler(async (event) => {
     if (hasOwn(body, 'isFeatured')) changes.is_featured = toBooleanFlag(body.isFeatured) ? 1 : 0
     // 侧边栏管理：是否进入首页侧栏「推荐阅读」
     if (hasOwn(body, 'showInSidebar')) changes.show_in_sidebar = toBooleanFlag(body.showInSidebar) ? 1 : 0
+
+    if (hasOwn(body, 'coverMediaId')) {
+      const parsed = parseArticleCoverMediaId(body.coverMediaId)
+      if (!parsed.ok) return fail(event, 400, 'INVALID_COVER_MEDIA', '文章封面图片参数不正确')
+      changes.cover_media_id = parsed.value
+    }
 
     if (hasOwn(body, 'categoryId')) {
       let categoryId: number | null = null
@@ -137,10 +145,18 @@ export default defineEventHandler(async (event) => {
 
     if (changes.category_id !== undefined && changes.category_id !== null) {
       const categories = await queryTarget<{ id: number }>(
-        'SELECT id FROM article_categories WHERE id = ? LIMIT 1',
+        'SELECT id FROM article_categories WHERE id = ? AND status = 1 LIMIT 1',
         [changes.category_id],
       )
-      if (!categories[0]) return fail(event, 400, 'INVALID_CATEGORY', '文章分类不存在')
+      if (!categories[0]) return fail(event, 400, 'INVALID_CATEGORY', '文章分类不存在或已停用')
+    }
+    if (changes.cover_media_id !== undefined && changes.cover_media_id !== null) {
+      const media = await queryTarget<{ id: number }>(
+        `SELECT id FROM media_assets
+         WHERE id = ? AND usage_scope = 'article' AND deleted_at IS NULL LIMIT 1`,
+        [changes.cover_media_id],
+      )
+      if (!media[0]) return fail(event, 400, 'INVALID_COVER_MEDIA', '文章封面图片不存在或已停用')
     }
 
     const before: Record<string, unknown> = {
@@ -152,6 +168,7 @@ export default defineEventHandler(async (event) => {
       status: current.status,
       is_featured: current.is_featured,
       show_in_sidebar: current.show_in_sidebar,
+      cover_media_id: current.cover_media_id === null ? null : Number(current.cover_media_id),
     }
 
     const statement = buildUpdateStatement('articles', id, changes, ARTICLE_WRITABLE_COLUMNS)

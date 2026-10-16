@@ -8,6 +8,7 @@ import { readdir, readFile } from 'node:fs/promises'
 import { join, relative, resolve } from 'node:path'
 import { test } from 'node:test'
 import { resolvePageWindow } from '../server/utils/public/query.ts'
+import * as adminQueries from '../server/utils/admin/content-queries.ts'
 const articleAdminSource = await readFile(new URL('../app/pages/admin/articles.vue', import.meta.url), 'utf8')
 const caseAdminSource = await readFile(new URL('../app/pages/admin/cases.vue', import.meta.url), 'utf8')
 import {
@@ -201,18 +202,65 @@ test('parseCaseRelations：区分「未提供」「显式清空」与「非法 i
 // ---------------------------------------------------------------------------
 
 test('可写列白名单不含只读 / 派生列', () => {
-  for (const column of ['case_count', 'view_count', 'logo_media_id', 'cover_media_id']) {
+  for (const column of ['case_count', 'view_count', 'logo_media_id']) {
     assert.ok(!ARTICLE_WRITABLE_COLUMNS.includes(column), `articles 白名单不应包含 ${column}`)
     assert.ok(!BRAND_WRITABLE_COLUMNS.includes(column), `brands 白名单不应包含 ${column}`)
     assert.ok(!LAW_FIRM_WRITABLE_COLUMNS.includes(column), `law_firms 白名单不应包含 ${column}`)
     assert.ok(!CASE_WRITABLE_COLUMNS.includes(column), `cases 白名单不应包含 ${column}`)
   }
+  assert.ok(!CASE_WRITABLE_COLUMNS.includes('cover_media_id'))
   assert.ok(!BRAND_WRITABLE_COLUMNS.includes('region'), 'region 只属于律所')
   assert.ok(LAW_FIRM_WRITABLE_COLUMNS.includes('region'))
   assert.ok(!CASE_WRITABLE_COLUMNS.includes('summary'), '案件摘要不再由后台写入')
   for (const column of ['legacy_source_table', 'legacy_source_id', 'migration_batch_id', 'verified_at']) {
     assert.ok(!ARTICLE_WRITABLE_COLUMNS.includes(column))
     assert.ok(!CASE_WRITABLE_COLUMNS.includes(column))
+  }
+})
+
+test('文章封面关联：只接受正整数媒体 id，支持显式清空', () => {
+  assert.deepEqual(adminQueries.parseArticleCoverMediaId(null), { ok: true, value: null })
+  assert.deepEqual(adminQueries.parseArticleCoverMediaId(''), { ok: true, value: null })
+  assert.deepEqual(adminQueries.parseArticleCoverMediaId('17'), { ok: true, value: 17 })
+  assert.deepEqual(adminQueries.parseArticleCoverMediaId(17), { ok: true, value: 17 })
+  for (const invalid of [0, -1, 'abc', 1.5, {}, true]) {
+    assert.deepEqual(adminQueries.parseArticleCoverMediaId(invalid), { ok: false }, `应拒绝媒体 id：${String(invalid)}`)
+  }
+  assert.ok(ARTICLE_WRITABLE_COLUMNS.includes('cover_media_id'))
+})
+
+test('文章详情映射封面媒体 id 与公开地址，详情 SQL 只联用文章用途的有效媒体', () => {
+  const mapped = adminQueries.mapAdminArticleDetail({
+    id: 5,
+    title: '封面测试',
+    cover_media_id: '17',
+    cover_url: 'https://cdn.example/cover.png',
+    content_html: '<p>正文</p>',
+  })
+  assert.equal(mapped.coverMediaId, 17)
+  assert.equal(mapped.coverUrl, 'https://cdn.example/cover.png')
+  assert.match(adminQueries.ADMIN_ARTICLE_DETAIL_SQL, /cover_media_id/)
+  assert.match(adminQueries.ADMIN_ARTICLE_DETAIL_SQL, /cover\.usage_scope\s*=\s*'article'/)
+  assert.match(adminQueries.ADMIN_ARTICLE_DETAIL_SQL, /cover\.deleted_at\s+IS\s+NULL/)
+})
+
+test('文章封面控件复用 OSS 直传，并且新建与编辑都保存 coverMediaId', async () => {
+  const coverField = await readFile(new URL('../app/components/admin/AdminArticleCoverField.vue', import.meta.url), 'utf8')
+  assert.match(coverField, /useOssUpload\(\)/)
+  assert.match(coverField, /usageScope:\s*'article'/)
+  assert.match(coverField, /mediaId/)
+  assert.match(articleAdminSource, /AdminArticleCoverField/)
+  assert.match(articleAdminSource, /coverMediaId:\s*form\.coverMediaId/)
+  assert.match(articleAdminSource, /form\.coverMediaId\s*=\s*article\.coverMediaId/)
+})
+
+test('文章新建与编辑仅关联有效文章媒体，分类仅接受启用分类', async () => {
+  const createApi = await readFile(new URL('../server/api/admin/articles.post.ts', import.meta.url), 'utf8')
+  const updateApi = await readFile(new URL('../server/api/admin/articles/[id].put.ts', import.meta.url), 'utf8')
+  for (const source of [createApi, updateApi]) {
+    assert.match(source, /usage_scope\s*=\s*'article'/)
+    assert.match(source, /deleted_at\s+IS\s+NULL/)
+    assert.match(source, /article_categories\s+WHERE\s+id\s*=\s*\?\s+AND\s+status\s*=\s*1/i)
   }
 })
 

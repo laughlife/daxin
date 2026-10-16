@@ -151,6 +151,17 @@ export type CellParseResult =
   | { ok: true; value: string | null }
   | { ok: false }
 
+/** 文章封面 media_assets.id：null / 空串显式清空，其余只接受正安全整数。 */
+export function parseArticleCoverMediaId(value: unknown): { ok: true; value: number | null } | { ok: false } {
+  if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
+    return { ok: true, value: null }
+  }
+  if (typeof value !== 'number' && typeof value !== 'string') return { ok: false }
+  if (typeof value === 'string' && !/^\d+$/.test(value.trim())) return { ok: false }
+  const id = Number(value)
+  return Number.isSafeInteger(id) && id > 0 ? { ok: true, value: id } : { ok: false }
+}
+
 function isRealDate(year: number, month: number, day: number): boolean {
   if (month < 1 || month > 12 || day < 1 || day > 31) return false
   const date = new Date(Date.UTC(year, month - 1, day))
@@ -497,7 +508,7 @@ export function pickChangedFields(
 
 /** articles 可写列；view_count、legacy_*、migration_batch_id 等一律不可写。 */
 export const ARTICLE_WRITABLE_COLUMNS: readonly string[] = Object.freeze([
-  'slug', 'title', 'content_html', 'category_id', 'published_at', 'status', 'is_featured',
+  'slug', 'title', 'content_html', 'category_id', 'cover_media_id', 'published_at', 'status', 'is_featured',
   // 侧边栏管理：标记该文章是否进入首页侧栏「推荐阅读」
   'show_in_sidebar',
 ])
@@ -792,8 +803,11 @@ export const ADMIN_ARTICLE_COUNT_SQL = `SELECT COUNT(*) AS total
 FROM ${ADMIN_ARTICLE_FROM}
 WHERE 1 = 1`
 
-export const ADMIN_ARTICLE_DETAIL_SQL = `SELECT ${ADMIN_ARTICLE_COLUMNS}, COALESCE(a.content_html, '') AS content_html
+export const ADMIN_ARTICLE_DETAIL_SQL = `SELECT ${ADMIN_ARTICLE_COLUMNS}, COALESCE(a.content_html, '') AS content_html,
+  a.cover_media_id, COALESCE(cover.public_url, '') AS cover_url
 FROM ${ADMIN_ARTICLE_FROM}
+LEFT JOIN media_assets cover
+  ON cover.id = a.cover_media_id AND cover.usage_scope = 'article' AND cover.deleted_at IS NULL
 WHERE a.id = ?
 LIMIT 1`
 
@@ -930,6 +944,8 @@ export interface AdminArticleRow {
   show_in_sidebar?: unknown
   updated_at?: unknown
   content_html?: unknown
+  cover_media_id?: unknown
+  cover_url?: unknown
 }
 
 /** 数据库行 → 后台文章列表项；NULL 文本一律收敛成 ''，categoryId 保留 null 表示未分类。 */
@@ -951,12 +967,16 @@ export function mapAdminArticleRow(row: AdminArticleRow): AdminArticleItem {
 /** 后台文章详情：列表字段 + 原始正文 HTML（不清洗）。 */
 export interface AdminArticleDetail extends AdminArticleItem {
   contentHtml: string
+  coverMediaId: number | null
+  coverUrl: string
 }
 
 export function mapAdminArticleDetail(row: AdminArticleRow): AdminArticleDetail {
   return {
     ...mapAdminArticleRow(row),
     contentHtml: typeof row.content_html === 'string' ? row.content_html : '',
+    coverMediaId: toNullableId(row.cover_media_id),
+    coverUrl: toText(row.cover_url),
   }
 }
 

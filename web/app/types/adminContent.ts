@@ -24,6 +24,8 @@ export interface AdminArticleItem {
 /** 文章详情：列表字段 + 未清洗的正文 HTML */
 export interface AdminArticleDetail extends AdminArticleItem {
   contentHtml: string
+  coverMediaId: number | null
+  coverUrl: string
 }
 
 /** 案例列表项 */

@@ -17,6 +17,7 @@ import {
   hasOwn,
   isBlankValue,
   parseContentStatus,
+  parseArticleCoverMediaId,
   parseDateTimeInput,
   slugifyTitle,
   toBooleanFlag,
@@ -57,6 +58,10 @@ export default defineEventHandler(async (event) => {
     if (categoryId === null) return fail(event, 400, 'INVALID_CATEGORY', '文章分类参数不正确')
   }
 
+  const parsedCoverMediaId = parseArticleCoverMediaId(body.coverMediaId)
+  if (!parsedCoverMediaId.ok) return fail(event, 400, 'INVALID_COVER_MEDIA', '文章封面图片参数不正确')
+  const coverMediaId = parsedCoverMediaId.value
+
   let publishedAt: string | null = null
   if (hasOwn(body, 'publishedAt')) {
     const parsed = parseDateTimeInput(body.publishedAt)
@@ -84,10 +89,18 @@ export default defineEventHandler(async (event) => {
   try {
     if (categoryId !== null) {
       const categories = await queryTarget<{ id: number }>(
-        'SELECT id FROM article_categories WHERE id = ? LIMIT 1',
+        'SELECT id FROM article_categories WHERE id = ? AND status = 1 LIMIT 1',
         [categoryId],
       )
-      if (!categories[0]) return fail(event, 400, 'INVALID_CATEGORY', '文章分类不存在')
+      if (!categories[0]) return fail(event, 400, 'INVALID_CATEGORY', '文章分类不存在或已停用')
+    }
+    if (coverMediaId !== null) {
+      const media = await queryTarget<{ id: number }>(
+        `SELECT id FROM media_assets
+         WHERE id = ? AND usage_scope = 'article' AND deleted_at IS NULL LIMIT 1`,
+        [coverMediaId],
+      )
+      if (!media[0]) return fail(event, 400, 'INVALID_COVER_MEDIA', '文章封面图片不存在或已停用')
     }
 
     // 只取同前缀的 slug 用于唯一化，避免把全表 slug 拉进内存。
@@ -101,12 +114,12 @@ export default defineEventHandler(async (event) => {
     const publishedAtExpression = autoPublishAt ? 'NOW()' : '?'
     const insertParams: unknown[] = [slug, title, contentHtml, categoryId]
     if (!autoPublishAt) insertParams.push(publishedAt)
-    insertParams.push(status, isFeatured, showInSidebar)
+    insertParams.push(coverMediaId, status, isFeatured, showInSidebar)
 
     const result = await executeWrite(
       `INSERT INTO articles
-         (slug, title, content_html, category_id, published_at, status, is_featured, show_in_sidebar, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ${publishedAtExpression}, ?, ?, ?, NOW(), NOW())`,
+         (slug, title, content_html, category_id, published_at, cover_media_id, status, is_featured, show_in_sidebar, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ${publishedAtExpression}, ?, ?, ?, ?, NOW(), NOW())`,
       insertParams,
     )
 
@@ -121,7 +134,7 @@ export default defineEventHandler(async (event) => {
       entityId: result.insertId,
       ipDigest: getIpDigest(event),
       note: autoPublishAt ? '新建文章并补写当前发布时间' : '新建文章',
-      after: { slug: createdSlug, title, status, categoryId, publishedAt, isFeatured },
+      after: { slug: createdSlug, title, status, categoryId, coverMediaId, publishedAt, isFeatured },
     })
 
     return { data: { id: result.insertId, slug: createdSlug } }
