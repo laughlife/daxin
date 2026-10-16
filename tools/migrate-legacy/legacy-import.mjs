@@ -12,19 +12,30 @@ import { PROJECT_CATEGORY_MAP } from './legacy-source.mjs'
 import { parseLegacyArticle } from './legacy-parser.mjs'
 import { readFile } from 'node:fs/promises'
 
-const ARTICLE_CATEGORY_ROWS = [
-  { slug: 'news', name: '新闻资讯', section: 'news', sort: 10 },
-  { slug: 'tro-alert', name: 'TRO案例', section: 'tro', sort: 20 },
-  { slug: 'tro-success', name: '成功案例', section: 'tro', sort: 30 },
-  { slug: 'knowledge', name: '跨境干货', section: 'knowledge', sort: 40 },
-  { slug: 'legal-dynamics', name: '普法动态', section: 'knowledge', sort: 45 },
-  { slug: 'overseas-business', name: '国外业务', section: 'freight', sort: 50 },
-  { slug: 'domestic-business', name: '国内业务', section: 'freight', sort: 55 },
-  { slug: 'legal-guides', name: '普法干货', section: 'knowledge', sort: 58 },
-  { slug: 'about', name: '关于我们', section: 'about', sort: 59 },
-  { slug: 'labor-case', name: '劳动法案例', section: 'labor', sort: 60 },
+export const ARTICLE_CATEGORY_ROWS = [
+  { slug: 'news', name: '热点资讯', section: 'news', sort: 10 },
+  { slug: 'tro-alert', name: 'TRO侵权预警', section: 'tro', sort: 20 },
+  { slug: 'tro-success', name: 'TRO成功案例', section: 'tro', sort: 30 },
+  { slug: 'knowledge', name: '科普干货', section: 'knowledge', sort: 40 },
+  { slug: 'cpsc-recalls', name: 'CPSC召回', section: 'tro', sort: 50 },
+  { slug: 'labor-case', name: '劳动纠纷', section: 'labor', sort: 60 },
   { slug: 'freight-case', name: '货代案例', section: 'freight', sort: 70 },
+  { slug: 'cross-border-consulting', name: '跨境咨询', section: 'domestic', sort: 80 },
 ]
+
+export const RETIRED_ARTICLE_CATEGORY_SLUGS = Object.freeze([
+  'legal-dynamics', 'overseas-business', 'domestic-business', 'legal-guides', 'about',
+])
+
+/** 优先使用 dxfw 行解析出的新分类；旧 CMS 导入继续使用历史栏目映射。 */
+export function resolveArticleImportCategory(row = {}) {
+  if (Object.prototype.hasOwnProperty.call(row, 'categorySlug')) {
+    const slug = String(row.categorySlug ?? '')
+    if (!slug) return null
+    return { slug, name: String(row.categoryName ?? row.projectTitle ?? '') }
+  }
+  return PROJECT_CATEGORY_MAP[row.projectId] ?? null
+}
 
 const IP_TYPE_SLUGS = Object.freeze({ trademark: 'trademark', copyright: 'copyright', patent: 'patent' })
 
@@ -47,8 +58,9 @@ export async function seedReferenceData(target) {
   for (const category of ARTICLE_CATEGORY_ROWS) {
     statements.push(`INSERT INTO article_categories (slug, name, section, sort_order, status)
 VALUES (${quoteLiteral(category.slug)}, ${quoteLiteral(category.name)}, ${quoteLiteral(category.section)}, ${category.sort}, 1)
-ON DUPLICATE KEY UPDATE name = VALUES(name), section = VALUES(section), sort_order = VALUES(sort_order)`)
+ON DUPLICATE KEY UPDATE name = VALUES(name), section = VALUES(section), sort_order = VALUES(sort_order), status = 1`)
   }
+  statements.push(`UPDATE article_categories SET status = 0 WHERE slug IN (${RETIRED_ARTICLE_CATEGORY_SLUGS.map(quoteLiteral).join(', ')})`)
   for (const ipType of IP_TYPE_ROWS) {
     statements.push(`INSERT INTO ip_types (slug, name, description, sort_order, status)
 VALUES (${quoteLiteral(ipType.slug)}, ${quoteLiteral(ipType.name)}, ${quoteLiteral(ipType.description)}, ${ipType.sort}, 1)
@@ -111,7 +123,7 @@ export async function importBatch({ target, legacy, batchKey, includeUnmapped = 
   for (const entity of report.lawFirms ?? []) lawFirmSlugs.set(entity.slug, entity)
 
   for (const row of articles) {
-    const project = PROJECT_CATEGORY_MAP[row.projectId]
+    const project = resolveArticleImportCategory(row)
     if (!project && !includeUnmapped) continue
     const article = parseLegacyArticle(row, { legacyProjectTitle: row.projectTitle, usedSlugs })
     article.contentHtml = rewriteArticleImages(article.contentHtml, mediaMap, unavailableMedia)

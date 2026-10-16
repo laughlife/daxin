@@ -80,7 +80,7 @@ export function mapDxfwArticleRow(row) {
     projectId: categoryId,
     projectTitle: String(category?.name ?? row.category_name ?? sourceCategory?.name ?? ''),
     categoryName: String(category?.name ?? row.category_name ?? sourceCategory?.name ?? ''),
-    categorySlug: String(category?.slug ?? sourceCategory?.slug ?? ''),
+    categorySlug: String(category?.slug ?? ''),
     section: String(category?.section ?? ''),
     dateline: row.inputtime,
     status: row.status,

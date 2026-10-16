@@ -64,3 +64,8 @@ test('按附件表路径生成旧站封面地址并兼容 ID 1977 的 PNG', () =
   assert.equal(buildUrl?.('https://cdn.example.test/cover.jpg'), 'https://cdn.example.test/cover.jpg')
   assert.equal(buildUrl?.(''), '')
 })
+
+test('未确认内容的国外业务文章不回退到旧站类别作为新版分类', () => {
+  const article = mapDxfwArticleRow({ id: '2000', catid: '4', category_name: '国外业务', title: '待核对' })
+  assert.equal(article.categorySlug, '')
+})

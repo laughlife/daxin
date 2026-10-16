@@ -69,8 +69,9 @@ function buildReport({ articles, projectStats, includeUnmapped, batchKey }) {
   let incompleteTroCaseBlocks = 0
 
   for (const row of articles) {
-    const project = row.categorySlug
-      ? { slug: row.categorySlug, name: row.categoryName ?? row.projectTitle }
+    const hasResolvedCategory = Object.prototype.hasOwnProperty.call(row, 'categorySlug')
+    const project = hasResolvedCategory
+      ? row.categorySlug ? { slug: row.categorySlug, name: row.categoryName ?? row.projectTitle } : null
       : PROJECT_CATEGORY_MAP[row.projectId]
     const article = parseLegacyArticle(row, {
       legacyProjectTitle: row.projectTitle,
