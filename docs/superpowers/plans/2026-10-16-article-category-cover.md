@@ -58,7 +58,7 @@ Expected: 新增的分类与附件 URL 测试因函数或当前映射不符而�
 - [ ] **Step 4: 运行旧库映射测试并检查迁移报告计数**
 
 Run: `node --test tools/migrate-legacy/legacy-source.test.mjs`
-Expected: PASS；随后运行迁移 dry-run，报告仍为 858 篇，9 个咨询 ID 与国外 4 篇分类准确，封面参考记录为 833 个唯一附件路径。
+Expected: PASS；随后运行迁移 dry-run，报告仍为 858 篇，9 个咨询 ID 与国外 4 篇分类准确，封面为 858 条引用、834 个唯一附件路径。
 
 - [ ] **Step 5: 提交**
 
