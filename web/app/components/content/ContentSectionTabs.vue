@@ -1,11 +1,17 @@
 <script setup lang="ts">
 import { contentSections } from '~/config/contentSections'
+import { siteConfig } from '~/config/site'
 const props = defineProps<{ path: string }>()
 const tabs = computed(() => {
   const group = props.path.split('/')[1]
+  if (group === 'faq') {
+    const faqNavigation = siteConfig.mainNav.find(item => item.label === '常见问题')
+    return (faqNavigation?.children ?? []).flatMap(item =>
+      item.to ? [{ path: item.to, title: item.label }] : []
+    )
+  }
   const sections = contentSections.filter(item => item.path.split('/')[1] === group)
     .map(item => ({ path: item.path, title: item.title }))
-  if (group === 'faq') sections.push({ path: '/faq/plaintiff-firms', title: 'TRO 原告律所' })
   return sections
 })
 </script>
