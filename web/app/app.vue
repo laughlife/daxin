@@ -1,13 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
 import { siteConfig } from '~/config/site'
-import { useSiteSettings } from '~/composables/useSiteSettings'
-
-const { data: siteSettings } = await useSiteSettings()
-const logoFavicon = computed(() => {
-  const value = siteSettings.value?.settings?.site_logo
-  return typeof value === 'string' && value.trim() ? value.trim() : ''
-})
 
 /**
  * 应用根组件：只保留路由播报 + 布局 + 页面，
@@ -15,9 +7,10 @@ const logoFavicon = computed(() => {
  */
 useHead({
   title: siteConfig.name,
-  link: computed(() => logoFavicon.value
-    ? [{ rel: 'icon', href: logoFavicon.value }]
-    : []),
+  link: [
+    { rel: 'icon', type: 'image/png', href: '/favicon.png' },
+    { rel: 'shortcut icon', href: '/favicon.ico' }
+  ],
   titleTemplate: (titleChunk?: string) => {
     if (!titleChunk || titleChunk === siteConfig.name) {
       return siteConfig.name
