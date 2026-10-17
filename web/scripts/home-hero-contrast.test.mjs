@@ -38,6 +38,11 @@ test('首屏标题按参考图分别呈现蓝白与金色发光文字', () => {
   assert.match(highlight, /-webkit-text-fill-color:\s*transparent/)
   assert.match(highlight, /-webkit-text-stroke:/)
   assert.match(highlight, /text-shadow:/)
+  const gradient = highlight.match(/background-image:\s*linear-gradient\(([^;]+)\);/s)?.[1] ?? ''
+  const metallicStops = ['#f4d6a0', '#b9702c', '#fff1ce', '#fffdf5', '#c77a2c', '#f2d5a0']
+  const stopPositions = metallicStops.map(color => gradient.indexOf(color))
+  assert.ok(stopPositions.every(position => position >= 0), '渐变应包含香槟金、琥珀金与奶油白色阶')
+  assert.deepEqual(stopPositions, [...stopPositions].sort((a, b) => a - b), '金属色阶应按香槟金→琥珀金→奶油白→琥珀金→香槟金排列')
   assert.match(title, /font-style:\s*italic/)
 })
 

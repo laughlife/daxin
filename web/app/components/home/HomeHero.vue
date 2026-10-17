@@ -321,13 +321,18 @@ const heroStyle = computed(() => {
 .home-hero__title-highlight {
   color: #edbf69;
   background-image: linear-gradient(
-    180deg,
-    #fff8df 0%,
-    #ffedc2 17%,
-    color-mix(in srgb, var(--color-accent) 68%, #fff0c1) 43%,
-    color-mix(in srgb, var(--color-accent) 84%, #d17c27) 69%,
-    #fff0c2 84%,
-    #cb7b27 100%
+    110deg,
+    #f4d6a0 0%,
+    #e5bd7c 12%,
+    #b9702c 26%,
+    #d29142 36%,
+    #fff1ce 45%,
+    #fffdf5 50%,
+    #fff1ce 55%,
+    #c77a2c 68%,
+    #b9702c 78%,
+    #dfb36f 89%,
+    #f2d5a0 100%
   );
   background-clip: text;
   -webkit-background-clip: text;
