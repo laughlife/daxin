@@ -32,10 +32,30 @@ test('首页首屏右侧联系我们按钮使用低存在感浅灰衬底', () =>
 test('首页首屏标题使用指定效果图而不是重新绘制文字', async () => {
   assert.match(homeContentSource, /titleImage:\s*['"]\/images\/home-hero-title\.png['"]?/)
   assert.match(indexSource, /titleImage:\s*readSettingText\('home_hero_title'\)/)
-  assert.match(homeHeroSource, /<img[^>]+:src="text\.titleImage"[^>]+alt="跨境有我，法律无忧"/s)
+  assert.match(homeHeroSource, /<img[^>]+:src="titleImageSrc"[^>]+alt="跨境有我，法律无忧"/s)
   assert.match(homeHeroSource, /\.home-hero__title\s*\{[^}]*width:\s*min\(760px,\s*100%\)[^}]*aspect-ratio:\s*67\s*\/\s*10[^}]*overflow:\s*hidden/s)
   assert.match(homeHeroSource, /\.home-hero__title-image\s*\{[^}]*object-fit:\s*cover/s)
   await access(new URL('../public/images/home-hero-title.png', import.meta.url))
+})
+
+test('首屏标题静态图请求带有更新后的资源版本号', async () => {
+  assert.match(homeHeroSource, /versionedAssetUrl/)
+  assert.match(homeHeroSource, /TITLE_IMAGE_VERSION\s*=\s*['"]20261017['"]/)
+  assert.match(homeHeroSource, /:src="titleImageSrc"/)
+
+  const { versionedAssetUrl } = await import('../app/utils/versionedAssetUrl.mjs')
+  assert.equal(
+    versionedAssetUrl('/images/home-hero-title.png', '/images/home-hero-title.png', '20261017'),
+    '/images/home-hero-title.png?v=20261017'
+  )
+  assert.equal(
+    versionedAssetUrl('/images/home-hero-title.png?lang=zh#title', '/images/home-hero-title.png', '20261017'),
+    '/images/home-hero-title.png?lang=zh&v=20261017#title'
+  )
+  assert.equal(
+    versionedAssetUrl('https://cdn.example.com/custom-title.png', '/images/home-hero-title.png', '20261017'),
+    'https://cdn.example.com/custom-title.png'
+  )
 })
 
 test('后台把首屏标题配置为预览图片并继续使用图片上传控件', () => {

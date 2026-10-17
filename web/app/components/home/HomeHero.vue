@@ -1,5 +1,9 @@
 <script setup lang="ts">
 import { homeHero } from '~/config/homeContent'
+import { versionedAssetUrl } from '~/utils/versionedAssetUrl.mjs'
+
+const TITLE_IMAGE_PATH = '/images/home-hero-title.png'
+const TITLE_IMAGE_VERSION = '20261017'
 
 /**
  * 首页 Hero 首屏。
@@ -37,6 +41,10 @@ const text = computed(() => ({
   primaryLink: props.primaryLink?.trim() || homeHero.primaryCta.to,
   secondaryLabel: props.secondaryLabel?.trim() || homeHero.secondaryCta.label,
 }))
+
+const titleImageSrc = computed(() =>
+  versionedAssetUrl(text.value.titleImage, TITLE_IMAGE_PATH, TITLE_IMAGE_VERSION)
+)
 
 /**
  * 首屏动态背景。
@@ -90,7 +98,7 @@ const heroStyle = computed(() => {
       <h1 class="home-hero__title">
         <img
           class="home-hero__title-image"
-          :src="text.titleImage"
+          :src="titleImageSrc"
           alt="跨境有我，法律无忧"
           loading="eager"
           decoding="async"
