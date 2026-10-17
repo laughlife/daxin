@@ -86,16 +86,30 @@ const emit = defineEmits<{
 .case-table {
   width: 100%;
   border-collapse: collapse;
+  table-layout: fixed;
   font-size: var(--text-sm);
-  min-width: 860px;
+  min-width: 0;
 }
 
 .case-table th,
 .case-table td {
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-2);
   text-align: left;
+  vertical-align: top;
   border-bottom: 1px solid var(--color-border);
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.case-table th:nth-child(1) { width: 13%; }
+.case-table th:nth-child(2) { width: 19%; }
+.case-table th:nth-child(3) { width: 16%; }
+.case-table th:nth-child(4) { width: 23%; }
+.case-table th:nth-child(5) { width: 17%; }
+.case-table th:nth-child(6) { width: 12%; }
+
+.case-table th {
+  vertical-align: middle;
 }
 
 .case-table thead th {
@@ -123,13 +137,8 @@ const emit = defineEmits<{
   color: var(--color-text);
 }
 
-.case-table__plaintiff {
-  max-width: 320px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
 .case-table__recent {
+  display: inline-block;
   margin-left: var(--space-2);
   padding: 1px var(--space-2);
   border-radius: var(--radius-full);
@@ -151,10 +160,14 @@ const emit = defineEmits<{
 }
 
 .case-table__firm {
+  max-width: 100%;
   padding: 0;
   font: inherit;
   color: var(--color-text);
   border-bottom: 1px dashed var(--color-border-strong);
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: left;
   transition: color var(--transition-base);
 }
 
