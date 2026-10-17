@@ -33,7 +33,10 @@ test('首屏标题按参考图分别呈现蓝白与金色发光文字', () => {
   const title = homeHeroSource.match(/\.home-hero__title\s*\{[^}]*\}/s)?.[0] ?? ''
   assert.match(prefix, /color:\s*var\(--color-text-inverse\)/)
   assert.match(prefix, /text-shadow:[^}]*rgba?\([^}]*\)/s)
-  assert.match(highlight, /color:\s*var\(--color-accent\)/)
+  assert.match(highlight, /background-image:\s*linear-gradient\(/)
+  assert.match(highlight, /background-clip:\s*text/)
+  assert.match(highlight, /-webkit-text-fill-color:\s*transparent/)
+  assert.match(highlight, /-webkit-text-stroke:/)
   assert.match(highlight, /text-shadow:/)
   assert.match(title, /font-style:\s*italic/)
 })

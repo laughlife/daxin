@@ -319,12 +319,27 @@ const heroStyle = computed(() => {
 }
 
 .home-hero__title-highlight {
-  color: var(--color-accent);
+  color: #edbf69;
+  background-image: linear-gradient(
+    180deg,
+    #fff8df 0%,
+    #ffedc2 17%,
+    color-mix(in srgb, var(--color-accent) 68%, #fff0c1) 43%,
+    color-mix(in srgb, var(--color-accent) 84%, #d17c27) 69%,
+    #fff0c2 84%,
+    #cb7b27 100%
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  -webkit-text-stroke: 0.35px rgb(255 236 184 / 72%);
   text-shadow:
-    0 2px 0 #6d4519,
-    0 0 7px rgb(255 246 217 / 95%),
-    0 0 17px rgb(255 188 91 / 92%),
-    0 0 29px rgb(239 129 29 / 76%);
+    0 1px 0 rgb(255 245 202 / 48%),
+    0 2px 0 #88571d,
+    0 3px 1px #573515,
+    0 0 7px rgb(255 240 199 / 95%),
+    0 0 18px rgb(255 177 65 / 86%),
+    0 0 30px rgb(242 119 25 / 64%);
 }
 
 .home-hero__subtitle {
