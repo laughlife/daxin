@@ -39,7 +39,7 @@ const homeBannerImage = computed(() => {
  *
  * 原先这里直接用 config，导致后台首页文案分页签改了没有效果；
  * 现在把可编辑字段接到页面上，后台改动才会真正生效。
- * `readSettingText` 只接受字符串并按空格判断空值，避免把 undefined/数字塞进模板。
+ * `readSettingText` 只接受字符串并按空格判断空值，图片配置可以是本地素材路径或 OSS URL。
  */
 function readSettingText(key: string): string {
   const value = siteSettings.value?.settings?.[key]
@@ -48,7 +48,7 @@ function readSettingText(key: string): string {
 
 const heroFromSettings = computed(() => ({
   badge: readSettingText('home_hero_badge'),
-  title: readSettingText('home_hero_title'),
+  titleImage: readSettingText('home_hero_title'),
   subtitle: readSettingText('home_hero_subtitle'),
   primaryLabel: readSettingText('home_hero_primary_label'),
   primaryLink: readSettingText('home_hero_primary_link'),

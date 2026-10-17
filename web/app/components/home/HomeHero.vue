@@ -6,20 +6,19 @@ import { homeHero } from '~/config/homeContent'
  * 动效为纯 CSS 背景光效 / 网格 / 缓慢漂浮装饰图形，无外部视频与远程图片；
  * prefers-reduced-motion 时关闭背景动画。
  *
- * 文案可由后台「站点设置 → 首页文案」维护：
- * 这里接收父页面传入的值，**未传或为空时回退到 config/homeContent 的静态文案**，
- * 因此既有调用方式（不传 props）与后台改文案两种用法都能工作。
+ * 首屏标题图与其他文案可由后台「站点设置 → 首页内容」维护；未配置时回退到
+ * 项目内提供的标题图与静态文案。
  */
 const props = withDefaults(defineProps<{
   badge?: string
-  title?: string
+  titleImage?: string
   subtitle?: string
   primaryLabel?: string
   primaryLink?: string
   secondaryLabel?: string
 }>(), {
   badge: '',
-  title: '',
+  titleImage: '',
   subtitle: '',
   primaryLabel: '',
   primaryLink: '',
@@ -32,24 +31,12 @@ const emit = defineEmits<{
 
 const text = computed(() => ({
   badge: props.badge?.trim() || homeHero.badge,
-  title: props.title?.trim() || homeHero.title,
+  titleImage: props.titleImage?.trim() || homeHero.titleImage,
   subtitle: props.subtitle?.trim() || homeHero.subtitle,
   primaryLabel: props.primaryLabel?.trim() || homeHero.primaryCta.label,
   primaryLink: props.primaryLink?.trim() || homeHero.primaryCta.to,
   secondaryLabel: props.secondaryLabel?.trim() || homeHero.secondaryCta.label,
 }))
-
-const titleHighlight = '法律无忧'
-const titleParts = computed(() => {
-  const index = text.value.title.lastIndexOf(titleHighlight)
-  if (index < 0) return null
-
-  return {
-    before: text.value.title.slice(0, index),
-    highlight: titleHighlight,
-    after: text.value.title.slice(index + titleHighlight.length),
-  }
-})
 
 /**
  * 首屏动态背景。
@@ -101,10 +88,13 @@ const heroStyle = computed(() => {
     <PageContainer class="home-hero__inner">
       <p class="home-hero__badge">{{ text.badge }}</p>
       <h1 class="home-hero__title">
-        <template v-if="titleParts">
-          <span class="home-hero__title-prefix">{{ titleParts.before }}</span><span class="home-hero__title-highlight">{{ titleParts.highlight }}</span><span>{{ titleParts.after }}</span>
-        </template>
-        <span v-else>{{ text.title }}</span>
+        <img
+          class="home-hero__title-image"
+          :src="text.titleImage"
+          alt="跨境有我，法律无忧"
+          loading="eager"
+          decoding="async"
+        >
       </h1>
       <p class="home-hero__subtitle">{{ text.subtitle }}</p>
       <div class="home-hero__actions">
@@ -302,49 +292,19 @@ const heroStyle = computed(() => {
 }
 
 .home-hero__title {
-  font-size: clamp(36px, 4.2vw, 60px);
-  line-height: var(--leading-tight);
-  letter-spacing: 0.02em;
-  font-weight: 900;
-  font-style: italic;
+  width: min(760px, 100%);
+  aspect-ratio: 67 / 10;
+  overflow: hidden;
+  line-height: 0;
+  margin: 0;
 }
 
-.home-hero__title-prefix {
-  color: var(--color-text-inverse);
-  text-shadow:
-    0 2px 0 rgb(5 23 55 / 82%),
-    0 0 7px rgb(224 239 255 / 95%),
-    0 0 17px rgb(67 147 255 / 95%),
-    0 0 29px rgb(35 107 240 / 75%);
-}
-
-.home-hero__title-highlight {
-  color: #edbf69;
-  background-image: linear-gradient(
-    110deg,
-    #f4d6a0 0%,
-    #e5bd7c 12%,
-    #b9702c 26%,
-    #d29142 36%,
-    #fff1ce 45%,
-    #fffdf5 50%,
-    #fff1ce 55%,
-    #c77a2c 68%,
-    #b9702c 78%,
-    #dfb36f 89%,
-    #f2d5a0 100%
-  );
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  -webkit-text-stroke: 0.35px rgb(255 236 184 / 72%);
-  text-shadow:
-    0 1px 0 rgb(255 245 202 / 48%),
-    0 2px 0 #88571d,
-    0 3px 1px #573515,
-    0 0 7px rgb(255 240 199 / 95%),
-    0 0 18px rgb(255 177 65 / 86%),
-    0 0 30px rgb(242 119 25 / 64%);
+.home-hero__title-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
 }
 
 .home-hero__subtitle {
@@ -406,7 +366,7 @@ const heroStyle = computed(() => {
   }
 
   .home-hero__title {
-    font-size: clamp(30px, 8vw, 38px);
+    width: 100%;
   }
 
   .home-hero__subtitle {

@@ -42,7 +42,7 @@
 | 字段 | 类型 | 当前值 | 前台使用 |
 | --- | --- | --- | --- |
 | `home_hero_badge` | text | 跨境电商 · 全链路法律服务 | ✅ 首屏 |
-| `home_hero_title` | text | 跨境有我，法律无忧 | ✅ 首屏 |
+| `home_hero_title` | image | `/images/home-hero-title.png` | ✅ 首屏标题图片（可上传替换） |
 | `home_hero_subtitle` | text | 专注于为跨境电商企业、品牌卖家… | ✅ 首屏 |
 | `home_hero_primary_label` | text | 查询 TRO 案件 | ✅ 首屏按钮 |
 | `home_hero_primary_link` | text | /tro/cases | ✅ 首屏按钮链接 |

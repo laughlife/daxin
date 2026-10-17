@@ -40,7 +40,7 @@ const SITE_SETTINGS = [
 
   // home：首页文案
   { key: 'home_hero_badge', group: 'home', value: '跨境电商 · 全链路法律服务', valueType: 'text' },
-  { key: 'home_hero_title', group: 'home', value: '跨境有我，法律无忧', valueType: 'text' },
+  { key: 'home_hero_title', group: 'home', value: '/images/home-hero-title.png', valueType: 'image' },
   { key: 'home_hero_subtitle', group: 'home', value: '专注于为跨境电商企业、品牌卖家及供应链伙伴提供全链路、跨法域、高实效的法律顾问服务', valueType: 'text' },
   { key: 'home_hero_primary_label', group: 'home', value: '查询 TRO 案件', valueType: 'text' },
   { key: 'home_hero_primary_link', group: 'home', value: '/tro/cases', valueType: 'text' },

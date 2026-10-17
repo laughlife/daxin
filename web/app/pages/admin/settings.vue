@@ -30,7 +30,7 @@ import AdminServicesSettings from '~/components/admin/AdminServicesSettings.vue'
  * 关键约定（见 docs/superpowers/task7-admin-contract.md 第一节）：
  * - `value` 是**库中原始字符串**，接口不做 JSON 解析；`valueType: 'json'` 的项
  *   由本页 JSON.parse 成结构化编辑器、保存时再 JSON.stringify 回去。
- * - `valueType: 'image'` 的项：正文留空，展示地址取联表返回的 `mediaUrl`，
+ * - `valueType: 'image'` 的项：展示地址取联表返回的 `mediaUrl` 或初始静态素材路径，
  *   上传成功后把 `mediaId` 一并提交（服务端 normalizeSettingItems 接受 mediaId，
  *   并写入 site_settings.media_id）。
  * - 解析失败的 JSON **拒绝覆盖**：整类数据判定为「不可保存」，先提示用户修复。
@@ -85,7 +85,7 @@ const SETTING_LABELS: Record<string, string> = {
   contact_phone: '联系电话', contact_email: '联系邮箱', contact_address: '联系地址', contact_wechat: '联系微信号',
   footer_intro: '页脚团队简介', footer_registration: '备案信息', footer_qr_primary: '页脚二维码一', footer_qr_secondary: '页脚二维码二',
   content_sidebar: '', site_theme: '公开页面配色',
-  home_hero_badge: '首屏眉题', home_hero_title: '首屏主标题', home_hero_subtitle: '首屏介绍',
+  home_hero_badge: '首屏眉题', home_hero_title: '首屏标题图片', home_hero_subtitle: '首屏介绍',
   home_hero_primary_label: '主按钮文字', home_hero_primary_link: '主按钮链接',
   home_hero_secondary_label: '次按钮文字', home_hero_background: '首页动态背景视频',
   home_hero_background_poster: '首页背景视频封面', home_stats: '首页数据指标',
@@ -678,7 +678,8 @@ function findItem(kind: GroupKind, key: string): SettingItem | undefined {
 
 /** 图片地址：优先展示本地上传结果，其次接口联表返回的 mediaUrl */
 function imageUrl(kind: GroupKind, key: string): string {
-  return uploadedUrls[`${kind}:${key}`] || findItem(kind, key)?.mediaUrl || ''
+  const item = findItem(kind, key)
+  return uploadedUrls[`${kind}:${key}`] || item?.mediaUrl || item?.value || ''
 }
 
 /** 上传用途范围：Logo 与页面背景、通用分开声明 */
@@ -839,6 +840,7 @@ function useTextarea(value: string): boolean {
                   :input-id="`setting-image-${tab.kind}-${item.key}`"
                   :label="settingLabel(item.key)"
                   :media-url="imageUrl(tab.kind, item.key)"
+                  :preview-size="item.key === 'home_hero_title' ? 'wide' : 'default'"
                   :disabled="controlsDisabled || savingKind !== ''"
                   :usage-scope="imageScope(tab.kind)"
                   @uploaded="payload => onSettingImageUploaded(tab.kind, item.key, payload)"

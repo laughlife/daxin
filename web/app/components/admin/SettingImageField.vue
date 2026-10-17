@@ -25,10 +25,13 @@ const props = withDefaults(
     disabled?: boolean
     /** 上传使用的 OSS 用途范围 */
     usageScope?: 'logo' | 'background' | 'general' | 'qr' | 'about'
+    /** 特定图片使用更宽的预览框，例如首屏标题效果图。 */
+    previewSize?: 'default' | 'wide'
   }>(),
   {
     disabled: false,
-    usageScope: 'general'
+    usageScope: 'general',
+    previewSize: 'default'
   }
 )
 
@@ -88,7 +91,7 @@ async function onFileChange(event: Event) {
 </script>
 
 <template>
-  <div class="setting-image">
+  <div class="setting-image" :class="{ 'setting-image--wide': previewSize === 'wide' }">
     <div class="setting-image__preview">
       <img v-if="previewUrl" :src="previewUrl" :alt="`${label}预览`" class="setting-image__img">
       <p v-else class="setting-image__empty">未设置</p>
@@ -136,6 +139,11 @@ async function onFileChange(event: Event) {
   border: 1px dashed var(--color-border-strong);
   border-radius: var(--radius-md);
   background-color: var(--color-bg-light);
+}
+
+.setting-image--wide .setting-image__preview {
+  width: min(380px, 100%);
+  height: 100px;
 }
 
 .setting-image__img {

@@ -1,8 +1,13 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
+import { access, readFile } from 'node:fs/promises'
 
 const homeHeroSource = await readFile(new URL('../app/components/home/HomeHero.vue', import.meta.url), 'utf8')
+const homeContentSource = await readFile(new URL('../app/config/homeContent.ts', import.meta.url), 'utf8')
+const indexSource = await readFile(new URL('../app/pages/index.vue', import.meta.url), 'utf8')
+const settingsSource = await readFile(new URL('../app/pages/admin/settings.vue', import.meta.url), 'utf8')
+const seedSource = await readFile(new URL('../../tools/seed-site-config.mjs', import.meta.url), 'utf8')
+const migrationSource = await readFile(new URL('../../database/migrations/020_home_hero_title_image.sql', import.meta.url), 'utf8')
 
 test('首屏只在辅助提示文案上显示克制的浅灰衬底', () => {
   const badge = homeHeroSource.match(/\.home-hero__badge\s*\{[^}]*\}/s)?.[0] ?? ''
@@ -24,26 +29,24 @@ test('首页首屏右侧联系我们按钮使用低存在感浅灰衬底', () =>
   assert.match(rightButton, /box-shadow:.*12%/)
 })
 
-test('首屏标题按参考图分别呈现蓝白与金色发光文字', () => {
-  assert.match(homeHeroSource, /const titleHighlight = ['"]法律无忧['"]\s*;?/)
-  assert.match(homeHeroSource, /class="home-hero__title-prefix"/)
-  assert.match(homeHeroSource, /class="home-hero__title-highlight"/)
-  const prefix = homeHeroSource.match(/\.home-hero__title-prefix\s*\{[^}]*\}/s)?.[0] ?? ''
-  const highlight = homeHeroSource.match(/\.home-hero__title-highlight\s*\{[^}]*\}/s)?.[0] ?? ''
-  const title = homeHeroSource.match(/\.home-hero__title\s*\{[^}]*\}/s)?.[0] ?? ''
-  assert.match(prefix, /color:\s*var\(--color-text-inverse\)/)
-  assert.match(prefix, /text-shadow:[^}]*rgba?\([^}]*\)/s)
-  assert.match(highlight, /background-image:\s*linear-gradient\(/)
-  assert.match(highlight, /background-clip:\s*text/)
-  assert.match(highlight, /-webkit-text-fill-color:\s*transparent/)
-  assert.match(highlight, /-webkit-text-stroke:/)
-  assert.match(highlight, /text-shadow:/)
-  const gradient = highlight.match(/background-image:\s*linear-gradient\(([^;]+)\);/s)?.[1] ?? ''
-  const metallicStops = ['#f4d6a0', '#b9702c', '#fff1ce', '#fffdf5', '#c77a2c', '#f2d5a0']
-  const stopPositions = metallicStops.map(color => gradient.indexOf(color))
-  assert.ok(stopPositions.every(position => position >= 0), '渐变应包含香槟金、琥珀金与奶油白色阶')
-  assert.deepEqual(stopPositions, [...stopPositions].sort((a, b) => a - b), '金属色阶应按香槟金→琥珀金→奶油白→琥珀金→香槟金排列')
-  assert.match(title, /font-style:\s*italic/)
+test('首页首屏标题使用指定效果图而不是重新绘制文字', async () => {
+  assert.match(homeContentSource, /titleImage:\s*['"]\/images\/home-hero-title\.png['"]?/)
+  assert.match(indexSource, /titleImage:\s*readSettingText\('home_hero_title'\)/)
+  assert.match(homeHeroSource, /<img[^>]+:src="text\.titleImage"[^>]+alt="跨境有我，法律无忧"/s)
+  assert.match(homeHeroSource, /\.home-hero__title\s*\{[^}]*width:\s*min\(760px,\s*100%\)[^}]*aspect-ratio:\s*67\s*\/\s*10[^}]*overflow:\s*hidden/s)
+  assert.match(homeHeroSource, /\.home-hero__title-image\s*\{[^}]*object-fit:\s*cover/s)
+  await access(new URL('../public/images/home-hero-title.png', import.meta.url))
+})
+
+test('后台把首屏标题配置为预览图片并继续使用图片上传控件', () => {
+  assert.match(settingsSource, /home_hero_title:\s*'首屏标题图片'/)
+  assert.ok(settingsSource.includes("item?.mediaUrl || item?.value || ''"))
+  assert.match(settingsSource, /item\.valueType === 'image'[\s\S]*?<SettingImageField[\s\S]*?:preview-size="item\.key === 'home_hero_title' \? 'wide' : 'default'"/)
+  assert.match(seedSource, /key:\s*'home_hero_title',[^\n]+value:\s*'\/images\/home-hero-title\.png',[^\n]+valueType:\s*'image'/)
+  assert.match(migrationSource, /setting_value\s*=\s*'\/images\/home-hero-title\.png'/i)
+  assert.match(migrationSource, /value_type\s*=\s*'image'/i)
+  assert.match(migrationSource, /media_id\s*=\s*NULL/i)
+  assert.match(migrationSource, /WHERE\s+setting_key\s*=\s*'home_hero_title'\s+AND\s+is_current\s*=\s*1/i)
 })
 
 test('首页首屏副标题在桌面宽度保持单行', () => {

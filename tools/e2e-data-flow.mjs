@@ -310,7 +310,7 @@ async function main() {
   const seededValues = [
     ['site', 'site_name', '大信法务'],
     ['about', 'about_hero_title', '深圳市大信法务咨询有限公司'],
-    ['home', 'home_hero_title', '跨境有我，法律无忧'],
+    ['home', 'home_hero_title', '/images/home-hero-title.png'],
   ]
   for (const [kind, key, expected] of seededValues) {
     await check(`${key} 的种子值等于「${expected}」`, async () => {

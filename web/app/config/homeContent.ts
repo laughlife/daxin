@@ -11,7 +11,7 @@ import type { HomeStat } from '../types/content'
 /** Hero 首屏 */
 export const homeHero = {
   badge: '跨境电商 · 全链路法律服务',
-  title: '跨境有我，法律无忧',
+  titleImage: '/images/home-hero-title.png',
   subtitle:
     '专注于为跨境电商企业、品牌卖家及供应链伙伴提供全链路、跨法域、高实效的法律顾问服务',
   primaryCta: {
