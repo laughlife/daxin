@@ -23,3 +23,22 @@ test('首页首屏右侧联系我们按钮使用低存在感浅灰衬底', () =>
   assert.match(rightButton, /color:\s*#263445/)
   assert.match(rightButton, /box-shadow:.*12%/)
 })
+
+test('首屏标题按参考图分别呈现蓝白与金色发光文字', () => {
+  assert.match(homeHeroSource, /const titleHighlight = ['"]法律无忧['"]\s*;?/)
+  assert.match(homeHeroSource, /class="home-hero__title-prefix"/)
+  assert.match(homeHeroSource, /class="home-hero__title-highlight"/)
+  const prefix = homeHeroSource.match(/\.home-hero__title-prefix\s*\{[^}]*\}/s)?.[0] ?? ''
+  const highlight = homeHeroSource.match(/\.home-hero__title-highlight\s*\{[^}]*\}/s)?.[0] ?? ''
+  const title = homeHeroSource.match(/\.home-hero__title\s*\{[^}]*\}/s)?.[0] ?? ''
+  assert.match(prefix, /color:\s*var\(--color-text-inverse\)/)
+  assert.match(prefix, /text-shadow:[^}]*rgba?\([^}]*\)/s)
+  assert.match(highlight, /color:\s*var\(--color-accent\)/)
+  assert.match(highlight, /text-shadow:/)
+  assert.match(title, /font-style:\s*italic/)
+})
+
+test('首页首屏副标题在桌面宽度保持单行', () => {
+  const subtitle = homeHeroSource.match(/\.home-hero__subtitle\s*\{[^}]*\}/s)?.[0] ?? ''
+  assert.match(subtitle, /white-space:\s*nowrap/)
+})

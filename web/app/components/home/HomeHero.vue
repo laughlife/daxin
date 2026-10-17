@@ -39,6 +39,18 @@ const text = computed(() => ({
   secondaryLabel: props.secondaryLabel?.trim() || homeHero.secondaryCta.label,
 }))
 
+const titleHighlight = '法律无忧'
+const titleParts = computed(() => {
+  const index = text.value.title.lastIndexOf(titleHighlight)
+  if (index < 0) return null
+
+  return {
+    before: text.value.title.slice(0, index),
+    highlight: titleHighlight,
+    after: text.value.title.slice(index + titleHighlight.length),
+  }
+})
+
 /**
  * 首屏动态背景。
  *
@@ -88,7 +100,12 @@ const heroStyle = computed(() => {
     </div>
     <PageContainer class="home-hero__inner">
       <p class="home-hero__badge">{{ text.badge }}</p>
-      <h1 class="home-hero__title">{{ text.title }}</h1>
+      <h1 class="home-hero__title">
+        <template v-if="titleParts">
+          <span class="home-hero__title-prefix">{{ titleParts.before }}</span><span class="home-hero__title-highlight">{{ titleParts.highlight }}</span><span>{{ titleParts.after }}</span>
+        </template>
+        <span v-else>{{ text.title }}</span>
+      </h1>
       <p class="home-hero__subtitle">{{ text.subtitle }}</p>
       <div class="home-hero__actions">
         <BaseButton :to="text.primaryLink" variant="primary" size="lg">
@@ -288,14 +305,35 @@ const heroStyle = computed(() => {
   font-size: clamp(36px, 4.2vw, 60px);
   line-height: var(--leading-tight);
   letter-spacing: 0.02em;
+  font-weight: 900;
+  font-style: italic;
+}
+
+.home-hero__title-prefix {
+  color: var(--color-text-inverse);
+  text-shadow:
+    0 2px 0 rgb(5 23 55 / 82%),
+    0 0 7px rgb(224 239 255 / 95%),
+    0 0 17px rgb(67 147 255 / 95%),
+    0 0 29px rgb(35 107 240 / 75%);
+}
+
+.home-hero__title-highlight {
+  color: var(--color-accent);
+  text-shadow:
+    0 2px 0 #6d4519,
+    0 0 7px rgb(255 246 217 / 95%),
+    0 0 17px rgb(255 188 91 / 92%),
+    0 0 29px rgb(239 129 29 / 76%);
 }
 
 .home-hero__subtitle {
-  max-width: 900px;
+  max-width: 100%;
   font-size: clamp(18px, 1.6vw, 23px);
   line-height: var(--leading-relaxed);
   color: var(--color-text-inverse);
   text-shadow: 0 1px 5px rgb(0 0 0 / 78%);
+  white-space: nowrap;
 }
 
 .home-hero__actions {
@@ -332,6 +370,12 @@ const heroStyle = computed(() => {
   text-shadow: none;
   backdrop-filter: blur(3px);
   box-shadow: 0 2px 10px rgb(8 20 36 / 12%);
+}
+
+@media (max-width: 767px) {
+  .home-hero__subtitle {
+    white-space: normal;
+  }
 }
 
 /* 移动端：压缩留白，标题仍保持可读字号 */
