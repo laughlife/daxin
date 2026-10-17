@@ -294,7 +294,8 @@ const heroStyle = computed(() => {
   max-width: 900px;
   font-size: clamp(18px, 1.6vw, 23px);
   line-height: var(--leading-relaxed);
-  color: color-mix(in srgb, var(--color-text-inverse) 78%, transparent);
+  color: var(--color-text-inverse);
+  text-shadow: 0 1px 5px rgb(0 0 0 / 78%);
 }
 
 .home-hero__actions {
@@ -318,7 +319,8 @@ const heroStyle = computed(() => {
 
 .home-hero__hint {
   font-size: var(--text-sm);
-  color: color-mix(in srgb, var(--color-text-inverse) 55%, transparent);
+  color: var(--color-text-inverse);
+  text-shadow: 0 1px 4px rgb(0 0 0 / 88%);
 }
 
 /* 移动端：压缩留白，标题仍保持可读字号 */
