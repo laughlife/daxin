@@ -277,11 +277,9 @@ const heroStyle = computed(() => {
 
 .home-hero__badge {
   padding: var(--space-1) var(--space-4);
-  border: 1px solid color-mix(in srgb, var(--color-text-inverse) 30%, transparent);
+  border: 1px solid rgb(255 255 255 / 72%);
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
-  color: color-mix(in srgb, var(--color-text-inverse) 85%, transparent);
-  background-color: color-mix(in srgb, var(--color-text-inverse) 8%, transparent);
 }
 
 .home-hero__title {
@@ -291,11 +289,12 @@ const heroStyle = computed(() => {
 }
 
 .home-hero__subtitle {
-  max-width: 900px;
+  width: fit-content;
+  max-width: min(900px, 100%);
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-lg);
   font-size: clamp(18px, 1.6vw, 23px);
   line-height: var(--leading-relaxed);
-  color: var(--color-text-inverse);
-  text-shadow: 0 1px 5px rgb(0 0 0 / 78%);
 }
 
 .home-hero__actions {
@@ -306,21 +305,35 @@ const heroStyle = computed(() => {
   margin-top: var(--space-2);
 }
 
-/* 深色底上的次按钮：反色描边 */
+/* 次按钮使用浅灰玻璃衬底，文字与复杂背景保持足够对比。 */
 .home-hero .home-hero__secondary {
-  border-color: color-mix(in srgb, var(--color-text-inverse) 65%, transparent);
-  color: var(--color-text-inverse);
+  border-color: rgb(235 239 244 / 94%);
+  background-color: rgb(235 239 244 / 94%);
+  color: #263445;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 14px rgb(8 20 36 / 18%);
 }
 
 .home-hero .home-hero__secondary:hover {
-  background-color: color-mix(in srgb, var(--color-text-inverse) 12%, transparent);
-  color: var(--color-text-inverse);
+  border-color: rgb(247 249 251 / 98%);
+  background-color: rgb(247 249 251 / 98%);
+  color: #263445;
 }
 
 .home-hero__hint {
+  padding: var(--space-1) var(--space-4);
+  border-radius: var(--radius-full);
   font-size: var(--text-sm);
-  color: var(--color-text-inverse);
-  text-shadow: 0 1px 4px rgb(0 0 0 / 88%);
+}
+
+.home-hero__badge,
+.home-hero__subtitle,
+.home-hero__hint {
+  color: #263445;
+  background-color: rgb(235 239 244 / 92%);
+  text-shadow: none;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 4px 14px rgb(8 20 36 / 18%);
 }
 
 /* 移动端：压缩留白，标题仍保持可读字号 */
