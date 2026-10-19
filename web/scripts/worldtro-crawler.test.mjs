@@ -49,6 +49,32 @@ test('daily run includes only new rows before the first known case', async () =>
   assert.equal(result.stoppedAtKnown, true)
 })
 
+test('daily run follows listing pages until it reaches the first known case', async () => {
+  const first = page('2026-cv-00102', '<nav class="pagination"><a href="/tro/?page=2">下一页</a></nav>')
+  const second = page('2026-cv-00101').replace('</table>', '<tr><td>10/15/2026</td><td>2026-cv-00100</td><td>Plaintiff</td><td>IL</td><td>Firm</td><td>Brand</td><td>商标</td></tr></table>')
+  const requests = []
+  const result = await crawlWorldTroList({
+    fetchPage: async (url) => {
+      requests.push(url)
+      return url.endsWith('page=2') ? second : first
+    },
+    knownCaseNumbers: ['2026-cv-00100'],
+    sleep: async () => {},
+  })
+  assert.deepEqual(result.cases.map((item) => item.caseNumber), ['2026-cv-00102', '2026-cv-00101'])
+  assert.equal(result.pageCount, 2)
+  assert.equal(result.stoppedAtKnown, true)
+  assert.equal(requests.length, 2)
+})
+
+test('does not treat partially parsed listing rows as a complete import', async () => {
+  const html = page('2026-cv-00102').replace('</table>', '<tr><td>unknown</td><td>2026-cv-00101</td><td>Plaintiff</td><td>IL</td><td>Firm</td><td>Brand</td><td>商标</td></tr></table>')
+  await assert.rejects(
+    crawlWorldTroList({ initialImport: true, fetchPage: async () => html, sleep: async () => {} }),
+    /未能完整解析/,
+  )
+})
+
 test('scheduler uses China time and starts after noon each day', () => {
   const beforeNoon = new Date('2026-10-19T03:00:00.000Z') // 11:00 in Shanghai
   const atOnePm = new Date('2026-10-19T05:00:00.000Z') // 13:00 in Shanghai

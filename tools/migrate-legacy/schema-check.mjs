@@ -30,6 +30,8 @@ export const REQUIRED_TABLES = Object.freeze([
   'articles',
   'brands',
   'case_brands',
+  'case_ingest_runs',
+  'case_ingest_sources',
   'case_ip_types',
   'case_law_firms',
   'case_progress',
@@ -72,6 +74,8 @@ export const REQUIRED_UNIQUE_CONSTRAINTS = Object.freeze([
   { table: 'case_ip_types', name: 'uk_case_ip_types', columns: ['case_id', 'ip_type_id'] },
   { table: 'case_related_cases', name: 'uk_case_related_cases', columns: ['case_id', 'related_case_id'] },
   { table: 'case_sources', name: 'uk_case_sources', columns: ['case_id', 'source_table', 'source_id'] },
+  { table: 'case_ingest_sources', name: 'uk_case_ingest_source_external', columns: ['source_key', 'external_key'] },
+  { table: 'case_ingest_runs', name: 'uk_case_ingest_run_day', columns: ['source_key', 'scheduled_date'] },
   { table: 'case_progress', name: 'uk_case_progress_batch_item', columns: ['case_id', 'migration_item_key_safe'] },
   { table: 'media_assets', name: 'uk_media_assets_object_key', columns: ['object_key'] },
   { table: 'site_settings', name: 'uk_site_settings_key_version', columns: ['setting_key', 'version'] },
@@ -99,6 +103,9 @@ export const EXPECTED_INDEXES = Object.freeze([
   { name: 'idx_case_brands_brand', table: 'case_brands', columns: ['brand_id'] },
   { name: 'idx_case_law_firms_law_firm', table: 'case_law_firms', columns: ['law_firm_id'] },
   { name: 'idx_case_ip_types_ip_type', table: 'case_ip_types', columns: ['ip_type_id'] },
+  { name: 'idx_case_ingest_source_case', table: 'case_ingest_sources', columns: ['case_id'] },
+  { name: 'idx_case_ingest_source_seen', table: 'case_ingest_sources', columns: ['source_key', 'last_seen_at'] },
+  { name: 'idx_case_ingest_run_status', table: 'case_ingest_runs', columns: ['source_key', 'status', 'scheduled_date'] },
   { name: 'idx_case_progress_timeline', table: 'case_progress', columns: ['case_id', 'occurred_on'] },
   { name: 'idx_media_assets_usage', table: 'media_assets', columns: ['usage_scope', 'deleted_at'] },
   { name: 'idx_site_settings_current', table: 'site_settings', columns: ['setting_key', 'status'] },
@@ -153,7 +160,8 @@ const REQUIRED_INPUT_COLUMNS = new Set([
   'setting_key', 'object_key', 'slug', 'item_key', 'username', 'password_hash',
   'token_hash', 'code', 'case_number', 'source_table', 'batch_key', 'entity_type',
   'legacy_source_table', 'legacy_source_id', 'action', 'metric_key', 'filed_at',
-  'brand_name', 'product_name', 'contact_name', 'contact_method',
+  'brand_name', 'product_name', 'contact_name', 'contact_method', 'source_key',
+  'external_key', 'scheduled_date',
 ])
 
 /**

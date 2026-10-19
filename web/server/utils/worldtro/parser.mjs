@@ -106,7 +106,7 @@ function findNextListingPage(html, pageUrl) {
  * 只解析明确包含七个已知表头的公开案件表。结构变化或反爬页面会报错，调用方应终止本次导入。
  * @param {string} html
  * @param {string} [pageUrl]
- * @returns {WorldTroCase[]}
+ * @returns {{ cases: WorldTroCase[], rejectedCount: number, nextPageUrl: string }}
  */
 export function parseWorldTroCasePage(html, pageUrl = `${SOURCE_ORIGIN}/tro`) {
   if (typeof html !== 'string' || html.length < 100 || html.length > 8 * 1024 * 1024) {
@@ -131,21 +131,31 @@ export function parseWorldTroCasePage(html, pageUrl = `${SOURCE_ORIGIN}/tro`) {
 
     /** @type {WorldTroCase[]} */
     const cases = []
+    let rejectedCount = 0
     for (const rowMatch of rowMatches.slice(1)) {
       const rawCells = extractCells(rowMatch[1])
-      if (rawCells.length <= Math.max(...Object.values(indexes))) continue
+      if (rawCells.length <= Math.max(...Object.values(indexes))) {
+        rejectedCount += 1
+        continue
+      }
       const values = rawCells.map(cellText)
       const caseNumberMatch = values[indexes.caseNumber].match(/\b(\d{2,4}\s*-\s*[a-z]{2}\s*-\s*\d{1,8})\b/i)
-      const caseNumber = caseNumberMatch?.[1].replace(/\s+/g, '').toLowerCase() ?? ''
+      const caseNumber = caseNumberMatch?.[1].replace(/\s+/g, '') ?? ''
       const filedAt = parseDate(values[indexes.date])
       const plaintiff = values[indexes.plaintiff]
-      if (!caseNumber || !filedAt || !plaintiff) continue
+      if (!caseNumber || !filedAt || !plaintiff) {
+        rejectedCount += 1
+        continue
+      }
 
       const stateCode = values[indexes.state].toUpperCase()
       const lawFirm = values[indexes.lawFirm]
       const brand = values[indexes.brand]
       const ipType = values[indexes.ipType]
-      if ([plaintiff, lawFirm, brand].some((text) => text.length > 255) || stateCode.length > 8) continue
+      if (plaintiff.length > 255 || lawFirm.length > 191 || brand.length > 191 || ipType.length > 32 || stateCode.length > 8) {
+        rejectedCount += 1
+        continue
+      }
 
       cases.push({
         caseNumber,
@@ -158,7 +168,7 @@ export function parseWorldTroCasePage(html, pageUrl = `${SOURCE_ORIGIN}/tro`) {
         sourceUrl: absoluteSourceUrl(rawCells[indexes.caseNumber], pageUrl),
       })
     }
-    if (cases.length) return { cases, nextPageUrl: findNextListingPage(html, pageUrl) }
+    if (cases.length) return { cases, rejectedCount, nextPageUrl: findNextListingPage(html, pageUrl) }
   }
   throw new Error('未找到符合预期字段的案件表；为避免把错误页面写入数据库，本次采集已停止')
 }

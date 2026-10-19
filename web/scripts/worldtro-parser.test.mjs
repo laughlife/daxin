@@ -23,6 +23,7 @@ test('parses the seven public WorldTRO case columns and detail links', () => {
     sourceUrl: 'https://worldtro.com/case-IL-2026-cv-12723.html',
   })
   assert.equal(rows[1].sourceUrl, 'https://worldtro.com/case-IL-2026-cv-12658.html')
+  assert.equal(parseWorldTroCasePage(listing).rejectedCount, 1)
 })
 
 test('discovers only same-list pagination links and never follows a case detail link', () => {

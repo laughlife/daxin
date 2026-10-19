@@ -3,7 +3,7 @@ import { parseWorldTroCasePage } from './parser.mjs'
 const DEFAULT_START_URL = 'https://worldtro.com/tro'
 
 /**
- * 遍历公开案件列表页。initialImport 会沿同一列表的分页链接完整采集；日常模式只读第一页，
+ * 遍历公开案件列表页。initialImport 会沿同一列表分页完整采集；日常模式向后翻页，
  * 并在按时间倒序的列表中遇到已知案件号后停止。不会访问案件详情链接。
  * @param {{ fetchPage: (url: string) => Promise<string>, initialImport?: boolean, knownCaseNumbers?: Iterable<string>, startUrl?: string, maxPages?: number, pageDelayMs?: number, sleep?: (ms: number) => Promise<void> }} options
  */
@@ -23,6 +23,7 @@ export async function crawlWorldTroList({
   let currentUrl = startUrl
   let pageCount = 0
   let duplicateCount = 0
+  let rejectedCount = 0
   let stoppedAtKnown = false
 
   while (currentUrl) {
@@ -32,6 +33,7 @@ export async function crawlWorldTroList({
     const html = await fetchPage(currentUrl)
     const page = parseWorldTroCasePage(html, currentUrl)
     pageCount += 1
+    rejectedCount += page.rejectedCount
 
     for (const item of page.cases) {
       const key = item.caseNumber.trim().toLowerCase()
@@ -46,12 +48,15 @@ export async function crawlWorldTroList({
       seenCases.add(key)
       cases.push(item)
     }
-    if (!initialImport || stoppedAtKnown || !page.nextPageUrl) break
+    if (stoppedAtKnown || !page.nextPageUrl) break
     if (visitedPages.has(page.nextPageUrl)) throw new Error('WorldTRO 列表分页链接返回已访问页面，本次全量采集已终止')
     await sleep(pageDelayMs)
     currentUrl = page.nextPageUrl
   }
 
+  if (rejectedCount > 0) {
+    throw new Error(`WorldTRO 列表有 ${rejectedCount} 条案件行未能完整解析，本次不写入数据`)
+  }
   if (!cases.length && initialImport) throw new Error('WorldTRO 列表没有可导入的有效案件号，本次未修改案件数据')
-  return { cases, pageCount, duplicateCount, stoppedAtKnown }
+  return { cases, pageCount, duplicateCount, rejectedCount, stoppedAtKnown }
 }
