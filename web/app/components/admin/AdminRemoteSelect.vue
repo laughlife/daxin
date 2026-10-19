@@ -19,7 +19,7 @@ import {
  *   - 下拉框 → 展示当前已加载的候选（默认只加载 1 页，20 条）；
  *   - 「加载更多」→ 请求下一页并追加，只有用户主动点击时才会继续取数。
  *
- * 当前已选值始终以 `${value} / ${label}` 的形式展示在下方，即使它不在已加载的候选里也不会丢失。
+ * 当前已选值始终以名称展示，即使它不在已加载的候选里也不会回退显示数据库 id。
  * 权限由父组件控制：`disabled` 为 true 时输入框、下拉与「加载更多」全部禁用。
  */
 interface RemoteOption {
@@ -36,6 +36,8 @@ const props = withDefaults(defineProps<{
   endpoint: string
   /** 当前选中项 id；null 表示未选择 */
   modelValue: number | null
+  /** 当前选中项的名称；用于候选未加载到当前页时显示名称而非数据库 id */
+  modelLabel?: string
   /** 搜索框与下拉的可见标签 */
   label: string
   /** 空候选时的说明 */
@@ -70,6 +72,7 @@ const props = withDefaults(defineProps<{
 
 const emit = defineEmits<{
   'update:modelValue': [value: number | null]
+  selected: [value: RemoteOption | null]
   /** 请求失败时抛出中文消息，供父组件展示 */
   error: [message: string]
   /** 请求用输入的名称新建一项（父组件负责调接口并在成功后回填 id） */
@@ -90,6 +93,7 @@ const requestFetch = useRequestFetch()
 const hasMore = computed(() => page.value < totalPages.value)
 /** 已选中项：优先从候选里找，找不到时退回 id 展示，绝不静默显示成「未选择」 */
 const selected = computed(() => options.value.find(item => item.id === props.modelValue) ?? null)
+const selectedLabel = computed(() => selected.value?.label || props.modelLabel?.trim() || '')
 
 /** 后端返回的 item → 候选：只取 id 与文本字段，其余字段与只读统计一律忽略。 */
 function toOption(item: Record<string, unknown>): RemoteOption | null {
@@ -150,7 +154,9 @@ function onLoadMore() {
 /** 下拉选择：空值表示清空关联（父组件据此发送 null）。 */
 function onSelect(event: Event) {
   const value = (event.target as HTMLSelectElement).value
-  emit('update:modelValue', value === '' ? null : Number(value))
+  const id = value === '' ? null : Number(value)
+  emit('update:modelValue', id)
+  emit('selected', id === null ? null : options.value.find(item => item.id === id) ?? null)
 }
 
 /**
@@ -225,14 +231,14 @@ watch(keyword, (next, previous) => {
         {{ item.label }}<template v-if="item.hint">（{{ item.hint }}）</template>
       </option>
       <option v-if="selected === null && modelValue !== null" :value="String(modelValue)">
-        #{{ modelValue }}（不在当前候选中）
+        {{ modelLabel || '已关联项目' }}
       </option>
     </select>
 
     <p class="admin-remote-select__status" role="status">
       已加载 {{ options.length }} / {{ total }} 项
-      <template v-if="selected">，当前选中：{{ selected.label }}</template>
-      <template v-else-if="modelValue !== null">，当前选中 ID：{{ modelValue }}</template>
+      <template v-if="selectedLabel">，当前选中：{{ selectedLabel }}</template>
+      <template v-else-if="modelValue !== null">，当前已关联</template>
       <template v-else>，当前未选择</template>
     </p>
 

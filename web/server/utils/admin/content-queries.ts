@@ -151,8 +151,8 @@ export type CellParseResult =
   | { ok: true; value: string | null }
   | { ok: false }
 
-/** 文章封面 media_assets.id：null / 空串显式清空，其余只接受正安全整数。 */
-export function parseArticleCoverMediaId(value: unknown): { ok: true; value: number | null } | { ok: false } {
+/** media_assets.id：null / 空串显式清空，其余只接受正安全整数。 */
+export function parseMediaAssetId(value: unknown): { ok: true; value: number | null } | { ok: false } {
   if (value === null || value === undefined || (typeof value === 'string' && value.trim() === '')) {
     return { ok: true, value: null }
   }
@@ -161,6 +161,9 @@ export function parseArticleCoverMediaId(value: unknown): { ok: true; value: num
   const id = Number(value)
   return Number.isSafeInteger(id) && id > 0 ? { ok: true, value: id } : { ok: false }
 }
+
+/** 文章封面 media_assets.id；保留专用导出供现有文章接口复用。 */
+export const parseArticleCoverMediaId = parseMediaAssetId
 
 function isRealDate(year: number, month: number, day: number): boolean {
   if (month < 1 || month > 12 || day < 1 || day > 31) return false
@@ -215,6 +218,11 @@ export function parseDateInput(value: unknown): CellParseResult {
 
 /** 案件号形态：24-cv-0006；输入大小写不敏感，入库统一小写。 */
 export const CASE_NUMBER_PATTERN = /^(\d{2})-([a-z]{2})-(\d+)$/i
+
+/** 案件号作为来源文本保存，不强制要求特定法院编号格式。 */
+export function normalizeCaseNumberText(value: unknown): string {
+  return normalizeText(value)
+}
 
 /** 归一化案件号：非法形态返回空串（调用方据此回 400）。 */
 export function normalizeCaseNumber(value: unknown): string {
@@ -521,7 +529,7 @@ export const CASE_WRITABLE_COLUMNS: readonly string[] = Object.freeze([
 
 /** brands 可写列；case_count 只读，region 不属于品牌，均不在此列。 */
 export const BRAND_WRITABLE_COLUMNS: readonly string[] = Object.freeze([
-  'slug', 'name', 'name_en', 'aliases', 'summary', 'status',
+  'slug', 'name', 'name_en', 'aliases', 'logo_media_id', 'summary', 'status',
 ])
 
 /** law_firms 可写列；case_count 只读。 */
@@ -890,12 +898,18 @@ function entitySpec(table: string): EntitySpec {
  */
 export function adminEntityListSql(table: AdminEntityTable): string {
   const spec = entitySpec(table)
-  return `SELECT e.id, e.slug, e.name, e.name_en, e.aliases, ${spec.regionSelect},
+  const logoFields = table === 'brands'
+    ? `, e.logo_media_id, COALESCE(logo.public_url, '') AS logo_url`
+    : `, NULL AS logo_media_id, '' AS logo_url`
+  const logoJoin = table === 'brands'
+    ? `\nLEFT JOIN media_assets logo ON logo.id = e.logo_media_id AND logo.usage_scope = 'logo' AND logo.deleted_at IS NULL`
+    : ''
+  return `SELECT e.id, e.slug, e.name, e.name_en, e.aliases, ${spec.regionSelect}${logoFields},
   COALESCE(e.summary, '') AS summary, e.status,
   DATE_FORMAT(e.created_at, '%Y-%m-%d %H:%i:%s') AS created_at,
   DATE_FORMAT(e.updated_at, '%Y-%m-%d %H:%i:%s') AS updated_at,
   (SELECT COUNT(*) FROM ${spec.relationTable} r WHERE r.${spec.relationColumn} = e.id) AS case_count
-FROM ${table} e
+FROM ${table} e${logoJoin}
 WHERE 1 = 1`
 }
 
@@ -1060,6 +1074,8 @@ export interface AdminEntityItem {
   name: string
   nameEn: string
   aliases: string
+  logoMediaId: number | null
+  logoUrl: string
   region: string
   summary: string
   /** 只读：由 case_brands / case_law_firms 实时统计，不接受后台写入。 */
@@ -1075,6 +1091,8 @@ export interface AdminEntityRow {
   name?: unknown
   name_en?: unknown
   aliases?: unknown
+  logo_media_id?: unknown
+  logo_url?: unknown
   region?: unknown
   summary?: unknown
   case_count?: unknown
@@ -1090,6 +1108,8 @@ export function mapAdminEntityRow(row: AdminEntityRow): AdminEntityItem {
     name: toText(row.name),
     nameEn: toText(row.name_en),
     aliases: toText(row.aliases),
+    logoMediaId: toNullableId(row.logo_media_id),
+    logoUrl: toText(row.logo_url),
     region: toText(row.region),
     summary: toText(row.summary),
     caseCount: toCount(row.case_count),

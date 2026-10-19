@@ -79,6 +79,6 @@ test('案件编辑删除静态提示，保留字段及输入错误反馈', () =>
   assert.match(caseForm, /案件号（必填）/)
   assert.match(caseForm, /涉案品牌/)
   assert.match(caseForm, /代理律所/)
-  assert.match(caseForm, /v-if="caseNumberError"/)
+  assert.doesNotMatch(caseForm, /caseNumberError/)
   assert.match(caseForm, /v-if="filedAtError"/)
 })

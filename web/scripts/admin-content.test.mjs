@@ -33,6 +33,7 @@ import {
   mapAdminCaseRow,
   mapAdminEntityRow,
   normalizeCaseNumber,
+  normalizeCaseNumberText,
   normalizeContentStatus,
   normalizePublishStatus,
   parseCaseNumberParts,
@@ -140,6 +141,11 @@ test('案件号归一化：大小写不敏感并统一小写，非法值被拒�
   }
 })
 
+test('案件号保存不再限制法院编号格式，但保留首尾空格清理', () => {
+  assert.equal(normalizeCaseNumberText('  Case Ref: XY-998 / A  '), 'Case Ref: XY-998 / A')
+  assert.equal(normalizeCaseNumberText('not a docket format'), 'not a docket format')
+})
+
 // ---------------------------------------------------------------------------
 // 关联替换
 // ---------------------------------------------------------------------------
@@ -201,13 +207,14 @@ test('parseCaseRelations：区分「未提供」「显式清空」与「非法 i
 // 写入白名单与 UPDATE 语句
 // ---------------------------------------------------------------------------
 
-test('可写列白名单不含只读 / 派生列', () => {
-  for (const column of ['case_count', 'view_count', 'logo_media_id']) {
+test('可写列白名单不含只读 / 派生列，品牌图片可编辑', () => {
+  for (const column of ['case_count', 'view_count']) {
     assert.ok(!ARTICLE_WRITABLE_COLUMNS.includes(column), `articles 白名单不应包含 ${column}`)
     assert.ok(!BRAND_WRITABLE_COLUMNS.includes(column), `brands 白名单不应包含 ${column}`)
     assert.ok(!LAW_FIRM_WRITABLE_COLUMNS.includes(column), `law_firms 白名单不应包含 ${column}`)
     assert.ok(!CASE_WRITABLE_COLUMNS.includes(column), `cases 白名单不应包含 ${column}`)
   }
+  assert.ok(BRAND_WRITABLE_COLUMNS.includes('logo_media_id'))
   assert.ok(!CASE_WRITABLE_COLUMNS.includes('cover_media_id'))
   assert.ok(!BRAND_WRITABLE_COLUMNS.includes('region'), 'region 只属于律所')
   assert.ok(LAW_FIRM_WRITABLE_COLUMNS.includes('region'))

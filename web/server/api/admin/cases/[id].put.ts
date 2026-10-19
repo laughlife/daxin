@@ -19,7 +19,7 @@ import {
   buildUpdateStatement,
   hasOwn,
   mapAdminCaseDetail,
-  normalizeCaseNumber,
+  normalizeCaseNumberText,
   parseCaseNumberParts,
   parseCaseRelations,
   parseCaseStatus,
@@ -72,10 +72,9 @@ export default defineEventHandler(async (event) => {
     }
 
     if (hasOwn(body, 'caseNumber')) {
-      const caseNumber = normalizeCaseNumber(body.caseNumber)
-      if (!caseNumber) {
-        return fail(event, 400, 'INVALID_CASE_NUMBER', '案件号格式不正确，应为 24-cv-0006 这样的形式')
-      }
+      const caseNumber = normalizeCaseNumberText(body.caseNumber)
+      if (!caseNumber) return fail(event, 400, 'INVALID_CASE_NUMBER', '案件号不能为空')
+      if (caseNumber.length > 64) return fail(event, 400, 'INVALID_CASE_NUMBER', '案件号长度不能超过 64 个字符')
       if (caseNumber !== before.case_number) {
         const duplicated = await queryTarget<{ id: number }>(
           'SELECT id FROM cases WHERE case_number = ? AND id <> ? LIMIT 1',
@@ -83,11 +82,10 @@ export default defineEventHandler(async (event) => {
         )
         if (duplicated[0]) return fail(event, 409, 'CASE_NUMBER_EXISTS', '案件号已存在')
         const parts = parseCaseNumberParts(caseNumber)
-        if (!parts) return fail(event, 400, 'INVALID_CASE_NUMBER', '案件号格式不正确，应为 24-cv-0006 这样的形式')
         changes.case_number = caseNumber
-        changes.case_year = parts.caseYear
-        changes.case_seq = parts.caseSeq
-        changes.case_type = parts.caseType
+        changes.case_year = parts?.caseYear ?? null
+        changes.case_seq = parts?.caseSeq ?? null
+        changes.case_type = parts?.caseType ?? 'cv'
       }
     }
 

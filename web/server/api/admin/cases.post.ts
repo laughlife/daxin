@@ -2,8 +2,7 @@
 //
 // 新建案例。约定：
 //   - 先校验 case:write 权限，再做任何查库；
-//   - caseNumber 必须是 `^\d{2}-[a-z]{2}-\d+$`（大小写不敏感，入库统一小写）且唯一；
-//     case_year / case_seq / case_type 由案件号派生后一起写入，保证派生列与案件号一致；
+//   - caseNumber 保存原始文本（长度不超过 64）且唯一；能识别标准案号时同步派生 case_year / case_seq / case_type；
 //   - publishStatus 只接受 draft|published|archived（默认 draft），status 内部状态只接受 open|closed|archived（默认 open）；
 //   - brandId / lawFirmId / ipTypeId 写的是关联表（case_brands / case_law_firms / case_ip_types），
 //     侵权类型绝不存到 cases 表：公开接口的 caseType 由 case_ip_types + ip_types.slug 推导；
@@ -18,7 +17,7 @@ import {
   buildCaseRelationStatements,
   hasOwn,
   mapAdminCaseDetail,
-  normalizeCaseNumber,
+  normalizeCaseNumberText,
   parseCaseNumberParts,
   parseCaseStatus,
   parseCaseRelations,
@@ -46,12 +45,10 @@ export default defineEventHandler(async (event) => {
 
   const body = await readAdminBody(event)
 
-  const caseNumber = normalizeCaseNumber(body.caseNumber)
-  if (!caseNumber) {
-    return fail(event, 400, 'INVALID_CASE_NUMBER', '案件号格式不正确，应为 24-cv-0006 这样的形式')
-  }
+  const caseNumber = normalizeCaseNumberText(body.caseNumber)
+  if (!caseNumber) return fail(event, 400, 'INVALID_CASE_NUMBER', '案件号不能为空')
+  if (caseNumber.length > 64) return fail(event, 400, 'INVALID_CASE_NUMBER', '案件号长度不能超过 64 个字符')
   const parts = parseCaseNumberParts(caseNumber)
-  if (!parts) return fail(event, 400, 'INVALID_CASE_NUMBER', '案件号格式不正确，应为 24-cv-0006 这样的形式')
 
   const publishStatus = parsePublishStatus(hasOwn(body, 'publishStatus') ? body.publishStatus : undefined)
   if (publishStatus === null) {
@@ -88,7 +85,7 @@ export default defineEventHandler(async (event) => {
            (case_number, case_year, case_seq, case_type, filed_at, plaintiff, court, title,
             status, publish_status, created_at, updated_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-        [caseNumber, parts.caseYear, parts.caseSeq, parts.caseType, filedAt, plaintiff, court, title, status, publishStatus],
+        [caseNumber, parts?.caseYear ?? null, parts?.caseSeq ?? null, parts?.caseType ?? 'cv', filedAt, plaintiff, court, title, status, publishStatus],
       )
       const insertId = Number((header as { insertId?: unknown })?.insertId ?? 0)
       for (const statement of buildCaseRelationStatements(insertId, relations.relations)) {
