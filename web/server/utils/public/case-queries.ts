@@ -249,14 +249,28 @@ export async function findPublishedCaseByNumber(caseNumber: string): Promise<Cas
   return record ?? null
 }
 
-/** 品牌 / 律所列表。caseCount 直接取 case_count 列（不实时重算）。 */
+/** 品牌 / 律所公开关联案件数：只统计已发布案件，随发布状态实时变化。 */
+function publishedEntityCaseCountSql(table: 'brands' | 'law_firms'): string {
+  return table === 'brands'
+    ? `(SELECT COUNT(DISTINCT c.id)
+       FROM case_brands relation
+       JOIN cases c ON c.id = relation.case_id AND c.publish_status = 'published'
+       WHERE relation.brand_id = e.id)`
+    : `(SELECT COUNT(DISTINCT c.id)
+       FROM case_law_firms relation
+       JOIN cases c ON c.id = relation.case_id AND c.publish_status = 'published'
+       WHERE relation.law_firm_id = e.id)`
+}
+
+/** 品牌 / 律所列表实时计算公开关联案件数，避免状态变更后沿用过期的冗余计数。 */
 export async function findEntitySummaries(table: 'brands' | 'law_firms'): Promise<EntitySummary[]> {
   // 表名只来自字面量联合类型，不含用户输入。
   const rows = await queryTarget<EntityRow>(
-    `SELECT e.id, e.slug, e.name, COALESCE(e.summary, '') AS description, e.case_count
+    `SELECT e.id, e.slug, e.name, COALESCE(e.summary, '') AS description,
+            ${publishedEntityCaseCountSql(table)} AS case_count
      FROM ${table} e
      WHERE e.status = 1
-     ORDER BY e.case_count DESC, e.name ASC, e.id ASC`,
+     ORDER BY 5 DESC, e.name ASC, e.id ASC`,
     [],
   )
   return rows.map(toEntitySummary)
@@ -339,15 +353,7 @@ export async function findEntityBySlug(
   table: 'brands' | 'law_firms',
   slug: string,
 ): Promise<{ id: number; summary: EntitySummary } | null> {
-  const liveCount = table === 'brands'
-    ? `(SELECT COUNT(DISTINCT c.id)
-       FROM case_brands relation
-       JOIN cases c ON c.id = relation.case_id AND c.publish_status = 'published'
-       WHERE relation.brand_id = e.id)`
-    : `(SELECT COUNT(DISTINCT c.id)
-       FROM case_law_firms relation
-       JOIN cases c ON c.id = relation.case_id AND c.publish_status = 'published'
-       WHERE relation.law_firm_id = e.id)`
+  const liveCount = publishedEntityCaseCountSql(table)
   const rows = await queryTarget<EntityRow>(
     `SELECT e.id, e.slug, e.name, COALESCE(e.summary, '') AS description, ${liveCount} AS case_count
      FROM ${table} e

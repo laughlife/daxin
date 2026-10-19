@@ -1,6 +1,6 @@
 // GET /api/public/law-firms
 //
-// 律所列表：{ data: FirmSummary[] }。caseCount 直接取 law_firms.case_count 列。
+// 律所列表：{ data: FirmSummary[] }。caseCount 实时统计已发布案件。
 import { findEntitySummaries } from '../../utils/public/case-queries'
 import { withPublicApi } from '../../utils/public/http'
 
