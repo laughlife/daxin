@@ -22,6 +22,12 @@ test('品牌卡片展示原告、代理律所、起诉州、已发案数和两�
   assert.match(directory, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/)
 })
 
+test('品牌卡片主按钮使用站点主题色，主题切换时不保留固定橙色', () => {
+  assert.match(directory, /\.brand-card__action--primary\s*\{[^}]*background:\s*var\(--color-primary\)/s)
+  assert.match(directory, /\.brand-card__action--primary:hover\s*\{[^}]*background:\s*var\(--color-primary-dark\)/s)
+  assert.doesNotMatch(directory, /#f97316|#ea580c/i)
+})
+
 test('品牌公开接口返回有效 Logo 和最新已发布案件的卡片信息', () => {
   assert.match(queries, /LEFT JOIN media_assets logo ON logo\.id = b\.logo_media_id AND logo\.usage_scope = 'logo' AND logo\.deleted_at IS NULL/)
   assert.match(queries, /ROW_NUMBER\(\) OVER \([\s\S]*?PARTITION BY cb\.brand_id[\s\S]*?\)/)

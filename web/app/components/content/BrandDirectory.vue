@@ -310,8 +310,8 @@ useSeoMeta({
 .brand-card__action { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; padding: 0 var(--space-2); border: 1px solid var(--color-primary); border-radius: var(--radius-sm); font-size: var(--text-xs); font-weight: 700; text-align: center; text-decoration: none; }
 .brand-card__action--outline { background: var(--color-bg-page); color: var(--color-primary); }
 .brand-card__action--outline:hover { background: var(--color-primary-light); }
-.brand-card__action--primary { background: #f97316; border-color: #f97316; color: #fff; }
-.brand-card__action--primary:hover { background: #ea580c; border-color: #ea580c; }
+.brand-card__action--primary { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-text-on-primary); }
+.brand-card__action--primary:hover { background: var(--color-primary-dark); border-color: var(--color-primary-dark); }
 .brand-directory__state, .brand-directory__empty { padding: var(--space-8); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-page); color: var(--color-text-muted); text-align: center; }
 .brand-directory__pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-6); color: var(--color-text-muted); font-size: var(--text-sm); }
 .brand-directory__pagination p { margin: 0; }
