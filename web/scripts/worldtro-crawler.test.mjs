@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { crawlWorldTroList } from '../server/utils/worldtro/crawler.mjs'
-import { millisecondsUntilNextWorldTroRun, shanghaiDateKey } from '../server/utils/worldtro/schedule.mjs'
+import { millisecondsUntilFirstWorldTroRun, millisecondsUntilNextWorldTroRun, shanghaiDateKey } from '../server/utils/worldtro/schedule.mjs'
 
 const page = (caseNumber, next = '') => `<!doctype html><html><body><table>
 <tr><th>日期</th><th>案件号</th><th>原告</th><th>州</th><th>原告律所</th><th>原告品牌</th><th>类型</th></tr>
@@ -67,12 +67,18 @@ test('daily run follows listing pages until it reaches the first known case', as
   assert.equal(requests.length, 2)
 })
 
-test('does not treat partially parsed listing rows as a complete import', async () => {
-  const html = page('2026-cv-00102').replace('</table>', '<tr><td>unknown</td><td>2026-cv-00101</td><td>Plaintiff</td><td>IL</td><td>Firm</td><td>Brand</td><td>商标</td></tr></table>')
-  await assert.rejects(
-    crawlWorldTroList({ initialImport: true, fetchPage: async () => html, sleep: async () => {} }),
-    /未能完整解析/,
-  )
+test('skips incomplete rows and continues through later listing pages', async () => {
+  const first = page('2026-cv-00102', '<nav class="pagination"><a href="/tro/?page=2">下一页</a></nav>')
+    .replace('10/17/2026', 'unknown')
+  const second = page('2026-cv-00101')
+  const result = await crawlWorldTroList({
+    initialImport: true,
+    fetchPage: async (url) => url.endsWith('page=2') ? second : first,
+    sleep: async () => {},
+  })
+  assert.deepEqual(result.cases.map((item) => item.caseNumber), ['2026-cv-00101'])
+  assert.equal(result.rejectedCount, 1)
+  assert.equal(result.pageCount, 2)
 })
 
 test('scheduler uses China time and starts after noon each day', () => {
@@ -81,4 +87,6 @@ test('scheduler uses China time and starts after noon each day', () => {
   assert.equal(shanghaiDateKey(beforeNoon), '2026-10-19')
   assert.equal(millisecondsUntilNextWorldTroRun(beforeNoon), 75 * 60 * 1000)
   assert.equal(millisecondsUntilNextWorldTroRun(atOnePm), 23 * 60 * 60 * 1000 + 15 * 60 * 1000)
+  assert.equal(millisecondsUntilFirstWorldTroRun(beforeNoon), 75 * 60 * 1000)
+  assert.equal(millisecondsUntilFirstWorldTroRun(atOnePm), 0)
 })

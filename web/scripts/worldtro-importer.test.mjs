@@ -25,6 +25,7 @@ test('old cases, relations, brands and firms are cleared only from the initial f
 })
 
 test('daily scheduler runs after 12:00 China time only in production and can be disabled', () => {
+  assert.match(scheduler, /millisecondsUntilFirstWorldTroRun\(\)/)
   assert.match(scheduler, /millisecondsUntilNextWorldTroRun\(\)/)
   assert.match(scheduler, /process\.env\.NODE_ENV !== 'production'/)
   assert.match(scheduler, /NUXT_WORLDTRO_IMPORT_ENABLED === 'false'/)

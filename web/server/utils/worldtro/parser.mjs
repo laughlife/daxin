@@ -168,7 +168,7 @@ export function parseWorldTroCasePage(html, pageUrl = `${SOURCE_ORIGIN}/tro`) {
         sourceUrl: absoluteSourceUrl(rawCells[indexes.caseNumber], pageUrl),
       })
     }
-    if (cases.length) return { cases, rejectedCount, nextPageUrl: findNextListingPage(html, pageUrl) }
+    return { cases, rejectedCount, nextPageUrl: findNextListingPage(html, pageUrl) }
   }
   throw new Error('未找到符合预期字段的案件表；为避免把错误页面写入数据库，本次采集已停止')
 }

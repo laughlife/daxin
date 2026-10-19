@@ -1,11 +1,11 @@
-import { millisecondsUntilNextWorldTroRun } from '../utils/worldtro/schedule.mjs'
+import { millisecondsUntilFirstWorldTroRun, millisecondsUntilNextWorldTroRun } from '../utils/worldtro/schedule.mjs'
 import { runWorldTroImport } from '../utils/worldtro/importer'
 
 export default defineNitroPlugin((nitroApp) => {
   if (process.env.NODE_ENV !== 'production' || process.env.NUXT_WORLDTRO_IMPORT_ENABLED === 'false') return
 
   let timer: ReturnType<typeof setTimeout> | undefined
-  const schedule = () => {
+  const schedule = (firstRun = false) => {
     timer = setTimeout(async () => {
       try {
         const result = await runWorldTroImport()
@@ -15,10 +15,10 @@ export default defineNitroPlugin((nitroApp) => {
       } finally {
         schedule()
       }
-    }, millisecondsUntilNextWorldTroRun())
+    }, firstRun ? millisecondsUntilFirstWorldTroRun() : millisecondsUntilNextWorldTroRun())
   }
 
-  schedule()
+  schedule(true)
   nitroApp.hooks.hook('close', () => {
     if (timer) clearTimeout(timer)
   })

@@ -23,3 +23,10 @@ export function millisecondsUntilNextWorldTroRun(date = new Date()) {
   const target = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + (todayPassed ? 1 : 0), 4, RUN_MINUTE, 0))
   return Math.max(0, target.getTime() - date.getTime())
 }
+
+/** 服务在当天 12:15 后启动时立即补跑；任务台账会阻止当天重复采集。 */
+export function millisecondsUntilFirstWorldTroRun(date = new Date()) {
+  const parts = shanghaiParts(date)
+  const todayPassed = parts.hour > RUN_HOUR || (parts.hour === RUN_HOUR && parts.minute >= RUN_MINUTE)
+  return todayPassed ? 0 : millisecondsUntilNextWorldTroRun(date)
+}

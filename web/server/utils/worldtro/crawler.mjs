@@ -54,9 +54,6 @@ export async function crawlWorldTroList({
     currentUrl = page.nextPageUrl
   }
 
-  if (rejectedCount > 0) {
-    throw new Error(`WorldTRO 列表有 ${rejectedCount} 条案件行未能完整解析，本次不写入数据`)
-  }
   if (!cases.length && initialImport) throw new Error('WorldTRO 列表没有可导入的有效案件号，本次未修改案件数据')
   return { cases, pageCount, duplicateCount, rejectedCount, stoppedAtKnown }
 }
