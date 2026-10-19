@@ -11,6 +11,8 @@ test('WorldTRO import stores only listing fields and records source provenance',
   assert.match(importer, /state_code/)
   assert.match(importer, /source_url/)
   assert.match(importer, /'open', 'draft'/)
+  assert.match(importer, /UPDATE brands b SET case_count[\s\S]*?c\.publish_status = 'published'/)
+  assert.match(importer, /UPDATE law_firms lf SET case_count[\s\S]*?c\.publish_status = 'published'/)
   assert.doesNotMatch(importer, /fetchWorldTroDetail|fetchDetailPage|case-detail/i)
 })
 

@@ -209,6 +209,22 @@ async function persistCases(cases: WorldTroCase[], initialImport: boolean) {
         [SOURCE_KEY, item.caseNumber, caseId, item.sourceUrl, item.filedAt || null, item.stateCode, item.lawFirm, item.brand, item.ipType],
       )
     }
+    await connection.execute(
+      `UPDATE brands b SET case_count = (
+         SELECT COUNT(*) FROM case_brands cb
+         JOIN cases c ON c.id = cb.case_id
+         WHERE cb.brand_id = b.id AND c.publish_status = 'published'
+       ), updated_at = NOW()`,
+      [],
+    )
+    await connection.execute(
+      `UPDATE law_firms lf SET case_count = (
+         SELECT COUNT(*) FROM case_law_firms clf
+         JOIN cases c ON c.id = clf.case_id
+         WHERE clf.law_firm_id = lf.id AND c.publish_status = 'published'
+       ), updated_at = NOW()`,
+      [],
+    )
     return { insertedCount, duplicateCount }
   })
 }
