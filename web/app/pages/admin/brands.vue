@@ -21,5 +21,6 @@ useSeoMeta({
   <AdminEntityManager
     endpoint="/api/admin/brands"
     entity-label="品牌"
+    with-logo
   />
 </template>

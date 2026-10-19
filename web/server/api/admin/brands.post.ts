@@ -13,6 +13,7 @@ import { escapeLikePattern } from '../../utils/public/article-query'
 import {
   ensureUniqueSlug,
   hasOwn,
+  parseMediaAssetId,
   parseEntityStatus,
   slugifyTitle,
   toText,
@@ -50,8 +51,19 @@ export default defineEventHandler(async (event) => {
   const nameEn = toText(body.nameEn)
   const aliases = toText(body.aliases)
   const summary = toText(body.summary)
+  const parsedLogoMediaId = parseMediaAssetId(body.logoMediaId)
+  if (!parsedLogoMediaId.ok) return fail(event, 400, 'INVALID_BRAND_LOGO', '品牌图片参数不正确')
+  const logoMediaId = parsedLogoMediaId.value
 
   try {
+    if (logoMediaId !== null) {
+      const media = await queryTarget<{ id: number }>(
+        `SELECT id FROM media_assets WHERE id = ? AND usage_scope = 'logo' AND deleted_at IS NULL LIMIT 1`,
+        [logoMediaId],
+      )
+      if (!media[0]) return fail(event, 400, 'INVALID_BRAND_LOGO', '品牌图片不存在或已停用')
+    }
+
     const existing = await queryTarget<{ slug: string }>(
       `SELECT slug FROM brands WHERE slug LIKE ? ESCAPE '!'`,
       [`${escapeLikePattern(slug)}%`],
@@ -59,9 +71,9 @@ export default defineEventHandler(async (event) => {
     slug = ensureUniqueSlug(slug, existing.map(row => row.slug))
 
     const result = await executeWrite(
-      `INSERT INTO brands (slug, name, name_en, aliases, summary, status, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())`,
-      [slug, name, nameEn, aliases, summary, status],
+      `INSERT INTO brands (slug, name, name_en, aliases, logo_media_id, summary, status, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())`,
+      [slug, name, nameEn, aliases, logoMediaId, summary, status],
     )
 
     await writeAuditSafely({
@@ -72,7 +84,7 @@ export default defineEventHandler(async (event) => {
       entityId: result.insertId,
       ipDigest: getIpDigest(event),
       note: '新建品牌',
-      after: { slug, name, nameEn, aliases, summary, status },
+      after: { slug, name, nameEn, aliases, logoMediaId, summary, status },
     })
 
     return { data: { id: result.insertId, slug } }

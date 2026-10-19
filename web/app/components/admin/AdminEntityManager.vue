@@ -29,8 +29,11 @@ const props = withDefaults(defineProps<{
   entityLabel: string
   /** 是否显示「地区」字段（只有律所有） */
   withRegion?: boolean
+  /** 品牌编辑时提供 Logo 上传 */
+  withLogo?: boolean
 }>(), {
-  withRegion: false
+  withRegion: false,
+  withLogo: false
 })
 
 const { user, load } = useAdminSession()
@@ -63,6 +66,7 @@ async function fetchEntityPage(targetPage: number): Promise<EntityListPayload> {
   const payload = await requestFetch<{ data?: AdminEntityItem[], meta?: Record<string, unknown> }>(props.endpoint, {
     query: toAdminQuery({
       keyword: keyword.value.trim(),
+      status: 1,
       page: targetPage,
       pageSize: pageSize.value
     })
@@ -128,6 +132,8 @@ interface EntityForm {
   aliases: string
   region: string
   summary: string
+  logoMediaId: number | null
+  logoUrl: string
   status: string
 }
 
@@ -138,8 +144,11 @@ const form = reactive<EntityForm>({
   aliases: '',
   region: '',
   summary: '',
+  logoMediaId: null,
+  logoUrl: '',
   status: '1'
 })
+const imageUploading = ref(false)
 
 const nameError = computed(() => (form.name.trim() ? '' : `${props.entityLabel}名称不能为空`))
 const formValid = computed(() => !nameError.value)
@@ -151,6 +160,8 @@ function resetForm() {
   form.aliases = ''
   form.region = ''
   form.summary = ''
+  form.logoMediaId = null
+  form.logoUrl = ''
   form.status = '1'
 }
 
@@ -198,7 +209,14 @@ function applyDetail(item: AdminEntityItem) {
   form.aliases = item.aliases
   form.region = item.region
   form.summary = item.summary
+  form.logoMediaId = item.logoMediaId ?? null
+  form.logoUrl = item.logoUrl ?? ''
   form.status = String(item.status)
+}
+
+function onLogoUploaded(payload: { mediaId: number, mediaUrl: string }) {
+  form.logoMediaId = payload.mediaId
+  form.logoUrl = payload.mediaUrl
 }
 
 function closeEditor() {
@@ -230,6 +248,7 @@ async function onSubmit() {
     summary: form.summary,
     status: Number(form.status)
   }
+  if (props.withLogo) body.logoMediaId = form.logoMediaId
   if (form.slug.trim()) body.slug = form.slug.trim()
   if (props.withRegion) body.region = form.region
 
@@ -247,6 +266,23 @@ async function onSubmit() {
     saveError.value = adminRequestErrorMessage(error, '保存失败，请稍后重试')
   } finally {
     saving.value = false
+  }
+}
+
+async function onDelete(item: AdminEntityItem) {
+  if (!canWrite.value) return
+  const accepted = window.confirm(`确认删除「${item.name}」？该记录会从管理列表隐藏，已有关联案件会保留。`)
+  if (!accepted) return
+
+  actionError.value = ''
+  notice.value = ''
+  try {
+    await requestAdminApi<AdminWriteResult>(`${props.endpoint}/${item.id}`, { method: 'DELETE', requestFetch })
+    notice.value = `${props.entityLabel}「${item.name}」已删除`
+    if (editingId.value === item.id) closeEditor()
+    await refreshList()
+  } catch (error) {
+    actionError.value = adminRequestErrorMessage(error, `${props.entityLabel}删除失败，请稍后重试`)
   }
 }
 
@@ -325,6 +361,15 @@ function onPageSize(next: number) {
                     @click="openEdit(item)"
                   >
                     编辑
+                  </BaseButton>
+                  <BaseButton
+                    variant="ghost"
+                    size="sm"
+                    :disabled="!canWrite"
+                    :title="canWrite ? undefined : readOnlyReason"
+                    @click="onDelete(item)"
+                  >
+                    删除
                   </BaseButton>
                 </td>
               </tr>
@@ -408,18 +453,31 @@ function onPageSize(next: number) {
           />
         </div>
 
+        <div v-if="withLogo" class="admin-entity__brand-image">
+          <span class="admin-entity__label">品牌图片</span>
+          <SettingImageField
+            input-id="entity-brand-logo"
+            label="品牌图片"
+            :media-url="form.logoUrl"
+            :disabled="!canWrite || saving || detailLoading"
+            usage-scope="logo"
+            @uploaded="onLogoUploaded"
+            @uploading="imageUploading = $event"
+          />
+        </div>
+
         <p v-if="saveError" class="admin-entity__error" role="alert">{{ saveError }}</p>
         <p v-if="!canWrite" class="admin-entity__readonly" role="note">{{ readOnlyReason }}</p>
 
         <div class="admin-entity__actions">
           <BaseButton
             type="submit"
-            :disabled="!canWrite || !formValid || saving || detailLoading"
+            :disabled="!canWrite || !formValid || saving || detailLoading || imageUploading"
             :title="canWrite ? undefined : readOnlyReason"
           >
             {{ saving ? '保存中…' : '保存' }}
           </BaseButton>
-          <BaseButton variant="secondary" :disabled="saving" @click="closeEditor">取消</BaseButton>
+          <BaseButton variant="secondary" :disabled="saving || imageUploading" @click="closeEditor">取消</BaseButton>
         </div>
       </form>
       </BaseCard>
@@ -650,6 +708,13 @@ function onPageSize(next: number) {
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
+}
+
+.admin-entity__brand-image {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--space-3);
 }
 
 .admin-entity__grid {

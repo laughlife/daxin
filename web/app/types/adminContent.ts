@@ -62,6 +62,8 @@ export interface AdminEntityItem {
   name: string
   nameEn: string
   aliases: string
+  logoMediaId: number | null
+  logoUrl: string
   region: string
   summary: string
   /** 只读：由关联表实时统计，后台不可写 */

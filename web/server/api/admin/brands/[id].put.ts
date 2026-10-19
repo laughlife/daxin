@@ -15,6 +15,7 @@ import {
   ensureUniqueSlug,
   hasOwn,
   mapAdminEntityRow,
+  parseMediaAssetId,
   parseEntityStatus,
   pickChangedFields,
   slugifyTitle,
@@ -58,6 +59,7 @@ export default defineEventHandler(async (event) => {
       name: current.name,
       name_en: current.nameEn,
       aliases: current.aliases,
+      logo_media_id: current.logoMediaId,
       summary: current.summary,
       status: current.status,
     }
@@ -70,6 +72,19 @@ export default defineEventHandler(async (event) => {
     if (hasOwn(body, 'nameEn')) changes.name_en = toText(body.nameEn)
     if (hasOwn(body, 'aliases')) changes.aliases = toText(body.aliases)
     if (hasOwn(body, 'summary')) changes.summary = toText(body.summary)
+
+    if (hasOwn(body, 'logoMediaId')) {
+      const parsed = parseMediaAssetId(body.logoMediaId)
+      if (!parsed.ok) return fail(event, 400, 'INVALID_BRAND_LOGO', '品牌图片参数不正确')
+      if (parsed.value !== null) {
+        const media = await queryTarget<{ id: number }>(
+          `SELECT id FROM media_assets WHERE id = ? AND usage_scope = 'logo' AND deleted_at IS NULL LIMIT 1`,
+          [parsed.value],
+        )
+        if (!media[0]) return fail(event, 400, 'INVALID_BRAND_LOGO', '品牌图片不存在或已停用')
+      }
+      changes.logo_media_id = parsed.value
+    }
 
     if (hasOwn(body, 'status')) {
       const status = parseEntityStatus(body.status, 1)
