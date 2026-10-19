@@ -234,7 +234,7 @@ useHead({
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: var(--space-4);
+  gap: var(--space-5);
   text-align: left;
 }
 
@@ -261,15 +261,17 @@ useHead({
 }
 
 .home-about__paragraph {
-  color: color-mix(in srgb, var(--color-text) 82%, var(--color-text-muted));
-  font-size: var(--text-lg);
-  line-height: 1.55;
+  margin: 0;
+  color: color-mix(in srgb, var(--color-text) 96%, var(--color-text-muted));
+  font-size: clamp(1.25rem, 1.5vw, 1.4rem);
+  font-weight: 600;
+  line-height: 1.75;
 }
 
 .home-about__paragraph:first-child {
-  font-size: var(--text-lg);
+  font-size: clamp(1.3rem, 1.6vw, 1.45rem);
   color: var(--color-text);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .home-about__more {

@@ -26,16 +26,18 @@ test('homepage keeps the configured team intro on the left and places services i
   assert.match(indexSource, /teamParagraphsFromSettings/)
 })
 
-test('team introduction centers About US and keeps the copy compact beside the service cards', () => {
+test('team introduction centers About US and styles the copy to fill the service-card height', () => {
   assert.match(indexSource, /<SectionHeading align="center" :title="teamDisplayTitle"\s*\/>/)
   assert.doesNotMatch(indexSource, /eyebrow="About US"/)
-  assert.match(indexSource, /line-height:\s*1\.55/)
+  assert.match(indexSource, /\.home-about__content\s*\{[\s\S]*?gap:\s*var\(--space-5\)/)
   assert.match(indexSource, /teamDisplayTitle = computed/)
   assert.match(indexSource, /readSettingText\('about_team_title'\)/)
   assert.doesNotMatch(indexSource, /teamTitleFromSettings\.value\.replace/)
   assert.match(indexSource, /teamDisplayTitle = computed\(\(\) => teamTitleFromSettings\.value/)
-  assert.match(indexSource, /\.home-about__paragraph\s*\{[\s\S]*?font-size:\s*var\(--text-lg\)/)
-  assert.match(indexSource, /\.home-about__paragraph\s*\{[\s\S]*?color:\s*color-mix\(in srgb, var\(--color-text\) 82%, var\(--color-text-muted\)\)/)
+  assert.match(indexSource, /\.home-about__paragraph\s*\{[\s\S]*?font-size:\s*clamp\(1\.25rem, 1\.5vw, 1\.4rem\)/)
+  assert.match(indexSource, /\.home-about__paragraph\s*\{[\s\S]*?font-weight:\s*600/)
+  assert.match(indexSource, /\.home-about__paragraph\s*\{[\s\S]*?color:\s*color-mix\(in srgb, var\(--color-text\) 96%, var\(--color-text-muted\)\)/)
+  assert.match(indexSource, /\.home-about__paragraph:first-child\s*\{[\s\S]*?font-weight:\s*700/)
 })
 
 test('service cards omit redundant summaries but keep all configured items, with a subtle hover state', () => {
