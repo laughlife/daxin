@@ -9,7 +9,9 @@
 import { queryTarget } from '../db/query'
 import {
   buildCaseFilterSql,
+  buildBrandDirectoryFilterSql,
   placeholdersFor,
+  type NormalizedBrandDirectoryQuery,
   toSafeNumericIds,
   type NormalizedCaseQuery,
   type PageWindow,
@@ -29,12 +31,29 @@ export interface EntitySummary {
   caseCount: number
 }
 
+/** 品牌库分类统计；按有公开案件关联的去重品牌数统计。 */
+export interface BrandDirectoryStats {
+  total: number
+  trademark: number
+  patent: number
+  copyright: number
+}
+
+/** 品牌库列表记录。 */
+export interface BrandDirectoryEntry extends EntitySummary {
+  caseTypes: Array<'trademark' | 'patent' | 'copyright'>
+}
+
 type EntityRow = {
   id: number | string | null
   slug: string | null
   name: string | null
   description: string | null
   case_count: number | string | null
+}
+
+type BrandDirectoryRow = EntityRow & {
+  case_types: string | null
 }
 
 type CaseRow = CaseRowInput & { id: number | string | null }
@@ -243,13 +262,94 @@ export async function findEntitySummaries(table: 'brands' | 'law_firms'): Promis
   return rows.map(toEntitySummary)
 }
 
+/** 品牌库匹配的品牌数（关键词可命中公开案件号、品牌名或代理律所）。 */
+export async function countPublicBrandDirectoryEntries(query: NormalizedBrandDirectoryQuery): Promise<number> {
+  const filter = buildBrandDirectoryFilterSql(query)
+  const rows = await queryTarget<{ total: number | string | null }>(
+    `SELECT COUNT(*) AS total
+     FROM brands b
+     WHERE 1 = 1${filter.sql}`,
+    filter.params,
+  )
+  return toNumber(rows[0]?.total)
+}
+
+/** 品牌库全局分类统计；一个品牌即使有多个同类案件也只计一次。 */
+export async function findPublicBrandDirectoryStats(): Promise<BrandDirectoryStats> {
+  const rows = await queryTarget<{
+    total: number | string | null
+    trademark: number | string | null
+    patent: number | string | null
+    copyright: number | string | null
+  }>(
+    `SELECT COUNT(DISTINCT b.id) AS total,
+            COUNT(DISTINCT CASE WHEN ip.slug = 'trademark' THEN b.id END) AS trademark,
+            COUNT(DISTINCT CASE WHEN ip.slug = 'patent' THEN b.id END) AS patent,
+            COUNT(DISTINCT CASE WHEN ip.slug = 'copyright' THEN b.id END) AS copyright
+     FROM brands b
+     LEFT JOIN case_brands cb ON cb.brand_id = b.id
+     LEFT JOIN cases c ON c.id = cb.case_id AND c.publish_status = 'published'
+     LEFT JOIN case_ip_types cip ON cip.case_id = c.id
+     LEFT JOIN ip_types ip ON ip.id = cip.ip_type_id AND ip.status = 1
+     WHERE b.status = 1`,
+    [],
+  )
+  const row = rows[0]
+  return {
+    total: toNumber(row?.total),
+    trademark: toNumber(row?.trademark),
+    patent: toNumber(row?.patent),
+    copyright: toNumber(row?.copyright),
+  }
+}
+
+/** 分页获取品牌库；类型徽标由其关联的公开案件侵权类型汇总。 */
+export async function findPublicBrandDirectoryPage(
+  query: NormalizedBrandDirectoryQuery,
+  window: PageWindow,
+): Promise<BrandDirectoryEntry[]> {
+  if (window.beyondLastPage || window.total === 0) return []
+  const filter = buildBrandDirectoryFilterSql(query)
+  const rows = await queryTarget<BrandDirectoryRow>(
+    `SELECT b.id, b.slug, b.name, COALESCE(b.summary, '') AS description,
+            COUNT(DISTINCT c.id) AS case_count,
+            GROUP_CONCAT(DISTINCT ip.slug ORDER BY ip.sort_order SEPARATOR ',') AS case_types
+     FROM brands b
+     LEFT JOIN case_brands cb ON cb.brand_id = b.id
+     LEFT JOIN cases c ON c.id = cb.case_id AND c.publish_status = 'published'
+     LEFT JOIN case_ip_types cip ON cip.case_id = c.id
+     LEFT JOIN ip_types ip ON ip.id = cip.ip_type_id AND ip.status = 1
+     WHERE 1 = 1${filter.sql}
+     GROUP BY b.id, b.slug, b.name, b.summary
+     ORDER BY case_count DESC, b.name ASC, b.id ASC
+     LIMIT ? OFFSET ?`,
+    [...filter.params, window.pageSize, window.offset],
+  )
+  return rows.map((row) => {
+    const summary = toEntitySummary(row)
+    const types = String(row.case_types ?? '').split(',')
+      .filter((value): value is 'trademark' | 'patent' | 'copyright' =>
+        value === 'trademark' || value === 'patent' || value === 'copyright')
+    return { ...summary, caseTypes: types }
+  })
+}
+
 /** 单个品牌 / 律所，找不到返回 null。 */
 export async function findEntityBySlug(
   table: 'brands' | 'law_firms',
   slug: string,
 ): Promise<{ id: number; summary: EntitySummary } | null> {
+  const liveCount = table === 'brands'
+    ? `(SELECT COUNT(DISTINCT c.id)
+       FROM case_brands relation
+       JOIN cases c ON c.id = relation.case_id AND c.publish_status = 'published'
+       WHERE relation.brand_id = e.id)`
+    : `(SELECT COUNT(DISTINCT c.id)
+       FROM case_law_firms relation
+       JOIN cases c ON c.id = relation.case_id AND c.publish_status = 'published'
+       WHERE relation.law_firm_id = e.id)`
   const rows = await queryTarget<EntityRow>(
-    `SELECT e.id, e.slug, e.name, COALESCE(e.summary, '') AS description, e.case_count
+    `SELECT e.id, e.slug, e.name, COALESCE(e.summary, '') AS description, ${liveCount} AS case_count
      FROM ${table} e
      WHERE e.status = 1 AND e.slug = ?
      LIMIT 1`,

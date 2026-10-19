@@ -154,8 +154,20 @@ try {
 
   // ---------- 品牌库与律所 ----------
   await visit('/brands')
-  check('品牌库渲染真实品牌档案', await page.locator('.directory__card').count() > 0)
-  const brandDetailHref = await page.locator('.directory__card a[href^="/brands/"]').first().getAttribute('href')
+  check('品牌库渲染真实品牌档案', await page.locator('.brand-card').count() > 0)
+  check('品牌库提供全部、商标、专利、版权分类', await page.locator('.brand-directory__tabs button').evaluateAll(
+    elements => ['全部', '商标', '专利', '版权'].every(label => elements.some(el => el.querySelector('span')?.textContent.trim() === label))
+  ))
+  await page.getByRole('button', { name: /专利/ }).click()
+  await page.waitForURL('**type=patent*')
+  check('点击专利分类后筛选状态同步到 URL', await page.getByRole('button', { name: /专利/ }).getAttribute('aria-pressed') === 'true')
+  await page.getByRole('button', { name: /^全部/ }).click()
+  await page.getByRole('searchbox', { name: '关键词' }).fill('24-cv-01889')
+  await page.getByRole('button', { name: '搜索', exact: true }).click()
+  await page.waitForURL('**q=24-cv-01889*')
+  check('品牌库支持按案件号检索关联品牌', await page.locator('.brand-card').count() > 0)
+  await visit('/brands')
+  const brandDetailHref = await page.locator('.brand-card a[href^="/brands/"]').first().getAttribute('href')
   check('品牌档案有详情链接', Boolean(brandDetailHref))
   await visit(brandDetailHref)
   await page.locator('.entity-detail__header').waitFor()

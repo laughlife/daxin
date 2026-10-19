@@ -1,1 +1,1 @@
-<template><EntityDirectory kind="brand" /></template>
+<template><BrandDirectory /></template>

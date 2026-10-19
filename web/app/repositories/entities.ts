@@ -1,7 +1,7 @@
 // 品牌 / 律所仓储：页面只通过这里取实体数据，不直接 $fetch 接口。
 //
 // 接口失败时抛出带中文消息的 Error（由页面展示错误状态），绝不回退 Mock。
-import type { CaseRecord } from '../types/content'
+import type { CaseRecord, CaseType } from '../types/content'
 import {
   isNotFoundError,
   requestPublicApi,
@@ -13,6 +13,30 @@ export interface BrandSummary {
   name: string
   description: string
   caseCount: number
+  caseTypes?: CaseType[]
+}
+
+export interface BrandDirectoryQuery {
+  keyword?: string
+  caseType?: CaseType
+  page?: number
+  pageSize?: number
+}
+
+export interface BrandDirectoryStats {
+  total: number
+  trademark: number
+  patent: number
+  copyright: number
+}
+
+export interface BrandDirectoryPage {
+  items: BrandSummary[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+  stats: BrandDirectoryStats
 }
 
 export interface FirmSummary {
@@ -38,6 +62,37 @@ const BRANDS_FAILURE_MESSAGE = '品牌列表加载失败，请稍后重试'
 const BRAND_DETAIL_FAILURE_MESSAGE = '品牌详情加载失败，请稍后重试'
 const LAW_FIRMS_FAILURE_MESSAGE = '律所列表加载失败，请稍后重试'
 const LAW_FIRM_DETAIL_FAILURE_MESSAGE = '律所详情加载失败，请稍后重试'
+
+/** 品牌库按侵权类型、案件号、品牌名或律所名检索（服务端完成筛选与分页）。 */
+export async function fetchBrandDirectory(query: BrandDirectoryQuery = {}): Promise<BrandDirectoryPage> {
+  const params: Record<string, string | number> = {}
+  const keyword = query.keyword?.trim()
+  if (keyword) params.keyword = keyword
+  if (query.caseType) params.caseType = query.caseType
+  if (typeof query.page === 'number') params.page = query.page
+  if (typeof query.pageSize === 'number') params.pageSize = query.pageSize
+
+  const payload = await requestPublicApi<BrandSummary[]>(BRANDS_ENDPOINT, params)
+  const items = unwrapPublicApiData(payload, BRANDS_FAILURE_MESSAGE)
+  if (!Array.isArray(items)) throw new Error(BRANDS_FAILURE_MESSAGE)
+  const meta = payload.meta ?? {}
+  const response = payload as typeof payload & { stats?: Partial<BrandDirectoryStats> }
+  const total = positiveInt(meta.total, items.length)
+  const pageSize = positiveInt(meta.pageSize, 20)
+  return {
+    items,
+    total,
+    page: positiveInt(meta.page, 1),
+    pageSize,
+    totalPages: positiveInt(meta.totalPages, total > 0 ? Math.ceil(total / pageSize) : 1),
+    stats: {
+      total: positiveInt(response.stats?.total, 0),
+      trademark: positiveInt(response.stats?.trademark, 0),
+      patent: positiveInt(response.stats?.patent, 0),
+      copyright: positiveInt(response.stats?.copyright, 0),
+    },
+  }
+}
 
 /** 品牌列表；caseCount 来自数据库 case_count 列。 */
 export async function fetchBrands(): Promise<BrandSummary[]> {

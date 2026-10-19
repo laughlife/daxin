@@ -17,10 +17,12 @@ import {
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
   buildCaseFilterSql,
+  buildBrandDirectoryFilterSql,
   normalizeDateOnly,
   normalizePage,
   normalizePageSize,
   parseCaseQuery,
+  parseBrandDirectoryQuery,
   placeholdersFor,
   resolvePageWindow,
   toSafeNumericIds,
@@ -45,6 +47,31 @@ test('caseTypeLabel：未标注类型显示“待确认类型”，绝不显示�
   assert.equal(caseTypeLabel(null), '待确认类型')
   assert.equal(caseTypeLabel('Trademark'), '商标', '大小写不敏感')
   assert.notEqual(caseTypeLabel('unknown'), '商标')
+})
+
+test('品牌库查询：规范化关键词、分类和分页参数', () => {
+  assert.deepEqual(parseBrandDirectoryQuery({
+    q: '  2023-cv-04187  ', type: 'patent', page: '3', pageSize: '50',
+  }), {
+    keyword: '2023-cv-04187', caseType: 'patent', page: 3, pageSize: 50,
+  })
+  assert.deepEqual(parseBrandDirectoryQuery({ keyword: ['Keith', 'other'], type: 'bad', page: 0, pageSize: 999 }), {
+    keyword: 'Keith', caseType: '', page: 1, pageSize: 50,
+  })
+  assert.equal(parseBrandDirectoryQuery().pageSize, 20)
+})
+
+test('品牌库过滤：关键词覆盖案件号与律所，用户输入只通过 SQL 参数传递', () => {
+  const keyword = "Keith' OR 1=1 --"
+  const filter = buildBrandDirectoryFilterSql(parseBrandDirectoryQuery({ keyword, type: 'copyright' }))
+  assert.match(filter.sql, /c\.case_number LIKE \?/)
+  assert.match(filter.sql, /lf\.name LIKE \?/)
+  assert.match(filter.sql, /b\.name LIKE \?/)
+  assert.match(filter.sql, /ip\.slug = \?/)
+  assert.doesNotMatch(filter.sql, /Keith|OR 1=1/)
+  assert.deepEqual(filter.params, [
+    `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, 'copyright',
+  ])
 })
 
 test('页码夹取：0、负数、非整数与非法值都回落到合法页码', () => {

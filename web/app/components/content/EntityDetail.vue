@@ -72,8 +72,8 @@ useSeoMeta({
                  不显示「简介资料整理后补充」这类占位文案。 -->
             <p v-if="summary.description">{{ summary.description }}</p>
             <div class="entity-detail__stats">
-              <span><strong>{{ summary.caseCount }}</strong> 条关联案件</span>
-              <span v-if="typeLabels">{{ typeLabels }}</span>
+              <span class="entity-detail__case-count"><strong>{{ summary.caseCount }}</strong><span>条关联案件</span></span>
+              <span v-if="typeLabels" class="entity-detail__type-badge">{{ typeLabels }}</span>
             </div>
           </header>
 
@@ -125,7 +125,10 @@ useSeoMeta({
 .entity-detail__header > p:first-child { color:var(--color-primary); font-size:var(--text-xs); font-weight:700; letter-spacing:.1em; }
 h1 { margin:var(--space-4) 0; font-size:var(--heading-1); }
 .entity-detail__header p { color:var(--color-text-muted); line-height:var(--leading-relaxed); }
-.entity-detail__stats { display:flex; flex-wrap:wrap; gap:var(--space-5); margin-top:var(--space-6); color:var(--color-text-muted); font-size:var(--text-sm); }
+.entity-detail__stats { display:flex; align-items:center; flex-wrap:wrap; gap:var(--space-3); margin-top:var(--space-6); color:var(--color-text-muted); font-size:var(--text-sm); }
+.entity-detail__case-count { display:inline-flex; align-items:baseline; gap:var(--space-2); }
+.entity-detail__case-count > span { line-height:1.3; }
+.entity-detail__type-badge { display:inline-flex; align-items:center; min-height:28px; padding:var(--space-1) var(--space-3); border:1px solid var(--color-border); border-radius:var(--radius-full); background:var(--color-bg-light); color:var(--color-primary); font-size:var(--text-xs); font-weight:600; line-height:1.3; }
 strong { color:var(--color-primary); font-size:var(--text-2xl); }
 .entity-detail__cases { margin-top:var(--space-8); }
 h2 { margin-bottom:var(--space-5); font-size:var(--heading-2); }

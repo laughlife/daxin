@@ -89,6 +89,73 @@ export interface NormalizedCaseQuery {
   pageSize: number
 }
 
+/** 品牌库列表查询条件。 */
+export interface NormalizedBrandDirectoryQuery {
+  keyword: string
+  caseType: CaseType | ''
+  page: number
+  pageSize: number
+}
+
+/** 解析品牌库查询参数；品牌库每页默认 20 条，最大 50 条。 */
+export function parseBrandDirectoryQuery(input?: Record<string, unknown> | null): NormalizedBrandDirectoryQuery {
+  const source = input ?? {}
+  const rawPageSize = pick(source.pageSize)
+  return {
+    keyword: normalizeText(source.keyword ?? source.q),
+    caseType: normalizeCaseType(source.caseType ?? source.type),
+    page: normalizePage(source.page),
+    pageSize: rawPageSize === undefined || rawPageSize === null || rawPageSize === ''
+      ? 20
+      : normalizePageSize(rawPageSize, MAX_CASE_PAGE_SIZE),
+  }
+}
+
+/** 构造品牌列表过滤条件；关键词匹配品牌、关联公开案件号和代理律所。 */
+export function buildBrandDirectoryFilterSql(query: NormalizedBrandDirectoryQuery): CaseFilterSql {
+  const clauses: string[] = ['b.status = 1']
+  const params: unknown[] = []
+
+  if (query.keyword) {
+    const like = `%${query.keyword}%`
+    clauses.push(`(
+      b.name LIKE ?
+      OR b.name_en LIKE ?
+      OR b.aliases LIKE ?
+      OR EXISTS (
+        SELECT 1
+        FROM case_brands cb
+        JOIN cases c ON c.id = cb.case_id AND c.publish_status = 'published'
+        WHERE cb.brand_id = b.id
+          AND (
+            c.case_number LIKE ?
+            OR EXISTS (
+              SELECT 1
+              FROM case_law_firms clf
+              JOIN law_firms lf ON lf.id = clf.law_firm_id AND lf.status = 1
+              WHERE clf.case_id = c.id AND lf.name LIKE ?
+            )
+          )
+      )
+    )`)
+    params.push(like, like, like, like, like)
+  }
+
+  if (query.caseType) {
+    clauses.push(`EXISTS (
+      SELECT 1
+      FROM case_brands cb
+      JOIN cases c ON c.id = cb.case_id AND c.publish_status = 'published'
+      JOIN case_ip_types cip ON cip.case_id = c.id
+      JOIN ip_types ip ON ip.id = cip.ip_type_id AND ip.status = 1
+      WHERE cb.brand_id = b.id AND ip.slug = ?
+    )`)
+    params.push(query.caseType)
+  }
+
+  return { sql: clauses.map(clause => `\n  AND ${clause}`).join(''), params }
+}
+
 /**
  * 解析案件列表查询参数。任何输入都不会被“拒绝”，只会被归一化：
  * 空值 / 非法值被丢弃，合法值按原样保留。
