@@ -178,7 +178,7 @@ useHead({
       <PageContainer>
         <div class="home-about__layout">
           <div class="home-about__content">
-            <SectionHeading align="center" :title="teamDisplayTitle" />
+            <SectionHeading align="left" :title="teamDisplayTitle" />
             <p
               v-for="(paragraph, index) in teamParagraphsFromSettings"
               :key="index"
@@ -217,8 +217,12 @@ useHead({
 
 <style scoped>
 .home-about {
-  padding-block: var(--space-16);
+  padding-block: var(--space-8) var(--space-16);
   background-color: var(--color-bg-page);
+  background-image:
+    radial-gradient(ellipse at 82% 52%, rgb(220 233 247 / 34%), transparent 46%),
+    linear-gradient(148deg, transparent 58%, rgb(227 236 248 / 30%) 58.2%, transparent 71%),
+    linear-gradient(28deg, transparent 78%, rgb(235 242 250 / 48%) 78.2%, transparent 88%);
 }
 
 .home-about__layout {
@@ -227,20 +231,22 @@ useHead({
   align-items: stretch;
   gap: var(--space-8);
   margin-inline: auto;
-  margin-top: var(--space-6);
+  margin-top: 0;
 }
 
 .home-about__content {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: var(--space-5);
+  gap: var(--space-4);
   text-align: left;
 }
 
 .home-about__content :deep(.section-heading) {
   align-self: stretch;
+  align-items: flex-start;
   gap: var(--space-2);
+  text-align: left;
 }
 
 .home-about__content :deep(.section-heading__eyebrow) {
@@ -262,14 +268,14 @@ useHead({
 
 .home-about__paragraph {
   margin: 0;
-  color: color-mix(in srgb, var(--color-text) 96%, var(--color-text-muted));
-  font-size: clamp(1.25rem, 1.5vw, 1.4rem);
+  color: color-mix(in srgb, var(--color-text) 94%, var(--color-text-muted));
+  font-size: clamp(1.15rem, 1.3vw, 1.25rem);
   font-weight: 600;
-  line-height: 1.75;
+  line-height: 1.65;
 }
 
 .home-about__paragraph:first-child {
-  font-size: clamp(1.3rem, 1.6vw, 1.45rem);
+  font-size: clamp(1.2rem, 1.4vw, 1.3rem);
   color: var(--color-text);
   font-weight: 700;
 }
@@ -290,7 +296,7 @@ useHead({
 
 @media (max-width: 639px) {
   .home-about {
-    padding-block: var(--space-10);
+    padding-block: var(--space-6) var(--space-12);
   }
 }
 </style>

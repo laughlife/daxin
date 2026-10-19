@@ -284,19 +284,20 @@ const heroStyle = computed(() => {
   align-items: center;
   justify-content: center;
   text-align: center;
-  min-height: 520px;
+  min-height: 500px;
   z-index: 1;
   gap: var(--space-5);
-  padding-block: var(--space-20) var(--space-16);
+  padding-block: var(--space-12) var(--space-16);
 }
 
 .home-hero__badge {
-  padding: var(--space-1) var(--space-4);
-  border: 1px solid color-mix(in srgb, var(--color-text-inverse) 30%, transparent);
+  padding: var(--space-2) var(--space-5);
+  border: 1px solid color-mix(in srgb, var(--color-text-inverse) 48%, transparent);
   border-radius: var(--radius-full);
-  font-size: var(--text-sm);
+  font-size: var(--text-base);
   color: color-mix(in srgb, var(--color-text-inverse) 85%, transparent);
-  background-color: color-mix(in srgb, var(--color-text-inverse) 8%, transparent);
+  background-color: color-mix(in srgb, var(--color-text-inverse) 12%, transparent);
+  backdrop-filter: blur(5px);
 }
 
 .home-hero__title {
@@ -316,9 +317,9 @@ const heroStyle = computed(() => {
 }
 
 .home-hero__subtitle {
-  max-width: 100%;
-  font-size: clamp(18px, 1.6vw, 23px);
-  line-height: var(--leading-relaxed);
+  max-width: min(100%, 1000px);
+  font-size: clamp(18px, 1.45vw, 21px);
+  line-height: 1.7;
   color: var(--color-text-inverse);
   text-shadow: 0 1px 5px rgb(0 0 0 / 78%);
   white-space: nowrap;
@@ -329,21 +330,38 @@ const heroStyle = computed(() => {
   flex-wrap: wrap;
   justify-content: center;
   gap: var(--space-4);
-  margin-top: var(--space-2);
+  margin-top: var(--space-1);
+}
+
+.home-hero__actions :deep(.btn) {
+  min-height: 56px;
+  padding-inline: var(--space-8);
+  border-radius: var(--radius-full);
+}
+
+.home-hero__actions :deep(.btn--primary) {
+  border-color: rgb(255 255 255 / 52%);
+  background: linear-gradient(135deg, #e51b28, #b91c1c);
+  box-shadow: 0 8px 22px rgb(116 6 21 / 28%);
+}
+
+.home-hero__actions :deep(.btn--primary:hover) {
+  background: linear-gradient(135deg, #f12431, #a8141b);
+  box-shadow: 0 10px 26px rgb(116 6 21 / 32%);
 }
 
 /* 联系按钮用轻透的浅灰衬底，从复杂背景里微微提出来。 */
 .home-hero .home-hero__secondary {
-  border-color: rgb(235 239 244 / 66%);
-  background-color: rgb(235 239 244 / 66%);
+  border-color: rgb(245 247 250 / 88%);
+  background-color: rgb(245 247 250 / 88%);
   color: #263445;
   backdrop-filter: blur(3px);
-  box-shadow: 0 2px 10px rgb(8 20 36 / 12%);
+  box-shadow: 0 5px 16px rgb(8 20 36 / 18%);
 }
 
 .home-hero .home-hero__secondary:hover {
-  border-color: rgb(247 249 251 / 74%);
-  background-color: rgb(247 249 251 / 74%);
+  border-color: #fff;
+  background-color: #fff;
   color: #263445;
 }
 
@@ -354,10 +372,10 @@ const heroStyle = computed(() => {
   border-radius: var(--radius-full);
   font-size: var(--text-sm);
   color: #263445;
-  background-color: rgb(235 239 244 / 66%);
+  background-color: rgb(239 246 255 / 82%);
   text-shadow: none;
   backdrop-filter: blur(3px);
-  box-shadow: 0 2px 10px rgb(8 20 36 / 12%);
+  box-shadow: 0 4px 14px rgb(8 20 36 / 14%);
 }
 
 @media (max-width: 767px) {

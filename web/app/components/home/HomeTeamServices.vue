@@ -50,16 +50,16 @@ function iconFor(section: HomeTeamServiceSection): string {
 .home-team-services__grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
+  gap: var(--space-3);
 }
 
 .home-team-services__card {
   min-width: 0;
-  padding: var(--space-6);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  background: var(--color-bg-light);
-  box-shadow: var(--shadow-sm);
+  padding: var(--space-4);
+  border: 1px solid color-mix(in srgb, var(--color-border) 78%, transparent);
+  border-radius: 16px;
+  background: var(--color-bg-page);
+  box-shadow: 0 8px 24px rgb(24 32 45 / 6%);
   transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base), background-color var(--transition-base);
 }
 
@@ -82,21 +82,24 @@ function iconFor(section: HomeTeamServiceSection): string {
   display: flex;
   align-items: center;
   gap: var(--space-3);
-  min-height: 64px;
+  min-height: 56px;
 }
 
 .home-team-services__icon {
   display: block;
-  flex: 0 0 64px;
-  width: 64px;
-  height: 64px;
+  flex: 0 0 56px;
+  width: 56px;
+  height: 56px;
+  padding: var(--space-2);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--color-primary-light) 80%, var(--color-bg-page));
   object-fit: contain;
 }
 
 .home-team-services__items {
   display: grid;
-  gap: var(--space-2);
-  margin: var(--space-3) 0 0;
+  gap: 6px;
+  margin: var(--space-2) 0 0;
   padding: 0;
   list-style: none;
   color: var(--color-text-muted);
@@ -118,7 +121,7 @@ function iconFor(section: HomeTeamServiceSection): string {
   display: flex;
   align-items: flex-start;
   gap: var(--space-2);
-  line-height: 1.5;
+  line-height: 1.4;
 }
 
 .home-team-services__items li > span:first-child {
