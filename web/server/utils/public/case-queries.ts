@@ -41,6 +41,10 @@ export interface BrandDirectoryStats {
 
 /** 品牌库列表记录。 */
 export interface BrandDirectoryEntry extends EntitySummary {
+  logoUrl: string
+  plaintiff: string
+  lawFirm: string
+  stateCode: string
   caseTypes: Array<'trademark' | 'patent' | 'copyright'>
 }
 
@@ -53,6 +57,10 @@ type EntityRow = {
 }
 
 type BrandDirectoryRow = EntityRow & {
+  logo_url: string | null
+  plaintiff: string | null
+  law_firm: string | null
+  state_code: string | null
   case_types: string | null
 }
 
@@ -317,7 +325,7 @@ export async function findPublicBrandDirectoryStats(): Promise<BrandDirectorySta
   }
 }
 
-/** 分页获取品牌库；类型徽标由其关联的公开案件侵权类型汇总。 */
+/** 分页获取品牌库；卡片信息取最新已发布关联案件，Logo 只读取有效的品牌图片。 */
 export async function findPublicBrandDirectoryPage(
   query: NormalizedBrandDirectoryQuery,
   window: PageWindow,
@@ -326,16 +334,36 @@ export async function findPublicBrandDirectoryPage(
   const filter = buildBrandDirectoryFilterSql(query)
   const rows = await queryTarget<BrandDirectoryRow>(
     `SELECT b.id, b.slug, b.name, COALESCE(b.summary, '') AS description,
+            COALESCE(logo.public_url, '') AS logo_url,
+            COALESCE(latest.plaintiff, '') AS plaintiff,
+            COALESCE(latest.law_firm, '') AS law_firm,
+            COALESCE(latest.state_code, '') AS state_code,
             COUNT(DISTINCT c.id) AS case_count,
             GROUP_CONCAT(DISTINCT ip.slug ORDER BY ip.sort_order SEPARATOR ',') AS case_types
      FROM brands b
+     LEFT JOIN media_assets logo ON logo.id = b.logo_media_id AND logo.usage_scope = 'logo' AND logo.deleted_at IS NULL
+     LEFT JOIN (
+       SELECT ranked.brand_id, ranked.plaintiff, ranked.law_firm, ranked.state_code
+       FROM (
+         SELECT cb.brand_id, c.plaintiff, COALESCE(lf.name, '') AS law_firm, c.state_code,
+                ROW_NUMBER() OVER (
+                  PARTITION BY cb.brand_id
+                  ORDER BY (c.filed_at IS NULL) ASC, c.filed_at DESC, c.id DESC, clf.is_primary DESC, lf.name ASC
+                ) AS row_num
+         FROM case_brands cb
+         JOIN cases c ON c.id = cb.case_id AND c.publish_status = 'published'
+         LEFT JOIN case_law_firms clf ON clf.case_id = c.id
+         LEFT JOIN law_firms lf ON lf.id = clf.law_firm_id AND lf.status = 1
+       ) ranked
+       WHERE ranked.row_num = 1
+     ) latest ON latest.brand_id = b.id
      LEFT JOIN case_brands cb ON cb.brand_id = b.id
      LEFT JOIN cases c ON c.id = cb.case_id AND c.publish_status = 'published'
      LEFT JOIN case_ip_types cip ON cip.case_id = c.id
      LEFT JOIN ip_types ip ON ip.id = cip.ip_type_id AND ip.status = 1
      WHERE 1 = 1${filter.sql}
-     GROUP BY b.id, b.slug, b.name, b.summary
-     ORDER BY case_count DESC, b.name ASC, b.id ASC
+     GROUP BY b.id, b.slug, b.name, b.summary, logo.public_url, latest.plaintiff, latest.law_firm, latest.state_code
+     ORDER BY 9 DESC, b.name ASC, b.id ASC
      LIMIT ? OFFSET ?`,
     [...filter.params, window.pageSize, window.offset],
   )
@@ -344,7 +372,14 @@ export async function findPublicBrandDirectoryPage(
     const types = String(row.case_types ?? '').split(',')
       .filter((value): value is 'trademark' | 'patent' | 'copyright' =>
         value === 'trademark' || value === 'patent' || value === 'copyright')
-    return { ...summary, caseTypes: types }
+    return {
+      ...summary,
+      logoUrl: toText(row.logo_url),
+      plaintiff: toText(row.plaintiff),
+      lawFirm: toText(row.law_firm),
+      stateCode: toText(row.state_code),
+      caseTypes: types,
+    }
   })
 }
 

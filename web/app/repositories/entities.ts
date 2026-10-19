@@ -13,6 +13,10 @@ export interface BrandSummary {
   name: string
   description: string
   caseCount: number
+  logoUrl?: string
+  plaintiff?: string
+  lawFirm?: string
+  stateCode?: string
   caseTypes?: CaseType[]
 }
 
@@ -94,7 +98,7 @@ export async function fetchBrandDirectory(query: BrandDirectoryQuery = {}): Prom
   }
 }
 
-/** 品牌列表；caseCount 来自数据库 case_count 列。 */
+/** 品牌列表；关联案件数由公开接口实时统计。 */
 export async function fetchBrands(): Promise<BrandSummary[]> {
   const payload = await requestPublicApi<BrandSummary[]>(BRANDS_ENDPOINT)
   return unwrapPublicApiData(payload, BRANDS_FAILURE_MESSAGE)
@@ -111,7 +115,7 @@ export async function fetchBrandDetail(slug: string): Promise<BrandDetail | null
   }
 }
 
-/** 律所列表；caseCount 来自数据库 case_count 列。 */
+/** 律所列表；关联案件数由公开接口实时统计。 */
 export async function fetchLawFirms(): Promise<FirmSummary[]> {
   const payload = await requestPublicApi<FirmSummary[]>(LAW_FIRMS_ENDPOINT)
   return unwrapPublicApiData(payload, LAW_FIRMS_FAILURE_MESSAGE)
