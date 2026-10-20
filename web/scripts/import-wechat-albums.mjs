@@ -1,7 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { createJiti } from 'jiti'
 
 const WEB_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -28,8 +27,7 @@ try {
   if (error?.code !== 'ENOENT') throw error
 }
 
-const jiti = createJiti(import.meta.url)
-const { runWechatAlbumImport } = await jiti.import('../server/utils/wechat-album/importer.ts')
+const { runWechatAlbumImport } = await import('../server/utils/wechat-album/importer.ts')
 const result = await runWechatAlbumImport()
 console.log(JSON.stringify(result, null, 2))
 if (result.failedCount) process.exitCode = 1

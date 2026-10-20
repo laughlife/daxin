@@ -1,9 +1,9 @@
 import { createHash, randomUUID } from 'node:crypto'
-import { getTargetPool, type SqlConnection } from '../db/pool'
-import { queryTarget, withTargetTransaction } from '../db/query'
-import { sanitizeHtml } from '../public/sanitize'
-import { getOssConfig, isOssConfigured } from '../oss/config'
-import { buildObjectKey, createPostObjectPolicy } from '../oss/policy'
+import { getTargetPool, type SqlConnection } from '../db/pool.ts'
+import { queryTarget, withTargetTransaction } from '../db/query.ts'
+import { sanitizeHtml } from '../public/sanitize.ts'
+import { getOssConfig, isOssConfigured } from '../oss/config.ts'
+import { buildObjectKey, createPostObjectPolicy } from '../oss/policy.ts'
 import { crawlWechatAlbum } from './crawler.mjs'
 import {
   appendWechatSourceLink,

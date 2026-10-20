@@ -9,7 +9,8 @@ const readme = await readFile(new URL('../../README.md', import.meta.url), 'utf8
 test('manual first import loads the existing web environment and runs the shared idempotent importer', () => {
   assert.match(cli, /resolve\(WEB_ROOT, '\.env'\)/)
   assert.match(cli, /process\.env\[key\] \?\?= value/)
+  assert.match(cli, /await import\('\.\.\/server\/utils\/wechat-album\/importer\.ts'\)/)
   assert.match(cli, /runWechatAlbumImport\(\)/)
-  assert.equal(packageJson.scripts['import:wechat-albums'], 'node scripts/import-wechat-albums.mjs')
+  assert.equal(packageJson.scripts['import:wechat-albums'], 'node --experimental-strip-types scripts/import-wechat-albums.mjs')
   assert.match(readme, /npm run import:wechat-albums/)
 })

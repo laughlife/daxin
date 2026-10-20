@@ -19,10 +19,9 @@
     "test": "node --test scripts/*.test.mjs ../tools/migrate-legacy/*.test.mjs",
     "check:static": "node scripts/static-check.mjs",
     "check:browser": "node scripts/run-browser-check.mjs",
-    "import:wechat-albums": "node scripts/import-wechat-albums.mjs"
+    "import:wechat-albums": "node --experimental-strip-types scripts/import-wechat-albums.mjs"
   },
   "dependencies": {
-    "jiti": "^2.7.0",
     "mysql2": "^3.24.5",
     "nuxt": "4.5.2",
     "vue": "3.5.43",

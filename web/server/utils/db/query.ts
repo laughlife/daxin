@@ -1,5 +1,5 @@
-import { assertParameterizedSql, assertReadOnlySql } from './config'
-import { getLegacyPool, getTargetPool, type SqlConnection } from './pool'
+import { assertParameterizedSql, assertReadOnlySql } from './config.ts'
+import { getLegacyPool, getTargetPool, type SqlConnection } from './pool.ts'
 
 export async function queryTarget<T = Record<string, unknown>>(sql: string, params: unknown[] = []): Promise<T[]> {
   assertParameterizedSql(sql, params)

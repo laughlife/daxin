@@ -1,4 +1,4 @@
-import { getDbConfig, type ConnectionConfig } from './config'
+import { getDbConfig, type ConnectionConfig } from './config.ts'
 
 type SqlResult = [rows: unknown, fields?: unknown]
 type SqlPool = {
