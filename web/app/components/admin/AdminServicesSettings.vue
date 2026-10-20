@@ -50,11 +50,19 @@ function applyPayload(payload: { data: ServicesPayload }) {
   return sections.value
 }
 
-const { error: loadError, refresh, pending } = await useAsyncData(
+/**
+ * 不能用 useAsyncData 的 transform 做赋值副作用：
+ * 整页加载（SSR + hydration）时客户端命中序列化缓存、不再执行 transform，
+ * sections 会一直是空数组，面板就显示「暂无可保存的板块」。
+ * 改为 watch 原始 payload，SSR 与客户端都会执行一次。
+ */
+const { data: servicesPayload, error: loadError, refresh, pending } = await useAsyncData(
   'admin-settings-services',
-  () => requestFetch<{ data: ServicesPayload }>('/api/admin/settings', { query: { kind: 'services' } }),
-  { transform: payload => applyPayload(payload) }
+  () => requestFetch<{ data: ServicesPayload }>('/api/admin/settings', { query: { kind: 'services' } })
 )
+watch(servicesPayload, (payload) => {
+  if (payload?.data?.items) applyPayload(payload)
+}, { immediate: true })
 const dirty = computed(() => snapshot() !== baseline.value)
 function canSave(): boolean { return writable.value && !saving.value && !pending.value && dirty.value && sections.value.length > 0 }
 function saveLabel(): string {

@@ -446,22 +446,37 @@ function applyGroup(kind: GroupKind, payload: { data: GroupPayload }) {
   return items
 }
 
-/** 三类数据分别用稳定的 key 取数；三个面板都渲染，切换不会丢失未保存的编辑。 */
-const { error: siteError, refresh: refreshSite } = await useAsyncData(
+/**
+ * 三类数据分别用稳定的 key 取数；三个面板都渲染，切换不会丢失未保存的编辑。
+ *
+ * 注意：**不能把 applyGroup 放在 useAsyncData 的 transform 里**。
+ * transform 只在真正发起请求时执行；整页加载（SSR + hydration）时客户端命中
+ * 序列化缓存、不会再跑 transform，于是 editItems 一直是空数组 ——
+ * 表现就是「直接打开或刷新 /admin/settings 整页空白，只有从别的后台页点进来才正常」。
+ * 改为 watch 原始 payload：SSR 与客户端都会执行一次副作用，两种进入方式表现一致。
+ */
+const { data: sitePayload, error: siteError, refresh: refreshSite } = await useAsyncData(
   'admin-settings-site',
-  () => requestFetch<{ data: GroupPayload }>('/api/admin/settings', { query: { kind: 'site' } }),
-  { transform: payload => applyGroup('site', payload) }
+  () => requestFetch<{ data: GroupPayload }>('/api/admin/settings', { query: { kind: 'site' } })
 )
-const { error: homeError, refresh: refreshHome } = await useAsyncData(
+const { data: homePayload, error: homeError, refresh: refreshHome } = await useAsyncData(
   'admin-settings-home',
-  () => requestFetch<{ data: GroupPayload }>('/api/admin/settings', { query: { kind: 'home' } }),
-  { transform: payload => applyGroup('home', payload) }
+  () => requestFetch<{ data: GroupPayload }>('/api/admin/settings', { query: { kind: 'home' } })
 )
-const { error: aboutError, refresh: refreshAbout } = await useAsyncData(
+const { data: aboutPayload, error: aboutError, refresh: refreshAbout } = await useAsyncData(
   'admin-settings-about',
-  () => requestFetch<{ data: GroupPayload }>('/api/admin/settings', { query: { kind: 'about' } }),
-  { transform: payload => applyGroup('about', payload) }
+  () => requestFetch<{ data: GroupPayload }>('/api/admin/settings', { query: { kind: 'about' } })
 )
+
+/** 只在与 DOM 无关的时机应用数据，供 watch 的 immediate 调用。 */
+function applyIfReady(kind: GroupKind, payload: { data: GroupPayload } | null | undefined) {
+  if (!payload?.data?.items) return
+  applyGroup(kind, payload)
+}
+
+watch(sitePayload, payload => applyIfReady('site', payload), { immediate: true })
+watch(homePayload, payload => applyIfReady('home', payload), { immediate: true })
+watch(aboutPayload, payload => applyIfReady('about', payload), { immediate: true })
 const groupErrors = computed<Record<GroupKind, unknown>>(() => ({
   site: siteError.value,
   home: homeError.value,

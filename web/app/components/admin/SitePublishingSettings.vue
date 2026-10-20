@@ -47,11 +47,18 @@ function applyQr(payload: { data?: { items?: QrItem[] } }) {
   qrBaseline.value = qrSnapshot()
 }
 
-const { error: qrLoadError, refresh: refreshQr } = await useAsyncData(
+/**
+ * 与 AdminServicesSettings 同因：transform 只在真正发请求时执行，
+ * 整页加载时客户端命中序列化缓存、不会再跑，applyQr 的赋值副作用会丢失。
+ * 改为 watch 原始 payload，SSR 与客户端都会执行。
+ */
+const { data: qrPayload, error: qrLoadError, refresh: refreshQr } = await useAsyncData(
   'admin-site-info-qr',
   () => requestFetch<{ data: { items: QrItem[] } }>('/api/admin/settings', { query: { kind: 'qr' } }),
-  { transform: payload => { applyQr(payload); return true } },
 )
+watch(qrPayload, (payload) => {
+  if (payload?.data?.items) applyQr(payload)
+}, { immediate: true })
 
 const qrDirty = computed(() => qrSnapshot() !== qrBaseline.value)
 function payloadWithoutUid(items: QrRow[]) {
