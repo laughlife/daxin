@@ -139,10 +139,27 @@ export interface ArticleRow {
   category_slug?: string | null
   /** article_categories.name：对外的中文展示分类。 */
   category_name?: string | null
+  /** 微信专辑映射中的原文地址；存在时列表标题和封面直接跳转原文。 */
+  source_url?: string | null
   cover_url?: string | null
   image_url?: string | null
   image_source_url?: string | null
   image_alt?: string | null
+}
+
+/** 只允许公众号公开文章链接，避免数据库中的错误地址变成任意外链跳转。 */
+export function toWechatArticleUrl(value: unknown): string | null {
+  const raw = normalizeText(value)
+  if (!raw || /[\u0000-\u001F]/.test(raw)) return null
+  try {
+    const url = new URL(raw)
+    if (url.protocol !== 'https:' || url.hostname !== 'mp.weixin.qq.com') return null
+    if (!/^\/(?:s(?:\/|\?|$)|mp\/s\b)/i.test(url.pathname)) return null
+    url.hash = ''
+    return url.toString()
+  } catch {
+    return null
+  }
 }
 
 /** published_at 只用 YYYY-MM-DD；SQL 已格式化，这里仅做防御性截断。 */
@@ -161,6 +178,7 @@ export function toArticleSummary(row: ArticleRow): ArticleSummary {
   const slug = normalizeText(row.slug)
   const title = normalizeText(row.title)
   const categorySlug = normalizeText(row.category_slug).toLowerCase()
+  const sourceUrl = toWechatArticleUrl(row.source_url)
   const imageInput: ArticleImageInput = {
     coverUrl: row.cover_url,
     imageUrl: row.image_url,
@@ -175,8 +193,8 @@ export function toArticleSummary(row: ArticleRow): ArticleSummary {
     // 对外展示中文分类名（与 CaseRecord.category 的口径一致）；分类缺失时回落到 slug。
     category: normalizeText(row.category_name) || categorySlug,
     publishedAt: toDateOnlyText(row.published_at),
-    href: articleHref(categorySlug, slug),
-    imageSrc: pickArticleImageSrc(imageInput),
+    href: sourceUrl ?? articleHref(categorySlug, slug),
+    imageSrc: sourceUrl ? toPublicImageUrl(row.cover_url) : pickArticleImageSrc(imageInput),
     imageAlt: pickArticleImageAlt(imageInput),
   }
 }

@@ -29,9 +29,14 @@ export default defineEventHandler(async (event) => {
     const row = rows[0]
     if (!row) return notFound(event)
 
+    const article = toArticleSummary(row)
+    if (article.href.startsWith('https://mp.weixin.qq.com/')) {
+      return sendRedirect(event, article.href, 302)
+    }
+
     return {
       data: {
-        article: toArticleSummary(row),
+        article,
         html: sanitizeHtml(row.content_html),
       },
     }

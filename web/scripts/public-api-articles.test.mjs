@@ -11,6 +11,7 @@ import {
   escapeLikePattern,
   parseArticleFilters,
   pickArticleImageSrc,
+  toWechatArticleUrl,
   toArticleSummary,
   toPublicImageUrl,
 } from '../server/utils/public/article-query.ts'
@@ -101,6 +102,29 @@ test('公开文章搜索只查标题与正文，不查询文章摘要字段', as
   assert.match(filterSection, /a\.title/)
   assert.match(filterSection, /a\.content_text/)
   assert.match(filterSection, /params\.push\(like, like\)/)
+  assert.match(sql, /wai\.source_url/)
+})
+
+test('公众号文章链接只允许指向公众号原文，并在卡片使用封面图和原文地址', () => {
+  const sourceUrl = 'https://mp.weixin.qq.com/s/abc123?from=album#wechat_redirect'
+  assert.equal(toWechatArticleUrl(sourceUrl), 'https://mp.weixin.qq.com/s/abc123?from=album')
+  assert.equal(toWechatArticleUrl('https://evil.example.com/s/abc123'), null)
+  assert.equal(toWechatArticleUrl('javascript:alert(1)'), null)
+
+  const summary = toArticleSummary({
+    id: 1,
+    slug: 'wechat-article',
+    title: '公众号列表文章',
+    category_slug: 'labor-case',
+    category_name: '劳动纠纷',
+    published_at: '2026-10-20',
+    source_url: sourceUrl,
+    cover_url: 'https://cdn.example.com/cover.jpg',
+    image_url: 'https://cdn.example.com/body.jpg',
+  })
+  assert.equal(summary.category, '劳动纠纷')
+  assert.equal(summary.href, 'https://mp.weixin.qq.com/s/abc123?from=album')
+  assert.equal(summary.imageSrc, 'https://cdn.example.com/cover.jpg')
 })
 
 test('配图选择：封面 OSS 地址 → 正文首图 OSS 地址 → 原文 https 外链 → null', () => {

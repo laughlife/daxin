@@ -12,6 +12,13 @@ const ARTICLE_COLUMNS = `a.id, a.slug, a.title,
   DATE_FORMAT(a.published_at, '%Y-%m-%d') AS published_at,
   c.slug AS category_slug,
   c.name AS category_name,
+  (
+    SELECT NULLIF(wai.source_url, '')
+    FROM wechat_album_items wai
+    WHERE wai.article_id = a.id
+    ORDER BY wai.id
+    LIMIT 1
+  ) AS source_url,
   NULLIF(cover.public_url, '') AS cover_url,
   (
     SELECT NULLIF(m.public_url, '')
@@ -50,7 +57,7 @@ export const ARTICLE_LIST_SQL = `SELECT ${ARTICLE_COLUMNS}
 FROM ${ARTICLE_FROM}
 WHERE ${ARTICLE_BASE_CONDITIONS}`
 
-/** 详情查询：多取正文 HTML，按 slug 精确命中。 */
+/** 详情查询：读取正文 HTML 兼容旧内容；公众号文章由 source_url 重定向到原文。 */
 export const ARTICLE_DETAIL_SQL = `SELECT ${ARTICLE_COLUMNS}, a.content_html
 FROM ${ARTICLE_FROM}
 WHERE ${ARTICLE_BASE_CONDITIONS} AND a.slug = ?
