@@ -123,6 +123,12 @@
 
 部署时先按上面的数据库迁移步骤执行 `node tools/migrate-legacy/schema-check.mjs --apply`。定时任务随持久运行的 Nitro 生产服务启动；设置 `NUXT_WORLDTRO_IMPORT_ENABLED=false` 可关闭。开发模式不自动采集。
 
+## 微信公众号文章采集
+
+公众号同步按现有 `articles`、`article_images` 和 `media_assets` 结构保存标题、完整正文、发布时间、分类和封面。封面与正文中的微信图片会先上传到 OSS、通过公开地址校验，再把 OSS 地址写入文章；摘要留空。首次同步时，三个旧 TRO 专辑只建立最新文章游标，2026 TRO 专辑导入最新 4 篇，劳动法专辑全量导入；之后每天只补充游标之后的新文章。5 个专辑链接保存在 `wechat_album_sources`。
+
+执行首次同步前，先应用数据库迁移：`node tools/migrate-legacy/schema-check.mjs --apply`。确认 `web/.env` 中目标库 `DB_*` 与 `ALIYUN_OSS_*` 已配置后，在 `web` 目录运行 `npm run import:wechat-albums`。持久运行的 Nitro 生产服务会在北京时间每天 12:15 自动执行；设置 `NUXT_WECHAT_ALBUM_IMPORT_ENABLED=false` 可关闭。同步只读取无需登录的公开页面并遵守 `robots.txt`；遇到访问限制、验证页、缺少必要文章字段或图片上传校验失败时停止该专辑并保留失败记录，修复原因后可重跑。
+
 ## 环境变量
 
 变量清单以 `web/.env.example` 为准，含义如下：
