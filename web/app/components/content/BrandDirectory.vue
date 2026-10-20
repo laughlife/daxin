@@ -12,7 +12,12 @@ const typeOptions: Array<{ value: CaseType | ''; label: string; stat: keyof Bran
   { value: 'patent', label: '专利', stat: 'patent' },
   { value: 'copyright', label: '版权', stat: 'copyright' },
 ]
-const pageSizeOptions = [10, 20, 30, 40, 50]
+/*
+ * 需求 2026-10-20：「要 6 行 + 删除底下的白框」。
+ * 两列布局下 6 行 = 12 个，因此每页固定 12，不再提供「每页 N 条」选项；
+ * 分页条同时移出白色列表面板，底部的白框随之消失。
+ */
+const PAGE_SIZE = 12
 
 function queryText(value: unknown): string {
   if (Array.isArray(value)) return typeof value[0] === 'string' ? value[0] : ''
@@ -33,7 +38,6 @@ const keyword = ref(queryText(route.query.q))
 const appliedKeyword = ref(keyword.value)
 const caseType = ref(queryType(route.query.type))
 const page = ref(queryPage(route.query.page))
-const pageSize = ref(pageSizeOptions.includes(Number(queryText(route.query.size))) ? Number(queryText(route.query.size)) : 20)
 const failedLogoSlugs = ref(new Set<string>())
 
 function markLogoFailed(slug: string) {
@@ -46,18 +50,18 @@ function brandInitial(name: string): string {
 
 function emptyResult(): BrandDirectoryPage {
   return {
-    items: [], total: 0, page: 1, pageSize: pageSize.value, totalPages: 1,
+    items: [], total: 0, page: 1, pageSize: PAGE_SIZE, totalPages: 1,
     stats: { total: 0, trademark: 0, patent: 0, copyright: 0 },
   }
 }
 
 const { data, error, status, refresh } = await useAsyncData(
-  () => `brand-directory:${appliedKeyword.value}:${caseType.value}:${page.value}:${pageSize.value}`,
+  () => `brand-directory:${appliedKeyword.value}:${caseType.value}:${page.value}`,
   () => fetchBrandDirectory({
     keyword: appliedKeyword.value,
     caseType: caseType.value || undefined,
     page: page.value,
-    pageSize: pageSize.value,
+    pageSize: PAGE_SIZE,
   }),
   { default: emptyResult },
 )
@@ -91,11 +95,10 @@ function buildQuery(): Record<string, string> {
   if (appliedKeyword.value) query.q = appliedKeyword.value
   if (caseType.value) query.type = caseType.value
   if (page.value > 1) query.page = String(page.value)
-  if (pageSize.value !== 20) query.size = String(pageSize.value)
   return query
 }
 
-watch([appliedKeyword, caseType, page, pageSize], async () => {
+watch([appliedKeyword, caseType, page], async () => {
   if (!import.meta.client) return
   const query = buildQuery()
   if (Object.keys(query).length !== Object.keys(route.query).length || Object.entries(query).some(([key, value]) => route.query[key] !== value)) {
@@ -107,18 +110,15 @@ watch(() => route.query, (query) => {
   const nextKeyword = queryText(query.q)
   const nextType = queryType(query.type)
   const nextPage = queryPage(query.page)
-  const rawSize = Number(queryText(query.size))
-  const nextSize = pageSizeOptions.includes(rawSize) ? rawSize : 20
   if (nextKeyword !== appliedKeyword.value) {
     appliedKeyword.value = nextKeyword
     keyword.value = nextKeyword
   }
   caseType.value = nextType
   page.value = nextPage
-  pageSize.value = nextSize
 }, { flush: 'sync' })
 
-watch([caseType, pageSize], () => { page.value = 1 }, { flush: 'sync' })
+watch(caseType, () => { page.value = 1 }, { flush: 'sync' })
 watch(data, value => {
   if (value && page.value > value.totalPages) page.value = value.page
 })
@@ -179,13 +179,8 @@ useSeoMeta({
                 <h2>侵权品牌列表</h2>
                 <span>（共 {{ result.total }} 个品牌）</span>
               </div>
-              <label>
-                每页
-                <select v-model.number="pageSize" aria-label="每页显示数量">
-                  <option v-for="size in pageSizeOptions" :key="size" :value="size">{{ size }}</option>
-                </select>
-                条
-              </label>
+              <!-- 每页固定 6 行（2 列 × 6 = 12 个），不再提供「每页 N 条」下拉 -->
+              <p class="brand-directory__page-hint">每页 12 个（6 行）</p>
             </div>
 
             <p v-if="isLoading" class="brand-directory__state" role="status">正在加载品牌…</p>
@@ -237,23 +232,28 @@ useSeoMeta({
               </article>
             </div>
             <p v-else class="brand-directory__empty" role="status">没有找到符合条件的品牌，请更换关键词或分类。</p>
-
-            <nav v-if="result.totalPages > 1" class="brand-directory__pagination" aria-label="品牌库分页">
-              <p>第 {{ result.page }} / {{ result.totalPages }} 页</p>
-              <div>
-                <button type="button" :disabled="result.page <= 1" @click="page = result.page - 1">上一页</button>
-                <button
-                  v-for="number in visiblePages"
-                  :key="number"
-                  type="button"
-                  :class="{ 'is-active': number === result.page }"
-                  :aria-current="number === result.page ? 'page' : undefined"
-                  @click="page = number"
-                >{{ number }}</button>
-                <button type="button" :disabled="result.page >= result.totalPages" @click="page = result.page + 1">下一页</button>
-              </div>
-            </nav>
           </section>
+
+          <!--
+            需求 2026-10-20：「要 6 行 + 删除底下的白框」。
+            分页条移出白色列表面板，渲染在页面底色上，底部的「白框」随之消失；
+            每页固定 12 个（2 列 × 6 行），因此不再提供「每页 N 条」下拉。
+          -->
+          <nav v-if="result.totalPages > 1" class="brand-directory__pagination" aria-label="品牌库分页">
+            <p>第 {{ result.page }} / {{ result.totalPages }} 页</p>
+            <div>
+              <button type="button" :disabled="result.page <= 1" @click="page = result.page - 1">上一页</button>
+              <button
+                v-for="number in visiblePages"
+                :key="number"
+                type="button"
+                :class="{ 'is-active': number === result.page }"
+                :aria-current="number === result.page ? 'page' : undefined"
+                @click="page = number"
+              >{{ number }}</button>
+              <button type="button" :disabled="result.page >= result.totalPages" @click="page = result.page + 1">下一页</button>
+            </div>
+          </nav>
         </template>
       </ContentColumns>
     </PageContainer>
