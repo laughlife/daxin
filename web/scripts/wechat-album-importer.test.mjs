@@ -20,7 +20,7 @@ test('only the cover is uploaded as verified article media; body image handling 
   assert.match(importer, /createPostObjectPolicy\([\s\S]*?usageScope: 'article'/)
   assert.match(importer, /method: 'POST', body: form/)
   assert.match(importer, /method: 'HEAD'/)
-  assert.match(importer, /uploadImage\(coverUrl, `\$\{item\.title\} 封面`, robots\)/)
+  assert.match(importer, /uploadImage\(coverUrl, `\$\{item\.title\} 封面`\)/)
   assert.doesNotMatch(importer, /getWechatBodyImages|replaceWechatBodyImages|INSERT INTO article_images/)
   assert.match(importer, /legacy_source_table = 'wechat_album_image'/)
   assert.match(importer, /content_html = NULL, content_text = NULL/)
@@ -47,10 +47,11 @@ test('each source has an idempotent daily run record and only advances its curso
   assert.match(importer, /'already-completed-today'/)
 })
 
-test('crawler remains public-only, checks robots and rejects verification pages without credentials', () => {
-  assert.match(importer, /getRobotsPolicy/)
-  assert.match(importer, /isWechatRobotsAllowed/)
-  assert.match(importer, /robots\.txt/)
+test('crawler remains public-only and rejects verification pages without credentials', () => {
+  // 说明：微信采集已按要求移除 robots.txt 校验（不再请求/解析 mp.weixin.qq.com/robots.txt），
+  // 这里改为断言「不再有 robots 相关逻辑」，避免它被无意加回来。
+  assert.doesNotMatch(importer, /getRobotsPolicy|isWechatRobotsAllowed|parseWechatRobots/)
+  assert.doesNotMatch(importer, /robots\.txt/)
   assert.match(importer, /访问限制或验证提示，已停止采集/)
   assert.doesNotMatch(importer, /Cookie|cookie|proxy|绕过/)
 })

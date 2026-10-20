@@ -7,7 +7,6 @@ import { buildObjectKey, createPostObjectPolicy } from '../oss/policy.ts'
 import { crawlWechatAlbum } from './crawler.mjs'
 import { normalizeWechatImageUrl, wechatImageIdentity } from './content.mjs'
 import { canonicalArticleUrl } from './parser.mjs'
-import { isWechatRobotsAllowed, parseWechatRobots } from './robots.mjs'
 import { wechatShanghaiDateKey } from './schedule.mjs'
 
 const USER_AGENT = 'DaxinWechatAlbumSync/1.0 (+https://daxinfawu.com/)'
@@ -103,23 +102,7 @@ async function readLimitedText(response: Response, maxBytes: number, label: stri
   return new TextDecoder('utf-8').decode(await readLimitedBytes(response, maxBytes, label))
 }
 
-type RobotsPolicy = ReturnType<typeof parseWechatRobots>
-
-async function getRobotsPolicy(): Promise<RobotsPolicy> {
-  const response = await fetch('https://mp.weixin.qq.com/robots.txt', {
-    headers: { 'user-agent': USER_AGENT, accept: 'text/plain,*/*;q=0.1' },
-    redirect: 'follow',
-    signal: AbortSignal.timeout(15000),
-  })
-  if (response.url && new URL(response.url).hostname !== 'mp.weixin.qq.com') {
-    throw new Error('微信 robots.txt 跳转到了其他站点，本次采集已停止')
-  }
-  if (response.status === 404 || response.status === 410) return { rules: [], crawlDelayMs: 0 }
-  if (!response.ok) throw new Error(`无法确认微信 robots.txt 规则（HTTP ${response.status}），本次采集已停止`)
-  return parseWechatRobots(await readLimitedText(response, 64 * 1024, '微信 robots.txt'), USER_AGENT)
-}
-
-async function fetchWechatText(urlValue: string, robots: RobotsPolicy, referer?: string): Promise<string> {
+async function fetchWechatText(urlValue: string, referer?: string): Promise<string> {
   const url = assertWechatPageUrl(urlValue)
   const response = await fetch(url, {
     headers: {
@@ -150,7 +133,7 @@ function imageFormat(bytes: Uint8Array): { mimeType: string; extension: string }
   return null
 }
 
-async function uploadImage(sourceUrl: string, label: string, robots: RobotsPolicy): Promise<UploadedImage> {
+async function uploadImage(sourceUrl: string, label: string): Promise<UploadedImage> {
   const normalizedUrl = normalizeWechatImageUrl(sourceUrl)
   const response = await fetch(normalizedUrl, {
     headers: { 'user-agent': USER_AGENT, accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8', referer: 'https://mp.weixin.qq.com/' },
@@ -334,7 +317,6 @@ async function removeArticleBodyImages(connection: SqlConnection, articleId: num
 async function importArticle(
   source: AlbumSource,
   item: AlbumItem,
-  robots: RobotsPolicy,
   categoryId: number,
 ): Promise<{ inserted: boolean; imageCount: number }> {
   const sourceId = Number(source.id)
@@ -345,7 +327,7 @@ async function importArticle(
   if (!coverUrl) throw new Error(`文章“${item.title}”没有可读取的封面图片`)
 
   const identity = articleIdentity(item)
-  const cover = await uploadImage(coverUrl, `${item.title} 封面`, robots)
+  const cover = await uploadImage(coverUrl, `${item.title} 封面`)
   const existingArticle = existingItemArticle
     ? await findArticleById(existingItemArticle)
     : await findExistingArticle(identity.url) ?? await findLegacyArticle(item, categoryId)
@@ -385,11 +367,10 @@ async function updateSourceCursor(source: AlbumSource, latestItem: AlbumItem | n
   )
 }
 
-async function importSource(source: AlbumSource, robots: RobotsPolicy, scheduledDate: string, deploymentFull = false): Promise<{ failed?: boolean; source: string; mode: string; result: ImportResult; pageCount?: number }> {
+async function importSource(source: AlbumSource, scheduledDate: string, deploymentFull = false): Promise<{ failed?: boolean; source: string; mode: string; result: ImportResult; pageCount?: number }> {
   const full = deploymentFull || !source.deployment_full_synced_at || !source.initial_synced_at
   const mode = full ? 'full' : 'incremental'
   const runMode = deploymentFull ? 'full_once' : mode
-  const pageDelayMs = Math.max(PAGE_DELAY_MS, robots.crawlDelayMs)
   const cursor = full ? null : { messageId: source.cursor_message_id, itemIndex: source.cursor_item_index }
   const empty: ImportResult = { fetchedCount: 0, insertedCount: 0, duplicateCount: 0, imageCount: 0 }
   await writeRunStart(source, scheduledDate, runMode)
@@ -398,9 +379,10 @@ async function importSource(source: AlbumSource, robots: RobotsPolicy, scheduled
       sourceUrl: source.album_url,
       mode,
       cursor,
-      pageDelayMs,
-      fetchFirstPage: (url: string) => fetchWechatText(url, robots),
-      fetchNextPage: (url: string, referer: string) => fetchWechatText(url, robots, referer).then((body) => JSON.parse(body)),
+      // 固定页间隔：不再读取微信站点的抓取规则（校验已移除）
+      pageDelayMs: PAGE_DELAY_MS,
+      fetchFirstPage: (url: string) => fetchWechatText(url),
+      fetchNextPage: (url: string, referer: string) => fetchWechatText(url, referer).then((body) => JSON.parse(body)),
     })
     if (!crawl.latestItem) throw new Error(`来源“${source.name}”没有解析到最新文章，游标未推进`)
 
@@ -409,11 +391,11 @@ async function importSource(source: AlbumSource, robots: RobotsPolicy, scheduled
     const categoryId = Number(categoryRows[0]?.id ?? 0)
     if (!categoryId) throw new Error(`目标文章分类不可用：${source.category_slug}`)
     for (const item of crawl.items as AlbumItem[]) {
-      const imported = await importArticle(source, item, robots, categoryId)
+      const imported = await importArticle(source, item, categoryId)
       result.insertedCount += imported.inserted ? 1 : 0
       result.duplicateCount += imported.inserted ? 0 : 1
       result.imageCount += imported.imageCount
-      await new Promise((resolve) => setTimeout(resolve, Math.max(PAGE_DELAY_MS, robots.crawlDelayMs)))
+      await new Promise((resolve) => setTimeout(resolve, PAGE_DELAY_MS))
     }
 
     await updateSourceCursor(source, crawl.latestItem as AlbumItem, full)
@@ -465,9 +447,8 @@ async function runWechatAlbumImportMode(now: Date, deploymentFull: boolean) {
       if (!pending.length) return { skipped: true, reason: 'already-completed-today' }
     }
 
-    const robots = await getRobotsPolicy()
     const results = []
-    for (const source of pending) results.push(await importSource(source, robots, scheduledDate, deploymentFull))
+    for (const source of pending) results.push(await importSource(source, scheduledDate, deploymentFull))
     const failedCount = results.filter((result) => result.failed).length
     return { scheduledDate, fullImport: deploymentFull, sourceCount: pending.length, failedCount, results, skipped: false }
   } finally {
