@@ -27,10 +27,22 @@ try {
   if (error?.code !== 'ENOENT') throw error
 }
 
-const { runWechatAlbumImport } = await import('../server/utils/wechat-album/importer.ts')
+// 公众号专辑采集入口。
+//
+// 用法：
+//   node --experimental-strip-types scripts/import-wechat-albums.mjs          # 每日增量
+//   node --experimental-strip-types scripts/import-wechat-albums.mjs --full   # 部署全量
+//
+// --full 对应部署时的全量同步（runWechatAlbumDeploymentFullImport），
+// 会逐个来源从第 1 页抓到最后一页，用于首次填充文章。
+const full = process.argv.includes('--full')
+
+const { runWechatAlbumImport, runWechatAlbumDeploymentFullImport } = await import('../server/utils/wechat-album/importer.ts')
 const { closeDbPools } = await import('../server/utils/db/pool.ts')
 try {
-  const result = await runWechatAlbumImport()
+  const result = full
+    ? await runWechatAlbumDeploymentFullImport()
+    : await runWechatAlbumImport()
   console.log(JSON.stringify(result, null, 2))
   if (result.failedCount) process.exitCode = 1
 } finally {

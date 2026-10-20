@@ -323,16 +323,44 @@ async function importArticle(
   const existingItemArticle = await findExistingSourceItem(sourceId, item)
   if (!item.title.trim()) throw new Error(`文章 ${item.url} 缺少标题`)
   if (!item.publishedAt) throw new Error(`文章“${item.title}”缺少发布时间`)
+
+  /*
+   * 封面缺失或下载失败时**不再中断整次采集**，而是以无封面方式入库。
+   *
+   * 原来这里对空封面直接 throw，后果是：专辑里任意一篇文章封面不可用，
+   * 整个来源（可能上百篇）立刻中止、游标不推进，下次重跑还会卡在同一篇。
+   * 实测 tro-classic-album 与 tro-knowledge-album 就是因为各自一篇的封面
+   * 取不到而整源失败。
+   *
+   * `articles.cover_media_id` 允许 NULL，writeArticle 本来就接受
+   * `cover: UploadedImage | null`（写入 `cover?.id ?? null`），
+   * 因此无封面入库是既有能力，只需把这里的硬失败降级为告警。
+   */
   const coverUrl = normalizeWechatImageUrl(item.coverUrl)
-  if (!coverUrl) throw new Error(`文章“${item.title}”没有可读取的封面图片`)
+  let cover: UploadedImage | null = null
+  if (!coverUrl) {
+    console.warn('[wechat-album-import] 跳过封面（无可读取地址）', {
+      title: item.title,
+      coverSource: item.coverUrl,
+    })
+  } else {
+    try {
+      cover = await uploadImage(coverUrl, `${item.title} 封面`)
+    } catch (error) {
+      console.warn('[wechat-album-import] 封面处理失败，改为无封面入库', {
+        title: item.title,
+        message: error instanceof Error ? error.message : String(error),
+      })
+      cover = null
+    }
+  }
 
   const identity = articleIdentity(item)
-  const cover = await uploadImage(coverUrl, `${item.title} 封面`)
   const existingArticle = existingItemArticle
     ? await findArticleById(existingItemArticle)
     : await findExistingArticle(identity.url) ?? await findLegacyArticle(item, categoryId)
   const result = await writeArticle(source, item, cover, categoryId, existingArticle ? Number(existingArticle.id) : null)
-  return { inserted: result.inserted, imageCount: 1 }
+  return { inserted: result.inserted, imageCount: cover ? 1 : 0 }
 }
 
 async function writeRunStart(source: AlbumSource, scheduledDate: string, mode: string): Promise<void> {

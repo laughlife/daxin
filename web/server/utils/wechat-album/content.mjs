@@ -16,7 +16,17 @@ export function normalizeWechatImageUrl(value) {
   if (!text || /^(?:data|blob):/i.test(text)) return ''
   try {
     const url = new URL(text.startsWith('//') ? `https:${text}` : text)
-    if (url.protocol !== 'https:' || !IMAGE_HOSTS.has(url.hostname.toLowerCase())) return ''
+    /*
+     * 允许 http 并统一升级为 https。
+     *
+     * 与文章链接同一类问题：微信专辑页里的封面地址实测会出现
+     * `http://mmbiz.qpic.cn/...`，而该域名实际只提供 https。
+     * 此前这里硬性要求 https，导致这类封面被判为空，
+     * 表现为「文章没有可读取的封面图片」。
+     */
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return ''
+    if (!IMAGE_HOSTS.has(url.hostname.toLowerCase())) return ''
+    url.protocol = 'https:'
     return url.toString()
   } catch {
     return ''

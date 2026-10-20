@@ -31,6 +31,26 @@ test('parses public album list rows, cover and next-page flag', () => {
   })
 })
 
+test('accepts http article links from the album and upgrades them to https', () => {
+  // 回归：微信专辑页的 data-link 实测会给出 http://mp.weixin.qq.com/s?...
+  // 旧实现硬性要求 https，导致每个条目 url 判空、整页解析 0 条，
+  // 全量任务报「公众号专辑页面未解析到完整文章条目」。
+  const html = `<div class="album__content js_album_bd">
+    <li class="album__list-item" data-msgid="m-9" data-itemidx="1"
+        data-link="http://mp.weixin.qq.com/s?__biz=Example&amp;mid=100&amp;idx=1&amp;sn=abc#rd"
+        data-title="http 链接的文章">
+      <span class="js_article_create_time">2026-10-20 10:00</span>
+      <div class="album__item-img" style="background-image:url('http://mmbiz.qpic.cn/mmbiz_png/sample/0?wx_fmt=png')"></div>
+    </li>
+  </div><script>var album = { continue_flag: '0'*1, reverse_continue_flag: 0 };</script>`
+
+  const result = parseAlbumPage(html, albumUrl)
+  assert.equal(result.items.length, 1)
+  assert.equal(result.items[0].url, 'https://mp.weixin.qq.com/s?__biz=Example&mid=100&idx=1&sn=abc')
+  // 封面同样应把 http 升级为 https
+  assert.equal(result.items[0].coverUrl, 'https://mmbiz.qpic.cn/mmbiz_png/sample/0?wx_fmt=png')
+})
+
 test('parses album pagination JSON and rejects incomplete or non-article links', () => {
   const result = parseAlbumJsonPage(JSON.stringify({
     base_resp: { ret: 0 },

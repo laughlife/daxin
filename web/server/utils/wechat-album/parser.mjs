@@ -34,8 +34,19 @@ function normalizeArticleUrl(value, baseUrl = ARTICLE_ORIGIN) {
   if (!text) return ''
   try {
     const url = new URL(text, baseUrl)
-    if (url.protocol !== 'https:' || url.hostname !== 'mp.weixin.qq.com') return ''
+    /*
+     * 允许 http 并统一升级为 https。
+     *
+     * 微信专辑页的 data-link 实测会给出 `http://mp.weixin.qq.com/s?...`，
+     * 而 mp.weixin.qq.com 实际只提供 https。此前这里硬性要求 https，
+     * 导致每个条目的 url 都被判为空、整页解析出 0 条，
+     * 于是全量任务报「公众号专辑页面未解析到完整文章条目」。
+     * 协议细节不该让整次采集失败，按站点实际协议规范化即可。
+     */
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return ''
+    if (url.hostname !== 'mp.weixin.qq.com') return ''
     if (!/^\/(?:s(?:\/|\?|$)|mp\/s\b)/i.test(url.pathname)) return ''
+    url.protocol = 'https:'
     url.hash = ''
     return url.toString()
   } catch {
@@ -48,7 +59,9 @@ function normalizeImageUrl(value) {
   if (!text || /^(?:data|blob):/i.test(text)) return ''
   try {
     const url = new URL(text.startsWith('//') ? `https:${text}` : text, ARTICLE_ORIGIN)
-    if (url.protocol !== 'https:') return ''
+    // 允许 http 并统一升级为 https：微信专辑页的封面地址会出现 http://mmbiz.qpic.cn/...
+    if (url.protocol !== 'https:' && url.protocol !== 'http:') return ''
+    url.protocol = 'https:'
     return url.toString()
   } catch {
     return ''
