@@ -240,23 +240,23 @@ try {
 
   // ---------- 关于我们 ----------
   await visit('/about')
-  // 对齐旧站结构：首屏公司介绍 + 核心业务 + 成功案例 + 企业宣讲 + 我们的小伙伴。
   // 注意：断言范围限定在 .about-page 内，因为页脚也有 aria-label="公司介绍"，
   // 不限定范围会把页脚的区块也算进来。
   const aboutPage = page.locator('.about-page')
   check('关于我们包含成功案例区块', await aboutPage.locator('[aria-label="成功案例"]').count() === 1)
   check('关于我们包含公司介绍区块', await aboutPage.locator('[aria-label="公司介绍"]').count() === 1)
-  check('关于我们包含核心业务区块', await aboutPage.locator('[aria-label="核心业务"]').count() === 1)
   check('关于我们包含企业宣讲区块', await aboutPage.locator('[aria-label="企业宣讲"]').count() === 1)
   check('关于我们包含我们的小伙伴区块', await aboutPage.locator('[aria-label="我们的小伙伴"]').count() === 1)
+  // 说明：关于我们的「核心业务」区块在 8d48b13（重构首页与关于我们内容结构）中已删除，
+  // 因此不再断言它存在，改为锁定当前结构，防止被无意加回。
+  check('关于我们不含已删除的核心业务区块', await aboutPage.locator('[aria-label="核心业务"]').count() === 0)
   // 旧站该页顶部有扫码大礼包区，按需求不保留
   check('关于我们不含扫码大礼包区域', !(await page.locator('body').innerText()).includes('扫码领取'))
-  // 旧站的英文副标题
-  check('关于我们保留英文副标题', await aboutPage.locator('.section-heading__eyebrow').evaluateAll(
-    items => ['TRO SUCCESS STORIES', 'COMPANY PRESENTATION', 'OUR FRIENDS'].every(text => items.some(el => el.textContent.trim() === text))
-  ))
-  // 核心业务与成功案例用旧站图片，不再复用首页卡片与文章列表
-  check('关于我们核心业务用旧站图片', await aboutPage.locator('.about-page__business-gallery img').count() === 2)
+  // 需求 2026-10-20：企业宣讲改为 4 列 × 2 行共 8 个展示位 + 轮播
+  check('企业宣讲为 4×2 轮播',
+    await aboutPage.locator('.presentation-carousel__grid li').count() === 8
+    && await aboutPage.locator('.presentation-carousel__controls').count() === 1)
+  // 合作伙伴：有 ≥2 个单独 logo 时走跑马灯，否则暂用静态图兜底
   check('关于我们成功案例用旧站图片', await aboutPage.locator('.about-page__success-gallery img').count() === 4)
   check('关于我们不再复用首页业务卡片', await aboutPage.locator('.business-card').count() === 0)
   check('关于我们不再用文章列表做成功案例', await aboutPage.locator('.article-list__card').count() === 0)
