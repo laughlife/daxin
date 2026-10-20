@@ -32,7 +32,7 @@ test('each source has an idempotent daily run record and only advances its curso
 
 test('crawler remains public-only, checks robots and rejects verification pages without credentials', () => {
   assert.match(importer, /getRobotsPolicy/)
-  assert.match(importer, /robotsAllows/)
+  assert.match(importer, /isWechatRobotsAllowed/)
   assert.match(importer, /robots\.txt/)
   assert.match(importer, /访问限制或验证提示，已停止采集/)
   assert.doesNotMatch(importer, /Cookie|cookie|proxy|绕过/)

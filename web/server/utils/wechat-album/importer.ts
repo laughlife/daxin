@@ -14,6 +14,7 @@ import {
   wechatImageIdentity,
 } from './content.mjs'
 import { canonicalArticleUrl, parseWechatArticlePage } from './parser.mjs'
+import { isWechatRobotsAllowed, parseWechatRobots } from './robots.mjs'
 import { wechatShanghaiDateKey } from './schedule.mjs'
 
 const USER_AGENT = 'DaxinWechatAlbumSync/1.0 (+https://daxinfawu.com/)'
@@ -112,51 +113,7 @@ async function readLimitedText(response: Response, maxBytes: number, label: stri
   return new TextDecoder('utf-8').decode(await readLimitedBytes(response, maxBytes, label))
 }
 
-type RobotsRule = { allow: boolean; path: string }
-type RobotsPolicy = { rules: RobotsRule[]; delayMs: number }
-
-function parseRobots(text: string): RobotsPolicy {
-  let applies = false
-  let hasDirective = false
-  const rules: RobotsRule[] = []
-  let delayMs = 0
-  for (const rawLine of text.split(/\r?\n/)) {
-    const line = rawLine.split('#', 1)[0]?.trim() ?? ''
-    if (!line) continue
-    const colon = line.indexOf(':')
-    if (colon < 0) continue
-    const key = line.slice(0, colon).trim().toLowerCase()
-    const value = line.slice(colon + 1).trim()
-    if (key === 'user-agent') {
-      if (hasDirective) {
-        applies = false
-        hasDirective = false
-      }
-      applies = value === '*' || USER_AGENT.toLowerCase().includes(value.toLowerCase())
-      continue
-    }
-    if (!applies) continue
-    if (key === 'allow' || key === 'disallow') {
-      hasDirective = true
-      if (value) rules.push({ allow: key === 'allow', path: value })
-    }
-    if (key === 'crawl-delay') {
-      hasDirective = true
-      const seconds = Number(value)
-      if (Number.isFinite(seconds) && seconds > 0) delayMs = Math.max(delayMs, Math.min(seconds * 1000, 60000))
-    }
-  }
-  return { rules, delayMs }
-}
-
-function robotsAllows(policy: RobotsPolicy, value: string): boolean {
-  const url = new URL(value)
-  const path = `${url.pathname}${url.search}`
-  const matches = policy.rules.filter((rule) => path.startsWith(rule.path))
-  if (!matches.length) return true
-  const mostSpecific = Math.max(...matches.map((rule) => rule.path.length))
-  return matches.filter((rule) => rule.path.length === mostSpecific).some((rule) => rule.allow)
-}
+type RobotsPolicy = ReturnType<typeof parseWechatRobots>
 
 async function getRobotsPolicy(): Promise<RobotsPolicy> {
   const response = await fetch('https://mp.weixin.qq.com/robots.txt', {
@@ -167,14 +124,14 @@ async function getRobotsPolicy(): Promise<RobotsPolicy> {
   if (response.url && new URL(response.url).hostname !== 'mp.weixin.qq.com') {
     throw new Error('微信 robots.txt 跳转到了其他站点，本次采集已停止')
   }
-  if (response.status === 404 || response.status === 410) return { rules: [], delayMs: 0 }
+  if (response.status === 404 || response.status === 410) return { rules: [], crawlDelayMs: 0 }
   if (!response.ok) throw new Error(`无法确认微信 robots.txt 规则（HTTP ${response.status}），本次采集已停止`)
-  return parseRobots(await readLimitedText(response, 64 * 1024, '微信 robots.txt'))
+  return parseWechatRobots(await readLimitedText(response, 64 * 1024, '微信 robots.txt'), USER_AGENT)
 }
 
 async function fetchWechatText(urlValue: string, robots: RobotsPolicy, referer?: string): Promise<string> {
   const url = assertWechatPageUrl(urlValue)
-  if (!robotsAllows(robots, url.toString())) throw new Error(`robots.txt 不允许读取 ${url.pathname}，本次采集已停止`)
+  if (!isWechatRobotsAllowed(robots, url.toString())) throw new Error(`robots.txt 不允许读取 ${url.pathname}，本次采集已停止`)
   const response = await fetch(url, {
     headers: {
       'user-agent': USER_AGENT,
@@ -207,7 +164,7 @@ function imageFormat(bytes: Uint8Array): { mimeType: string; extension: string }
 async function uploadImage(sourceUrl: string, label: string, robots: RobotsPolicy): Promise<UploadedImage> {
   const normalizedUrl = normalizeWechatImageUrl(sourceUrl)
   if (!normalizedUrl) throw new Error(`图片地址不在允许的微信图片域名中：${sourceUrl.slice(0, 180)}`)
-  if (!robotsAllows(robots, normalizedUrl)) throw new Error('robots.txt 不允许读取微信图片，本次采集已停止')
+  if (!isWechatRobotsAllowed(robots, normalizedUrl)) throw new Error('robots.txt 不允许读取微信图片，本次采集已停止')
   const response = await fetch(normalizedUrl, {
     headers: { 'user-agent': USER_AGENT, accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8', referer: 'https://mp.weixin.qq.com/' },
     redirect: 'follow',
@@ -394,7 +351,7 @@ async function importArticle(
     const media = await uploadImage(image.url, image.alt || `${article.title} 正文图`, robots)
     mediaByIdentity.set(image.identity, media)
     bodyMedia.push({ image, media })
-    await new Promise((resolve) => setTimeout(resolve, Math.max(IMAGE_DELAY_MS, robots.delayMs)))
+    await new Promise((resolve) => setTimeout(resolve, Math.max(IMAGE_DELAY_MS, robots.crawlDelayMs)))
   }
 
   const rewritten = replaceWechatBodyImages(article.bodyHtml, mediaByIdentity)
@@ -438,7 +395,7 @@ async function updateSourceCursor(source: AlbumSource, latestItem: AlbumItem | n
 async function importSource(source: AlbumSource, robots: RobotsPolicy, scheduledDate: string): Promise<{ failed?: boolean; source: string; mode: string; result: ImportResult; pageCount?: number }> {
   const initial = !source.initial_synced_at
   const mode = initial ? source.initial_mode : 'incremental'
-  const pageDelayMs = Math.max(PAGE_DELAY_MS, robots.delayMs)
+  const pageDelayMs = Math.max(PAGE_DELAY_MS, robots.crawlDelayMs)
   const limit = mode === 'latest' ? Math.max(1, Number(source.initial_limit) || 0) : 0
   const cursor = initial ? null : { messageId: source.cursor_message_id, itemIndex: source.cursor_item_index }
   const empty: ImportResult = { fetchedCount: 0, insertedCount: 0, duplicateCount: 0, imageCount: 0 }
@@ -465,7 +422,7 @@ async function importSource(source: AlbumSource, robots: RobotsPolicy, scheduled
         result.insertedCount += imported.inserted ? 1 : 0
         result.duplicateCount += imported.inserted ? 0 : 1
         result.imageCount += imported.imageCount
-        await new Promise((resolve) => setTimeout(resolve, Math.max(PAGE_DELAY_MS, robots.delayMs)))
+        await new Promise((resolve) => setTimeout(resolve, Math.max(PAGE_DELAY_MS, robots.crawlDelayMs)))
       }
     }
 
