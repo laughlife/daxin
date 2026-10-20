@@ -30,7 +30,7 @@ export default defineEventHandler(async (event) => {
     if (!row) return notFound(event)
 
     const article = toArticleSummary(row)
-    if (article.href.startsWith('https://mp.weixin.qq.com/')) {
+    if (article.href.startsWith('https://')) {
       return sendRedirect(event, article.href, 302)
     }
 

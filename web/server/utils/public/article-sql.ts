@@ -6,18 +6,21 @@ import { escapeLikePattern, type ArticleFilters, type ArticleRow } from './artic
 /**
  * 列表列口径。配图优先级在应用层用 pickArticleImageSrc 决定：
  * 封面 OSS 地址 → 正文第一张配图的 OSS 地址 → 原文 https 外链 → null。
- * 这里把三个候选都取出来，不做 COALESCE，便于单测与后续替换 OSS。
+ * 原文地址优先使用公众号链接，其次回落到旧站原文链接。
  */
 const ARTICLE_COLUMNS = `a.id, a.slug, a.title,
   DATE_FORMAT(a.published_at, '%Y-%m-%d') AS published_at,
   c.slug AS category_slug,
   c.name AS category_name,
-  (
-    SELECT NULLIF(wai.source_url, '')
-    FROM wechat_album_items wai
-    WHERE wai.article_id = a.id
-    ORDER BY wai.id
-    LIMIT 1
+  COALESCE(
+    (
+      SELECT NULLIF(wai.source_url, '')
+      FROM wechat_album_items wai
+      WHERE wai.article_id = a.id
+      ORDER BY wai.id
+      LIMIT 1
+    ),
+    NULLIF(a.original_url, '')
   ) AS source_url,
   NULLIF(cover.public_url, '') AS cover_url,
   (

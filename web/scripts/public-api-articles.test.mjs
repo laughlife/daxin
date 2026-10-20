@@ -11,6 +11,7 @@ import {
   escapeLikePattern,
   parseArticleFilters,
   pickArticleImageSrc,
+  toArticleSourceUrl,
   toWechatArticleUrl,
   toArticleSummary,
   toPublicImageUrl,
@@ -110,6 +111,9 @@ test('公众号文章链接只允许指向公众号原文，并在卡片使用�
   assert.equal(toWechatArticleUrl(sourceUrl), 'https://mp.weixin.qq.com/s/abc123?from=album')
   assert.equal(toWechatArticleUrl('https://evil.example.com/s/abc123'), null)
   assert.equal(toWechatArticleUrl('javascript:alert(1)'), null)
+  assert.equal(toArticleSourceUrl('https://daxinfawu.com/tro/1123.html'), 'https://daxinfawu.com/tro/1123.html')
+  assert.equal(toArticleSourceUrl('https://evil.example.com/tro/1123.html'), null)
+  assert.equal(toArticleSourceUrl('https://daxinfawu.com/uploadfile/a.png'), null)
 
   const summary = toArticleSummary({
     id: 1,
@@ -124,6 +128,20 @@ test('公众号文章链接只允许指向公众号原文，并在卡片使用�
   })
   assert.equal(summary.category, '劳动纠纷')
   assert.equal(summary.href, 'https://mp.weixin.qq.com/s/abc123?from=album')
+  assert.equal(summary.imageSrc, 'https://cdn.example.com/cover.jpg')
+})
+
+test('迁移文章从已验证旧站路径跳转原文', () => {
+  const summary = toArticleSummary({
+    id: 1123,
+    slug: 'legacy-1123',
+    title: '旧站文章',
+    category_slug: 'tro-alert',
+    published_at: '2026-10-20',
+    source_url: 'https://daxinfawu.com/tro/1123.html',
+    cover_url: 'https://cdn.example.com/cover.jpg',
+  })
+  assert.equal(summary.href, 'https://daxinfawu.com/tro/1123.html')
   assert.equal(summary.imageSrc, 'https://cdn.example.com/cover.jpg')
 })
 

@@ -139,7 +139,7 @@ export interface ArticleRow {
   category_slug?: string | null
   /** article_categories.name：对外的中文展示分类。 */
   category_name?: string | null
-  /** 微信专辑映射中的原文地址；存在时列表标题和封面直接跳转原文。 */
+  /** 公众号或旧站原文地址；存在时列表标题和封面直接跳转原文。 */
   source_url?: string | null
   cover_url?: string | null
   image_url?: string | null
@@ -155,6 +155,23 @@ export function toWechatArticleUrl(value: unknown): string | null {
     const url = new URL(raw)
     if (url.protocol !== 'https:' || url.hostname !== 'mp.weixin.qq.com') return null
     if (!/^\/(?:s(?:\/|\?|$)|mp\/s\b)/i.test(url.pathname)) return null
+    url.hash = ''
+    return url.toString()
+  } catch {
+    return null
+  }
+}
+
+/** 仅允许已知公众号文章与旧站文章路径作为文章原文链接。 */
+export function toArticleSourceUrl(value: unknown): string | null {
+  const raw = normalizeText(value)
+  const wechatUrl = toWechatArticleUrl(raw)
+  if (wechatUrl) return wechatUrl
+  if (!raw || /[\u0000-\u001F]/.test(raw)) return null
+  try {
+    const url = new URL(raw)
+    if (url.protocol !== 'https:' || url.hostname !== 'daxinfawu.com' || url.port || url.username || url.password) return null
+    if (!/^\/(?:case|crossing|domestic|dynamic|news|overseas|tro)\/\d+\.html$/i.test(url.pathname)) return null
     url.hash = ''
     return url.toString()
   } catch {
@@ -178,7 +195,7 @@ export function toArticleSummary(row: ArticleRow): ArticleSummary {
   const slug = normalizeText(row.slug)
   const title = normalizeText(row.title)
   const categorySlug = normalizeText(row.category_slug).toLowerCase()
-  const sourceUrl = toWechatArticleUrl(row.source_url)
+  const sourceUrl = toArticleSourceUrl(row.source_url)
   const imageInput: ArticleImageInput = {
     coverUrl: row.cover_url,
     imageUrl: row.image_url,
