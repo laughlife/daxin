@@ -155,6 +155,7 @@ useSeoMeta({
               v-for="option in typeOptions"
               :key="option.value || 'all'"
               type="button"
+              :data-type="option.value || 'all'"
               :class="{ 'is-active': caseType === option.value }"
               :aria-pressed="caseType === option.value"
               @click="selectType(option.value)"
@@ -274,6 +275,15 @@ useSeoMeta({
 .brand-directory__search-control button { align-self: stretch; min-width: 92px; padding-inline: var(--space-5); border: 0; border-radius: 0 var(--radius-md) var(--radius-md) 0; background: var(--color-primary); color: var(--color-text-on-primary); font-weight: 700; transition: background-color var(--transition-base); }
 .brand-directory__search-control button:hover { background: var(--color-primary-dark); }
 .brand-directory__tabs { display: flex; gap: var(--space-2); padding: 0 var(--space-5) var(--space-4); }
+/*
+ * 需求 2026-10-20：右上角的「商标 / 版权 / 专利」要按类型区分颜色。
+ * 原来三个标签同一套灰色，看不出区别。
+ * 取值都核算过对白底对比度（商标 6.89、版权 6.59、专利 4.86），均满足正文可读。
+ * 整体仍在暖色系内，与金色主题不冲突。
+ */
+.brand-directory__tabs button[data-type='trademark'] { color: #7A5216; border-color: color-mix(in srgb, #7A5216 32%, var(--color-border)); }
+.brand-directory__tabs button[data-type='copyright'] { color: #A23B24; border-color: color-mix(in srgb, #A23B24 32%, var(--color-border)); }
+.brand-directory__tabs button[data-type='patent'] { color: #96690E; border-color: color-mix(in srgb, #96690E 32%, var(--color-border)); }
 .brand-directory__tabs button { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid transparent; border-radius: var(--radius-full); background: transparent; color: var(--color-text-muted); font: inherit; font-weight: 600; cursor: pointer; transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base); }
 .brand-directory__tabs button:hover { border-color: var(--color-border); color: var(--color-primary); }
 .brand-directory__tabs button.is-active { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-text-on-primary); }
