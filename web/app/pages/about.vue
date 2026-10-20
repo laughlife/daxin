@@ -78,30 +78,34 @@ useSeoMeta({
           </p>
         </section>
 
-        <!-- 3. 企业宣讲：4 列图片网格 -->
+        <!-- 3. 企业宣讲：4 列 × 2 行（共 8 个展示位），超出的图片横向轮播 -->
         <section class="about-page__section" aria-label="企业宣讲">
           <SectionHeading
             align="center"
             :title="about.lectureTitle"
           />
-          <ul v-if="about.lectureImages.length > 0" class="about-page__gallery">
-            <li v-for="(src, index) in about.lectureImages" :key="index">
-              <img :src="src" alt="大信法务企业宣讲现场" loading="lazy">
-            </li>
-          </ul>
+          <PresentationCarousel
+            v-if="about.lectureImages.length > 0"
+            :images="about.lectureImages"
+          />
         </section>
 
-        <!-- 4. 我们的小伙伴：合作伙伴 logo 墙 -->
+        <!--
+          4. 我们的小伙伴：合作伙伴 LOGO 跑马灯
+          需求 2026-10-20：删除整体拼图，改为单独小图标滚动轮播、区域压低，
+          悬停暂停、灰度→彩色；数据仍来自 about_partner_images，后台可逐个增删。
+        -->
         <section class="about-page__section" aria-label="我们的小伙伴">
           <SectionHeading
             align="center"
             :title="about.partnerTitle"
           />
-          <ul v-if="about.partnerImages.length > 0" class="about-page__partners">
-            <li v-for="(src, index) in about.partnerImages" :key="index">
-              <img :src="src" :alt="`${about.partnerTitle}合作伙伴`" loading="lazy">
-            </li>
-          </ul>
+          <!--
+            ≥2 个单独 logo 时启用跑马灯；当前素材只有一张 60 个 logo 的拼图，
+            自动切分不可靠（六边形边框会把每个格子打碎成上千个连通域），
+            因此暂以 PartnerStrip 兜底，等拿到单独 logo 文件后无需改代码即可切换。
+          -->
+          <PartnerMarquee v-if="about.partnerImages.length >= 2" :logos="about.partnerImages" />
           <PartnerStrip v-else />
         </section>
       </template>
