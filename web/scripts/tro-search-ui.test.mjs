@@ -41,13 +41,12 @@ test('文章日期筛选在关键词下一行排列，窄屏控件自动换行�
   assert.match(listingSource, /\.listing-search__date\s*\{[^}]*flex-direction:\s*column/s)
 })
 
-test('home service cards use the supplied red 3D icons by service category', async () => {
-  const servicesSource = await readFile(new URL('../app/components/home/HomeTeamServices.vue', import.meta.url), 'utf8')
-  assert.match(servicesSource, /service-tro\.png/)
-  assert.match(servicesSource, /service-ip\.png/)
-  assert.match(servicesSource, /service-dispute\.png/)
-  assert.match(servicesSource, /service-cross-border\.png/)
-  assert.match(servicesSource, /:src="iconFor\(section\)"/)
+test('home core business no longer uses image icons (requirement: no image placeholders)', async () => {
+  // 需求 2026-10-20 明确「不预留图片位置」，原来的红色 3D 图标卡片已移除，
+  // 这里改为断言新的核心业务面板不含任何图片元素，防止图标被加回来。
+  const coreBusinessSource = await readFile(new URL('../app/components/home/CoreBusiness.vue', import.meta.url), 'utf8')
+  assert.doesNotMatch(coreBusinessSource, /service-tro\.png|service-ip\.png|service-dispute\.png|service-cross-border\.png/)
+  assert.doesNotMatch(coreBusinessSource, /<img/)
 })
 
 test('TRO cases API supports 50 rows without changing the shared article/admin cap', () => {

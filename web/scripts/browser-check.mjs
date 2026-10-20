@@ -50,19 +50,30 @@ try {
   await page.getByRole('button', { name: '复制 TRO 咨询号 kjzx88', exact: true }).click()
   check('公告一键复制精确微信号', await page.evaluate(() => navigator.clipboard.readText()) === 'kjzx88')
 
-  // 首页核心业务（需求 2026-10-10 修订）：
-  //   - 四块样式一致，「TRO全流程处理」不再单独红色强调；
-  //   - 不再有「了解详情」入口；
-  //   - 成绩文案整体可点击跳转 TRO 成功案例，其中「0赔偿撤诉」加粗放大。
-  // 说明：首页业务卡片目前仍来自前端 config（web/app/config/businessContent.ts），
-  // 数据库中的 service_sections 是后台配置项的预备数据，尚未驱动首页渲染。
-  const businessSection = page.locator('.business-section')
-  check('首页核心业务区块存在', await businessSection.count() === 1)
-  check('核心业务四块卡片齐全', await businessSection.locator('.business-card').count() === 4)
-  check('核心业务不再有红色强调卡片', await businessSection.locator('.business-card--accent').count() === 0)
-  check('核心业务不再显示了解详情', await businessSection.locator('.business-card__detail').count() === 0)
-  check('成绩文案可点击跳转成功案例', await businessSection.locator('a.business-card__achievement[href="/tro/success-cases"]').count() === 1)
-  check('成绩关键短语加粗显示', (await businessSection.locator('.business-card__achievement-key').innerText()).trim() === '0赔偿撤诉')
+  // 首页核心业务（需求 2026-10-20 修订）：
+  //   核心业务移到团队介绍下方，改为 01-05 横向面板，悬停/点击展开细项与说明，
+  //   且不再预留图片位置。旧的 .business-section 卡片结构已废弃。
+  const coreBusiness = page.locator('.core-business')
+  check('首页核心业务区块存在', await coreBusiness.count() === 1)
+  check('核心业务五个面板齐全', await coreBusiness.locator('.core-business__panel').count() === 5)
+  check('核心业务序号为 01-05',
+    (await coreBusiness.locator('.core-business__index').allInnerTexts()).map((t) => t.trim()).join(',') === '01,02,03,04,05')
+  check('核心业务排在团队介绍之后', await page.evaluate(() => {
+    const intro = document.querySelector('.home-team-intro')
+    const core = document.querySelector('.core-business')
+    return Boolean(intro && core && (intro.compareDocumentPosition(core) & Node.DOCUMENT_POSITION_FOLLOWING))
+  }))
+  check('核心业务面板不含图片占位', await coreBusiness.locator('img').count() === 0)
+
+  // 团队介绍（需求 2026-10-20）：一整张背景图 + 图上左侧放介绍，右侧四个业务块已取消
+  check('团队介绍不再包含四个业务卡片', await page.locator('.home-team-services__card').count() === 0)
+  check('团队介绍介绍文案靠左', await page.evaluate(() => {
+    const el = document.querySelector('.home-team-intro')
+    const content = el?.querySelector('.home-team-intro__content')
+    if (!el || !content) return false
+    const box = el.getBoundingClientRect()
+    return (content.getBoundingClientRect().left - box.left) / box.width <= 0.2
+  }))
 
   // 「精选历史 TRO 案件」区块按需求（2026-10-10）移除
   check('首页已移除精选历史 TRO 案件区块', await page.locator('.case-preview-section').count() === 0)
@@ -71,14 +82,17 @@ try {
   // 四个栏目上下排列（不再左右两列）；每篇最左侧配一张图。
   // 注意：这几项必须在「还在首页」时校验，不能放到后面访问过详情页之后再查。
   check('首页案例分区为四类', await page.locator('.article-preview-section__column').count() === 4)
+  // 标题以数据库 article_categories.name 为准（后台可改分类名，断言不能写死旧叫法）
   check('首页案例分区标题齐全', await page.locator('.article-preview-section__column-title').evaluateAll(
-    items => ['TRO 案件预警', 'TRO 成功案例', '劳动法案例', '货代案例'].every(title => items.some(el => el.textContent.trim() === title))
+    items => ['TRO 侵权预警', 'TRO 成功案例', '劳动纠纷', '货代案例'].every(title => items.some(el => el.textContent.trim() === title))
   ))
   const perColumnCounts = await page.locator('.article-preview-section__column').evaluateAll(
     columns => columns.map(column => column.querySelectorAll('.article-preview-card').length)
   )
   check('每类案例不超过三篇', perColumnCounts.every(count => count <= 3))
-  check('有内容的两类各三篇', perColumnCounts.filter(count => count === 3).length === 2)
+  // 分类内容量取决于实际文章数，不写死「两类各三篇」；
+  // 当前 TRO侵权预警 分类下暂无文章，因此只要求有内容的栏目都满 3 篇。
+  check('有内容的案例栏目各三篇', perColumnCounts.filter(count => count === 3).length >= 3)
   check('首页展示推荐阅读', await page.locator('.article-preview-card').count() > 0)
 
   // 四个栏目上下排列：容器的计算列数应为 1

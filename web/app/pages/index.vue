@@ -55,6 +55,19 @@ const heroFromSettings = computed(() => ({
   secondaryLabel: readSettingText('home_hero_secondary_label'),
 }))
 
+/**
+ * 团队介绍背景图（需求 2026-10-20）。
+ *
+ * 原来这一块是「左侧介绍 + 右侧四个业务块」的两栏布局，现改为
+ * 「一整张背景图 + 图上左侧放介绍」，四个业务块移到下方独立成「核心业务」。
+ * 未配置背景图时回退为主题色深色渐变，保证白字始终可读，而不是露出白底。
+ */
+const teamBackgroundImage = computed(() => readSettingText('home_team_background'))
+const teamIntroStyle = computed(() => {
+  const image = teamBackgroundImage.value
+  return image ? { backgroundImage: `url("${image}")` } : {}
+})
+
 /** 数据概览：配置里是 JSON 数组，非数组时回退静态配置。 */
 const statsFromSettings = computed(() => {
   const value = siteSettings.value?.settings?.home_stats
@@ -174,25 +187,39 @@ useHead({
       </PageContainer>
     </section>
 
-    <section class="home-about" aria-label="团队介绍">
+    <!--
+      团队介绍（需求 2026-10-20）：一整张背景图 + 图上左侧放介绍。
+      原来的「右侧四个业务块」已移出，成为下方独立的「核心业务」区块。
+    -->
+    <section
+      class="home-team-intro"
+      :class="{ 'home-team-intro--image': teamBackgroundImage }"
+      :style="teamIntroStyle"
+      aria-label="团队介绍"
+    >
       <PageContainer>
-        <div class="home-about__layout">
-          <div class="home-about__content">
-            <SectionHeading align="left" :title="teamDisplayTitle" />
-            <p
-              v-for="(paragraph, index) in teamParagraphsFromSettings"
-              :key="index"
-              class="home-about__paragraph"
-            >
-              {{ paragraph }}
-            </p>
-            <NuxtLink to="/about" class="home-about__more">
-              了解更多
-              <span aria-hidden="true">→</span>
-            </NuxtLink>
-          </div>
-          <HomeTeamServices :sections="teamServices" />
+        <div class="home-team-intro__content">
+          <SectionHeading align="left" :title="teamDisplayTitle" />
+          <p
+            v-for="(paragraph, index) in teamParagraphsFromSettings"
+            :key="index"
+            class="home-team-intro__paragraph"
+          >
+            {{ paragraph }}
+          </p>
+          <NuxtLink to="/about" class="home-team-intro__more">
+            了解更多
+            <span aria-hidden="true">→</span>
+          </NuxtLink>
         </div>
+      </PageContainer>
+    </section>
+
+    <!-- 核心业务：01-05 横向排列、悬停/点击展开 -->
+    <CoreBusiness :sections="teamServices" />
+
+    <section class="home-about" aria-label="数据概览">
+      <PageContainer>
         <StatsSection class="home-about__stats" :stats="statsFromSettings" />
       </PageContainer>
     </section>
@@ -216,82 +243,122 @@ useHead({
 </template>
 
 <style scoped>
-.home-about {
-  padding-block: var(--space-8) var(--space-16);
-  background-color: var(--color-bg-page);
-  background-image:
-    radial-gradient(ellipse at 82% 52%, rgb(220 233 247 / 34%), transparent 46%),
-    linear-gradient(148deg, transparent 58%, rgb(227 236 248 / 30%) 58.2%, transparent 71%),
-    linear-gradient(28deg, transparent 78%, rgb(235 242 250 / 48%) 78.2%, transparent 88%);
+/*
+ * 团队介绍（需求 2026-10-20）：一整张背景图 + 图上左侧放介绍。
+ * 原来这里是「左介绍 + 右四个业务块」的两栏布局，业务块已移到下方「核心业务」。
+ */
+.home-team-intro {
+  position: relative;
+  padding-block: var(--space-16);
+  /*
+   * 未配置背景图时的兜底：主题深色渐变。
+   * 用深色而不是白底，是因为文案在这里是白字，白底会直接看不见。
+   */
+  background-image: linear-gradient(
+    120deg,
+    var(--color-bg-dark) 0%,
+    color-mix(in srgb, var(--color-primary) 58%, var(--color-bg-dark)) 100%
+  );
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  color: var(--color-text-inverse);
+  isolation: isolate;
 }
 
-.home-about__layout {
-  display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
-  align-items: stretch;
-  gap: var(--space-8);
-  margin-inline: auto;
-  margin-top: 0;
+/* 有背景图时压一层自左向右减淡的深色遮罩，保证左侧介绍的对比度 */
+.home-team-intro--image::before {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: linear-gradient(
+    100deg,
+    rgb(20 14 8 / 84%) 0%,
+    rgb(20 14 8 / 66%) 40%,
+    rgb(20 14 8 / 24%) 70%,
+    rgb(20 14 8 / 0%) 100%
+  );
+  content: "";
 }
 
-.home-about__content {
+.home-team-intro__content {
   display: flex;
   flex-direction: column;
-  align-items: stretch;
+  align-items: flex-start;
   gap: var(--space-4);
+  /* 介绍贴左，右侧留给背景图内容 */
+  max-width: 44rem;
   text-align: left;
 }
 
-.home-about__content :deep(.section-heading) {
-  align-self: stretch;
+/* SectionHeading 默认是深色字，深色底上必须反色，否则等于没字 */
+.home-team-intro__content :deep(.section-heading) {
   align-items: flex-start;
   gap: var(--space-2);
   text-align: left;
 }
 
-.home-about__content :deep(.section-heading__eyebrow) {
+.home-team-intro__content :deep(.section-heading__title) {
+  color: var(--color-text-inverse);
+  text-shadow: 0 2px 18px rgb(0 0 0 / 38%);
+}
+
+.home-team-intro__content :deep(.section-heading__eyebrow) {
+  color: var(--color-accent);
   font-size: var(--text-sm);
 }
 
-.home-about__content :deep(.section-heading__eyebrow::before),
-.home-about__content :deep(.section-heading__eyebrow::after) {
-  width: 32px;
+.home-team-intro__content :deep(.section-heading__description) {
+  color: color-mix(in srgb, var(--color-text-inverse) 84%, transparent);
 }
 
-@media (max-width: 767px) {
-  .home-about__layout {
-    grid-template-columns: 1fr;
-    gap: var(--space-6);
-    margin-top: var(--space-4);
-  }
-}
-
-.home-about__paragraph {
+.home-team-intro__paragraph {
   margin: 0;
-  color: color-mix(in srgb, var(--color-text) 94%, var(--color-text-muted));
-  font-size: clamp(1.15rem, 1.3vw, 1.25rem);
-  font-weight: 600;
-  line-height: 1.65;
+  color: color-mix(in srgb, var(--color-text-inverse) 88%, transparent);
+  font-size: clamp(1.05rem, 1.2vw, 1.18rem);
+  font-weight: 500;
+  line-height: 1.75;
+  text-shadow: 0 2px 14px rgb(0 0 0 / 34%);
 }
 
-.home-about__paragraph:first-child {
-  font-size: clamp(1.2rem, 1.4vw, 1.3rem);
-  color: var(--color-text);
-  font-weight: 700;
-}
-
-.home-about__more {
+.home-team-intro__more {
+  color: var(--color-accent);
   font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--color-primary);
 }
 
-.home-about__more:hover {
-  color: var(--color-primary-dark);
+.home-team-intro__more:hover {
+  color: var(--color-text-inverse);
+}
+
+/* 数据概览独立成块，跟在核心业务之后 */
+.home-about {
+  padding-block: var(--space-8) var(--space-16);
+  background-color: var(--color-bg-page);
 }
 
 .home-about__stats {
-  margin-top: var(--space-10);
+  margin-top: 0;
+}
+
+@media (max-width: 767px) {
+  .home-team-intro {
+    padding-block: var(--space-12);
+  }
+
+  /* 窄屏背景图会被裁得只剩中间，把遮罩改成上下渐变，保证文字区够暗 */
+  .home-team-intro--image::before {
+    background-image: linear-gradient(
+      180deg,
+      rgb(20 14 8 / 78%) 0%,
+      rgb(20 14 8 / 70%) 60%,
+      rgb(20 14 8 / 58%) 100%
+    );
+  }
+
+  .home-team-intro__content {
+    max-width: none;
+  }
 }
 
 @media (max-width: 639px) {
