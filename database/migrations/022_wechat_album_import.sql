@@ -1,5 +1,5 @@
 -- 保存公众号专辑来源、文章去重映射与每日采集记录。
--- 首次同步范围：旧的三个专辑只建立增量基线，2026 TRO 专辑导入最新四篇，劳动法专辑全量导入。
+-- 每个来源首次成功同步时全量采集列表；此后定时任务只抓取游标之后新增的列表项。
 
 CREATE TABLE IF NOT EXISTS wechat_album_sources (
   id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS wechat_album_sources (
   name VARCHAR(128) NOT NULL,
   album_url VARCHAR(2048) NOT NULL,
   category_slug VARCHAR(64) NOT NULL,
-  initial_mode VARCHAR(16) NOT NULL DEFAULT 'baseline' COMMENT 'baseline、latest、full',
+  initial_mode VARCHAR(16) NOT NULL DEFAULT 'full' COMMENT '首次同步全量，后续增量',
   initial_limit SMALLINT UNSIGNED NOT NULL DEFAULT 0,
   cursor_message_id VARCHAR(64) NOT NULL DEFAULT '',
   cursor_item_index VARCHAR(16) NOT NULL DEFAULT '',
@@ -63,16 +63,16 @@ CREATE TABLE IF NOT EXISTS wechat_album_runs (
 INSERT INTO wechat_album_sources
   (source_key, name, album_url, category_slug, initial_mode, initial_limit, enabled)
 VALUES
-  ('tro-2025-album', '25年TRO案例合集', 'https://mp.weixin.qq.com/mp/appmsgalbum?__biz=Mzk3NTM2MjI0Nw==&action=getalbum&album_id=3883682006433153042#wechat_redirect', 'tro-success', 'baseline', 0, 1),
-  ('tro-classic-album', 'TRO经典案例', 'https://mp.weixin.qq.com/mp/appmsgalbum?__biz=Mzk3NTM2MjI0Nw==&action=getalbum&album_id=3886565876014923788#wechat_redirect', 'tro-success', 'baseline', 0, 1),
-  ('tro-knowledge-album', 'TRO科普', 'https://mp.weixin.qq.com/mp/appmsgalbum?__biz=Mzk3NTM2MjI0Nw==&action=getalbum&album_id=3886573447337623554#wechat_redirect', 'knowledge', 'baseline', 0, 1),
-  ('tro-2026-album', '2026年TRO侵权案例', 'https://mp.weixin.qq.com/mp/appmsgalbum?__biz=Mzk3NTM2MjI0Nw==&action=getalbum&album_id=4331303352379490306#wechat_redirect', 'tro-success', 'latest', 4, 1),
+  ('tro-2025-album', '25年TRO案例合集', 'https://mp.weixin.qq.com/mp/appmsgalbum?__biz=Mzk3NTM2MjI0Nw==&action=getalbum&album_id=3883682006433153042#wechat_redirect', 'tro-success', 'full', 0, 1),
+  ('tro-classic-album', 'TRO经典案例', 'https://mp.weixin.qq.com/mp/appmsgalbum?__biz=Mzk3NTM2MjI0Nw==&action=getalbum&album_id=3886565876014923788#wechat_redirect', 'tro-success', 'full', 0, 1),
+  ('tro-knowledge-album', 'TRO科普', 'https://mp.weixin.qq.com/mp/appmsgalbum?__biz=Mzk3NTM2MjI0Nw==&action=getalbum&album_id=3886573447337623554#wechat_redirect', 'knowledge', 'full', 0, 1),
+  ('tro-2026-album', '2026年TRO侵权案例', 'https://mp.weixin.qq.com/mp/appmsgalbum?__biz=Mzk3NTM2MjI0Nw==&action=getalbum&album_id=4331303352379490306#wechat_redirect', 'tro-success', 'full', 0, 1),
   ('labor-public-album', '劳动法公众号', 'https://mp.weixin.qq.com/mp/appmsgalbum?__biz=MzY0MDg4MjY2NA==&action=getalbum&album_id=4627360820476166144&subscene=159&subscene=&scenenote=https%3A%2F%2Fmp.weixin.qq.com%2Fs%2FyDQzM5DLLtrlpVx8vvMreg&mid=2247485404&idx=1&nolastread=1#wechat_redirect', 'labor-case', 'full', 0, 1)
 ON DUPLICATE KEY UPDATE
   name = VALUES(name),
   album_url = VALUES(album_url),
   category_slug = VALUES(category_slug),
-  initial_mode = IF(initial_synced_at IS NULL, VALUES(initial_mode), initial_mode),
-  initial_limit = IF(initial_synced_at IS NULL, VALUES(initial_limit), initial_limit),
+  initial_mode = IF(initial_synced_at IS NULL, 'full', initial_mode),
+  initial_limit = IF(initial_synced_at IS NULL, 0, initial_limit),
   enabled = 1,
   updated_at = NOW();

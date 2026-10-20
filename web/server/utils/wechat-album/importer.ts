@@ -1,28 +1,18 @@
 import { createHash, randomUUID } from 'node:crypto'
 import { getTargetPool, type SqlConnection } from '../db/pool.ts'
 import { queryTarget, withTargetTransaction } from '../db/query.ts'
-import { sanitizeHtml } from '../public/sanitize.ts'
 import { getOssConfig, isOssConfigured } from '../oss/config.ts'
 import { buildObjectKey, createPostObjectPolicy } from '../oss/policy.ts'
 import { crawlWechatAlbum } from './crawler.mjs'
-import {
-  appendWechatSourceLink,
-  getWechatBodyImages,
-  htmlToPlainText,
-  normalizeWechatImageUrl,
-  replaceWechatBodyImages,
-  wechatImageIdentity,
-} from './content.mjs'
-import { canonicalArticleUrl, parseWechatArticlePage } from './parser.mjs'
+import { normalizeWechatImageUrl, wechatImageIdentity } from './content.mjs'
+import { canonicalArticleUrl } from './parser.mjs'
 import { isWechatRobotsAllowed, parseWechatRobots } from './robots.mjs'
 import { wechatShanghaiDateKey } from './schedule.mjs'
 
 const USER_AGENT = 'DaxinWechatAlbumSync/1.0 (+https://daxinfawu.com/)'
 const MAX_PAGE_BYTES = 12 * 1024 * 1024
-const MAX_IMAGE_COUNT = 80
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024
 const PAGE_DELAY_MS = 1000
-const IMAGE_DELAY_MS = 250
 
 type AlbumSource = {
   id: number | string
@@ -46,7 +36,7 @@ type AlbumItem = {
   coverUrl: string
 }
 type IdRow = { id: number | string }
-type ArticleRow = { id: number | string; cover_media_id: number | string | null }
+type ArticleRow = { id: number | string; cover_media_id: number | string | null; legacy_source_table: string | null }
 type MediaRow = { id: number | string; public_url: string; object_key: string }
 type DbHeader = { insertId?: number | string }
 type UploadedImage = { id: number; publicUrl: string; objectKey: string; mimeType: string; byteSize: number }
@@ -175,7 +165,7 @@ async function uploadImage(sourceUrl: string, label: string, robots: RobotsPolic
   const bytes = await readLimitedBytes(response, MAX_IMAGE_BYTES, '文章图片')
   const format = imageFormat(bytes)
   if (!format) throw new Error('文章图片格式不是受支持的 JPEG、PNG、WebP 或 GIF')
-  if (!isOssConfigured()) throw new Error('OSS 未配置，无法保存公众号封面和正文图片')
+  if (!isOssConfigured()) throw new Error('OSS 未配置，无法保存公众号封面')
 
   const config = getOssConfig()
   const digest = sha256(wechatImageIdentity(normalizedUrl))
@@ -235,7 +225,7 @@ async function uploadImage(sourceUrl: string, label: string, robots: RobotsPolic
 
 async function findExistingArticle(url: string): Promise<ArticleRow | null> {
   const identity = articleIdentity({ url })
-  const rows = await queryTarget<ArticleRow>('SELECT id, cover_media_id FROM articles WHERE slug = ? LIMIT 1', [identity.slug])
+  const rows = await queryTarget<ArticleRow>('SELECT id, cover_media_id, legacy_source_table FROM articles WHERE slug = ? LIMIT 1', [identity.slug])
   return rows[0] ?? null
 }
 
@@ -251,11 +241,7 @@ async function findExistingSourceItem(sourceId: number, item: AlbumItem): Promis
 async function writeArticle(
   source: AlbumSource,
   item: AlbumItem,
-  article: ReturnType<typeof parseWechatArticlePage>,
-  contentHtml: string,
-  contentText: string,
   cover: UploadedImage | null,
-  bodyMedia: Array<{ image: { url: string; alt: string; identity: string }; media: UploadedImage }>,
   categoryId: number,
 ): Promise<{ articleId: number; inserted: boolean }> {
   const identity = articleIdentity(item)
@@ -264,31 +250,35 @@ async function writeArticle(
     let articleId = Number((existingRows as IdRow[])[0]?.id ?? 0)
     const inserted = articleId === 0
     if (inserted) {
-      const title = (article.title || item.title).trim().slice(0, 255)
-      const publishedAt = article.publishedAt || item.publishedAt
+      const title = item.title.trim().slice(0, 255)
+      const publishedAt = item.publishedAt
       if (!title) throw new Error('文章缺少标题')
       if (!publishedAt) throw new Error(`文章“${title}”缺少可读取的发布时间`)
-      if (!contentText) throw new Error(`文章“${title}”正文为空，已停止导入`)
       const [header] = await connection.execute(
         `INSERT INTO articles
            (slug, title, summary, content_html, content_text, category_id, cover_media_id, published_at,
             status, is_featured, show_in_sidebar, legacy_source_table, legacy_source_id, created_at, updated_at)
-         VALUES (?, ?, NULL, ?, ?, ?, ?, ?, 'published', 0, 0, 'wechat_album', ?, NOW(), NOW())`,
-        [identity.slug, title, contentHtml, contentText, categoryId, cover?.id ?? null, publishedAt, identity.legacyId],
+         VALUES (?, ?, NULL, NULL, NULL, ?, ?, ?, 'published', 0, 0, 'wechat_album', ?, NOW(), NOW())`,
+        [identity.slug, title, categoryId, cover?.id ?? null, publishedAt, identity.legacyId],
       )
       articleId = Number((header as DbHeader).insertId ?? 0)
       if (!articleId) throw new Error(`写入公众号文章失败：${title}`)
+    } else {
+      const [existing] = await connection.execute(
+        'SELECT legacy_source_table FROM articles WHERE id = ? LIMIT 1',
+        [articleId],
+      )
+      const existingSource = (existing as Array<{ legacy_source_table?: string | null }>)[0]?.legacy_source_table
+      if (existingSource === 'wechat_album') {
+        await connection.execute(
+          `UPDATE articles SET title = ?, summary = NULL, content_html = NULL, content_text = NULL,
+             category_id = ?, cover_media_id = COALESCE(cover_media_id, ?), published_at = ?,
+             status = 'published', updated_at = NOW() WHERE id = ?`,
+          [item.title.trim().slice(0, 255), categoryId, cover?.id ?? null, item.publishedAt, articleId],
+        )
+      }
     }
 
-    for (let position = 0; position < bodyMedia.length; position += 1) {
-      const { image, media } = bodyMedia[position]!
-      await connection.execute(
-        `INSERT INTO article_images (article_id, media_id, source_url, position, alt_text, created_at)
-         VALUES (?, ?, ?, ?, ?, NOW()) ON DUPLICATE KEY UPDATE media_id = VALUES(media_id),
-           source_url = VALUES(source_url), alt_text = VALUES(alt_text)`,
-        [articleId, media.id, image.url.slice(0, 768), position, image.alt.slice(0, 255)],
-      )
-    }
     await connection.execute(
       `INSERT INTO wechat_album_items
          (source_id, message_id, item_index, article_hash, article_id, source_url, title, cover_source_url, published_at, created_at, updated_at)
@@ -314,6 +304,18 @@ async function importArticle(
   const identity = articleIdentity(item)
   const existingArticle = await findExistingArticle(identity.url)
   if (existingArticle) {
+    let cover: UploadedImage | null = null
+    if (existingArticle.legacy_source_table === 'wechat_album' && !existingArticle.cover_media_id && item.coverUrl) {
+      cover = await uploadImage(item.coverUrl, `${item.title} 封面`, robots)
+      await withTargetTransaction(async (connection) => {
+        await connection.execute(
+          `UPDATE articles SET cover_media_id = ?, title = ?, summary = NULL, content_html = NULL,
+             content_text = NULL, category_id = ?, published_at = ?, status = 'published', updated_at = NOW()
+           WHERE id = ? AND legacy_source_table = 'wechat_album'`,
+          [cover?.id ?? null, item.title.trim().slice(0, 255), categoryId, item.publishedAt || null, existingArticle.id],
+        )
+      })
+    }
     await withTargetTransaction(async (connection) => {
       await connection.execute(
         `INSERT INTO wechat_album_items
@@ -323,43 +325,17 @@ async function importArticle(
         [sourceId, item.messageId, item.itemIndex, identity.hash, existingArticle.id, identity.url.slice(0, 2048), item.title.slice(0, 255), item.coverUrl.slice(0, 2048), item.publishedAt || null],
       )
     })
-    return { inserted: false, imageCount: 0 }
+    return { inserted: false, imageCount: cover ? 1 : 0 }
   }
 
-  const html = await fetchWechatText(identity.url, robots)
-  const article = parseWechatArticlePage(html, identity.url)
-  article.title ||= item.title
-  article.publishedAt ||= item.publishedAt
-  article.coverUrl ||= item.coverUrl
-  if (!article.title.trim()) throw new Error(`文章 ${identity.url} 缺少标题`)
-  if (!article.publishedAt) throw new Error(`文章“${article.title}”缺少发布时间`)
-  if (!article.bodyHtml.trim()) throw new Error(`文章“${article.title}”正文为空`)
+  if (!item.title.trim()) throw new Error(`文章 ${identity.url} 缺少标题`)
+  if (!item.publishedAt) throw new Error(`文章“${item.title}”缺少发布时间`)
+  const coverUrl = normalizeWechatImageUrl(item.coverUrl)
+  if (!coverUrl) throw new Error(`文章“${item.title}”没有可读取的封面图片`)
 
-  let coverUrl = normalizeWechatImageUrl(article.coverUrl)
-  let images = getWechatBodyImages(article.bodyHtml, coverUrl)
-  if (!coverUrl && images.length) {
-    coverUrl = images[0]!.url
-    images = getWechatBodyImages(article.bodyHtml, coverUrl)
-  }
-  if (!coverUrl) throw new Error(`文章“${article.title}”没有可读取的封面图片`)
-  if (images.length > MAX_IMAGE_COUNT) throw new Error(`文章“${article.title}”正文图片超过 ${MAX_IMAGE_COUNT} 张，已停止导入`)
-
-  const cover = await uploadImage(coverUrl, `${article.title} 封面`, robots)
-  const mediaByIdentity = new Map<string, UploadedImage>()
-  const bodyMedia: Array<{ image: { url: string; alt: string; identity: string }; media: UploadedImage }> = []
-  for (const image of images) {
-    const media = await uploadImage(image.url, image.alt || `${article.title} 正文图`, robots)
-    mediaByIdentity.set(image.identity, media)
-    bodyMedia.push({ image, media })
-    await new Promise((resolve) => setTimeout(resolve, Math.max(IMAGE_DELAY_MS, robots.crawlDelayMs)))
-  }
-
-  const rewritten = replaceWechatBodyImages(article.bodyHtml, mediaByIdentity)
-  const withSource = appendWechatSourceLink(rewritten, identity.url)
-  const contentHtml = sanitizeHtml(withSource)
-  const contentText = htmlToPlainText(contentHtml)
-  const result = await writeArticle(source, item, article, contentHtml, contentText, cover, bodyMedia, categoryId)
-  return { inserted: result.inserted, imageCount: 1 + bodyMedia.length }
+  const cover = await uploadImage(coverUrl, `${item.title} 封面`, robots)
+  const result = await writeArticle(source, item, cover, categoryId)
+  return { inserted: result.inserted, imageCount: 1 }
 }
 
 async function writeRunStart(source: AlbumSource, scheduledDate: string, mode: string): Promise<void> {
@@ -394,9 +370,9 @@ async function updateSourceCursor(source: AlbumSource, latestItem: AlbumItem | n
 
 async function importSource(source: AlbumSource, robots: RobotsPolicy, scheduledDate: string): Promise<{ failed?: boolean; source: string; mode: string; result: ImportResult; pageCount?: number }> {
   const initial = !source.initial_synced_at
-  const mode = initial ? source.initial_mode : 'incremental'
+  const mode = initial ? 'full' : 'incremental'
   const pageDelayMs = Math.max(PAGE_DELAY_MS, robots.crawlDelayMs)
-  const limit = mode === 'latest' ? Math.max(1, Number(source.initial_limit) || 0) : 0
+  const limit = 0
   const cursor = initial ? null : { messageId: source.cursor_message_id, itemIndex: source.cursor_item_index }
   const empty: ImportResult = { fetchedCount: 0, insertedCount: 0, duplicateCount: 0, imageCount: 0 }
   await writeRunStart(source, scheduledDate, mode)
@@ -412,18 +388,16 @@ async function importSource(source: AlbumSource, robots: RobotsPolicy, scheduled
     })
     if (!crawl.latestItem) throw new Error(`来源“${source.name}”没有解析到最新文章，游标未推进`)
 
-    let result = { ...empty, fetchedCount: mode === 'baseline' ? 0 : crawl.items.length, duplicateCount: crawl.duplicateCount }
-    if (mode !== 'baseline') {
-      const categoryRows = await queryTarget<IdRow>('SELECT id FROM article_categories WHERE slug = ? AND status = 1 LIMIT 1', [source.category_slug])
-      const categoryId = Number(categoryRows[0]?.id ?? 0)
-      if (!categoryId) throw new Error(`目标文章分类不可用：${source.category_slug}`)
-      for (const item of crawl.items as AlbumItem[]) {
-        const imported = await importArticle(source, item, robots, categoryId)
-        result.insertedCount += imported.inserted ? 1 : 0
-        result.duplicateCount += imported.inserted ? 0 : 1
-        result.imageCount += imported.imageCount
-        await new Promise((resolve) => setTimeout(resolve, Math.max(PAGE_DELAY_MS, robots.crawlDelayMs)))
-      }
+    const result = { ...empty, fetchedCount: crawl.items.length, duplicateCount: crawl.duplicateCount }
+    const categoryRows = await queryTarget<IdRow>('SELECT id FROM article_categories WHERE slug = ? AND status = 1 LIMIT 1', [source.category_slug])
+    const categoryId = Number(categoryRows[0]?.id ?? 0)
+    if (!categoryId) throw new Error(`目标文章分类不可用：${source.category_slug}`)
+    for (const item of crawl.items as AlbumItem[]) {
+      const imported = await importArticle(source, item, robots, categoryId)
+      result.insertedCount += imported.inserted ? 1 : 0
+      result.duplicateCount += imported.inserted ? 0 : 1
+      result.imageCount += imported.imageCount
+      await new Promise((resolve) => setTimeout(resolve, Math.max(PAGE_DELAY_MS, robots.crawlDelayMs)))
     }
 
     await updateSourceCursor(source, crawl.latestItem as AlbumItem, initial)
@@ -440,9 +414,9 @@ async function importSource(source: AlbumSource, robots: RobotsPolicy, scheduled
   }
 }
 
-/** 每日同步五个公开专辑；首次基线/最新四篇/全量按数据库 source 配置执行，之后只取新增文章。 */
+/** 五个公开专辑首次全量同步；来源游标成功落库后，之后每日只取新增文章。 */
 export async function runWechatAlbumImport(now = new Date()) {
-  if (!isOssConfigured()) throw new Error('公众号文章入库前必须配置 OSS，否则无法满足封面和正文图片转存要求')
+  if (!isOssConfigured()) throw new Error('公众号文章入库前必须配置 OSS，否则无法保存封面图片')
   const scheduledDate = wechatShanghaiDateKey(now)
   const pool = await getTargetPool()
   const lockConnection = await pool.getConnection()
