@@ -4,5 +4,5 @@ definePageMeta({
   middleware: 'admin'
 })
 
-await navigateTo('/admin/articles', { replace: true })
+await navigateTo('/admin/cases', { replace: true })
 </script>

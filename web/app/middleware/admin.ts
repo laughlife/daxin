@@ -21,7 +21,6 @@ interface AdminRouteRule {
 
 const ADMIN_ROUTE_RULES: readonly AdminRouteRule[] = [
   { prefix: '/admin/settings', roles: ['admin', 'editor', 'viewer'] },
-  { prefix: '/admin/articles', roles: ['admin', 'editor', 'viewer'] },
   { prefix: '/admin/cases', roles: ['admin', 'editor', 'viewer'] },
   { prefix: '/admin/brands', roles: ['admin', 'editor', 'viewer'] },
   { prefix: '/admin/law-firms', roles: ['admin', 'editor', 'viewer'] },
@@ -70,6 +69,11 @@ export default defineNuxtRouteMiddleware(async (to) => {
       { path: '/admin/login', query: { redirect: to.fullPath } },
       { replace: true }
     )
+  }
+
+  // 公众号文章改为由定时任务维护；旧书签不再进入文章编辑界面。
+  if (to.path === '/admin/articles' || to.path.startsWith('/admin/articles/')) {
+    return navigateTo('/admin/cases', { replace: true })
   }
 
   if (!canAccessAdminPath(to.path, currentUser.roles)) {

@@ -18,7 +18,6 @@ interface AdminNavItem {
 }
 
 const menuItems: AdminNavItem[] = [
-  { label: '文章管理', to: '/admin/articles', roles: ['admin', 'editor', 'viewer'] },
   { label: '案件管理', to: '/admin/cases', roles: ['admin', 'editor', 'viewer'] },
   { label: '产品侵权检测', to: '/admin/infringement-checks', roles: ['admin'] },
   { label: '品牌管理', to: '/admin/brands', roles: ['admin', 'editor', 'viewer'] },
