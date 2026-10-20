@@ -24,8 +24,9 @@ type AlbumSource = {
   cursor_message_id: string
   cursor_item_index: string
   initial_synced_at: Date | string | null
+  deployment_full_synced_at: Date | string | null
 }
-type AlbumRun = { status: string }
+type AlbumRun = { source_id: number | string; status: string; sync_mode: string }
 type AlbumItem = {
   messageId: string
   itemIndex: string
@@ -375,23 +376,26 @@ async function finishRun(source: AlbumSource, scheduledDate: string, status: 'su
   )
 }
 
-async function updateSourceCursor(source: AlbumSource, latestItem: AlbumItem | null, initial: boolean): Promise<void> {
+async function updateSourceCursor(source: AlbumSource, latestItem: AlbumItem | null, full: boolean): Promise<void> {
   if (!latestItem?.messageId || !latestItem.itemIndex) throw new Error(`来源“${source.name}”没有有效的最新文章游标`)
   await queryTarget(
     `UPDATE wechat_album_sources SET cursor_message_id = ?, cursor_item_index = ?,
-       initial_synced_at = IF(? = 1, NOW(), initial_synced_at), last_synced_at = NOW(), updated_at = NOW()
+       initial_synced_at = IF(? = 1, NOW(), initial_synced_at),
+       deployment_full_synced_at = IF(? = 1, COALESCE(deployment_full_synced_at, NOW()), deployment_full_synced_at),
+       last_synced_at = NOW(), updated_at = NOW()
      WHERE id = ?`,
-    [latestItem.messageId, latestItem.itemIndex, initial ? 1 : 0, source.id],
+    [latestItem.messageId, latestItem.itemIndex, full ? 1 : 0, full ? 1 : 0, source.id],
   )
 }
 
-async function importSource(source: AlbumSource, robots: RobotsPolicy, scheduledDate: string): Promise<{ failed?: boolean; source: string; mode: string; result: ImportResult; pageCount?: number }> {
-  const initial = !source.initial_synced_at
-  const mode = initial ? 'full' : 'incremental'
+async function importSource(source: AlbumSource, robots: RobotsPolicy, scheduledDate: string, deploymentFull = false): Promise<{ failed?: boolean; source: string; mode: string; result: ImportResult; pageCount?: number }> {
+  const full = deploymentFull || !source.deployment_full_synced_at || !source.initial_synced_at
+  const mode = full ? 'full' : 'incremental'
+  const runMode = deploymentFull ? 'full_once' : mode
   const pageDelayMs = Math.max(PAGE_DELAY_MS, robots.crawlDelayMs)
-  const cursor = initial ? null : { messageId: source.cursor_message_id, itemIndex: source.cursor_item_index }
+  const cursor = full ? null : { messageId: source.cursor_message_id, itemIndex: source.cursor_item_index }
   const empty: ImportResult = { fetchedCount: 0, insertedCount: 0, duplicateCount: 0, imageCount: 0 }
-  await writeRunStart(source, scheduledDate, mode)
+  await writeRunStart(source, scheduledDate, runMode)
   try {
     const crawl = await crawlWechatAlbum({
       sourceUrl: source.album_url,
@@ -415,7 +419,7 @@ async function importSource(source: AlbumSource, robots: RobotsPolicy, scheduled
       await new Promise((resolve) => setTimeout(resolve, Math.max(PAGE_DELAY_MS, robots.crawlDelayMs)))
     }
 
-    await updateSourceCursor(source, crawl.latestItem as AlbumItem, initial)
+    await updateSourceCursor(source, crawl.latestItem as AlbumItem, full)
     await finishRun(source, scheduledDate, 'success', { ...result, pageCount: crawl.pageCount })
     console.info('[wechat-album-import] 专辑同步完成', { source: source.source_key, mode, ...result, pageCount: crawl.pageCount })
     return { source: source.source_key, mode, result, pageCount: crawl.pageCount }
@@ -429,8 +433,8 @@ async function importSource(source: AlbumSource, robots: RobotsPolicy, scheduled
   }
 }
 
-/** 五个公开专辑首次全量同步；来源游标成功落库后，之后每日只取新增文章。 */
-export async function runWechatAlbumImport(now = new Date()) {
+/** 从数据库读取全部启用来源；部署全量成功后，每日任务从游标增量同步。 */
+async function runWechatAlbumImportMode(now: Date, deploymentFull: boolean) {
   if (!isOssConfigured()) throw new Error('公众号文章入库前必须配置 OSS，否则无法保存封面图片')
   const scheduledDate = wechatShanghaiDateKey(now)
   const pool = await getTargetPool()
@@ -443,24 +447,32 @@ export async function runWechatAlbumImport(now = new Date()) {
 
     const sources = await queryTarget<AlbumSource>(
       `SELECT id, source_key, name, album_url, category_slug,
-         cursor_message_id, cursor_item_index, initial_synced_at
+         cursor_message_id, cursor_item_index, initial_synced_at, deployment_full_synced_at
        FROM wechat_album_sources WHERE enabled = 1 ORDER BY id`,
     )
     if (!sources.length) throw new Error('没有已启用的公众号专辑来源，请先应用 022 号数据库迁移')
 
-    const previous = await queryTarget<{ source_id: number | string; status: string }>(
-      'SELECT source_id, status FROM wechat_album_runs WHERE scheduled_date = ?',
+    const previous = await queryTarget<AlbumRun>(
+      'SELECT source_id, status, sync_mode FROM wechat_album_runs WHERE scheduled_date = ?',
       [scheduledDate],
     )
-    const complete = new Set(previous.filter((row) => row.status === 'success').map((row) => Number(row.source_id)))
-    const pending = sources.filter((source) => !complete.has(Number(source.id)))
-    if (!pending.length) return { skipped: true, reason: 'already-completed-today' }
+    let pending: AlbumSource[]
+    if (deploymentFull) {
+      pending = sources.filter((source) => !source.deployment_full_synced_at || !source.initial_synced_at)
+      if (!pending.length) return { skipped: true, reason: 'deployment-full-already-completed' }
+    } else {
+      const complete = new Set(previous
+        .filter((row) => row.status === 'success' && row.sync_mode !== 'full_once')
+        .map((row) => Number(row.source_id)))
+      pending = sources.filter((source) => !complete.has(Number(source.id)))
+      if (!pending.length) return { skipped: true, reason: 'already-completed-today' }
+    }
 
     const robots = await getRobotsPolicy()
     const results = []
-    for (const source of pending) results.push(await importSource(source, robots, scheduledDate))
+    for (const source of pending) results.push(await importSource(source, robots, scheduledDate, deploymentFull))
     const failedCount = results.filter((result) => result.failed).length
-    return { scheduledDate, sourceCount: pending.length, failedCount, results, skipped: false }
+    return { scheduledDate, fullImport: deploymentFull, sourceCount: pending.length, failedCount, results, skipped: false }
   } finally {
     if (hasLock) {
       try { await lockConnection.execute('SELECT RELEASE_LOCK(?)', ['daxin:wechat-album:daily']) } catch (error) {
@@ -469,4 +481,12 @@ export async function runWechatAlbumImport(now = new Date()) {
     }
     lockConnection.release()
   }
+}
+
+export function runWechatAlbumImport(now = new Date()) {
+  return runWechatAlbumImportMode(now, false)
+}
+
+export function runWechatAlbumDeploymentFullImport(now = new Date()) {
+  return runWechatAlbumImportMode(now, true)
 }

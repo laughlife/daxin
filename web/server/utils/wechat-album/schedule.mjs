@@ -1,6 +1,7 @@
 const TIME_ZONE = 'Asia/Shanghai'
 const RUN_HOUR = 12
 const RUN_MINUTE = 15
+const MINUTE_MS = 60_000
 
 function shanghaiParts(date) {
   const parts = new Intl.DateTimeFormat('en-CA', {
@@ -14,6 +15,11 @@ function shanghaiParts(date) {
 export function wechatShanghaiDateKey(date = new Date()) {
   const { year, month, day } = shanghaiParts(date)
   return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+}
+
+/** 服务部署后在第一个整分触发一次全量同步。 */
+export function millisecondsUntilNextWechatAlbumMinute(date = new Date()) {
+  return MINUTE_MS - (date.getTime() % MINUTE_MS)
 }
 
 /** 返回距离下一个每日 12:15（北京时间）的毫秒数；已过今日时间则安排到明日。 */

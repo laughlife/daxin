@@ -29,10 +29,13 @@ test('only the cover is uploaded as verified article media; body image handling 
   assert.match(importer, /NOT EXISTS \(SELECT 1 FROM article_images other_ref WHERE other_ref\.media_id = m\.id AND other_ref\.article_id <> \?\)/)
 })
 
-test('each source is full on its first successful sync and incremental after its saved cursor', () => {
-  assert.match(importer, /const initial = !source\.initial_synced_at\s+const mode = initial \? 'full' : 'incremental'/)
-  assert.match(importer, /const cursor = initial \? null : \{ messageId: source\.cursor_message_id, itemIndex: source\.cursor_item_index \}/)
-  assert.match(importer, /initial_synced_at = IF\(\? = 1, NOW\(\), initial_synced_at\)/)
+test('deployment task fully syncs every pending source and daily runs increment from saved cursors', () => {
+  assert.match(importer, /const full = deploymentFull \|\| !source\.deployment_full_synced_at \|\| !source\.initial_synced_at/)
+  assert.match(importer, /const cursor = full \? null : \{ messageId: source\.cursor_message_id, itemIndex: source\.cursor_item_index \}/)
+  assert.match(importer, /deployment_full_synced_at = IF\(\? = 1, COALESCE\(deployment_full_synced_at, NOW\(\)\), deployment_full_synced_at\)/)
+  assert.match(importer, /export function runWechatAlbumDeploymentFullImport/)
+  assert.match(importer, /WHERE enabled = 1 ORDER BY id/)
+  assert.match(importer, /sync_mode !== 'full_once'/)
   assert.doesNotMatch(importer, /source\.initial_mode|mode === 'latest'|mode === 'baseline'/)
 })
 
@@ -40,7 +43,7 @@ test('each source has an idempotent daily run record and only advances its curso
   assert.match(importer, /GET_LOCK\(\?, 0\)/)
   assert.match(importer, /INSERT INTO wechat_album_runs/)
   assert.match(importer, /UPDATE wechat_album_sources SET cursor_message_id/)
-  assert.match(importer, /await updateSourceCursor\(source, crawl\.latestItem as AlbumItem, initial\)[\s\S]*?await finishRun\(source, scheduledDate, 'success'/)
+  assert.match(importer, /await updateSourceCursor\(source, crawl\.latestItem as AlbumItem, full\)[\s\S]*?await finishRun\(source, scheduledDate, 'success'/)
   assert.match(importer, /'already-completed-today'/)
 })
 
@@ -61,7 +64,10 @@ test('source categories stay configured for public article sections', async () =
   assert.match(migration, /'labor-public-album'[\s\S]*?'labor-case'/)
 })
 
-test('daily scheduler starts after 12:15 China time in production and can be disabled', () => {
+test('production scheduler performs one deployment full import and retains daily incremental import', () => {
+  assert.match(scheduler, /millisecondsUntilNextWechatAlbumMinute\(\)/)
+  assert.match(scheduler, /runWechatAlbumDeploymentFullImport\(\)/)
+  assert.match(scheduler, /await fullRunSettled/)
   assert.match(scheduler, /millisecondsUntilFirstWechatAlbumRun\(\)/)
   assert.match(scheduler, /millisecondsUntilNextWechatAlbumRun\(\)/)
   assert.match(scheduler, /process\.env\.NODE_ENV !== 'production'/)

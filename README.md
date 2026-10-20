@@ -125,9 +125,9 @@
 
 ## 微信公众号文章采集
 
-公众号同步按现有 `articles`、`article_images` 和 `media_assets` 结构保存标题、完整正文、发布时间、分类和封面。封面与正文中的微信图片会先上传到 OSS、通过公开地址校验，再把 OSS 地址写入文章；摘要留空。首次同步时，三个旧 TRO 专辑只建立最新文章游标，2026 TRO 专辑导入最新 4 篇，劳动法专辑全量导入；之后每天只补充游标之后的新文章。5 个专辑链接保存在 `wechat_album_sources`。
+公众号同步按现有 `articles`、`article_images` 和 `media_assets` 结构保存标题、发布时间、分类和封面；当前只保存封面图片，摘要和正文留空。专辑来源保存在 `wechat_album_sources`，任务读取表内全部启用来源，不限制来源数量；新增来源加入该表后会纳入同步。生产服务启动后，在下一个整分执行一次全量同步，并按来源保存完成标记；此后北京时间每天 12:15 从游标增量获取新文章。
 
-执行首次同步前，先应用数据库迁移：`node tools/migrate-legacy/schema-check.mjs --apply`。确认 `web/.env` 中目标库 `DB_*` 与 `ALIYUN_OSS_*` 已配置后，在 `web` 目录运行 `npm run import:wechat-albums`。持久运行的 Nitro 生产服务会在北京时间每天 12:15 自动执行；设置 `NUXT_WECHAT_ALBUM_IMPORT_ENABLED=false` 可关闭。同步只读取无需登录的公开页面并遵守 `robots.txt`；遇到访问限制、验证页、缺少必要文章字段或图片上传校验失败时停止该专辑并保留失败记录，修复原因后可重跑。
+首次部署前，先应用数据库迁移：`node tools/migrate-legacy/schema-check.mjs --apply`。确认 `web/.env` 中目标库 `DB_*` 与 `ALIYUN_OSS_*` 已配置后，在 `web` 目录运行 `npm run import:wechat-albums` 可手动执行当日同步。持久运行的 Nitro 生产服务会在启动后的下一个整分执行一次全量任务，并在北京时间每天 12:15 执行增量任务；设置 `NUXT_WECHAT_ALBUM_IMPORT_ENABLED=false` 可关闭自动任务。同步遵守站点访问规则；遇到访问限制、验证页、缺少必要文章字段或图片上传校验失败时停止该来源并保留失败记录，修复原因后可重跑。
 
 ## 环境变量
 

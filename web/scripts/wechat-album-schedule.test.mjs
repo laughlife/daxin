@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   millisecondsUntilFirstWechatAlbumRun,
+  millisecondsUntilNextWechatAlbumMinute,
   millisecondsUntilNextWechatAlbumRun,
   wechatShanghaiDateKey,
 } from '../server/utils/wechat-album/schedule.mjs'
@@ -18,4 +19,10 @@ test('daily job runs at 12:15 Shanghai time and catches up when the process star
 
 test('daily run ledger uses the Shanghai calendar date', () => {
   assert.equal(wechatShanghaiDateKey(new Date('2026-10-19T16:30:00.000Z')), '2026-10-20')
+})
+
+test('deployment full import is scheduled for the next whole minute', () => {
+  const afterDeployment = new Date(offset(2026, 10, 20, 12, 4) + 32_500)
+  assert.equal(millisecondsUntilNextWechatAlbumMinute(afterDeployment), 27_500)
+  assert.equal(millisecondsUntilNextWechatAlbumMinute(new Date(offset(2026, 10, 20, 12, 5))), 60_000)
 })
