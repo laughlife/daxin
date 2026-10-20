@@ -107,8 +107,7 @@ const SETTING_GROUPS: Record<GroupKind, { id: string, title: string, keys: strin
     { id: 'footer-intro', title: '页脚信息', keys: ['footer_intro', 'footer_registration', 'footer_qr_primary', 'footer_qr_secondary'] }
   ],
   home: [
-    { id: 'team-intro', title: '团队介绍背景图', keys: ['home_team_background'] },
-    { id: 'hero', title: '首页首屏', keys: ['home_hero_badge', 'home_hero_title', 'home_hero_subtitle', 'home_hero_primary_label', 'home_hero_primary_link', 'home_hero_secondary_label', 'home_hero_background', 'home_hero_background_poster'] },
+    { id: 'hero', title: '首页首屏', keys: ['home_team_background', 'home_hero_badge', 'home_hero_title', 'home_hero_subtitle', 'home_hero_primary_label', 'home_hero_primary_link', 'home_hero_secondary_label', 'home_hero_background', 'home_hero_background_poster'] },
     { id: 'stats', title: '首页数据指标', keys: ['home_stats'] },
     { id: 'advantages', title: '核心优势', keys: ['home_core_advantages'] },
     { id: 'guides', title: '普法干货轮播', keys: ['home_legal_guides'] },
