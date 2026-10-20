@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import { getTargetPool, type SqlConnection } from '../db/pool.ts'
 import { queryTarget, withTargetTransaction } from '../db/query.ts'
 import { getOssConfig, isOssConfigured } from '../oss/config.ts'
+import { deleteOssObject } from '../oss/delete.ts'
 import { buildObjectKey, createPostObjectPolicy } from '../oss/policy.ts'
 import { crawlWechatAlbum } from './crawler.mjs'
 import { normalizeWechatImageUrl, wechatImageIdentity } from './content.mjs'
@@ -229,6 +230,22 @@ async function findExistingArticle(url: string): Promise<ArticleRow | null> {
   return rows[0] ?? null
 }
 
+async function findArticleById(id: number): Promise<ArticleRow | null> {
+  const rows = await queryTarget<ArticleRow>('SELECT id, cover_media_id, legacy_source_table FROM articles WHERE id = ? LIMIT 1', [id])
+  return rows[0] ?? null
+}
+
+/** 旧站迁移文章没有公众号 URL；按栏目、标题和自然日匹配后复用原记录。 */
+async function findLegacyArticle(item: AlbumItem, categoryId: number): Promise<ArticleRow | null> {
+  const rows = await queryTarget<ArticleRow>(
+    `SELECT id, cover_media_id, legacy_source_table FROM articles
+     WHERE category_id = ? AND title = ? AND DATE(published_at) = DATE(?)
+       AND status = 'published' ORDER BY id LIMIT 1`,
+    [categoryId, item.title.trim().slice(0, 255), item.publishedAt],
+  )
+  return rows[0] ?? null
+}
+
 async function findExistingSourceItem(sourceId: number, item: AlbumItem): Promise<number | null> {
   const rows = await queryTarget<{ article_id: number | string | null }>(
     `SELECT article_id FROM wechat_album_items WHERE source_id = ? AND message_id = ? AND item_index = ? LIMIT 1`,
@@ -243,11 +260,12 @@ async function writeArticle(
   item: AlbumItem,
   cover: UploadedImage | null,
   categoryId: number,
+  existingArticleId: number | null,
 ): Promise<{ articleId: number; inserted: boolean }> {
   const identity = articleIdentity(item)
   return withTargetTransaction(async (connection: SqlConnection) => {
     const [existingRows] = await connection.execute('SELECT id FROM articles WHERE slug = ? LIMIT 1', [identity.slug])
-    let articleId = Number((existingRows as IdRow[])[0]?.id ?? 0)
+    let articleId = existingArticleId || Number((existingRows as IdRow[])[0]?.id ?? 0)
     const inserted = articleId === 0
     if (inserted) {
       const title = item.title.trim().slice(0, 255)
@@ -264,19 +282,14 @@ async function writeArticle(
       articleId = Number((header as DbHeader).insertId ?? 0)
       if (!articleId) throw new Error(`写入公众号文章失败：${title}`)
     } else {
-      const [existing] = await connection.execute(
-        'SELECT legacy_source_table FROM articles WHERE id = ? LIMIT 1',
-        [articleId],
+      await connection.execute(
+        `UPDATE articles SET title = ?, summary = NULL, content_html = NULL, content_text = NULL,
+           category_id = ?, cover_media_id = COALESCE(?, cover_media_id), published_at = ?,
+           status = 'published', legacy_source_table = 'wechat_album', legacy_source_id = ?, updated_at = NOW()
+         WHERE id = ?`,
+        [item.title.trim().slice(0, 255), categoryId, cover?.id ?? null, item.publishedAt, identity.legacyId, articleId],
       )
-      const existingSource = (existing as Array<{ legacy_source_table?: string | null }>)[0]?.legacy_source_table
-      if (existingSource === 'wechat_album') {
-        await connection.execute(
-          `UPDATE articles SET title = ?, summary = NULL, content_html = NULL, content_text = NULL,
-             category_id = ?, cover_media_id = COALESCE(cover_media_id, ?), published_at = ?,
-             status = 'published', updated_at = NOW() WHERE id = ?`,
-          [item.title.trim().slice(0, 255), categoryId, cover?.id ?? null, item.publishedAt, articleId],
-        )
-      }
+      await removeArticleBodyImages(connection, articleId)
     }
 
     await connection.execute(
@@ -292,6 +305,36 @@ async function writeArticle(
   })
 }
 
+type BodyMediaRow = { id: number | string; object_key: string }
+
+/** 删除该文章正文配图；共享图和任何文章封面均保留。 */
+async function removeArticleBodyImages(connection: SqlConnection, articleId: number): Promise<void> {
+  const [mediaRows] = await connection.execute(
+    `SELECT DISTINCT m.id, m.object_key
+     FROM article_images ai
+     JOIN media_assets m ON m.id = ai.media_id AND m.deleted_at IS NULL
+     WHERE ai.article_id = ?
+       AND NOT EXISTS (SELECT 1 FROM articles cover_ref WHERE cover_ref.cover_media_id = m.id)
+       AND NOT EXISTS (SELECT 1 FROM article_images other_ref WHERE other_ref.media_id = m.id AND other_ref.article_id <> ?)
+     FOR UPDATE`,
+    [articleId, articleId],
+  )
+  const removable = mediaRows as BodyMediaRow[]
+  const config = removable.length ? getOssConfig() : null
+  for (const media of removable) await deleteOssObject(media.object_key, config!)
+
+  await connection.execute('DELETE FROM article_images WHERE article_id = ?', [articleId])
+  for (const media of removable) {
+    await connection.execute(
+      `UPDATE media_assets SET deleted_at = NOW(), updated_at = NOW()
+       WHERE id = ? AND deleted_at IS NULL
+         AND NOT EXISTS (SELECT 1 FROM articles cover_ref WHERE cover_ref.cover_media_id = media_assets.id)
+         AND NOT EXISTS (SELECT 1 FROM article_images other_ref WHERE other_ref.media_id = media_assets.id)`,
+      [media.id],
+    )
+  }
+}
+
 async function importArticle(
   source: AlbumSource,
   item: AlbumItem,
@@ -300,41 +343,17 @@ async function importArticle(
 ): Promise<{ inserted: boolean; imageCount: number }> {
   const sourceId = Number(source.id)
   const existingItemArticle = await findExistingSourceItem(sourceId, item)
-  if (existingItemArticle) return { inserted: false, imageCount: 0 }
-  const identity = articleIdentity(item)
-  const existingArticle = await findExistingArticle(identity.url)
-  if (existingArticle) {
-    let cover: UploadedImage | null = null
-    if (existingArticle.legacy_source_table === 'wechat_album' && !existingArticle.cover_media_id && item.coverUrl) {
-      cover = await uploadImage(item.coverUrl, `${item.title} 封面`, robots)
-      await withTargetTransaction(async (connection) => {
-        await connection.execute(
-          `UPDATE articles SET cover_media_id = ?, title = ?, summary = NULL, content_html = NULL,
-             content_text = NULL, category_id = ?, published_at = ?, status = 'published', updated_at = NOW()
-           WHERE id = ? AND legacy_source_table = 'wechat_album'`,
-          [cover?.id ?? null, item.title.trim().slice(0, 255), categoryId, item.publishedAt || null, existingArticle.id],
-        )
-      })
-    }
-    await withTargetTransaction(async (connection) => {
-      await connection.execute(
-        `INSERT INTO wechat_album_items
-           (source_id, message_id, item_index, article_hash, article_id, source_url, title, cover_source_url, published_at, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-         ON DUPLICATE KEY UPDATE article_id = VALUES(article_id), article_hash = VALUES(article_hash), updated_at = NOW()`,
-        [sourceId, item.messageId, item.itemIndex, identity.hash, existingArticle.id, identity.url.slice(0, 2048), item.title.slice(0, 255), item.coverUrl.slice(0, 2048), item.publishedAt || null],
-      )
-    })
-    return { inserted: false, imageCount: cover ? 1 : 0 }
-  }
-
-  if (!item.title.trim()) throw new Error(`文章 ${identity.url} 缺少标题`)
+  if (!item.title.trim()) throw new Error(`文章 ${item.url} 缺少标题`)
   if (!item.publishedAt) throw new Error(`文章“${item.title}”缺少发布时间`)
   const coverUrl = normalizeWechatImageUrl(item.coverUrl)
   if (!coverUrl) throw new Error(`文章“${item.title}”没有可读取的封面图片`)
 
+  const identity = articleIdentity(item)
   const cover = await uploadImage(coverUrl, `${item.title} 封面`, robots)
-  const result = await writeArticle(source, item, cover, categoryId)
+  const existingArticle = existingItemArticle
+    ? await findArticleById(existingItemArticle)
+    : await findExistingArticle(identity.url) ?? await findLegacyArticle(item, categoryId)
+  const result = await writeArticle(source, item, cover, categoryId, existingArticle ? Number(existingArticle.id) : null)
   return { inserted: result.inserted, imageCount: 1 }
 }
 

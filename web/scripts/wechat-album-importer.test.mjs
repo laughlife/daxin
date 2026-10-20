@@ -11,6 +11,7 @@ test('article import stores list metadata, category and OSS cover without reques
   assert.match(importer, /status, is_featured, show_in_sidebar, legacy_source_table, legacy_source_id/)
   assert.doesNotMatch(importer, /parseWechatArticlePage|fetchWechatText\(identity\.url/)
   assert.match(importer, /INSERT INTO wechat_album_items[\s\S]*?source_url, title, cover_source_url, published_at/)
+  assert.match(importer, /findLegacyArticle\(item, categoryId\)/)
   assert.match(importer, /cover_media_id/)
   assert.match(importer, /WHERE slug = \? AND status = 1/)
 })
@@ -22,6 +23,10 @@ test('only the cover is uploaded as verified article media; body image handling 
   assert.match(importer, /uploadImage\(coverUrl, `\$\{item\.title\} 封面`, robots\)/)
   assert.doesNotMatch(importer, /getWechatBodyImages|replaceWechatBodyImages|INSERT INTO article_images/)
   assert.match(importer, /legacy_source_table = 'wechat_album_image'/)
+  assert.match(importer, /content_html = NULL, content_text = NULL/)
+  assert.match(importer, /await deleteOssObject\(media\.object_key, config!/)
+  assert.match(importer, /NOT EXISTS \(SELECT 1 FROM articles cover_ref WHERE cover_ref\.cover_media_id = m\.id\)/)
+  assert.match(importer, /NOT EXISTS \(SELECT 1 FROM article_images other_ref WHERE other_ref\.media_id = m\.id AND other_ref\.article_id <> \?\)/)
 })
 
 test('each source is full on its first successful sync and incremental after its saved cursor', () => {
