@@ -28,6 +28,11 @@ try {
 }
 
 const { runWechatAlbumImport } = await import('../server/utils/wechat-album/importer.ts')
-const result = await runWechatAlbumImport()
-console.log(JSON.stringify(result, null, 2))
-if (result.failedCount) process.exitCode = 1
+const { closeDbPools } = await import('../server/utils/db/pool.ts')
+try {
+  const result = await runWechatAlbumImport()
+  console.log(JSON.stringify(result, null, 2))
+  if (result.failedCount) process.exitCode = 1
+} finally {
+  await closeDbPools()
+}

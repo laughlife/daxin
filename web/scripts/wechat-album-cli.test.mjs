@@ -10,6 +10,8 @@ test('manual first import loads the existing web environment and runs the shared
   assert.match(cli, /resolve\(WEB_ROOT, '\.env'\)/)
   assert.match(cli, /process\.env\[key\] \?\?= value/)
   assert.match(cli, /await import\('\.\.\/server\/utils\/wechat-album\/importer\.ts'\)/)
+  assert.match(cli, /closeDbPools/)
+  assert.match(cli, /finally\s*\{\s*await closeDbPools\(\)/)
   assert.match(cli, /runWechatAlbumImport\(\)/)
   assert.equal(packageJson.scripts['import:wechat-albums'], 'node --experimental-strip-types scripts/import-wechat-albums.mjs')
   assert.match(readme, /npm run import:wechat-albums/)
