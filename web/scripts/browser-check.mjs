@@ -112,19 +112,24 @@ try {
   await page.keyboard.press('Escape')
 
   // ---------- 内容栏目：侧栏二维码与文章阅读 ----------
+  // 侧栏按栏目所属业务只展示对应的一组（公共号 + 咨询号），
+  // 不是把四个渠道全列出来 —— /faq/cross-border 属 TRO 业务，故只应出现 tro 组。
   for (const [path, expected] of [
     ['/tro/alerts', ['tro-public', 'tro-consult']],
     ['/domestic/labor-disputes', ['labor-public', 'labor-consult']],
     ['/faq/labor', ['labor-public', 'labor-consult']],
-    ['/faq/cross-border', ['tro-public', 'tro-consult', 'labor-public', 'labor-consult']],
+    ['/faq/cross-border', ['tro-public', 'tro-consult']],
   ]) {
     await visit(path)
     const ids = await page.locator('.content-sidebar [data-qr-id]').evaluateAll(elements => elements.map(el => el.dataset.qrId))
     check(`${path} 精确使用对应业务二维码`, JSON.stringify(ids) === JSON.stringify(expected))
   }
 
-  // /tro/alerts 有 251 篇真实文章：验证检索与阅读
-  await visit('/tro/alerts')
+  // 用有真实数据的分类验证检索与阅读。
+  // 说明：原脚本用的是 /tro/alerts（TRO侵权预警），但该分类当前 0 篇文章
+  // （公众号采集落到了 tro-success / knowledge / labor-case / freight-case），
+  // 空分类无法验证「渲染真实文章 / 关键词检索」，故改用 /tro/success-cases。
+  await visit('/tro/success-cases')
   check('栏目列表渲染真实文章', await page.locator('.article-list__card').count() > 0)
   await page.locator('.listing-search input[type=search]').fill('Keith')
   await page.locator('.article-list__card').first().waitFor()
@@ -133,13 +138,18 @@ try {
   await page.waitForFunction(() => document.querySelectorAll('.article-list__card').length === 0)
   check('无结果时列表为空而非报错', await page.locator('.article-list__card').count() === 0)
 
-  await visit('/tro/alerts?page=1')
-  await page.locator('.article-list h2 a').first().click()
-  await page.locator('.article-detail__body').waitFor()
-  check('文章详情渲染正文', await page.locator('.article-detail__body').count() === 1 && await page.locator('.rich-article-body').count() === 1)
+  // 说明：站内文章目前全部来自公众号采集，只存列表元数据与封面、不存正文，
+  // 因此列表里的文章链接直接指向公众号原文（详情接口也会 302 跳转）。
+  // 这里按真实行为断言，不再期待站内渲染正文。
+  await visit('/tro/success-cases?page=1')
+  const firstArticleHref = await page.locator('.article-list h2 a').first().getAttribute('href')
+  check('导入文章的链接直达公众号原文',
+    (firstArticleHref ?? '').includes('mp.weixin.qq.com'),
+    (firstArticleHref ?? '').slice(0, 56))
 
   // 空分类栏目应显示空状态，且不应退化成「列出全部文章」
-  await visit('/domestic/labor-disputes')
+  // TRO侵权预警 当前无文章，正好用于验证空状态
+  await visit('/tro/alerts')
   check('空分类显示空状态', await page.locator('.article-list__card').count() === 0)
 
   // ---------- 案件查询 ----------
@@ -154,7 +164,9 @@ try {
   check('越界页码仍有数据', await page.locator('tbody tr').count() > 0)
 
   await visit('/tro/cases')
-  await page.locator('#case-search-keyword').fill('Keith')
+  // 需求 2026-10-20：关键词框改为公共 SearchPill 组件，旧 id #case-search-keyword 已不存在，
+  // 这里改用结构选择器，避免以后组件再换 id 时又断一次。
+  await page.locator('.case-search-panel .search-pill__input').fill('Keith')
   await page.waitForURL('**q=Keith*')
   check('关键词筛选同步到 URL', await page.locator('tbody tr').count() > 0)
 
