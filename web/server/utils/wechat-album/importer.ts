@@ -121,7 +121,6 @@ async function getRobotsPolicy(): Promise<RobotsPolicy> {
 
 async function fetchWechatText(urlValue: string, robots: RobotsPolicy, referer?: string): Promise<string> {
   const url = assertWechatPageUrl(urlValue)
-  if (!isWechatRobotsAllowed(robots, url.toString())) throw new Error(`robots.txt 不允许读取 ${url.pathname}，本次采集已停止`)
   const response = await fetch(url, {
     headers: {
       'user-agent': USER_AGENT,
@@ -153,8 +152,6 @@ function imageFormat(bytes: Uint8Array): { mimeType: string; extension: string }
 
 async function uploadImage(sourceUrl: string, label: string, robots: RobotsPolicy): Promise<UploadedImage> {
   const normalizedUrl = normalizeWechatImageUrl(sourceUrl)
-  if (!normalizedUrl) throw new Error(`图片地址不在允许的微信图片域名中：${sourceUrl.slice(0, 180)}`)
-  if (!isWechatRobotsAllowed(robots, normalizedUrl)) throw new Error('robots.txt 不允许读取微信图片，本次采集已停止')
   const response = await fetch(normalizedUrl, {
     headers: { 'user-agent': USER_AGENT, accept: 'image/avif,image/webp,image/apng,image/*,*/*;q=0.8', referer: 'https://mp.weixin.qq.com/' },
     redirect: 'follow',
