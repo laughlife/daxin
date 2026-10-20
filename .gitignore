@@ -45,3 +45,8 @@ Thumbs.db
 # upload-assets.mjs 的上传结果清单（每次运行都会重写，不入库）
 /uploaded-assets.json
 
+
+# 打包产物（体积大，不入库）
+/release/
+*.zip
+
