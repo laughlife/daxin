@@ -37,14 +37,15 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
   >
     <div class="case-search-panel__grid">
       <div class="case-search-panel__field case-search-panel__field--keyword">
-        <label for="case-search-keyword">关键词</label>
-        <input
-          id="case-search-keyword"
+        <!--
+          需求 2026-10-20：搜索框统一为胶囊样式（左放大镜 + 输入 + 金色搜索按钮）。
+          关键词仍是即时筛选，提交按钮只用于明确触发并收起移动端键盘。
+        -->
+        <SearchPill
           v-model="filters.keyword"
-          type="search"
+          label="关键词"
           placeholder="案件号、原告、品牌名或代理律所，如 25-cv-00126 / Keith"
-          autocomplete="off"
-        >
+        />
       </div>
       <div class="case-search-panel__filters">
         <div class="case-search-panel__field case-search-panel__field--type">
@@ -113,10 +114,9 @@ const caseTypeOptions: Array<{ value: CaseType | ''; label: string }> = [
 
 .case-search-panel__field--keyword {
   grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
-  align-items: center;
-  gap: var(--space-4);
+  /* 关键词已改为 SearchPill 胶囊组件，不再需要「标签 + 输入框」两列栅格 */
+  display: block;
+  min-width: 0;
 }
 
 .case-search-panel__field label {

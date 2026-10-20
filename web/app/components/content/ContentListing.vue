@@ -140,7 +140,17 @@ const eyebrow = computed(() => props.section.path.startsWith('/tro') ? 'TRO SERV
         <ContentSectionTabs :path="section.path" />
 
         <form class="listing-search" role="search" @submit.prevent>
-          <label class="listing-search__keyword"><span>关键词</span><input v-model="keyword" type="search" placeholder="标题、案件号、品牌名或律所名"></label>
+          <!--
+            需求 2026-10-20：搜索框统一为胶囊样式（左放大镜 + 输入 + 金色搜索按钮），
+            国内业务 / 常见问题等走 ContentListing 的页面一并生效。
+            关键词仍即时筛选；日期区间属进阶条件，保留在下方。
+          -->
+          <SearchPill
+            v-model="keyword"
+            class="listing-search__pill"
+            label="关键词"
+            placeholder="标题、案件号、品牌名或律所名"
+          />
           <div class="listing-search__filters">
             <label class="listing-search__date"><span>发布日期从</span><input v-model="from" type="date" :max="to || undefined"></label>
             <label class="listing-search__date"><span>发布日期至</span><input v-model="to" type="date" :min="from || undefined"></label>
@@ -179,7 +189,6 @@ const eyebrow = computed(() => props.section.path.startsWith('/tro') ? 'TRO SERV
 .listing-page__eyebrow { margin-bottom:var(--space-3); color:var(--color-primary); font-size:var(--text-sm); font-weight:700; letter-spacing:.12em; }
 .listing-search { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--space-4); padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
 .listing-search label { display:grid; grid-template-columns:max-content minmax(0,1fr); align-items:center; gap:var(--space-3); min-width:0; font-size:var(--text-sm); color:var(--color-text-muted); }
-.listing-search__keyword { grid-column:1/-1; }
 .listing-search__filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr)); align-items:end; gap:var(--space-4); min-width:0; }
 .listing-search__date { display:flex !important; flex-direction:column; align-items:stretch !important; gap:var(--space-2) !important; min-width:0; }
 .listing-search__date input { min-width:0; }
