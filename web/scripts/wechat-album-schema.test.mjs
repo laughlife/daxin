@@ -13,11 +13,11 @@ test('公众号同步迁移包含来源、文章去重映射和每日运行台�
   assert.doesNotMatch(migration, /\b(?:DROP|TRUNCATE|DELETE)\s+(?:TABLE|FROM)?/i)
 })
 
-test('迁移保存五个专辑来源并明确初次同步范围', () => {
+test('迁移保存五个专辑来源，所有来源首次同步均为全量', () => {
   for (const sourceKey of ['tro-2025-album', 'tro-classic-album', 'tro-knowledge-album', 'tro-2026-album', 'labor-public-album']) {
     assert.ok(migration.includes(`'${sourceKey}'`), `缺少来源 ${sourceKey}`)
   }
-  assert.match(migration, /'2026年TRO侵权案例',[\s\S]*?'tro-success',[\s\S]*?'latest', 4/)
+  assert.match(migration, /'2026年TRO侵权案例',[\s\S]*?'tro-success',[\s\S]*?'full', 0/)
   assert.match(migration, /'劳动法公众号',[\s\S]*?'labor-case',[\s\S]*?'full'/)
   assert.match(migration, /'TRO科普',[\s\S]*?'knowledge'/)
 })

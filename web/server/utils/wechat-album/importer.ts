@@ -286,7 +286,7 @@ async function writeArticle(
        ON DUPLICATE KEY UPDATE article_hash = VALUES(article_hash), article_id = VALUES(article_id),
          source_url = VALUES(source_url), title = VALUES(title), cover_source_url = VALUES(cover_source_url),
          published_at = VALUES(published_at), updated_at = NOW()`,
-      [source.id, item.messageId, item.itemIndex, identity.hash, articleId, identity.url.slice(0, 2048), (article.title || item.title).slice(0, 255), (article.coverUrl || item.coverUrl || '').slice(0, 2048), article.publishedAt || item.publishedAt || null],
+      [source.id, item.messageId, item.itemIndex, identity.hash, articleId, identity.url.slice(0, 2048), item.title.slice(0, 255), item.coverUrl.slice(0, 2048), item.publishedAt || null],
     )
     return { articleId, inserted }
   })
