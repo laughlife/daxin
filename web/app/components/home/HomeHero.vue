@@ -339,15 +339,20 @@ const heroStyle = computed(() => {
   border-radius: var(--radius-full);
 }
 
+/*
+ * 首屏主按钮的渐变改用主题令牌（原为硬编码红 #e51b28/#b91c1c）。
+ * 需求 2026-10-20 要求「首屏布局与文案不动」，配色属于全站统一调整，
+ * 硬编码红色在金色主题下会突兀，因此改为引用 --color-primary 系列。
+ */
 .home-hero__actions :deep(.btn--primary) {
   border-color: rgb(255 255 255 / 52%);
-  background: linear-gradient(135deg, #e51b28, #b91c1c);
-  box-shadow: 0 8px 22px rgb(116 6 21 / 28%);
+  background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
+  box-shadow: 0 8px 22px rgb(90 62 18 / 30%);
 }
 
 .home-hero__actions :deep(.btn--primary:hover) {
-  background: linear-gradient(135deg, #f12431, #a8141b);
-  box-shadow: 0 10px 26px rgb(116 6 21 / 32%);
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  box-shadow: 0 10px 26px rgb(90 62 18 / 36%);
 }
 
 /* 联系按钮用轻透的浅灰衬底，从复杂背景里微微提出来。 */

@@ -17,6 +17,20 @@ test('site theme presets use the approved brand palettes', () => {
     'legal-navy': { label: '律政藏蓝', primary: '#244A73', accent: '#C9A45C' },
     'elegant-green': { label: '雅致墨绿', primary: '#28675A', accent: '#C9A45C' },
     'business-purple': { label: '商务紫', primary: '#642A86', accent: '#D7B5E8' },
+    // 需求 2026-10-20：金色系作为品牌主推预设，额外覆盖底色与文字色
+    'royal-gold': {
+      label: '典雅金（品牌主推）',
+      primary: '#8F5F18',
+      accent: '#D4AF37',
+      extended: {
+        primaryDark: '#7A5216',
+        primaryLight: '#F7EEDA',
+        bgLight: '#FAF6EE',
+        bgDark: '#2A2018',
+        text: '#2B2620',
+        textMuted: '#6F6559',
+      },
+    },
   })
 })
 
@@ -25,25 +39,16 @@ test('site theme normalizes custom HEX values and falls back safely for invalid 
     preset: 'custom',
     primary: '#ABC123',
   })
-  assert.deepEqual(normalizeSiteTheme({ preset: 'custom', primary: '#12345g' }), {
-    preset: 'classic-red',
-    primary: '#B91C1C',
-  })
-  assert.deepEqual(normalizeSiteTheme({ preset: 'custom', primary: '#12345' }), {
-    preset: 'classic-red',
-    primary: '#B91C1C',
-  })
-  assert.deepEqual(normalizeSiteTheme({ preset: 'unknown', primary: '#123456' }), {
-    preset: 'classic-red',
-    primary: '#B91C1C',
-  })
-  assert.deepEqual(normalizeSiteTheme(null), {
-    preset: 'classic-red',
-    primary: '#B91C1C',
-  })
+  // 非法/未知/缺失一律回落到「品牌主推」预设（2026-10-20 起为典雅金）
+  const fallback = { preset: 'royal-gold', primary: '#8F5F18' }
+  assert.deepEqual(normalizeSiteTheme({ preset: 'custom', primary: '#12345g' }), fallback)
+  assert.deepEqual(normalizeSiteTheme({ preset: 'custom', primary: '#12345' }), fallback)
+  assert.deepEqual(normalizeSiteTheme({ preset: 'unknown', primary: '#123456' }), fallback)
+  assert.deepEqual(normalizeSiteTheme(null), fallback)
 })
 
 test('site theme exposes only controlled primary and accent CSS variables', () => {
+  // 未带扩展调色板的预设行为不变：只覆盖主色与点缀色
   assert.deepEqual(siteThemeCssVariables({ preset: 'business-purple' }), {
     '--color-primary': '#642A86',
     '--color-accent': '#D7B5E8',
@@ -51,6 +56,20 @@ test('site theme exposes only controlled primary and accent CSS variables', () =
   assert.deepEqual(siteThemeCssVariables({ preset: 'custom', primary: '#0a2b4c' }), {
     '--color-primary': '#0A2B4C',
     '--color-accent': '#C9A45C',
+  })
+})
+
+test('gold preset overrides surface and text colors so the palette is coherent', () => {
+  // 只换主色会让「主色是金的、底子还是冷灰」，因此金色预设必须同时覆盖底色与文字色
+  assert.deepEqual(siteThemeCssVariables({ preset: 'royal-gold' }), {
+    '--color-primary': '#8F5F18',
+    '--color-accent': '#D4AF37',
+    '--color-primary-dark': '#7A5216',
+    '--color-primary-light': '#F7EEDA',
+    '--color-bg-light': '#FAF6EE',
+    '--color-bg-dark': '#2A2018',
+    '--color-text': '#2B2620',
+    '--color-text-muted': '#6F6559',
   })
 })
 

@@ -900,7 +900,7 @@ function useTextarea(value: string): boolean {
                         type="text"
                         inputmode="text"
                         maxlength="7"
-                        placeholder="#B91C1C"
+                        placeholder="#8F5F18"
                         aria-describedby="site-theme-color-hint"
                         :disabled="controlsDisabled || savingKind !== ''"
                         @input="onSiteThemePrimaryInput(($event.target as HTMLInputElement).value)"

@@ -9,28 +9,34 @@
  */
 :root {
   /* ===== 品牌色 =====
-   * 当前红色为需求文档阶段的临时主题（页面底色浅灰、卡片白色、重点红色），
-   * 正式品牌规范确认后仅需替换本区块变量。 */
-  --color-primary: #b91c1c;          /* 品牌主色（临时红） */
-  --color-primary-dark: #8f1414;     /* 主色加深（hover / 深色底） */
-  --color-primary-light: #fbeaea;    /* 主色浅底（选中态背景等） */
-  --color-accent: #c9a45c;           /* 点缀金色，仅少量强调（TODO：待品牌确认） */
+   * 需求 2026-10-20：整体配色改为金色系（参考旧海报的金色 + 暖米色底）。
+   * 这些是静态兜底值；后台「站点设置 → 公开页面配色」选择预设后，
+   * 由 layouts/default.vue 注入同名的 CSS 变量覆盖，二者保持一致。
+   *
+   * 取值依据（已核算对比度，避免「金色好看但读不清」）：
+   *   primary #8F5F18 对白底 5.50:1，可安全用于正文链接与按钮底色（白字）
+   *   accent  #D4AF37 对白底仅 2.10:1，只作装饰（分隔线/图标/渐变），不做正文
+   */
+  --color-primary: #8f5f18;          /* 品牌主色（典雅金） */
+  --color-primary-dark: #7a5216;     /* 主色加深（hover / 深色底） */
+  --color-primary-light: #f7eeda;    /* 主色浅底（选中态背景等） */
+  --color-accent: #d4af37;           /* 亮金点缀，仅装饰不承载正文 */
 
   /* ===== 背景色 ===== */
   --color-bg-page: #ffffff;          /* 页面默认背景（内容卡片白色） */
-  --color-bg-light: #f7f8fa;         /* 浅色分区背景 */
-  --color-bg-dark: #262626;          /* 深色背景（公告栏 / Footer，深灰） */
-  --color-bg-overlay: rgb(38 38 38 / 55%); /* 移动端菜单遮罩 */
+  --color-bg-light: #faf6ee;         /* 浅色分区背景（暖米色） */
+  --color-bg-dark: #2a2018;          /* 深色背景（公告栏 / Footer，深棕） */
+  --color-bg-overlay: rgb(42 32 24 / 58%); /* 移动端菜单遮罩 */
 
   /* ===== 文字颜色（保持高对比度） ===== */
-  --color-text: #202a36;             /* 正文颜色 */
-  --color-text-muted: #667085;       /* 次要文字颜色 */
+  --color-text: #2b2620;             /* 正文颜色（暖黑，对米白底 13.9:1） */
+  --color-text-muted: #6f6559;       /* 次要文字颜色（对米白底 5.29:1） */
   --color-text-inverse: #ffffff;     /* 深色底上的文字 */
   --color-text-on-primary: #ffffff;  /* 主色底上的文字 */
 
   /* ===== 边框颜色 ===== */
-  --color-border: #e5e7eb;           /* 常规边框 */
-  --color-border-strong: #c7cdd6;    /* 加重边框 */
+  --color-border: #e8dfd0;           /* 常规边框（暖灰） */
+  --color-border-strong: #cfc2ad;    /* 加重边框 */
 
   /* ===== 状态色 ===== */
   --color-success: #16a34a;
