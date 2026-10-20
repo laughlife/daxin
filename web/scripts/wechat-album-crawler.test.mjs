@@ -33,30 +33,10 @@ test('first full sync walks every list page and keeps each listing row once', as
   assert.equal(new URL(requests[1]).searchParams.get('begin_msgid'), 'm2')
 })
 
-test('initial latest sync imports only the requested newest rows', async () => {
-  const items = [article('m5', 1, 105), article('m4', 1, 104), article('m3', 1, 103), article('m2', 1, 102), article('m1', 1, 101)]
-  const result = await crawlWechatAlbum({
-    sourceUrl,
-    mode: 'latest',
-    limit: 4,
-    fetchFirstPage: async () => albumPage(items, true),
-    fetchNextPage: async () => { throw new Error('latest mode should not paginate') },
-    sleep: async () => {},
-  })
-  assert.deepEqual(result.items.map(item => item.messageId), ['m5', 'm4', 'm3', 'm2'])
-  assert.equal(result.latestItem.messageId, 'm5')
-})
-
-test('baseline records the newest cursor without importing old posts', async () => {
-  const result = await crawlWechatAlbum({
-    sourceUrl,
-    mode: 'baseline',
-    fetchFirstPage: async () => albumPage([article('m5', 1, 105), article('m4', 1, 104)], true),
-    fetchNextPage: async () => { throw new Error('baseline mode should not paginate') },
-    sleep: async () => {},
-  })
-  assert.equal(result.items.length, 0)
-  assert.equal(result.latestItem.messageId, 'm5')
+test('crawler only accepts full and incremental modes', async () => {
+  const options = { sourceUrl, fetchFirstPage: async () => albumPage([article('m1', 1, 101)]), fetchNextPage: async () => null }
+  await assert.rejects(crawlWechatAlbum({ ...options, mode: 'baseline' }), /同步模式无效/)
+  await assert.rejects(crawlWechatAlbum({ ...options, mode: 'latest' }), /同步模式无效/)
 })
 
 test('incremental sync stops at the stored message cursor after collecting newer rows', async () => {
@@ -77,6 +57,6 @@ test('incremental sync stops at the stored message cursor after collecting newer
 
 test('validates public album URLs and requires a cursor for incremental sync', async () => {
   const options = { fetchFirstPage: async () => '', fetchNextPage: async () => null }
-  await assert.rejects(crawlWechatAlbum({ ...options, sourceUrl: 'https://example.com/album', mode: 'baseline' }), /来源链接无效/)
+  await assert.rejects(crawlWechatAlbum({ ...options, sourceUrl: 'https://example.com/album', mode: 'full' }), /来源链接无效/)
   await assert.rejects(crawlWechatAlbum({ ...options, sourceUrl, mode: 'incremental' }), /缺少已保存的文章游标/)
 })

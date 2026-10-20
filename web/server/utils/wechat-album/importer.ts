@@ -21,8 +21,6 @@ type AlbumSource = {
   name: string
   album_url: string
   category_slug: string
-  initial_mode: 'baseline' | 'latest' | 'full' | string
-  initial_limit: number | string
   cursor_message_id: string
   cursor_item_index: string
   initial_synced_at: Date | string | null
@@ -391,7 +389,6 @@ async function importSource(source: AlbumSource, robots: RobotsPolicy, scheduled
   const initial = !source.initial_synced_at
   const mode = initial ? 'full' : 'incremental'
   const pageDelayMs = Math.max(PAGE_DELAY_MS, robots.crawlDelayMs)
-  const limit = 0
   const cursor = initial ? null : { messageId: source.cursor_message_id, itemIndex: source.cursor_item_index }
   const empty: ImportResult = { fetchedCount: 0, insertedCount: 0, duplicateCount: 0, imageCount: 0 }
   await writeRunStart(source, scheduledDate, mode)
@@ -399,7 +396,6 @@ async function importSource(source: AlbumSource, robots: RobotsPolicy, scheduled
     const crawl = await crawlWechatAlbum({
       sourceUrl: source.album_url,
       mode,
-      limit,
       cursor,
       pageDelayMs,
       fetchFirstPage: (url: string) => fetchWechatText(url, robots),
@@ -446,7 +442,7 @@ export async function runWechatAlbumImport(now = new Date()) {
     if (!hasLock) return { skipped: true, reason: 'another-run-is-active' }
 
     const sources = await queryTarget<AlbumSource>(
-      `SELECT id, source_key, name, album_url, category_slug, initial_mode, initial_limit,
+      `SELECT id, source_key, name, album_url, category_slug,
          cursor_message_id, cursor_item_index, initial_synced_at
        FROM wechat_album_sources WHERE enabled = 1 ORDER BY id`,
     )

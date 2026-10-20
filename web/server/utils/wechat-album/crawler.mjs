@@ -40,14 +40,12 @@ function addUnique(items, identities, urls, incoming) {
 }
 
 /**
- * 按公众号专辑公开列表分页。只读列表与原文页面，不带登录 Cookie，
- * 首次全量、最新 N 篇、建立基线和后续增量共用这一分页器。
+ * 按公众号专辑公开列表分页；首次全量同步，后续仅采集保存游标之后的新条目。
  */
 export async function crawlWechatAlbum(options) {
   const {
     sourceUrl,
     mode = 'incremental',
-    limit = 0,
     cursor = null,
     fetchFirstPage,
     fetchNextPage,
@@ -64,11 +62,8 @@ export async function crawlWechatAlbum(options) {
     || !albumUrl.searchParams.get('__biz') || !albumUrl.searchParams.get('album_id')) {
     throw new Error('公众号专辑来源链接无效')
   }
-  if (!['baseline', 'latest', 'full', 'incremental'].includes(mode)) {
+  if (!['full', 'incremental'].includes(mode)) {
     throw new Error('公众号专辑同步模式无效')
-  }
-  if (mode === 'latest' && (!Number.isInteger(limit) || limit < 1)) {
-    throw new Error('最新文章同步必须提供有效篇数')
   }
   if (mode === 'incremental' && (!cursor?.messageId || !cursor?.itemIndex)) {
     throw new Error('增量同步缺少已保存的文章游标')
@@ -83,13 +78,6 @@ export async function crawlWechatAlbum(options) {
   let pageCount = 1
   let latestItem = firstPage.items[0] ?? null
 
-  if (mode === 'baseline') {
-    return {
-      items: [], pageCount, duplicateCount: 0, stoppedAtCursor: false,
-      hasMore: firstPage.hasMore, latestItem,
-    }
-  }
-
   let page = firstPage
   let nextCursor = page.items.at(-1)
   let stoppedAtCursor = false
@@ -101,10 +89,9 @@ export async function crawlWechatAlbum(options) {
         break
       }
       duplicateCount += addUnique(collected, identities, urls, [item])
-      if (mode === 'latest' && collected.length >= limit) break
     }
 
-    if (stoppedAtCursor || (mode === 'latest' && collected.length >= limit) || !page.hasMore) break
+    if (stoppedAtCursor || !page.hasMore) break
     if (pageCount >= maxPageCount) throw new Error(`公众号专辑超过分页上限 ${maxPageCount} 页，已停止，避免不完整导入`)
     if (!nextCursor?.messageId || !nextCursor?.itemIndex) throw new Error('公众号专辑分页游标缺失，已停止')
 
