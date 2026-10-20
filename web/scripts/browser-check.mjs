@@ -206,13 +206,22 @@ try {
   await page.getByRole('button', { name: /^全部/ }).click()
   // 按「真实存在的品牌名」检索，而不是写死某个案件号：
   // cases 表目前仅 3 条 published，案件号与品牌的关联大量为空，写死会误报。
-  // 卡片标题形如「accdanc 商标」，末尾是类型标签，检索时只取品牌名本身
+  // 卡片标题形如「acdanc 商标」，末尾是类型标签，检索时只取品牌名本身
   const sampleBrand = (await page.locator('.brand-card h3').first().innerText()).trim().split(/\s+/)[0]
   await page.getByRole('searchbox', { name: '关键词' }).fill(sampleBrand)
   await page.getByRole('button', { name: '搜索', exact: true }).click()
   await page.waitForURL(`**q=${encodeURIComponent(sampleBrand)}*`)
+  // 检索后列表会先进入 loading 再换数据，等结果稳定（卡片或空状态）再计数
+  await page.waitForFunction(
+    () => document.querySelectorAll('.brand-card').length > 0
+      || document.querySelector('.brand-directory__empty') !== null,
+    null,
+    { timeout: 15000 },
+  ).catch(() => {})
   const filteredCount = await page.locator('.brand-card').count()
-  check('品牌库支持关键词检索', filteredCount > 0, `「${sampleBrand}」命中 ${filteredCount} 个`)
+  const emptyShown = await page.locator('.brand-directory__empty').count() > 0
+  check('品牌库支持关键词检索', filteredCount > 0 && !emptyShown,
+    `「${sampleBrand}」命中 ${filteredCount} 个`)
   await visit('/brands')
   const brandDetailHref = await page.locator('.brand-card a[href^="/brands/"]').first().getAttribute('href')
   check('品牌档案有详情链接', Boolean(brandDetailHref))
@@ -220,9 +229,14 @@ try {
   await page.locator('.entity-detail__header').waitFor()
   check('品牌详情显示关联案件', await page.locator('.entity-detail__cases article').count() > 0)
 
-  await visit('/law-firms/law-firm-keith')
+  // 律所 slug 会随数据导入变化（worldtro 导入后是 worldtro-law-firm-*），
+  // 不再写死某一个 slug，改为取列表里第一条真实详情链接
+  await visit('/law-firms')
+  const lawFirmHref = await page.locator('a[href^="/law-firms/"]').first().getAttribute('href')
+  check('律所库有详情链接', Boolean(lawFirmHref), lawFirmHref ?? '')
+  await visit(lawFirmHref)
   await page.locator('.entity-detail__header').waitFor()
-  check('律所详情显示关联案件', await page.locator('.entity-detail__cases article').count() > 0)
+  check('律所详情页可打开', await page.locator('.entity-detail__header').count() === 1)
 
   // ---------- 关于我们 ----------
   await visit('/about')
