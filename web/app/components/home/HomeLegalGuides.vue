@@ -176,11 +176,13 @@ onBeforeUnmount(() => {
 .home-legal-guides { padding-block:var(--space-section); background:var(--color-bg-page); }
 .home-legal-guides__stage { display:grid; margin-top:var(--space-8); }
 .home-legal-guides__panel {
-  --guide-accent:#216695;
+  /* 原来这里是硬编码蓝 #216695，金色主题下会串色，改为跟主题主色走 */
+  --guide-accent:var(--color-primary);
   display:grid;
   grid-area:1 / 1;
-  grid-template-columns:minmax(260px,0.82fr) minmax(0,1.18fr);
-  min-height:420px;
+  grid-template-columns:minmax(240px,0.9fr) minmax(0,1.1fr);
+  /* 需求 2026-10-20：外框缩短一点点，整体比例协调（原 420px） */
+  min-height:370px;
   overflow:hidden;
   border:1px solid color-mix(in srgb,var(--guide-accent) 22%,white);
   border-radius:var(--radius-xl);
@@ -194,19 +196,27 @@ onBeforeUnmount(() => {
   transition:opacity .3s ease,transform .3s ease,visibility .3s;
 }
 .home-legal-guides__panel--active { z-index:1; opacity:1; visibility:visible; pointer-events:auto; transform:translateX(0); }
-.home-legal-guides__image { display:grid; min-height:420px; place-items:center; overflow:hidden; background:color-mix(in srgb,var(--guide-accent) 3%,white); }
-.home-legal-guides__image img { display:block; width:100%; height:100%; max-height:480px; object-fit:contain; }
-.home-legal-guides__content { display:flex; min-width:0; flex-direction:column; align-items:flex-start; padding:clamp(24px,3vw,44px); }
+/*
+ * 图片单元格用绝对定位托住图片。
+ *
+ * 为什么：图片是竖版（修剪后 859x1115），若按普通流布局，网格行会被图片的
+ * 固有高度撑开——实测把面板从 441px 顶到 721px，反而更不高。
+ * 绝对定位的图片不参与尺寸计算，面板高度只由右侧文字栏决定，
+ * 图片再 object-fit: contain 填满这块区域，做到「框更矮、图更大」。
+ */
+.home-legal-guides__image { position:relative; min-height:370px; overflow:hidden; background:color-mix(in srgb,var(--guide-accent) 3%,white); }
+.home-legal-guides__image img { position:absolute; inset:0; display:block; width:100%; height:100%; object-fit:contain; }
+.home-legal-guides__content { display:flex; min-width:0; flex-direction:column; align-items:flex-start; padding:clamp(18px,2.2vw,32px); }
 .home-legal-guides__category { margin:0; font-size:clamp(28px,4vw,44px); font-weight:800; letter-spacing:0.08em; }
-.home-legal-guides__content h3 { margin:0 0 var(--space-4); color:var(--guide-accent); font-size:clamp(26px,3vw,38px); line-height:1.3; }
+.home-legal-guides__content h3 { margin:0 0 var(--space-4); color:var(--guide-accent); font-size:clamp(22px,2.4vw,30px); line-height:1.3; }
 .home-legal-guides__copy { margin:0 0 var(--space-3); color:color-mix(in srgb,var(--guide-accent) 76%,#202020); font-size:var(--text-base); line-height:1.85; }
 .home-legal-guides__offer { display:flex; width:100%; align-items:center; justify-content:space-between; gap:var(--space-4); margin-top:auto; padding-top:var(--space-4); }
 .home-legal-guides__benefit { display:flex; align-items:center; gap:var(--space-3); margin:0; color:var(--guide-accent); font-size:var(--text-base); font-weight:700; line-height:1.5; }
 .home-legal-guides__check { display:grid; width:28px; height:28px; flex:0 0 28px; place-items:center; border:2px solid currentColor; border-radius:50%; font-size:17px; line-height:1; }
-.home-legal-guides__qr { width:116px; flex:0 0 116px; margin:0; color:var(--guide-accent); text-align:center; }
-.home-legal-guides__qr img { display:block; width:112px; height:112px; margin:auto; border:4px solid white; border-radius:8px; background:white; box-shadow:0 2px 12px rgb(20 20 30 / 14%); }
+.home-legal-guides__qr { width:100px; flex:0 0 100px; margin:0; color:var(--guide-accent); text-align:center; }
+.home-legal-guides__qr img { display:block; width:96px; height:96px; margin:auto; border:4px solid white; border-radius:8px; background:white; box-shadow:0 2px 12px rgb(20 20 30 / 14%); }
 .home-legal-guides__qr figcaption { margin-top:6px; font-size:var(--text-xs); font-weight:700; }
-.home-legal-guides__reserved { min-height:420px; border-right:1px solid color-mix(in srgb,var(--guide-accent) 16%,white); background:linear-gradient(145deg,white, color-mix(in srgb,var(--guide-accent) 10%,white)); }
+.home-legal-guides__reserved { min-height:370px; border-right:1px solid color-mix(in srgb,var(--guide-accent) 16%,white); background:linear-gradient(145deg,white, color-mix(in srgb,var(--guide-accent) 10%,white)); }
 .home-legal-guides__panel--logistics .home-legal-guides__content { align-items:center; justify-content:center; }
 .home-legal-guides__indicators { display:flex; justify-content:center; gap:8px; margin-top:var(--space-4); }
 .home-legal-guides__indicator { display:block; width:8px; height:8px; padding:0; border:0; border-radius:999px; background:var(--color-border-strong); cursor:pointer; transition:width .25s ease,background-color .25s ease; }
