@@ -5,6 +5,8 @@
  */
 const props = defineProps<{ logos: string[] }>()
 
+const hasEmbeddedFrame = (src: string) => src.includes('/d3d1c30a-bb2e-4566-be17-e658cd84c41a.png')
+
 const rows = computed(() => Array.from({ length: 3 }, (_, rowIndex) =>
   props.logos
     .map((src, index) => ({ src, index }))
@@ -29,7 +31,7 @@ const rows = computed(() => Array.from({ length: 3 }, (_, rowIndex) =>
             v-for="item in row"
             :key="`a-${item.index}`"
           >
-            <img :src="item.src" alt="" loading="lazy">
+            <img :src="item.src" :class="{ 'partner-marquee__logo--framed': hasEmbeddedFrame(item.src) }" alt="" loading="lazy">
           </li>
         </ul>
         <ul class="partner-marquee__list" aria-hidden="true">
@@ -37,7 +39,7 @@ const rows = computed(() => Array.from({ length: 3 }, (_, rowIndex) =>
             v-for="item in row"
             :key="`b-${item.index}`"
           >
-            <img :src="item.src" alt="" loading="lazy">
+            <img :src="item.src" :class="{ 'partner-marquee__logo--framed': hasEmbeddedFrame(item.src) }" alt="" loading="lazy">
           </li>
         </ul>
       </div>
@@ -90,9 +92,10 @@ const rows = computed(() => Array.from({ length: 3 }, (_, rowIndex) =>
 .partner-marquee__list li {
   display: grid;
   flex: none;
-  width: clamp(156px, 16vw, 204px);
-  height: 72px;
+  width: clamp(168px, 17vw, 220px);
+  height: 80px;
   place-items: center;
+  overflow: hidden;
   border: 1px solid transparent;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.76);
@@ -102,11 +105,16 @@ const rows = computed(() => Array.from({ length: 3 }, (_, rowIndex) =>
 
 .partner-marquee__list img {
   display: block;
-  width: calc(100% - 32px);
-  height: 56px;
+  width: calc(100% - 20px);
+  height: 68px;
   object-fit: contain;
   mix-blend-mode: multiply;
   transition: transform 180ms ease;
+}
+
+/* 这张合作伙伴图的灰色矩形框属于图片本身，裁掉边缘后与其他 Logo 保持一致。 */
+.partner-marquee__list img.partner-marquee__logo--framed {
+  clip-path: inset(15% 7% 8% 5%);
 }
 
 .partner-marquee__list li:hover {
@@ -127,8 +135,8 @@ const rows = computed(() => Array.from({ length: 3 }, (_, rowIndex) =>
   .partner-marquee { gap: var(--space-2); }
   .partner-marquee__row { height: 76px; }
   .partner-marquee__list { gap: 24px; padding-inline: 16px; }
-  .partner-marquee__list li { width: 148px; height: 62px; }
-  .partner-marquee__list img { width: calc(100% - 28px); height: 50px; }
+  .partner-marquee__list li { width: 160px; height: 68px; }
+  .partner-marquee__list img { width: calc(100% - 16px); height: 56px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
