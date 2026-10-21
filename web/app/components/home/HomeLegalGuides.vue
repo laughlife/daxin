@@ -18,7 +18,17 @@ function settingValue(key: string): unknown {
   }
 }
 
-const slides = computed(() => normalizeLegalGuideSlides(settingValue('home_legal_guides')))
+const slides = computed(() => {
+  const all = normalizeLegalGuideSlides(settingValue('home_legal_guides'))
+  /*
+   * 未配置的章节不展示。
+   * 之前缺图的章节会渲染一个空的「预留占位」框（.home-legal-guides__reserved），
+   * 首页上看起来就多了一个没内容的「国际物流」分页。
+   * 这里只保留有真实内容的章节（有配图 / 有正文段落 / 有领取说明），
+   * 后台把第三块配好后会自动重新出现，不需要再改代码。
+   */
+  return all.filter(slide => Boolean(slide.image) || slide.paragraphs.length > 0 || Boolean(slide.benefit))
+})
 const currentIndex = ref(0)
 function qrImageForSlide(slide: (typeof slides.value)[number]): string {
   const itemKey = slide.qrItemKey
@@ -94,7 +104,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="home-legal-guides" aria-label="普法干货">
+  <section v-if="slides.length" class="home-legal-guides" aria-label="普法干货">
     <PageContainer>
       <SectionHeading
         align="center"
