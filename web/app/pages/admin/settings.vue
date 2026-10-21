@@ -1536,6 +1536,19 @@ function useTextarea(value: string): boolean {
   grid-column: 2 / -1;
 }
 
+/*
+ * 实际结构（DevTools breadcrumb 确认）：
+ *   .admin-settings__field > .admin-settings__rows > fieldset.admin-settings__row > .json-image-field
+ * 图片字段与主题色控件是 **fieldset 的直接子元素**，并不在 .admin-settings__cell 里，
+ * 所以前面那些 cell 下的选择器全部打不中。
+ * 而同一行网格里带标签的单元格会空出 72px 标签列 + 12px 间距 = 84px，
+ * 于是这两个控件比上下行输入框左移 84px。这里补回同样的缩进。
+ */
+.admin-settings__row > .json-image-field,
+.admin-settings__row > .admin-settings__gu-field {
+  padding-inline-start: calc(72px + var(--space-3));
+}
+
 .admin-settings__field-head--center {
   grid-column: 1;
   align-self: center;
