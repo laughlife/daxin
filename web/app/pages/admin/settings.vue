@@ -1525,6 +1525,17 @@ function useTextarea(value: string): boolean {
   min-width: 0;
 }
 
+/*
+ * 无标签的单元格（图片字段 / 主题色）里只有这一个控件，
+ * 它会落进 72px 的标签列，导致比上下行输入框左移 84px。
+ * 直接针对这两个控件类占满整格 —— 已实测 :has() 写法不生效，故改用直接子选择器。
+ */
+.admin-settings__cell > .json-image-field,
+.admin-settings__cell > .admin-settings__gu-field {
+  /* 从第 2 列开始（不是 1 / -1：那会让左边缘仍落在 595 的标签列） */
+  grid-column: 2 / -1;
+}
+
 .admin-settings__field-head--center {
   grid-column: 1;
   align-self: center;
