@@ -88,6 +88,18 @@ const statsFromSettings = computed(() => {
 
 const teamTitleFromSettings = computed(() => readSettingText('home_team_title') || teamIntro.title)
 const teamDisplayTitle = computed(() => teamTitleFromSettings.value || '大信法务团队')
+/**
+ * 团队介绍下方四项亮点（2026-10-21 用户要求可配置）。
+ * 后台用换行分隔的纯文本维护，这里按行拆分；未配置时回退到默认四项。
+ */
+const DEFAULT_TEAM_FEATURES = ['TRO和解/应诉/起诉', '跨境知识产权服务', '涉外纠纷', '货代纠纷与劳动争议']
+const teamFeaturesFromSettings = computed(() => {
+  const value = siteSettings.value?.settings?.home_team_features
+  if (typeof value !== 'string') return DEFAULT_TEAM_FEATURES
+  const lines = value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+  return lines.length ? lines : DEFAULT_TEAM_FEATURES
+})
+
 const teamParagraphsFromSettings = computed(() => {
   const value = siteSettings.value?.settings?.home_team_paragraphs
   if (!Array.isArray(value)) return teamIntro.paragraphs
@@ -221,10 +233,7 @@ useHead({
             旧站样例图里还有两个按钮，用户明确不要，故不渲染按钮。
           -->
           <ul class="home-team-intro__features">
-            <li>TRO和解/应诉/起诉</li>
-            <li>跨境知识产权服务</li>
-            <li>涉外纠纷</li>
-            <li>货代纠纷与劳动争议</li>
+            <li v-for="feature in teamFeaturesFromSettings" :key="feature">{{ feature }}</li>
           </ul>
           <NuxtLink to="/about" class="home-team-intro__more">
             了解更多
