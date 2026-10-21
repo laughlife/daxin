@@ -27,6 +27,7 @@ test('normalizes enabled team services and drops disabled sections/items', () =>
     title: 'TRO全流程处理',
     description: 'summary',
     iconKey: 'scale',
+    imageUrl: '',
     items: [{ title: '和解', description: '' }],
   }])
 })

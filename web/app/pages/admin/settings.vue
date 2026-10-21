@@ -85,11 +85,8 @@ const SETTING_LABELS: Record<string, string> = {
   contact_phone: '联系电话', contact_email: '联系邮箱', contact_address: '联系地址', contact_wechat: '联系微信号',
   footer_intro: '页脚团队简介', footer_registration: '备案信息', footer_qr_primary: '页脚二维码一', footer_qr_secondary: '页脚二维码二',
   content_sidebar: '', site_theme: '公开页面配色',
-  home_hero_badge: '首屏眉题', home_hero_title: '首屏标题图片', home_hero_subtitle: '首屏介绍',
-  home_hero_primary_label: '主按钮文字', home_hero_primary_link: '主按钮链接',
-  home_hero_secondary_label: '次按钮文字', home_hero_background: '首页动态背景视频',
-  home_team_background: '团队介绍背景图', home_team_title: '团队介绍标题', home_team_paragraphs: '团队介绍正文', home_team_features: '团队介绍亮点（多行，已拆分为下面四项）', home_team_feature_1: '亮点一', home_team_feature_2: '亮点二', home_team_feature_3: '亮点三', home_team_feature_4: '亮点四',
-  home_hero_background_poster: '首页背景视频封面', home_stats: '首页数据指标',
+  home_team_background: '团队介绍图片', home_team_title: '团队介绍标题', home_team_paragraphs: '团队介绍正文', home_team_features: '团队介绍亮点（多行，已拆分为下面四项）', home_team_feature_1: '亮点一', home_team_feature_2: '亮点二', home_team_feature_3: '亮点三', home_team_feature_4: '亮点四',
+  home_stats: '首页数据指标',
   home_core_advantages: '首页核心优势', home_legal_guides: '普法干货轮播',
   home_consultation_title: '咨询区域标题', home_consultation_description: '咨询区域说明', home_consultation_button: '咨询按钮文字',
   about_hero_welcome: '关于我们引导语', about_hero_title: '关于我们标题', about_hero_image: '关于我们主图',
@@ -107,7 +104,6 @@ const SETTING_GROUPS: Record<GroupKind, { id: string, title: string, keys: strin
     { id: 'footer-intro', title: '页脚信息', keys: ['footer_intro', 'footer_registration', 'footer_qr_primary', 'footer_qr_secondary'] }
   ],
   home: [
-    { id: 'hero', title: '首页首屏', keys: ['home_hero_badge', 'home_hero_title', 'home_hero_subtitle', 'home_hero_primary_label', 'home_hero_primary_link', 'home_hero_secondary_label', 'home_hero_background', 'home_hero_background_poster'] },
     { id: 'home-team', title: '首页团队介绍', keys: ['home_team_background', 'home_team_title', 'home_team_paragraphs', 'home_team_feature_1', 'home_team_feature_2', 'home_team_feature_3', 'home_team_feature_4'] },
     { id: 'stats', title: '首页数据指标', keys: ['home_stats'] },
     { id: 'advantages', title: '核心优势', keys: ['home_core_advantages'] },
@@ -165,6 +161,9 @@ function settingsGroups(kind: GroupKind) {
 /** 已下线的历史配置不进入后台编辑态，避免继续暴露给管理员。 */
 const HIDDEN_SETTING_KEYS = new Set([
   'home_banner_image',
+  'home_hero_badge', 'home_hero_title', 'home_hero_subtitle',
+  'home_hero_primary_label', 'home_hero_primary_link', 'home_hero_secondary_label',
+  'home_hero_background', 'home_hero_background_poster',
   'home_right_image',
   'about_hero_paragraph',
   'about_business_images',
@@ -886,7 +885,7 @@ function useTextarea(value: string): boolean {
                   :input-id="`setting-image-${tab.kind}-${item.key}`"
                   :label="settingLabel(item.key)"
                   :media-url="imageUrl(tab.kind, item.key)"
-                  :preview-size="item.key === 'home_hero_title' ? 'wide' : 'default'"
+                  preview-size="default"
                   :disabled="controlsDisabled || savingKind !== ''"
                   :usage-scope="imageScope(tab.kind)"
                   @uploaded="payload => onSettingImageUploaded(tab.kind, item.key, payload)"

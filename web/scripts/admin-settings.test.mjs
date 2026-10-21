@@ -237,11 +237,12 @@ test('normalizeSettingsPayload：非法 kind 数据一律 ok=false 并给出中�
 
   // services：板块与子项都归一化，showDetailLink 缺省为 0
   const services = normalizeSettingsPayload('services', [
-    { id: 4, slug: 'overseas-tro', title: 'TRO 全流程处理', showDetailLink: true, items: [{ id: 9, slug: 'tro-settle', title: 'TRO 和解' }] },
+    { id: 4, slug: 'overseas-tro', title: 'TRO 全流程处理', imageMediaId: '12', showDetailLink: true, items: [{ id: 9, slug: 'tro-settle', title: 'TRO 和解' }] },
   ])
   assert.equal(services.ok, true)
   assert.equal(services.items[0].showDetailLink, 1)
   assert.equal(services.items[0].status, 1)
+  assert.equal(services.items[0].imageMediaId, 12)
   assert.equal(services.items[0].items[0].id, 9)
 })
 
@@ -285,6 +286,7 @@ test('buildConfigUpsertStatements：footer/contact/qr 按 item_key，services �
       title: 'TRO 全流程处理',
       subtitle: '',
       summary: '',
+      imageMediaId: 12,
       iconKey: 'scale',
       linkPath: '/tro/success-cases',
       showDetailLink: 1,
@@ -309,6 +311,7 @@ test('buildConfigUpsertStatements：footer/contact/qr 按 item_key，services �
       title: 'TRO 全流程处理',
       subtitle: '副标题',
       summary: '',
+      imageMediaId: null,
       iconKey: 'scale',
       linkPath: '/tro/success-cases',
       showDetailLink: 1,

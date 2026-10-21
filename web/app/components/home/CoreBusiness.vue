@@ -3,19 +3,8 @@ import { computed, ref } from 'vue'
 import type { HomeTeamServiceSection } from '~/repositories/home'
 
 /**
- * 首页「核心业务」：横向排列的业务面板，悬停/点击展开细项。
- *
- * 需求（2026-10-20）：
- *   - 01-05 横向排列，鼠标悬停/点击时对应面板展开，展示细项
- *
- * 后续调整（用户要求）：
- *   - 去掉 01/02/03 这类序号
- *   - 去掉右侧的「+」标记
- *   - 去掉板块的说明文字（只保留细项）
- *   - 每个板块加一个图标
- *
- * 图标用内联 SVG 而不是素材图：现有 services/*.png 只有 4 个（第 5 个板块没有），
- * 且是红色 3D 图标，与金色主题冲突；内联 SVG 用 currentColor，能跟随主题色。
+ * 首页「核心业务」：01-05 五个流程面板，悬停或点击展开说明和图片。
+ * 图标使用现有内联 SVG，保持既定图标不变。
  */
 const props = defineProps<{ sections: HomeTeamServiceSection[] }>()
 
@@ -111,6 +100,7 @@ function iconPaths(slug: string): string[] {
             :aria-controls="`core-business-body-${section.slug}`"
             @click="toggle(index)"
           >
+            <span class="core-business__number">{{ String(index + 1).padStart(2, '0') }}</span>
             <span class="core-business__icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
                 <path v-for="(d, pathIndex) in iconPaths(section.slug)" :key="pathIndex" :d="d" />
@@ -127,12 +117,23 @@ function iconPaths(slug: string): string[] {
           >
             <!-- 只有一个 grid 子元素：grid-template-rows: 0fr 只约束第一行 -->
             <div class="core-business__body-inner">
-              <ul v-if="section.items.length" class="core-business__items">
-                <li v-for="item in section.items" :key="`${section.slug}-${item.title}`">
-                  <span class="core-business__item-title">{{ item.title }}</span>
-                  <span v-if="item.description" class="core-business__item-desc">{{ item.description }}</span>
-                </li>
-              </ul>
+              <p v-if="section.description" class="core-business__summary">{{ section.description }}</p>
+              <div class="core-business__detail">
+                <ul v-if="section.items.length" class="core-business__items">
+                  <li v-for="item in section.items" :key="`${section.slug}-${item.title}`">
+                    <span class="core-business__item-title">{{ item.title }}</span>
+                    <span v-if="item.description" class="core-business__item-desc">{{ item.description }}</span>
+                  </li>
+                </ul>
+                <div class="core-business__image">
+                  <img v-if="section.imageUrl" :src="section.imageUrl" :alt="`${section.title}服务图片`" loading="lazy" decoding="async">
+                  <svg v-else viewBox="0 0 48 48" aria-hidden="true">
+                    <path d="M8 36l10-11 7 7 6-8 9 12H8Z" />
+                    <circle cx="17" cy="16" r="4" />
+                    <rect x="5" y="5" width="38" height="38" rx="5" />
+                  </svg>
+                </div>
+              </div>
             </div>
           </div>
         </article>
@@ -161,7 +162,7 @@ function iconPaths(slug: string): string[] {
   flex-direction: column;
   min-width: 0;
   padding: var(--space-5);
-  border: 1px solid var(--color-border);
+  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
   border-radius: var(--radius-lg);
   background-color: var(--color-bg-page);
   transition:
@@ -174,17 +175,18 @@ function iconPaths(slug: string): string[] {
 /* 展开态：变宽 + 换带色底 */
 .core-business__panel--active {
   flex-grow: 2.1;
-  border-color: color-mix(in srgb, var(--color-primary) 42%, transparent);
-  background-color: var(--color-primary-light);
+  border-color: var(--color-primary);
+  background-color: color-mix(in srgb, var(--color-primary) 5%, var(--color-bg-page));
   box-shadow: var(--shadow-md);
 }
 
-/* 图标在上、标题在下，纵向排列（去掉序号后不再需要横排挤宽度） */
 .core-business__toggle {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  align-items: center;
+  column-gap: var(--space-3);
+  row-gap: var(--space-2);
   width: 100%;
   padding: 0;
   border: 0;
@@ -195,11 +197,18 @@ function iconPaths(slug: string): string[] {
   cursor: pointer;
 }
 
-/* 图标跟随主题金色；展开时略微放大 */
+.core-business__number {
+  grid-column: 1 / -1;
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
 .core-business__icon {
   display: grid;
-  width: 40px;
-  height: 40px;
+  width: 42px;
+  height: 42px;
   place-items: center;
   color: var(--color-primary);
   transition: transform var(--transition-base), color var(--transition-base);
@@ -216,6 +225,7 @@ function iconPaths(slug: string): string[] {
 }
 
 .core-business__title {
+  grid-column: 2;
   color: var(--color-text);
   font-size: var(--text-base);
   font-weight: 700;
@@ -254,6 +264,20 @@ function iconPaths(slug: string): string[] {
   overflow: hidden;
 }
 
+.core-business__summary {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-muted);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+}
+
+.core-business__detail {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(110px, .8fr);
+  align-items: start;
+  gap: var(--space-4);
+}
+
 .core-business__items {
   display: grid;
   gap: var(--space-2);
@@ -269,7 +293,7 @@ function iconPaths(slug: string): string[] {
   padding-left: var(--space-4);
 }
 
-/* 细项用金色小方块做项目符号（装饰，不承载文字信息） */
+/* 细项使用主题色标记，随站点主色配置变化。 */
 .core-business__items li::before {
   content: "";
   position: absolute;
@@ -277,7 +301,7 @@ function iconPaths(slug: string): string[] {
   left: 0;
   width: 6px;
   height: 6px;
-  background-color: var(--color-accent);
+  background-color: var(--color-primary);
   transform: rotate(45deg);
 }
 
@@ -291,6 +315,35 @@ function iconPaths(slug: string): string[] {
   color: var(--color-text-muted);
   font-size: var(--text-xs);
   line-height: 1.6;
+}
+
+.core-business__image {
+  display: grid;
+  min-width: 0;
+  overflow: hidden;
+  aspect-ratio: 1.25;
+  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg-page));
+  color: color-mix(in srgb, var(--color-primary) 45%, var(--color-bg-page));
+  place-items: center;
+}
+
+.core-business__image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.core-business__image svg {
+  width: 42px;
+  height: 42px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 @media (max-width: 1023px) {
@@ -310,6 +363,14 @@ function iconPaths(slug: string): string[] {
 
   .core-business__title {
     font-size: var(--text-base);
+  }
+
+  .core-business__detail {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .core-business__image {
+    max-width: 420px;
   }
 }
 </style>

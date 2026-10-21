@@ -25,6 +25,7 @@ export interface HomeTeamServiceSection {
   title: string
   description: string
   iconKey: string
+  imageUrl: string
   items: HomeTeamServiceItem[]
 }
 
@@ -77,6 +78,7 @@ function normalizeTeamServices(value: HomePayload['teamServices']): HomeTeamServ
       title: String(section?.title ?? ''),
       description: String(section?.description ?? ''),
       iconKey: String(section?.iconKey ?? ''),
+      imageUrl: String(section?.imageUrl ?? ''),
       items: Array.isArray(section?.items)
         ? section.items.map(item => ({
           title: String(item?.title ?? ''),

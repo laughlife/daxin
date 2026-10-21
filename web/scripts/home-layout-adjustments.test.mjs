@@ -17,58 +17,56 @@ const adminSettingsSource = await readFile(new URL('../app/pages/admin/settings.
 const homeApiSource = await readFile(new URL('../server/api/public/home.get.ts', import.meta.url), 'utf8')
 const homeRepositorySource = await readFile(new URL('../app/repositories/home.ts', import.meta.url), 'utf8')
 
-test('team intro becomes one background-image block with the copy on the left', () => {
-  // 旧的「左介绍 + 右四个卡片」两栏布局已取消
+test('team intro is the homepage first screen with a contained image and configured heading', () => {
   assert.doesNotMatch(indexSource, /<HomeTeamServices/)
   assert.doesNotMatch(indexSource, /home-about__layout/)
-  assert.match(indexSource, /class="home-team-intro"/)
-  assert.match(indexSource, /:style="teamIntroStyle"/)
+  assert.match(indexSource, /<section class="home-team-intro"/)
+  assert.match(indexSource, /:src="teamBackgroundImage"/)
   assert.match(indexSource, /home-team-intro__content/)
-  assert.match(indexSource, /:title="teamDisplayTitle"/)
+  assert.match(indexSource, /<h1 class="home-team-intro__title">\{\{ teamDisplayTitle \}\}<\/h1>/)
   assert.match(indexSource, /teamParagraphsFromSettings/)
+  assert.doesNotMatch(indexSource, /<HomeHero|<section[^>]+home-banner/)
 })
 
-test('team intro background image is admin-configurable with a readable fallback', () => {
-  // 背景图来自后台配置 home_team_background
+test('team intro image and copy stay configurable, while the old hero settings are hidden', () => {
   assert.match(indexSource, /readSettingText\('home_team_background'\)/)
-  // 有图时加 --image 修饰类并压深色遮罩，保证左侧白字可读
-  assert.match(indexSource, /'home-team-intro--image': teamBackgroundImage/)
-  assert.match(indexSource, /\.home-team-intro--image::before/)
-  // 未配置图片时回退深色渐变，而不是露出白底
-  assert.match(indexSource, /\.home-team-intro \{[\s\S]*?--color-bg-dark/)
+  assert.match(adminSettingsSource, /home_team_background/)
+  assert.doesNotMatch(adminSettingsSource, /home_hero_badge:\s*'首屏眉题'/)
+  assert.match(adminSettingsSource, /'home_hero_badge',\s*'home_hero_title'/)
 })
 
-test('core business sits below the team intro and offers five expandable panels', () => {
-  const introAt = indexSource.indexOf('home-team-intro')
+test('homepage order is team intro, metrics, then five expandable core-business panels', () => {
+  const introAt = indexSource.indexOf('<section class="home-team-intro"')
+  const statsAt = indexSource.indexOf('<section class="home-about"')
   const coreAt = indexSource.indexOf('<CoreBusiness')
   assert.ok(introAt > 0, '首页应存在团队介绍区块')
-  assert.ok(coreAt > introAt, '核心业务必须排在团队介绍之后')
+  assert.ok(statsAt > introAt && coreAt > statsAt, '顺序应为团队介绍、数据指标、核心业务')
   assert.match(indexSource, /<CoreBusiness :sections="teamServices"\s*\/>/)
+  assert.match(indexSource, /查询 TRO 案件/)
+  assert.match(indexSource, /联系我们免费评估案件/)
+  assert.doesNotMatch(indexSource, /了解更多/)
 
   // 横向排列、悬停/点击展开、展开态与收起态配色区分
-  // 注意：01-05 序号与右侧「+」号已按用户要求移除（改为每栏一个图标），
-  // 因此这里改为断言序号与加号都不存在，避免被无意加回来。
-  assert.doesNotMatch(coreBusinessSource, /core-business__index/)
-  assert.doesNotMatch(coreBusinessSource, /core-business__marker/)
+  assert.match(coreBusinessSource, /core-business__number/)
+  assert.match(coreBusinessSource, /String\(index \+ 1\)\.padStart\(2, '0'\)/)
   assert.match(coreBusinessSource, /core-business__icon/)
   assert.match(coreBusinessSource, /aria-expanded/)
   assert.match(coreBusinessSource, /setHovered\(index\)|@mouseenter/)
   assert.match(coreBusinessSource, /@click="toggle\(index\)"/)
   assert.match(coreBusinessSource, /core-business__panel--active/)
-  assert.match(coreBusinessSource, /--color-primary-light/)
-  // 需求明确「不预留图片位置」：面板里不应出现图片元素
-  assert.doesNotMatch(coreBusinessSource, /<img/)
+  assert.match(coreBusinessSource, /:src="section.imageUrl"/)
+  assert.match(coreBusinessSource, /core-business__summary/)
+  assert.match(coreBusinessSource, /var\(--color-primary\)/)
 })
 
-test('team intro copy is styled for dark background readability', () => {
-  assert.match(indexSource, /<SectionHeading align="left" :title="teamDisplayTitle"\s*\/>/)
-  assert.doesNotMatch(indexSource, /eyebrow="About US"/)
+test('team intro uses a contained editorial layout and prominent copy', () => {
+  assert.match(indexSource, /\.home-team-intro__layout\s*\{[\s\S]*?grid-template-columns/)
+  assert.match(indexSource, /\.home-team-intro__visual\s*\{[\s\S]*?aspect-ratio/)
   assert.match(indexSource, /\.home-team-intro__content\s*\{[\s\S]*?gap:\s*var\(--space-4\)/)
   assert.match(indexSource, /teamDisplayTitle = computed/)
   assert.match(indexSource, /teamParagraphsFromSettings/)
-  // 深色底上必须反色，否则等于没字
-  assert.match(indexSource, /\.home-team-intro__content :deep\(\.section-heading__title\)\s*\{[\s\S]*?--color-text-inverse/)
-  assert.match(indexSource, /\.home-team-intro__paragraph\s*\{[\s\S]*?--color-text-inverse/)
+  assert.match(indexSource, /home-team-intro__button--primary/)
+  assert.match(indexSource, /home-team-intro__button--secondary/)
 })
 
 test('team business configuration is a site settings tab driven by the database', () => {
@@ -77,8 +75,12 @@ test('team business configuration is a site settings tab driven by the database'
   assert.doesNotMatch(adminHomeSource, /页脚与联系方式|\/admin\/footer/)
   assert.match(adminServicesSource, /navigateTo\('\/admin\/settings\?tab=services'/)
   assert.match(adminServicesSettingsSource, /iconKey|section\.items/)
+  assert.match(adminServicesSettingsSource, /板块图片/)
+  assert.match(adminServicesSettingsSource, /SettingImageField/)
   // 数据经公开接口 → 仓库层 → 页面，三层字段口径一致
   assert.match(homeApiSource, /ss\.icon_key[\s\S]*?iconKey: String\(row\.icon_key/)
+  assert.match(homeApiSource, /section_image_url/)
+  assert.match(homeRepositorySource, /imageUrl: String\(section\?\.imageUrl/)
   assert.match(homeRepositorySource, /iconKey: String\(section\?\.iconKey/)
   assert.match(adminServicesSettingsSource, /iconKey: toText\(section\.iconKey\)/)
   assert.match(homeApiSource, /from '~\/utils\/homeData\.mjs'/)

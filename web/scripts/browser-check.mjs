@@ -42,41 +42,52 @@ try {
   const announcementText = await page.locator('.site-announcement').innerText()
   check('首页显示 TRO 侵权大礼包公告', announcementText.includes('TRO 侵权大礼包'))
   check('公告栏保留微信号复制入口', announcementText.includes('kjzx88'))
-  check('首页背景具有动态光效', await page.locator('.home-hero').evaluate(el => getComputedStyle(el, '::before').animationName.includes('hero-atmosphere')))
-  await page.emulateMedia({ reducedMotion: 'reduce' })
-  check('减少动态偏好关闭背景动画', await page.locator('.home-hero').evaluate(el => getComputedStyle(el, '::before').animationName === 'none'))
-  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  check('首页已移除旧主视觉区块', await page.locator('.home-hero').count() === 0)
+  check('团队介绍成为首页首屏', await page.locator('.home-team-intro').count() === 1)
+  check('团队介绍使用配置标题', (await page.locator('.home-team-intro__title').innerText()).trim().length > 0)
+  check('首页保留案件查询与免费评估按钮',
+    await page.getByRole('link', { name: '查询 TRO 案件', exact: true }).count() === 1
+    && await page.getByRole('button', { name: '联系我们免费评估案件', exact: true }).count() === 1)
+  check('首页移除了解更多链接', await page.getByRole('link', { name: '了解更多', exact: true }).count() === 0)
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
   await page.getByRole('button', { name: '复制 TRO 咨询号 kjzx88', exact: true }).click()
   check('公告一键复制精确微信号', await page.evaluate(() => navigator.clipboard.readText()) === 'kjzx88')
 
-  // 首页核心业务（需求 2026-10-20 修订）：
-  //   核心业务移到团队介绍下方，改为 01-05 横向面板，悬停/点击展开细项与说明，
-  //   且不再预留图片位置。旧的 .business-section 卡片结构已废弃。
+  // 首页顺序为团队介绍、数据指标、核心业务；业务面板保持五步 01-05 展开流程。
   const coreBusiness = page.locator('.core-business')
   check('首页核心业务区块存在', await coreBusiness.count() === 1)
   check('核心业务五个面板齐全', await coreBusiness.locator('.core-business__panel').count() === 5)
-  // 需求（2026-10-21 用户要求）：去掉 01-05 序号与右侧「+」号，改为每栏一个图标
-  check('核心业务不再显示 01-05 序号', await coreBusiness.locator('.core-business__index').count() === 0)
+  check('核心业务顺序为 01-05',
+    JSON.stringify(await coreBusiness.locator('.core-business__number').allInnerTexts()) === JSON.stringify(['01', '02', '03', '04', '05']))
   check('核心业务不再显示右侧加号', await coreBusiness.locator('.core-business__marker').count() === 0)
   check('核心业务每个面板都有图标',
     await coreBusiness.locator('.core-business__panel').count() === 5
     && await coreBusiness.locator('.core-business__icon svg').count() === 5)
-  check('核心业务排在团队介绍之后', await page.evaluate(() => {
+  check('首页区块顺序为团队介绍、指标、核心业务', await page.evaluate(() => {
     const intro = document.querySelector('.home-team-intro')
+    const stats = document.querySelector('.home-about')
     const core = document.querySelector('.core-business')
-    return Boolean(intro && core && (intro.compareDocumentPosition(core) & Node.DOCUMENT_POSITION_FOLLOWING))
+    return Boolean(intro && stats && core
+      && (intro.compareDocumentPosition(stats) & Node.DOCUMENT_POSITION_FOLLOWING)
+      && (stats.compareDocumentPosition(core) & Node.DOCUMENT_POSITION_FOLLOWING))
   }))
-  check('核心业务面板不含图片占位', await coreBusiness.locator('img').count() === 0)
+  check('核心业务面板预留主题色图片展示位', await coreBusiness.locator('.core-business__image').count() === 5)
+  await coreBusiness.locator('.core-business__toggle').first().click()
+  check('点击业务面板后展开文案与图片位',
+    await coreBusiness.locator('.core-business__toggle').first().getAttribute('aria-expanded') === 'true'
+    && await coreBusiness.locator('.core-business__panel').first().locator('.core-business__body').evaluate(el => getComputedStyle(el).opacity) === '1')
 
-  // 团队介绍（需求 2026-10-20）：一整张背景图 + 图上左侧放介绍，右侧四个业务块已取消
+  // 团队介绍使用图文并排的首页视觉，不做整屏背景裁切。
   check('团队介绍不再包含四个业务卡片', await page.locator('.home-team-services__card').count() === 0)
-  check('团队介绍介绍文案靠左', await page.evaluate(() => {
+  check('团队介绍配图保持独立比例', await page.locator('.home-team-intro__visual').evaluate(el => getComputedStyle(el).aspectRatio !== 'auto'))
+  check('团队介绍图文并排', await page.evaluate(() => {
     const el = document.querySelector('.home-team-intro')
     const content = el?.querySelector('.home-team-intro__content')
-    if (!el || !content) return false
-    const box = el.getBoundingClientRect()
-    return (content.getBoundingClientRect().left - box.left) / box.width <= 0.2
+    const image = el?.querySelector('.home-team-intro__visual')
+    if (!el || !content || !image) return false
+    const copy = content.getBoundingClientRect()
+    const visual = image.getBoundingClientRect()
+    return Math.abs(copy.top - visual.top) < 120 && copy.left < visual.left
   }))
 
   // 「精选历史 TRO 案件」区块按需求（2026-10-10）移除
@@ -227,7 +238,7 @@ try {
   check('品牌库支持关键词检索', filteredCount > 0 && !emptyShown,
     `「${sampleBrand}」命中 ${filteredCount} 个`)
   await visit('/brands')
-  const brandDetailHref = await page.locator('.brand-card a[href^="/brands/"]').first().getAttribute('href')
+  const brandDetailHref = await page.locator('.brand-card[href^="/brands/"]').first().getAttribute('href')
   check('品牌档案有详情链接', Boolean(brandDetailHref))
   await visit(brandDetailHref)
   await page.locator('.entity-detail__header').waitFor()

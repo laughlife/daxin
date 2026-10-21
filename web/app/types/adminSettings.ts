@@ -44,6 +44,8 @@ export interface ServiceSection {
   title: string
   subtitle: string
   summary: string
+  imageMediaId: number | null
+  imageUrl: string
   iconKey: string
   linkPath: string
   showDetailLink: number

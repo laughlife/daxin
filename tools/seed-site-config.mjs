@@ -38,13 +38,7 @@ const SITE_SETTINGS = [
   { key: 'home_right_image', group: 'home', value: '', valueType: 'image' },
   { key: 'about_team_image', group: 'about', value: '', valueType: 'image' },
 
-  // home：首页文案
-  { key: 'home_hero_badge', group: 'home', value: '跨境电商 · 全链路法律服务', valueType: 'text' },
-  { key: 'home_hero_title', group: 'home', value: '/images/home-hero-title.png', valueType: 'image' },
-  { key: 'home_hero_subtitle', group: 'home', value: '专注于为跨境电商企业、品牌卖家及供应链伙伴提供全链路、跨法域、高实效的法律顾问服务', valueType: 'text' },
-  { key: 'home_hero_primary_label', group: 'home', value: '查询 TRO 案件', valueType: 'text' },
-  { key: 'home_hero_primary_link', group: 'home', value: '/tro/cases', valueType: 'text' },
-  { key: 'home_hero_secondary_label', group: 'home', value: '联系我们免费评估案件', valueType: 'text' },
+  // home：首页团队介绍、数据指标与业务文案
   {
     key: 'home_stats',
     group: 'home',
@@ -95,7 +89,7 @@ const SITE_SETTINGS = [
   { key: 'seo_home_description', group: 'seo', value: '大信法务团队，为跨境电商与国际物流企业提供 TRO、知识产权、劳动合规与争议解决服务。', valueType: 'text' },
 ]
 
-/** service_sections + service_items：首页「核心业务」四块 */
+/** service_sections + service_items：首页「核心业务」五块 */
 const SERVICE_SECTIONS = [
   {
     slug: 'overseas-tro',
@@ -156,6 +150,20 @@ const SERVICE_SECTIONS = [
       { slug: 'dispute-ecommerce', title: '跨境电商纠纷', sortOrder: 20 },
       { slug: 'dispute-contract', title: '合同债务纠纷', sortOrder: 30 },
       { slug: 'dispute-document', title: '法律文书撰写', sortOrder: 40 },
+    ],
+  },
+  {
+    slug: 'team-lifecycle',
+    title: '全周期法律护航',
+    summary: '定期复盘、策略动态优化、成果可视化，把法律服务贯穿经营全周期。',
+    iconKey: 'shield',
+    linkPath: '',
+    showDetailLink: false,
+    sortOrder: 50,
+    items: [
+      { slug: 'lifecycle-review', title: '定期复盘', sortOrder: 10 },
+      { slug: 'lifecycle-optimize', title: '策略动态优化', sortOrder: 20 },
+      { slug: 'lifecycle-visualize', title: '成果可视化', sortOrder: 30 },
     ],
   },
 ]

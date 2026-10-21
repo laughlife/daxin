@@ -6,12 +6,13 @@ const indexSource = await readFile(new URL('../app/pages/index.vue', import.meta
 const aboutSource = await readFile(new URL('../app/pages/about.vue', import.meta.url), 'utf8')
 const aboutContentSource = await readFile(new URL('../app/utils/aboutContent.ts', import.meta.url), 'utf8')
 
-test('homepage removes the old core business/sidebar/image structure and uses the short about link', () => {
+test('homepage removes the old business/sidebar/image structure and keeps the requested actions', () => {
   assert.doesNotMatch(indexSource, /<BusinessSection\s*\/>/)
   assert.doesNotMatch(indexSource, /<ContentColumns>/)
   assert.doesNotMatch(indexSource, /homeRightImage/)
-  assert.match(indexSource, /了解更多/)
-  assert.doesNotMatch(indexSource, /了解更多关于我们/)
+  assert.doesNotMatch(indexSource, /了解更多/)
+  assert.match(indexSource, /查询 TRO 案件/)
+  assert.match(indexSource, /联系我们免费评估案件/)
   assert.match(indexSource, /HomeCoreAdvantages/)
 })
 

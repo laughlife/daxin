@@ -8,32 +8,13 @@ import type { HomeStat } from '../types/content'
  * 文案来源：《大信团队官网需求文档》初稿，正式文案以甲方最终确认为准。
  */
 
-/** Hero 首屏 */
-export const homeHero = {
-  badge: '跨境电商 · 全链路法律服务',
-  titleImage: '/images/home-hero-title.png',
-  subtitle:
-    '专注于为跨境电商企业、品牌卖家及供应链伙伴提供全链路、跨法域、高实效的法律顾问服务',
-  primaryCta: {
-    label: '查询 TRO 案件',
-    to: '/tro/cases'
-  },
-  secondaryCta: {
-    label: '联系我们免费评估案件'
-  }
-} as const
-
 /** About US 团队介绍 */
 export const teamIntro = {
   title: 'About US · 大信法务团队',
   paragraphs: [
     '大信法务团队成立于 2019 年，深耕法律行业多年，拥有经验丰富的国内外实力律师。',
     '主营海运、空运全链路法律业务，面向国际物流、跨境服务商、出海卖家提供法律顾问服务；同步覆盖 TRO 知识产权、CPSC 召回、美国加州 65 号法案、用工劳动合规、合同风控、海关合规，可代理各类纠纷诉讼，高效处理货损、欠款、维权等各类争议。'
-  ],
-  moreLink: {
-    label: '了解更多',
-    to: '/about'
-  }
+  ]
 } as const
 
 /** 统计数据（数值与说明均来自需求文档） */

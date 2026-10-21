@@ -42,8 +42,12 @@ const SETTINGS_SQL = `SELECT s.setting_key, s.setting_value, s.value_type, s.med
  WHERE s.setting_group = ? AND s.is_current = 1
  ORDER BY s.sort_order, s.setting_key`
 
-const SERVICE_SECTIONS_SQL = `SELECT id, slug, title, subtitle, summary, icon_key, link_path, show_detail_link, sort_order, status
-  FROM service_sections ORDER BY sort_order, id`
+const SERVICE_SECTIONS_SQL = `SELECT ss.id, ss.slug, ss.title, ss.subtitle, ss.summary, ss.icon_key, ss.link_path,
+    ss.image_media_id, NULLIF(ma.public_url, '') AS image_url,
+    ss.show_detail_link, ss.sort_order, ss.status
+  FROM service_sections ss
+  LEFT JOIN media_assets ma ON ma.id = ss.image_media_id AND ma.deleted_at IS NULL
+ ORDER BY ss.sort_order, ss.id`
 
 const SERVICE_ITEMS_SQL = `SELECT id, section_id, slug, title, summary, sort_order, status
   FROM service_items ORDER BY sort_order, id`
@@ -76,6 +80,8 @@ interface ServiceItem {
 
 interface ServiceSection extends ServiceItem {
   subtitle: string
+  imageMediaId: number | null
+  imageUrl: string
   iconKey: string
   linkPath: string
   showDetailLink: boolean
@@ -145,6 +151,8 @@ function mapServiceSection(row: Row, items: ServiceItem[]): ServiceSection {
     title: str(row.title),
     subtitle: str(row.subtitle),
     summary: str(row.summary),
+    imageMediaId: toPositiveIntOrNull(row.image_media_id),
+    imageUrl: str(row.image_url),
     iconKey: str(row.icon_key),
     linkPath: str(row.link_path),
     showDetailLink: bool(row.show_detail_link),

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { ServiceChildItem, ServiceSection } from '~/types/adminSettings'
+import SettingImageField from '~/components/admin/SettingImageField.vue'
 import { apiErrorMessage, httpStatusOf } from '~/utils/publicApi'
 import { canWriteSettings, nextUniqueSlug } from '~/utils/adminPermission'
 
@@ -13,6 +14,7 @@ const baseline = ref(JSON.stringify(sections.value))
 const saving = ref(false)
 const saveError = ref('')
 const saveSuccess = ref('')
+const uploadingSectionIndexes = ref(new Set<number>())
 
 function toText(value: unknown): string {
   return typeof value === 'string' ? value : typeof value === 'number' || typeof value === 'boolean' ? String(value) : ''
@@ -31,6 +33,8 @@ function applyPayload(payload: { data: ServicesPayload }) {
     title: toText(section.title),
     subtitle: toText(section.subtitle),
     summary: toText(section.summary),
+    imageMediaId: section.imageMediaId === null ? null : toNumber(section.imageMediaId) || null,
+    imageUrl: toText(section.imageUrl),
     iconKey: toText(section.iconKey),
     linkPath: toText(section.linkPath),
     showDetailLink: toFlag(section.showDetailLink),
@@ -64,9 +68,10 @@ watch(servicesPayload, (payload) => {
   if (payload?.data?.items) applyPayload(payload)
 }, { immediate: true })
 const dirty = computed(() => snapshot() !== baseline.value)
-function canSave(): boolean { return writable.value && !saving.value && !pending.value && dirty.value && sections.value.length > 0 }
+function canSave(): boolean { return writable.value && !saving.value && !pending.value && uploadingSectionIndexes.value.size === 0 && dirty.value && sections.value.length > 0 }
 function saveLabel(): string {
   if (pending.value) return '正在加载配置…'
+  if (uploadingSectionIndexes.value.size) return '图片上传中…'
   if (saving.value) return '保存中…'
   if (!writable.value) return '保存（只读角色不可用）'
   if (!sections.value.length) return '暂无可保存的板块'
@@ -119,6 +124,17 @@ function moveItem<T>(items: T[], index: number, delta: number) {
 }
 function moveSection(index: number, delta: number) { moveItem(sections.value, index, delta) }
 function moveChild(section: ServiceSection, index: number, delta: number) { moveItem(section.items, index, delta) }
+function onSectionImageUploaded(section: ServiceSection, payload: { mediaId: number, mediaUrl: string }) {
+  section.imageMediaId = payload.mediaId
+  section.imageUrl = payload.mediaUrl
+  saveSuccess.value = ''
+}
+function onSectionImageUploading(index: number, value: boolean) {
+  const next = new Set(uploadingSectionIndexes.value)
+  if (value) next.add(index)
+  else next.delete(index)
+  uploadingSectionIndexes.value = next
+}
 function usedSlugs(): string[] {
   return sections.value.flatMap(section => [section.slug, ...section.items.map(child => child.slug)])
 }
@@ -130,6 +146,8 @@ function addSection() {
     title: '',
     subtitle: '',
     summary: '',
+    imageMediaId: null,
+    imageUrl: '',
     iconKey: 'scale',
     linkPath: '',
     showDetailLink: 0,
@@ -175,6 +193,19 @@ function addChild(section: ServiceSection) {
           </div>
         </div>
 
+        <div class="admin-services__image-row">
+          <label class="admin-services__label">板块图片</label>
+          <SettingImageField
+            :input-id="`section-${sectionIndex}-image`"
+            :label="`${section.title || '业务板块'}图片`"
+            :media-url="section.imageUrl"
+            :disabled="!writable || saving || pending"
+            usage-scope="background"
+            @uploaded="payload => onSectionImageUploaded(section, payload)"
+            @uploading="value => onSectionImageUploading(sectionIndex, value)"
+          />
+        </div>
+
         <section class="admin-services__children" :aria-label="`${section.title || '业务板块'}子项`">
           <div v-for="(child, childIndex) in section.items" :key="child.id || child.slug || childIndex" class="admin-services__child-row">
             <label class="admin-services__label" :for="`child-${sectionIndex}-${childIndex}-title`">子项标题</label>
@@ -204,6 +235,7 @@ function addChild(section: ServiceSection) {
 .admin-services__loading { margin: var(--space-4) 0; color: var(--color-text-muted); font-size: var(--text-sm); }
 .admin-services__section { margin-top: var(--space-5); }
 .admin-services__title-row, .admin-services__child-row { display: grid; grid-template-columns: 132px minmax(0, 1fr) auto; align-items: center; gap: var(--space-3); }
+.admin-services__image-row { display: grid; grid-template-columns: 132px minmax(0, 1fr); align-items: start; gap: var(--space-3); margin-top: var(--space-4); }
 .admin-services__label { font-size: var(--text-sm); font-weight: 600; color: var(--color-text); }
 .admin-services__input { width: 100%; min-width: 0; padding: var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-bg-page); color: var(--color-text); font: inherit; }
 .admin-services__input:disabled { background: var(--color-bg-light); color: var(--color-text-muted); cursor: not-allowed; }
@@ -216,7 +248,7 @@ function addChild(section: ServiceSection) {
 .admin-services__success { border-color: var(--color-success); background: color-mix(in srgb, var(--color-success) 8%, transparent); color: var(--color-success); }
 .admin-services__error { border-color: var(--color-error); background: color-mix(in srgb, var(--color-error) 8%, transparent); color: var(--color-error); }
 @media (max-width: 720px) {
-  .admin-services__title-row, .admin-services__child-row { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+  .admin-services__title-row, .admin-services__child-row, .admin-services__image-row { grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
   .admin-services__row-actions { justify-content: flex-start; }
 }
 </style>

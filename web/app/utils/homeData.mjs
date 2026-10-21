@@ -38,6 +38,7 @@ export function normalizeTeamServices(value) {
       title: text(section.title),
       description: text(section.description ?? section.summary),
       iconKey: text(section.iconKey ?? section.icon_key),
+      imageUrl: text(section.imageUrl ?? section.image_url),
       items: Array.isArray(section.items)
         ? section.items
             .filter(item => item && flag(item.status) === 1)

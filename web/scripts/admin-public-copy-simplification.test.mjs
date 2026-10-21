@@ -46,8 +46,8 @@ test('官网所有栏目标题下不渲染浅色辅助介绍，团队标题继�
     assert.doesNotMatch(source, /<SectionHeading\b[^>]*\b:description=/s)
     assert.doesNotMatch(source, /<SectionHeading\b[^>]*\bdescription=/s)
   }
-  assert.match(home, /:title="teamDisplayTitle"/)
-  assert.match(home, /readSettingText\('about_team_title'\)/)
+  assert.match(home, /<h1 class="home-team-intro__title">\{\{ teamDisplayTitle \}\}<\/h1>/)
+  assert.match(home, /readSettingText\('home_team_title'\)/)
 })
 
 test('TRO 案件查询不显示即时筛选和日期解释提示', async () => {

@@ -241,6 +241,7 @@ export interface ServiceSectionInput {
   title: string
   subtitle: string
   summary: string
+  imageMediaId: number | null
   iconKey: string
   linkPath: string
   showDetailLink: 0 | 1
@@ -350,6 +351,7 @@ export function normalizeServiceSections(raw: unknown): NormalizeResult<ServiceS
       title: normalizeText(record.title, MAX_TITLE_LENGTH),
       subtitle: normalizeText(record.subtitle, MAX_SUBTITLE_LENGTH),
       summary: normalizeText(record.summary, MAX_SUMMARY_LENGTH),
+      imageMediaId: toPositiveIntOrNull(record.imageMediaId),
       iconKey: normalizeText(record.iconKey, MAX_ICON_LENGTH),
       linkPath: normalizeText(record.linkPath, MAX_PATH_LENGTH),
       showDetailLink: normalizeFlag(record.showDetailLink, 0),
@@ -537,16 +539,17 @@ export function buildSettingUpsertStatements(
 }
 
 const UPSERT_SECTION_BY_SLUG_SQL = `INSERT INTO service_sections
-     (slug, title, subtitle, summary, icon_key, link_path, show_detail_link, sort_order, status, created_at, updated_at)
-   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+     (slug, title, subtitle, summary, icon_key, link_path, image_media_id, show_detail_link, sort_order, status, created_at, updated_at)
+   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
    ON DUPLICATE KEY UPDATE
      title = VALUES(title), subtitle = VALUES(subtitle), summary = VALUES(summary),
      icon_key = VALUES(icon_key), link_path = VALUES(link_path),
+     image_media_id = VALUES(image_media_id),
      show_detail_link = VALUES(show_detail_link), sort_order = VALUES(sort_order),
      status = VALUES(status), updated_at = NOW()`
 
 const UPDATE_SECTION_BY_ID_SQL = `UPDATE service_sections
-   SET slug = ?, title = ?, subtitle = ?, summary = ?, icon_key = ?, link_path = ?,
+   SET slug = ?, title = ?, subtitle = ?, summary = ?, icon_key = ?, link_path = ?, image_media_id = ?,
        show_detail_link = ?, sort_order = ?, status = ?, updated_at = NOW()
  WHERE id = ?`
 
@@ -616,7 +619,7 @@ export function buildConfigUpsertStatements(input: ConfigUpsertInput): SqlStatem
           sql: UPDATE_SECTION_BY_ID_SQL,
           params: [
             section.slug, section.title, section.subtitle, section.summary, section.iconKey,
-            section.linkPath, section.showDetailLink, section.sortOrder, section.status, section.id,
+            section.linkPath, section.imageMediaId, section.showDetailLink, section.sortOrder, section.status, section.id,
           ],
         })
       } else {
@@ -624,7 +627,7 @@ export function buildConfigUpsertStatements(input: ConfigUpsertInput): SqlStatem
           sql: UPSERT_SECTION_BY_SLUG_SQL,
           params: [
             section.slug, section.title, section.subtitle, section.summary, section.iconKey,
-            section.linkPath, section.showDetailLink, section.sortOrder, section.status,
+            section.linkPath, section.imageMediaId, section.showDetailLink, section.sortOrder, section.status,
           ],
         })
       }

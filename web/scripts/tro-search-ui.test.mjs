@@ -42,12 +42,10 @@ test('标签内容页只保留关键词搜索，移除发布日期筛选行', ()
   assert.doesNotMatch(listingSource, /\b(from|to)\.value|\b(from|to):\s/)
 })
 
-test('home core business no longer uses image icons (requirement: no image placeholders)', async () => {
-  // 需求 2026-10-20 明确「不预留图片位置」，原来的红色 3D 图标卡片已移除，
-  // 这里改为断言新的核心业务面板不含任何图片元素，防止图标被加回来。
+test('home core business uses configurable panel images rather than fixed image icons', async () => {
   const coreBusinessSource = await readFile(new URL('../app/components/home/CoreBusiness.vue', import.meta.url), 'utf8')
   assert.doesNotMatch(coreBusinessSource, /service-tro\.png|service-ip\.png|service-dispute\.png|service-cross-border\.png/)
-  assert.doesNotMatch(coreBusinessSource, /<img/)
+  assert.match(coreBusinessSource, /:src="section\.imageUrl"/)
 })
 
 test('TRO cases API supports 50 rows without changing the shared article/admin cap', () => {

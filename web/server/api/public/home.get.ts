@@ -28,9 +28,11 @@ export const HOME_ARTICLE_CATEGORIES = [
 const HOME_ARTICLES_PER_CATEGORY = 3
 
 const HOME_TEAM_SERVICES_SQL = `SELECT ss.slug, ss.title, ss.summary, ss.icon_key, ss.sort_order AS section_sort_order, ss.status AS section_status,
+  ss.image_media_id, NULLIF(ma.public_url, '') AS section_image_url,
   si.title AS item_title, si.summary AS item_summary, si.sort_order AS item_sort_order, si.status AS item_status
 FROM service_sections ss
 LEFT JOIN service_items si ON si.section_id = ss.id
+LEFT JOIN media_assets ma ON ma.id = ss.image_media_id AND ma.deleted_at IS NULL
 WHERE ss.status = 1
 ORDER BY ss.sort_order, ss.id, si.sort_order, si.id`
 
@@ -90,6 +92,7 @@ interface HomeTeamServiceRow {
   title: string | null
   summary: string | null
   icon_key: string | null
+  section_image_url: string | null
   section_sort_order: number | string | null
   section_status: number | string | null
   item_title: string | null
@@ -111,7 +114,7 @@ function toFeaturedCase(row: HomeCaseRow): CaseRecord {
 }
 
 function toTeamServices(rows: HomeTeamServiceRow[]) {
-  const sections = new Map<string, { slug: string, title: string, description: string, iconKey: string, status: number, items: Array<{ title: string, description: string, status: number }> }>()
+  const sections = new Map<string, { slug: string, title: string, description: string, iconKey: string, imageUrl: string, status: number, items: Array<{ title: string, description: string, status: number }> }>()
   for (const row of rows) {
     const slug = String(row.slug ?? '').trim()
     if (!slug) continue
@@ -120,6 +123,7 @@ function toTeamServices(rows: HomeTeamServiceRow[]) {
       title: String(row.title ?? '').trim(),
       description: String(row.summary ?? '').trim(),
       iconKey: String(row.icon_key ?? '').trim(),
+      imageUrl: String(row.section_image_url ?? '').trim(),
       status: Number(row.section_status ?? 1),
       items: [],
     }
