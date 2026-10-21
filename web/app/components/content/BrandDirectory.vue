@@ -279,7 +279,7 @@ useSeoMeta({
 .brand-directory__tabs { display: flex; gap: var(--space-2); padding: 0 var(--space-5) var(--space-4); }
 /* 分类使用固定纯色：商标蓝、专利黄、版权绿，不受站点金色主题影响。 */
 .brand-directory__tabs button[data-type='trademark'], .brand-card__types span[data-type='trademark'] { --brand-type-color: #3183cf; --brand-type-soft: #edf6fd; --brand-type-border: #a8d2f0; --brand-type-text: #3183cf; }
-.brand-directory__tabs button[data-type='patent'], .brand-card__types span[data-type='patent'] { --brand-type-color: #f0c419; --brand-type-soft: #fff9df; --brand-type-border: #f0d766; --brand-type-text: #394150; }
+.brand-directory__tabs button[data-type='patent'], .brand-card__types span[data-type='patent'] { --brand-type-color: #ffd400; --brand-type-soft: #fffde7; --brand-type-border: #fce46b; --brand-type-text: #394150; }
 .brand-directory__tabs button[data-type='copyright'], .brand-card__types span[data-type='copyright'] { --brand-type-color: #4a9a63; --brand-type-soft: #eef8ef; --brand-type-border: #b6dbbd; --brand-type-text: #4a9a63; }
 .brand-directory__tabs button[data-type='trademark'], .brand-directory__tabs button[data-type='patent'], .brand-directory__tabs button[data-type='copyright'] { color: var(--brand-type-text); border-color: var(--brand-type-border); }
 .brand-directory__tabs button { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid transparent; border-radius: var(--radius-full); background: transparent; color: var(--color-text-muted); font: inherit; font-weight: 600; cursor: pointer; transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base); }
