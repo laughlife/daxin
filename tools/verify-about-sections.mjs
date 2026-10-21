@@ -1,4 +1,4 @@
-// 验证关于我们：企业宣讲 4×2 轮播、合作伙伴跑马灯（或兜底）。
+// 验证关于我们：企业宣讲 4×2 轮播、合作伙伴三行彩色跑马灯（或兜底）。
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE)
 const base = process.env.SMOKE_BASE_URL ?? 'http://127.0.0.1:3002'
 const outDir = process.env.CAPTURE_DIR ?? 'D:\\AppData\\theme-shots'
@@ -55,15 +55,29 @@ try {
     const strip = document.querySelector('.partner-strip')
     if (marquee) {
       const track = marquee.querySelector('.partner-marquee__track')
-      const lists = marquee.querySelectorAll('.partner-marquee__list')
+      const rows = [...marquee.querySelectorAll('.partner-marquee__row')]
+      const listsPerRow = rows.map(row => row.querySelectorAll('.partner-marquee__list').length)
       const firstImg = marquee.querySelector('img')
       return {
         mode: 'marquee',
-        lists: lists.length,
+        rows: rows.length,
+        listsPerRow,
         animation: getComputedStyle(track).animationName,
         duration: getComputedStyle(track).animationDuration,
         height: Math.round(marquee.getBoundingClientRect().height),
-        grayscale: getComputedStyle(firstImg).filter,
+        filter: getComputedStyle(firstImg).filter,
+        tileSizes: [...new Set([...marquee.querySelectorAll('.partner-marquee__list li')]
+          .map(item => {
+            const rect = item.getBoundingClientRect()
+            return `${Math.round(rect.width)}x${Math.round(rect.height)}`
+          }))],
+        tileRadius: getComputedStyle(marquee.querySelector('.partner-marquee__list li')).borderRadius,
+        logoFrames: [...new Set([...marquee.querySelectorAll('.partner-marquee__list img')]
+          .map(img => {
+            const rect = img.getBoundingClientRect()
+            return `${Math.round(rect.width)}x${Math.round(rect.height)}`
+          }))],
+        logoBlend: getComputedStyle(firstImg).mixBlendMode,
       }
     }
     return { mode: strip ? 'fallback-strip' : 'none' }
@@ -71,18 +85,45 @@ try {
   console.log('  合作伙伴:', JSON.stringify(partner))
 
   if (partner.mode === 'marquee') {
-    check('合作伙伴为跑马灯（列表复制一份用于无缝循环）', partner.lists === 2, `列表 ${partner.lists} 份`)
+    check('合作伙伴分为三行跑马灯', partner.rows === 3, `行数 ${partner.rows}`)
+    check('每行复制列表形成无缝循环', partner.listsPerRow.length === 3 && partner.listsPerRow.every(count => count === 2), JSON.stringify(partner.listsPerRow))
     check('跑马灯动画生效', partner.animation !== 'none', `${partner.animation} ${partner.duration}`)
-    check('区域高度受控（≤180px）', partner.height <= 180, `${partner.height}px`)
-    check('LOGO 默认灰度', /grayscale/.test(partner.grayscale), partner.grayscale)
+    check('LOGO 保持彩色', partner.filter === 'none', partner.filter)
+    check('统一椭圆底座尺寸', partner.tileSizes.length === 1 && partner.tileRadius === '999px',
+      `${partner.tileSizes.join(', ')} / 圆角 ${partner.tileRadius}`)
+    check('LOGO 统一放大显示尺寸', partner.logoFrames.length === 1, partner.logoFrames.join(', '))
+    check('白底 LOGO 与椭圆底座融合', partner.logoBlend === 'multiply', partner.logoBlend)
+
+    await page.locator('.partner-marquee__row').first().hover()
+    await page.waitForTimeout(150)
+    const pauseState = await page.locator('.partner-marquee__track').evaluate(el => getComputedStyle(el).animationPlayState)
+    check('悬停时暂停轮播', pauseState === 'paused', pauseState)
+
+    await page.locator('.partner-marquee__list li').first().hover()
+    await page.waitForTimeout(220)
+    const hoveredTransform = await page.locator('.partner-marquee__list li img').first().evaluate(el => getComputedStyle(el).transform)
+    check('悬停 Logo 轻微放大', hoveredTransform !== 'none', hoveredTransform)
+
+    await page.mouse.move(0, 0)
+    await page.waitForTimeout(100)
+    const resumeState = await page.locator('.partner-marquee__track').first().evaluate(el => getComputedStyle(el).animationPlayState)
+    check('移开后恢复轮播', resumeState === 'running', resumeState)
   } else {
     console.log('  ⚠ 当前是兜底形态：缺少单独 logo 素材，跑马灯未启用')
   }
 
-  const section = page.locator('section[aria-label="企业宣讲"]')
+  const section = page.locator('section[aria-label="我们的小伙伴"]')
   await section.scrollIntoViewIfNeeded()
   await page.waitForTimeout(400)
-  await section.screenshot({ path: `${outDir}\\about-lecture.png` }).catch(() => {})
+  await section.screenshot({ path: `${outDir}\\partner-marquee.png` }).catch(() => {})
+
+  await page.setViewportSize({ width: 390, height: 844 })
+  const mobile = await page.locator('.partner-marquee').evaluate(el => ({
+    visibleWidth: Math.round(el.getBoundingClientRect().width),
+    viewportWidth: window.innerWidth,
+    rowCount: el.querySelectorAll('.partner-marquee__row').length,
+  })).catch(() => null)
+  if (mobile) check('窄屏仍显示三行且容器不超出视口', mobile.rowCount === 3 && mobile.visibleWidth <= mobile.viewportWidth, JSON.stringify(mobile))
 } finally {
   await browser.close()
 }

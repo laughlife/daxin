@@ -90,21 +90,13 @@ useSeoMeta({
           />
         </section>
 
-        <!--
-          4. 我们的小伙伴：合作伙伴 LOGO 跑马灯
-          需求 2026-10-20：删除整体拼图，改为单独小图标滚动轮播、区域压低，
-          悬停暂停、灰度→彩色；数据仍来自 about_partner_images，后台可逐个增删。
-        -->
+        <!-- 4. 我们的小伙伴：三行彩色 LOGO 跑马灯，悬停暂停；数据由后台维护。 -->
         <section class="about-page__section" aria-label="我们的小伙伴">
           <SectionHeading
             align="center"
             :title="about.partnerTitle"
           />
-          <!--
-            ≥2 个单独 logo 时启用跑马灯；当前素材只有一张 60 个 logo 的拼图，
-            自动切分不可靠（六边形边框会把每个格子打碎成上千个连通域），
-            因此暂以 PartnerStrip 兜底，等拿到单独 logo 文件后无需改代码即可切换。
-          -->
+          <!-- ≥2 个单独 Logo 时启用跑马灯，素材不足时保留静态图兜底。 -->
           <PartnerMarquee v-if="about.partnerImages.length >= 2" :logos="about.partnerImages" />
           <PartnerStrip v-else />
         </section>

@@ -1,65 +1,77 @@
 <script setup lang="ts">
 /**
- * 合作伙伴 LOGO 跑马灯。
- *
- * 需求（2026-10-20）：
- *   - 删除原来的合作伙伴整体拼图，改为单独的小图标
- *   - 在那个区域滚动轮播（跑马灯）
- *   - 区域不要太高
- *   - 鼠标悬停暂停；LOGO 保持灰度或统一色调，悬停恢复彩色/加深
- *   - 每个 LOGO 单独上传，后台支持更换、添加、删减
- *
- * 实现要点：
- *   - 列表复制一份并整体位移 -50%，形成无缝循环（不必计算单个宽度）
- *   - 悬停暂停用 animation-play-state，避免 JS 计时器抖动
- *   - 整体高度控制在 132px，符合「区域不要太高」
- *   - prefers-reduced-motion 下停掉动画，改为静态换行展示
+ * 合作伙伴三行 LOGO 跑马灯。
+ * 三行分别滚动，悬停时暂停；统一椭圆底座并保留 Logo 原色与比例。
  */
-withDefaults(defineProps<{
-  logos: string[]
-  /** 每个 logo 的展示边长 */
-  size?: number
-}>(), {
-  size: 76,
-})
+const props = defineProps<{ logos: string[] }>()
+
+const rows = computed(() => Array.from({ length: 3 }, (_, rowIndex) =>
+  props.logos
+    .map((src, index) => ({ src, index }))
+    .filter(item => item.index % 3 === rowIndex)
+))
+
 </script>
 
 <template>
-  <div v-if="logos.length" class="partner-marquee" :style="{ '--partner-logo-size': `${size}px` }">
-    <div class="partner-marquee__track">
-      <!-- 复制一份用于无缝衔接；aria-hidden 避免读屏重复朗读 -->
-      <ul class="partner-marquee__list">
-        <li v-for="(src, index) in logos" :key="`a-${index}`">
-          <img :src="src" alt="" loading="lazy">
-        </li>
-      </ul>
-      <ul class="partner-marquee__list" aria-hidden="true">
-        <li v-for="(src, index) in logos" :key="`b-${index}`">
-          <img :src="src" alt="" loading="lazy">
-        </li>
-      </ul>
+  <div v-if="logos.length" class="partner-marquee" aria-label="合作伙伴">
+    <div
+      v-for="(row, rowIndex) in rows"
+      v-show="row.length"
+      :key="rowIndex"
+      class="partner-marquee__row"
+      :class="{ 'partner-marquee__row--reverse': rowIndex === 1 }"
+      :style="{ '--partner-marquee-duration': `${42 + rowIndex * 5}s` }"
+    >
+      <div class="partner-marquee__track">
+        <ul class="partner-marquee__list">
+          <li
+            v-for="item in row"
+            :key="`a-${item.index}`"
+          >
+            <img :src="item.src" alt="" loading="lazy">
+          </li>
+        </ul>
+        <ul class="partner-marquee__list" aria-hidden="true">
+          <li
+            v-for="item in row"
+            :key="`b-${item.index}`"
+          >
+            <img :src="item.src" alt="" loading="lazy">
+          </li>
+        </ul>
+      </div>
     </div>
   </div>
 </template>
 
 <style scoped>
 .partner-marquee {
-  position: relative;
+  display: grid;
+  gap: var(--space-3);
   margin-top: var(--space-6);
-  /* 区域高度受控，不做成大图墙 */
   padding-block: var(--space-3);
   overflow: hidden;
-  /* 两端做淡出，滚动时不会硬切 */
-  mask-image: linear-gradient(90deg, transparent, black 6%, black 94%, transparent);
+  mask-image: linear-gradient(90deg, transparent, black 5%, black 95%, transparent);
+}
+
+.partner-marquee__row {
+  min-width: 0;
+  height: 96px;
+  overflow: hidden;
 }
 
 .partner-marquee__track {
   display: flex;
   width: max-content;
-  animation: partner-marquee-scroll 42s linear infinite;
+  animation: partner-marquee-scroll var(--partner-marquee-duration, 42s) linear infinite;
 }
 
-/* 悬停或键盘聚焦时暂停，便于看清与点击 */
+.partner-marquee__row--reverse .partner-marquee__track {
+  animation-direction: reverse;
+}
+
+/* 悬停或键盘聚焦时暂停，便于查看 Logo。 */
 .partner-marquee:hover .partner-marquee__track,
 .partner-marquee:focus-within .partner-marquee__track {
   animation-play-state: paused;
@@ -69,39 +81,41 @@ withDefaults(defineProps<{
   display: flex;
   flex: none;
   align-items: center;
-  gap: var(--space-5);
+  gap: clamp(28px, 4vw, 64px);
   margin: 0;
-  padding: 0 var(--space-5);
+  padding: 0 clamp(20px, 3vw, 44px);
   list-style: none;
 }
 
 .partner-marquee__list li {
   display: grid;
   flex: none;
-  width: var(--partner-logo-size);
-  height: var(--partner-logo-size);
+  width: clamp(156px, 16vw, 204px);
+  height: 72px;
   place-items: center;
-  padding: var(--space-2);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-page);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow: 0 4px 16px rgba(33, 49, 72, 0.06);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
 }
 
 .partner-marquee__list img {
-  width: 100%;
-  height: 100%;
+  display: block;
+  width: calc(100% - 32px);
+  height: 56px;
   object-fit: contain;
-  /* 统一灰度，避免一堆彩色 LOGO 造成视觉杂乱 */
-  filter: grayscale(1);
-  opacity: .78;
-  transition: filter var(--transition-base), opacity var(--transition-base), transform var(--transition-base);
+  mix-blend-mode: multiply;
+  transition: transform 180ms ease;
 }
 
-/* 悬停恢复彩色并加深 */
+.partner-marquee__list li:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(33, 49, 72, 0.12);
+}
+
 .partner-marquee__list li:hover img {
-  filter: none;
-  opacity: 1;
-  transform: scale(1.04);
+  transform: scale(1.045);
 }
 
 @keyframes partner-marquee-scroll {
@@ -109,11 +123,20 @@ withDefaults(defineProps<{
   to { transform: translateX(-50%); }
 }
 
+@media (max-width: 639px) {
+  .partner-marquee { gap: var(--space-2); }
+  .partner-marquee__row { height: 76px; }
+  .partner-marquee__list { gap: 24px; padding-inline: 16px; }
+  .partner-marquee__list li { width: 148px; height: 62px; }
+  .partner-marquee__list img { width: calc(100% - 28px); height: 50px; }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  /* 减少动态偏好：停止滚动，改为可换行的静态展示 */
   .partner-marquee { overflow: visible; mask-image: none; }
-  .partner-marquee__track { animation: none; width: 100%; flex-wrap: wrap; }
+  .partner-marquee__row { height: auto; overflow: visible; }
+  .partner-marquee__track { width: 100%; animation: none; }
   .partner-marquee__list { flex-wrap: wrap; justify-content: center; }
+  .partner-marquee__list li { height: 62px; }
   .partner-marquee__list[aria-hidden='true'] { display: none; }
 }
 </style>
