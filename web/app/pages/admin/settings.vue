@@ -1737,8 +1737,10 @@ function useTextarea(value: string): boolean {
    * 改为与普通单元格一致的两列栅格：标签占第 1 列、控件从第 2 列开始，左边缘即对齐。
    * 注意这条规则在文件里位于前面那条 .admin-settings__cell--inline 之后，会覆盖它。
    */
-  display: grid;
-  grid-template-columns: minmax(72px, auto) minmax(0, 1fr);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-2);
   align-items: center;
   column-gap: var(--space-3);
   grid-column: span 2;
