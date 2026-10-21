@@ -45,9 +45,12 @@ test('core business sits below the team intro and offers five expandable panels'
   assert.ok(coreAt > introAt, '核心业务必须排在团队介绍之后')
   assert.match(indexSource, /<CoreBusiness :sections="teamServices"\s*\/>/)
 
-  // 01-05 序号、横向排列、悬停/点击展开、展开态与收起态配色区分
-  assert.match(coreBusinessSource, /core-business__index/)
-  assert.match(coreBusinessSource, /padStart\(2, '0'\)/)
+  // 横向排列、悬停/点击展开、展开态与收起态配色区分
+  // 注意：01-05 序号与右侧「+」号已按用户要求移除（改为每栏一个图标），
+  // 因此这里改为断言序号与加号都不存在，避免被无意加回来。
+  assert.doesNotMatch(coreBusinessSource, /core-business__index/)
+  assert.doesNotMatch(coreBusinessSource, /core-business__marker/)
+  assert.match(coreBusinessSource, /core-business__icon/)
   assert.match(coreBusinessSource, /aria-expanded/)
   assert.match(coreBusinessSource, /setHovered\(index\)|@mouseenter/)
   assert.match(coreBusinessSource, /@click="toggle\(index\)"/)

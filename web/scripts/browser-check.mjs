@@ -56,8 +56,12 @@ try {
   const coreBusiness = page.locator('.core-business')
   check('首页核心业务区块存在', await coreBusiness.count() === 1)
   check('核心业务五个面板齐全', await coreBusiness.locator('.core-business__panel').count() === 5)
-  check('核心业务序号为 01-05',
-    (await coreBusiness.locator('.core-business__index').allInnerTexts()).map((t) => t.trim()).join(',') === '01,02,03,04,05')
+  // 需求（2026-10-21 用户要求）：去掉 01-05 序号与右侧「+」号，改为每栏一个图标
+  check('核心业务不再显示 01-05 序号', await coreBusiness.locator('.core-business__index').count() === 0)
+  check('核心业务不再显示右侧加号', await coreBusiness.locator('.core-business__marker').count() === 0)
+  check('核心业务每个面板都有图标',
+    await coreBusiness.locator('.core-business__panel').count() === 5
+    && await coreBusiness.locator('.core-business__icon svg').count() === 5)
   check('核心业务排在团队介绍之后', await page.evaluate(() => {
     const intro = document.querySelector('.home-team-intro')
     const core = document.querySelector('.core-business')
@@ -148,8 +152,8 @@ try {
     (firstArticleHref ?? '').slice(0, 56))
 
   // 空分类栏目应显示空状态，且不应退化成「列出全部文章」
-  // TRO侵权预警 当前无文章，正好用于验证空状态
-  await visit('/tro/alerts')
+  // 改用仍为 0 篇的「热点资讯」：TRO侵权预警 已在 029 迁移后填充了 345 篇
+  await visit('/news')
   check('空分类显示空状态', await page.locator('.article-list__card').count() === 0)
 
   // ---------- 案件查询 ----------

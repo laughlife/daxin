@@ -8,6 +8,7 @@ import { crawlWechatAlbum } from './crawler.mjs'
 import { normalizeWechatImageUrl, wechatImageIdentity } from './content.mjs'
 import { canonicalArticleUrl } from './parser.mjs'
 import { wechatShanghaiDateKey } from './schedule.mjs'
+import { classifyTroArticleSlug } from './tro-classify.mjs'
 
 const USER_AGENT = 'DaxinWechatAlbumSync/1.0 (+https://daxinfawu.com/)'
 const MAX_PAGE_BYTES = 12 * 1024 * 1024
@@ -418,8 +419,20 @@ async function importSource(source: AlbumSource, scheduledDate: string, deployme
     const categoryRows = await queryTarget<IdRow>('SELECT id FROM article_categories WHERE slug = ? AND status = 1 LIMIT 1', [source.category_slug])
     const categoryId = Number(categoryRows[0]?.id ?? 0)
     if (!categoryId) throw new Error(`目标文章分类不可用：${source.category_slug}`)
+
+    /*
+     * TRO 栏目自动分流（2026-10-21 用户确认）：
+     * 来源配置的是 TRO成功案例，但其中「案件播报 / 雷区 / 被告名单」类文章
+     * 实际属于 TRO侵权预警。这里按标题判定，命中预警特征就改投 tro-alert。
+     * 只对 tro-success 生效，其他来源（劳动/货代/科普）保持原配置不动。
+     */
+    const alertCategoryId = source.category_slug === 'tro-success'
+      ? Number((await queryTarget<IdRow>('SELECT id FROM article_categories WHERE slug = ? AND status = 1 LIMIT 1', ['tro-alert']))[0]?.id ?? 0)
+      : 0
+
     for (const item of crawl.items as AlbumItem[]) {
-      const imported = await importArticle(source, item, categoryId)
+      const routedCategoryId = alertCategoryId && classifyTroArticleSlug(item.title) === 'tro-alert' ? alertCategoryId : categoryId
+      const imported = await importArticle(source, item, routedCategoryId)
       result.insertedCount += imported.inserted ? 1 : 0
       result.duplicateCount += imported.inserted ? 0 : 1
       result.imageCount += imported.imageCount
