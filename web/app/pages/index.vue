@@ -86,10 +86,10 @@ const statsFromSettings = computed(() => {
   return items.length > 0 ? items : homeStats
 })
 
-const teamTitleFromSettings = computed(() => readSettingText('about_team_title') || teamIntro.title)
+const teamTitleFromSettings = computed(() => readSettingText('home_team_title') || teamIntro.title)
 const teamDisplayTitle = computed(() => teamTitleFromSettings.value || '大信法务团队')
 const teamParagraphsFromSettings = computed(() => {
-  const value = siteSettings.value?.settings?.about_team_paragraphs
+  const value = siteSettings.value?.settings?.home_team_paragraphs
   if (!Array.isArray(value)) return teamIntro.paragraphs
   const paragraphs = value.filter((entry): entry is string => typeof entry === 'string' && Boolean(entry.trim())).map(entry => entry.trim())
   return paragraphs.length ? paragraphs : teamIntro.paragraphs
