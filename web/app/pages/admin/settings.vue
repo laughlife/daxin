@@ -1746,6 +1746,12 @@ function useTextarea(value: string): boolean {
   grid-column: span 2;
 }
 
+/* 主题色这类带标签的 inline 单元格：标签固定 72px，色块与其它输入框左对齐；
+   强调展示是 checkbox + 标签，标签同样 72px 宽，所以不影响它并排显示。 */
+.admin-settings__cell--inline > .admin-settings__cell-label {
+  min-width: 72px;
+}
+
 @media (max-width: 760px) {
   .admin-settings__field {
     grid-template-columns: minmax(0, 1fr);
