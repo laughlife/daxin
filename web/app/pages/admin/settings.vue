@@ -1725,6 +1725,12 @@ function useTextarea(value: string): boolean {
 }
 
 .admin-settings__cell--inline {
+  /* 复选框 + 标签这类内联单元格：横向 flex 排列。
+     之前为了对齐主题色把它设成两列栅格，复选框被塞进 72px 标签列而看起来飘在中间。 */
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  column-gap: var(--space-2);
   /*
    * 原来是 display:flex + flex-direction:row，让「主题色」标签、色块、色值排成一行，
    * 结果色块紧贴单元格左边，比上下行输入框左移。
