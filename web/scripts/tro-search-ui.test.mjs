@@ -32,15 +32,14 @@ test('TRO案件查询的清空按钮与侵权类型、起诉时间同排并可�
   assert.doesNotMatch(panelSource, /case-search-panel__actions/)
 })
 
-test('文章搜索使用胶囊搜索框，日期区间留在下一行且窄屏可换行', () => {
+test('标签内容页只保留关键词搜索，移除发布日期筛选行', () => {
   // 需求 2026-10-20：关键词改为公共 SearchPill（放大镜 + 金色按钮），
   // 因此不再有 .listing-search__keyword 这套「标签 + 输入框」样式。
   assert.match(listingSource, /<SearchPill[\s\S]*?v-model="keyword"/)
   assert.doesNotMatch(listingSource, /\.listing-search__keyword\s*\{/)
-  assert.match(listingSource, /listing-search__date/)
-  assert.match(listingSource, /listing-search__reset/)
-  assert.match(listingSource, /\.listing-search__filters\s*\{[^}]*repeat\(auto-fit,\s*minmax\(min\(100%,\s*220px\),\s*1fr\)\)/s)
-  assert.match(listingSource, /\.listing-search__date\s*\{[^}]*flex-direction:\s*column/s)
+  assert.match(listingSource, /<ContentSectionTabs/)
+  assert.doesNotMatch(listingSource, /listing-search__date|listing-search__filters|listing-search__reset|type="date"|发布日期从|发布日期至/)
+  assert.doesNotMatch(listingSource, /\b(from|to)\.value|\b(from|to):\s/)
 })
 
 test('home core business no longer uses image icons (requirement: no image placeholders)', async () => {
