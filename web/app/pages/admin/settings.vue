@@ -1496,6 +1496,35 @@ function useTextarea(value: string): boolean {
   min-width: 0;
 }
 
+/*
+ * 结构化编辑器（普法干货的正文段落、核心优势的重点片段）在 .admin-settings__field
+ * 里直接渲染了多个兄弟元素（复选框行 / 新增按钮 / 上移下移删除）。
+ * 两列栅格会把这些兄弟元素依次塞进「标签列」和「内容列」，于是出现
+ * 「新增重点片段」掉到标签列、复选框与输入框错位、按钮看似居中这类现象。
+ * 把所有非标签头的直接子元素固定到内容列并纵向堆叠，即可对齐。
+ */
+.admin-settings__field > *:not(.admin-settings__field-head) {
+  grid-column: 2;
+  min-width: 0;
+}
+
+/* 需要整行占满的字段（如侧栏配置）保持跨两列 */
+.admin-settings__field--full > *:not(.admin-settings__field-head) {
+  grid-column: 1 / -1;
+}
+
+/*
+ * 真正的错位源头在这一层：.admin-settings__cell 自身是 grid，
+ * 而单元格里除了 .admin-settings__cell-label 还有多个兄弟元素
+ * （重点片段的复选框 label、删除按钮）。
+ * 它们会被依次塞进「标签列」和「内容列」，于是按钮掉到左边、复选框与输入框错位。
+ * admin.vue 里给 .admin-services__cell 写过同样的规则，但漏了 .admin-settings__cell。
+ */
+.admin-settings__cell > :not(.admin-settings__cell-label) {
+  grid-column: 2;
+  min-width: 0;
+}
+
 .admin-settings__field-head--center {
   grid-column: 1;
   align-self: center;
