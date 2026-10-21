@@ -8,7 +8,7 @@ import { crawlWechatAlbum } from './crawler.mjs'
 import { normalizeWechatImageUrl, wechatImageIdentity } from './content.mjs'
 import { canonicalArticleUrl } from './parser.mjs'
 import { wechatShanghaiDateKey } from './schedule.mjs'
-import { classifyTroArticleSlug } from './tro-classify.mjs'
+import { classifyImportedArticle } from './article-classify.mjs'
 
 const USER_AGENT = 'DaxinWechatAlbumSync/1.0 (+https://daxinfawu.com/)'
 const MAX_PAGE_BYTES = 12 * 1024 * 1024
@@ -421,17 +421,30 @@ async function importSource(source: AlbumSource, scheduledDate: string, deployme
     if (!categoryId) throw new Error(`目标文章分类不可用：${source.category_slug}`)
 
     /*
-     * TRO 栏目自动分流（2026-10-21 用户确认）：
-     * 来源配置的是 TRO成功案例，但其中「案件播报 / 雷区 / 被告名单」类文章
-     * 实际属于 TRO侵权预警。这里按标题判定，命中预警特征就改投 tro-alert。
-     * 只对 tro-success 生效，其他来源（劳动/货代/科普）保持原配置不动。
+     * 栏目自动分流（2026-10-21 用户确认）：
+     *   CPSC召回：标题含 CPSC / 召回 / recall → cpsc-recalls（对所有来源生效，
+     *             因为召回类文章无论从哪个专辑采来都该归到该栏目）
+     *   TRO侵权预警 / 成功案例：只对 tro-success 来源生效，
+     *             命中「案件播报 / 雷区 / 被告名单」特征改投 tro-alert，
+     *             胜诉/和解类留在成功案例。
+     * 其他来源（劳动/货代/科普）除 CPSC 外保持原配置不动。
      */
-    const alertCategoryId = source.category_slug === 'tro-success'
-      ? Number((await queryTarget<IdRow>('SELECT id FROM article_categories WHERE slug = ? AND status = 1 LIMIT 1', ['tro-alert']))[0]?.id ?? 0)
-      : 0
+    const ROUTABLE_SLUGS = ['cpsc-recalls', 'tro-alert'] as const
+    const routedCategoryIds: Record<string, number> = {}
+    for (const slug of ROUTABLE_SLUGS) {
+      const rows = await queryTarget<IdRow>('SELECT id FROM article_categories WHERE slug = ? AND status = 1 LIMIT 1', [slug])
+      routedCategoryIds[slug] = Number(rows[0]?.id ?? 0)
+    }
+    // TRO 分流只对配置为 tro-success 的来源开放（避免把劳动/货代来源的文章改走预警）
+    const troRoutingEnabled = source.category_slug === 'tro-success'
 
     for (const item of crawl.items as AlbumItem[]) {
-      const routedCategoryId = alertCategoryId && classifyTroArticleSlug(item.title) === 'tro-alert' ? alertCategoryId : categoryId
+      const target = classifyImportedArticle(item.title)
+      const routedCategoryId = (() => {
+        if (target === 'cpsc-recalls' && routedCategoryIds['cpsc-recalls']) return routedCategoryIds['cpsc-recalls']
+        if (target === 'tro-alert' && troRoutingEnabled && routedCategoryIds['tro-alert']) return routedCategoryIds['tro-alert']
+        return categoryId
+      })()
       const imported = await importArticle(source, item, routedCategoryId)
       result.insertedCount += imported.inserted ? 1 : 0
       result.duplicateCount += imported.inserted ? 0 : 1
