@@ -1549,6 +1549,18 @@ function useTextarea(value: string): boolean {
   padding-inline-start: calc(72px + var(--space-3));
 }
 
+/*
+ * 主题色单元格是 .admin-settings__cell--inline（flex），没有标签列，
+ * 色块会直接贴到单元格左边，比其它输入框左移。
+ * 改成与普通单元格一致的两列栅格后，标签在第 1 列、控件落在第 2 列，左边缘即与其它输入框对齐。
+ */
+.admin-settings__cell--inline {
+  display: grid;
+  grid-template-columns: minmax(72px, auto) minmax(0, 1fr);
+  align-items: center;
+  column-gap: var(--space-3);
+}
+
 .admin-settings__field-head--center {
   grid-column: 1;
   align-self: center;
