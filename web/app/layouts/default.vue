@@ -9,6 +9,17 @@ import { siteThemeCssVariables } from '~/utils/siteTheme'
  */
 const { data: siteSettings } = await useSiteSettings()
 const siteThemeStyle = computed(() => siteThemeCssVariables(siteSettings.value?.settings?.site_theme))
+
+/*
+ * 浏览器标签页图标（favicon）：后台「品牌与网站资料 → 浏览器标签页图标」配置。
+ * 未配置时不输出 link，保留 nuxt.config 里的默认图标，避免把 favicon 覆盖成空。
+ */
+const faviconHref = computed(() => String(siteSettings.value?.settings?.site_favicon ?? '').trim())
+useHead(() => (
+  faviconHref.value
+    ? { link: [{ rel: 'icon', href: faviconHref.value }] }
+    : {}
+))
 </script>
 
 <template>

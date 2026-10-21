@@ -81,7 +81,7 @@ const TABS: { kind: SettingsTabKind, label: string }[] = [
 const activeKind = ref<SettingsTabKind>(route.query.tab === 'services' ? 'services' : 'site')
 
 const SETTING_LABELS: Record<string, string> = {
-  site_name: '网站名称', site_subtitle: '网站副标题', site_description: '网站简介', site_logo: '网站 Logo',
+  site_name: '网站名称', site_subtitle: '网站副标题', site_description: '网站简介', site_logo: '网站 Logo', site_favicon: '浏览器标签页图标',
   contact_phone: '联系电话', contact_email: '联系邮箱', contact_address: '联系地址', contact_wechat: '联系微信号',
   footer_intro: '页脚团队简介', footer_registration: '备案信息', footer_qr_primary: '页脚二维码一', footer_qr_secondary: '页脚二维码二',
   content_sidebar: '', site_theme: '公开页面配色',
@@ -101,7 +101,7 @@ const SETTING_LABELS: Record<string, string> = {
 
 const SETTING_GROUPS: Record<GroupKind, { id: string, title: string, keys: string[] }[]> = {
   site: [
-    { id: 'brand', title: '品牌与网站资料', keys: ['site_name', 'site_logo', 'site_subtitle', 'site_description'] },
+    { id: 'brand', title: '品牌与网站资料', keys: ['site_name', 'site_logo', 'site_favicon', 'site_subtitle', 'site_description'] },
     { id: 'contact', title: '联系方式', keys: ['contact_phone', 'contact_wechat', 'contact_email', 'contact_address'] },
     { id: 'content', title: '常见问题与页面配色', keys: ['content_sidebar', 'site_theme'] },
     { id: 'footer-intro', title: '页脚信息', keys: ['footer_intro', 'footer_registration', 'footer_qr_primary', 'footer_qr_secondary'] }
