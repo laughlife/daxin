@@ -17,7 +17,15 @@ const siteThemeStyle = computed(() => siteThemeCssVariables(siteSettings.value?.
 const faviconHref = computed(() => String(siteSettings.value?.settings?.site_favicon ?? '').trim())
 useHead(() => (
   faviconHref.value
-    ? { link: [{ rel: 'icon', href: faviconHref.value }] }
+    ? {
+        link: [
+          // 同时声明 icon 与 shortcut icon：浏览器对快捷图标的优先级更高，
+          // 只写 rel=icon 时，内置的 /favicon.ico 会继续生效，标签页看起来没变化。
+          { rel: 'icon', type: 'image/png', href: faviconHref.value },
+          { rel: 'shortcut icon', href: faviconHref.value },
+          { rel: 'apple-touch-icon', href: faviconHref.value },
+        ],
+      }
     : {}
 ))
 </script>
