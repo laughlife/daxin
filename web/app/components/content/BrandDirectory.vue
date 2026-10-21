@@ -186,11 +186,17 @@ useSeoMeta({
 
             <p v-if="isLoading" class="brand-directory__state" role="status">正在加载品牌…</p>
             <div v-else-if="result.items.length" class="brand-directory__grid">
-              <article v-for="item in result.items" :key="item.slug" class="brand-card">
+              <NuxtLink
+                v-for="item in result.items"
+                :key="item.slug"
+                class="brand-card"
+                :to="`/brands/${item.slug}`"
+                :aria-label="`查看品牌详情：${item.name}`"
+              >
                 <div class="brand-card__header">
-                  <h3><NuxtLink :to="`/brands/${item.slug}`">{{ item.name }}</NuxtLink></h3>
+                  <h3>{{ item.name }}</h3>
                   <div class="brand-card__types">
-                    <span v-for="type in item.caseTypes ?? []" :key="type">{{ CASE_TYPE_LABELS[type] }}</span>
+                    <span v-for="type in item.caseTypes ?? []" :key="type" :data-type="type">{{ CASE_TYPE_LABELS[type] }}</span>
                     <span v-if="!item.caseTypes?.length" class="brand-card__type-muted">侵权类型待确认</span>
                   </div>
                 </div>
@@ -226,11 +232,7 @@ useSeoMeta({
                   </div>
                 </div>
                 <p v-if="item.description" class="brand-card__description">{{ item.description }}</p>
-                <div class="brand-card__actions">
-                  <NuxtLink class="brand-card__action brand-card__action--outline" :to="`/brands/${item.slug}`">品牌详情</NuxtLink>
-                  <NuxtLink class="brand-card__action brand-card__action--primary" :to="{ path: '/tro/cases', query: { q: item.name } }">查看 TRO 案件</NuxtLink>
-                </div>
-              </article>
+              </NuxtLink>
             </div>
             <p v-else class="brand-directory__empty" role="status">没有找到符合条件的品牌，请更换关键词或分类。</p>
           </section>
@@ -275,18 +277,16 @@ useSeoMeta({
 .brand-directory__search-control button { align-self: stretch; min-width: 92px; padding-inline: var(--space-5); border: 0; border-radius: 0 var(--radius-md) var(--radius-md) 0; background: var(--color-primary); color: var(--color-text-on-primary); font-weight: 700; transition: background-color var(--transition-base); }
 .brand-directory__search-control button:hover { background: var(--color-primary-dark); }
 .brand-directory__tabs { display: flex; gap: var(--space-2); padding: 0 var(--space-5) var(--space-4); }
-/*
- * 需求 2026-10-20：右上角的「商标 / 版权 / 专利」要按类型区分颜色。
- * 原来三个标签同一套灰色，看不出区别。
- * 取值都核算过对白底对比度（商标 6.89、版权 6.59、专利 4.86），均满足正文可读。
- * 整体仍在暖色系内，与金色主题不冲突。
- */
-.brand-directory__tabs button[data-type='trademark'] { color: #7A5216; border-color: color-mix(in srgb, #7A5216 32%, var(--color-border)); }
-.brand-directory__tabs button[data-type='copyright'] { color: #A23B24; border-color: color-mix(in srgb, #A23B24 32%, var(--color-border)); }
-.brand-directory__tabs button[data-type='patent'] { color: #96690E; border-color: color-mix(in srgb, #96690E 32%, var(--color-border)); }
+/* 类型颜色沿用文档图示：商标蓝、专利黄、版权绿，不与金色主题混色。 */
+.brand-directory__tabs button[data-type='trademark'], .brand-card__types span[data-type='trademark'] { --brand-type-color: #3183cf; }
+.brand-directory__tabs button[data-type='patent'], .brand-card__types span[data-type='patent'] { --brand-type-color: #d9a51b; }
+.brand-directory__tabs button[data-type='copyright'], .brand-card__types span[data-type='copyright'] { --brand-type-color: #4a9a63; }
+.brand-directory__tabs button[data-type='trademark'], .brand-directory__tabs button[data-type='patent'], .brand-directory__tabs button[data-type='copyright'] { color: var(--brand-type-color); border-color: color-mix(in srgb, var(--brand-type-color) 45%, white); }
 .brand-directory__tabs button { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid transparent; border-radius: var(--radius-full); background: transparent; color: var(--color-text-muted); font: inherit; font-weight: 600; cursor: pointer; transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base); }
 .brand-directory__tabs button:hover { border-color: var(--color-border); color: var(--color-primary); }
+.brand-directory__tabs button[data-type='trademark']:hover, .brand-directory__tabs button[data-type='patent']:hover, .brand-directory__tabs button[data-type='copyright']:hover { border-color: var(--brand-type-color); color: var(--brand-type-color); }
 .brand-directory__tabs button.is-active { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-text-on-primary); }
+.brand-directory__tabs button[data-type='trademark'].is-active, .brand-directory__tabs button[data-type='patent'].is-active, .brand-directory__tabs button[data-type='copyright'].is-active { border-color: var(--brand-type-color); background: var(--brand-type-color); color: #fff; }
 .brand-directory__tabs small { min-width: 1.5em; font-size: var(--text-xs); opacity: .8; }
 .brand-directory__list { padding: var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-page); box-shadow: var(--shadow-sm); }
 .brand-directory__result-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); color: var(--color-text-muted); font-size: var(--text-sm); }
@@ -296,14 +296,15 @@ useSeoMeta({
 .brand-directory__result-head label { display: flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
 .brand-directory__result-head select { min-height: 36px; padding: 0 var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-page); color: var(--color-text); }
 .brand-directory__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
-.brand-card { display: flex; min-width: 0; flex-direction: column; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-page); box-shadow: var(--shadow-sm); transition: border-color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base); }
-.brand-card:hover { transform: translateY(-2px); border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border)); box-shadow: var(--shadow-md); }
+.brand-card { display: flex; min-width: 0; flex-direction: column; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-page); box-shadow: var(--shadow-sm); color: inherit; text-decoration: none; transition: border-color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base); }
+.brand-card:hover, .brand-card:focus-visible { transform: translateY(-2px); border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border)); box-shadow: var(--shadow-md); text-decoration: none; }
 .brand-card__header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-3); }
 .brand-card__header h3 { flex: 1 1 auto; min-width: 0; margin: 0; overflow-wrap: anywhere; font-size: var(--text-lg); line-height: 1.3; }
-.brand-card__header h3 a { color: var(--color-text); text-decoration: none; }
-.brand-card__header h3 a:hover { color: var(--color-primary); }
+.brand-card__header h3 { color: var(--color-text); }
+.brand-card:hover .brand-card__header h3, .brand-card:focus-visible .brand-card__header h3 { color: var(--color-primary); }
 .brand-card__types { display: flex; flex: 0 0 auto; max-width: 45%; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); }
-.brand-card__types span { flex: none; max-width: 100%; padding: 3px 8px; border-radius: var(--radius-full); background: color-mix(in srgb, var(--color-primary) 8%, white); color: var(--color-primary); font-size: var(--text-xs); font-weight: 600; text-align: center; white-space: nowrap; }
+.brand-card__types span { flex: none; max-width: 100%; padding: 3px 8px; border: 1px solid color-mix(in srgb, var(--color-primary) 24%, white); border-radius: var(--radius-full); background: color-mix(in srgb, var(--color-primary) 8%, white); color: var(--color-primary); font-size: var(--text-xs); font-weight: 600; text-align: center; white-space: nowrap; }
+.brand-card__types span[data-type] { border-color: color-mix(in srgb, var(--brand-type-color) 35%, white); background: color-mix(in srgb, var(--brand-type-color) 10%, white); color: var(--brand-type-color); }
 .brand-card__types .brand-card__type-muted { color: var(--color-text-muted); }
 .brand-card__body { display: grid; grid-template-columns: minmax(0, 1fr) 76px; align-items: center; gap: var(--space-3); min-height: 84px; }
 .brand-card__facts { display: grid; gap: 6px; min-width: 0; }
@@ -311,17 +312,11 @@ useSeoMeta({
 .brand-card__facts strong { flex: none; color: var(--color-text-muted); font-weight: 500; }
 .brand-card__facts p > span { overflow: hidden; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
 .brand-card__facts b { color: var(--color-primary); font-size: var(--text-sm); }
-.brand-card__fact-icon { flex: 0 0 14px; width: 14px; height: 14px; fill: none; stroke: #3d83f6; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.brand-card__fact-icon { flex: 0 0 14px; width: 14px; height: 14px; fill: none; stroke: var(--color-primary); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
 .brand-card__logo { display: grid; width: 76px; height: 76px; place-items: center; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: #f6f7f9; }
 .brand-card__logo img { width: 100%; height: 100%; object-fit: contain; }
 .brand-card__logo span { color: var(--color-primary); font-size: 2rem; font-weight: 750; }
 .brand-card__description { display: -webkit-box; overflow: hidden; margin: var(--space-3) 0 0; color: var(--color-text-muted); font-size: var(--text-xs); line-height: var(--leading-relaxed); -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.brand-card__actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-2); margin-top: auto; padding-top: var(--space-3); }
-.brand-card__action { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; padding: 0 var(--space-2); border: 1px solid var(--color-primary); border-radius: var(--radius-sm); font-size: var(--text-xs); font-weight: 700; text-align: center; text-decoration: none; }
-.brand-card__action--outline { background: var(--color-bg-page); color: var(--color-primary); }
-.brand-card__action--outline:hover { background: var(--color-primary-light); }
-.brand-card__action--primary { background: var(--color-primary); border-color: var(--color-primary); color: var(--color-text-on-primary); }
-.brand-card__action--primary:hover { background: var(--color-primary-dark); border-color: var(--color-primary-dark); }
 .brand-directory__state, .brand-directory__empty { padding: var(--space-8); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-page); color: var(--color-text-muted); text-align: center; }
 .brand-directory__pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-6); color: var(--color-text-muted); font-size: var(--text-sm); }
 .brand-directory__pagination p { margin: 0; }
