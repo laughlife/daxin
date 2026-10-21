@@ -327,6 +327,18 @@ function serializeCoreAdvantages() {
   }))
 }
 
+/** 多图字段：图片控件里的 URL 数组需要参与脏检查，否则上传/删除后保存按钮一直是「暂无修改」 */
+const IMAGE_LIST_KEYS = [
+  'about_hero_image',
+  'about_success_images',
+  'about_lecture_images',
+  'about_partner_images',
+] as const
+
+function isImageListKey(key: string): boolean {
+  return (IMAGE_LIST_KEYS as readonly string[]).includes(key)
+}
+
 /** 当前编辑态的标准化快照：与 baseline 比较，同时固定提交时的 JSON 序列化形式 */
 function snapshot(kind: GroupKind): string {
   const items = editItems[kind].value.map((item) => {
@@ -348,20 +360,14 @@ function snapshot(kind: GroupKind): string {
     if (kind === 'about' && item.key === 'about_team_paragraphs') {
       return { ...item, value: JSON.stringify(aboutParagraphs.value) }
     }
+    // 多图字段必须参与脏检查：buildPayload 会用 imageLists 覆盖 value，
+    // 若 snapshot 忽略它，上传/删除图片后 dirty 永远为 false，保存按钮不可用。
+    if (kind === 'about' && isImageListKey(item.key)) {
+      return { ...item, value: JSON.stringify(imageLists[item.key] ?? []) }
+    }
     return { ...item }
   })
   return JSON.stringify(items)
-}
-
-const IMAGE_LIST_KEYS = [
-  'about_hero_image',
-  'about_success_images',
-  'about_lecture_images',
-  'about_partner_images',
-] as const
-
-function isImageListKey(key: string): boolean {
-  return (IMAGE_LIST_KEYS as readonly string[]).includes(key)
 }
 
 /** key → 当前图片 URL 数组（多图字段的编辑态） */
