@@ -3,17 +3,19 @@ import { computed, ref } from 'vue'
 import type { HomeTeamServiceSection } from '~/repositories/home'
 
 /**
- * 首页「核心业务」：01-05 横向排列，悬停/点击展开对应面板。
+ * 首页「核心业务」：横向排列的业务面板，悬停/点击展开细项。
  *
  * 需求（2026-10-20）：
- *   - 01-05 横向排列，鼠标悬停/点击时对应面板展开，展示细项与说明文字
- *   - 展开状态与收起状态的背景色要有区分
- *   - 字号不要统一，重点字用金黄色
- *   - 不预留图片位置（明确取消）
+ *   - 01-05 横向排列，鼠标悬停/点击时对应面板展开，展示细项
  *
- * 交互取舍：悬停只做「预览展开」，点击才「固定展开」。
- * 纯悬停展开在触屏和键盘上不可用，纯点击又会让桌面端多一次操作，
- * 因此两者并存：selectedIndex（点击固定）优先于 hoveredIndex。
+ * 后续调整（用户要求）：
+ *   - 去掉 01/02/03 这类序号
+ *   - 去掉右侧的「+」标记
+ *   - 去掉板块的说明文字（只保留细项）
+ *   - 每个板块加一个图标
+ *
+ * 图标用内联 SVG 而不是素材图：现有 services/*.png 只有 4 个（第 5 个板块没有），
+ * 且是红色 3D 图标，与金色主题冲突；内联 SVG 用 currentColor，能跟随主题色。
  */
 const props = defineProps<{ sections: HomeTeamServiceSection[] }>()
 
@@ -26,7 +28,6 @@ function toggle(index: number) {
 }
 
 function setHovered(index: number) {
-  // 已固定其它面板时，悬停不再抢焦点，避免「看哪儿哪儿动」
   if (selectedIndex.value < 0) hoveredIndex.value = index
 }
 
@@ -36,15 +37,44 @@ function clearHovered(index: number) {
 
 const activeIndex = computed(() => (selectedIndex.value >= 0 ? selectedIndex.value : hoveredIndex.value))
 
-/** 序号补零：01 ~ 99 */
-function ordinal(index: number): string {
-  return String(index + 1).padStart(2, '0')
+/**
+ * 按 slug 取图标路径，而不是 icon_key：
+ * 库里 team-ip 与 team-lifecycle 的 icon_key 都是 shield，用 icon_key 会撞图标。
+ */
+const ICON_PATHS: Record<string, string[]> = {
+  'team-tro': [
+    'M12 3v18',
+    'M5 7h14',
+    'M5 7l-2.5 6h5L5 7zm14 0l-2.5 6h5L19 7z',
+    'M8 21h8',
+  ],
+  'team-ip': [
+    'M12 3l7 3v5c0 4.2-2.8 7.5-7 9-4.2-1.5-7-4.8-7-9V6l7-3z',
+    'M9 12l2 2 4-4',
+  ],
+  'team-disputes': [
+    'M4 8h16v11H4z',
+    'M9 8V6a3 3 0 016 0v2',
+    'M4 13h16',
+  ],
+  'team-cross-border': [
+    'M3 7h11v9H3z',
+    'M14 10h4l3 3v3h-7z',
+    'M7 19a1.6 1.6 0 100-3.2A1.6 1.6 0 007 19z',
+    'M17.5 19a1.6 1.6 0 100-3.2 1.6 1.6 0 000 3.2z',
+  ],
+  'team-lifecycle': [
+    'M12 21a9 9 0 10-9-9',
+    'M12 7v5l3 2',
+    'M3 12l-1.5-3M3 12l3-1.5',
+  ],
 }
 
-/** 面板数量决定每列基础宽度；数量少时不强行拉满，避免内容被拉散。 */
-const panelStyle = computed(() => ({
-  '--core-business-count': String(Math.max(props.sections.length, 1)),
-}))
+const FALLBACK_ICON = ['M12 3l7 3v5c0 4.2-2.8 7.5-7 9-4.2-1.5-7-4.8-7-9V6l7-3z']
+
+function iconPaths(slug: string): string[] {
+  return ICON_PATHS[slug] ?? FALLBACK_ICON
+}
 </script>
 
 <template>
@@ -61,7 +91,7 @@ const panelStyle = computed(() => ({
         description="我们解决哪些问题？"
       />
 
-      <div class="core-business__panels" :style="panelStyle">
+      <div class="core-business__panels">
         <article
           v-for="(section, index) in sections"
           :key="section.slug"
@@ -81,9 +111,12 @@ const panelStyle = computed(() => ({
             :aria-controls="`core-business-body-${section.slug}`"
             @click="toggle(index)"
           >
-            <span class="core-business__index" aria-hidden="true">{{ ordinal(index) }}</span>
+            <span class="core-business__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+                <path v-for="(d, pathIndex) in iconPaths(section.slug)" :key="pathIndex" :d="d" />
+              </svg>
+            </span>
             <span class="core-business__title">{{ section.title }}</span>
-            <span class="core-business__marker" aria-hidden="true">+</span>
           </button>
 
           <div
@@ -92,13 +125,8 @@ const panelStyle = computed(() => ({
             role="region"
             :aria-labelledby="`core-business-toggle-${section.slug}`"
           >
-            <!--
-              必须只有一个 grid 子元素：grid-template-rows: 0fr 只约束第一行，
-              若把 <p> 与 <ul> 直接放进来，第二个会落到自动行，收起时仍占高度
-              （实测残留 102px 空白）。
-            -->
+            <!-- 只有一个 grid 子元素：grid-template-rows: 0fr 只约束第一行 -->
             <div class="core-business__body-inner">
-              <p v-if="section.description" class="core-business__description">{{ section.description }}</p>
               <ul v-if="section.items.length" class="core-business__items">
                 <li v-for="item in section.items" :key="`${section.slug}-${item.title}`">
                   <span class="core-business__item-title">{{ item.title }}</span>
@@ -123,7 +151,6 @@ const panelStyle = computed(() => ({
   display: flex;
   gap: var(--space-3);
   margin-top: var(--space-8);
-  /* 面板高度一致，展开时只让内容区滚动，避免整行跳动 */
   align-items: stretch;
 }
 
@@ -144,7 +171,7 @@ const panelStyle = computed(() => ({
     box-shadow var(--transition-base);
 }
 
-/* 展开态：变宽 + 换成带色底，与收起态形成明确区分 */
+/* 展开态：变宽 + 换带色底 */
 .core-business__panel--active {
   flex-grow: 2.1;
   border-color: color-mix(in srgb, var(--color-primary) 42%, transparent);
@@ -152,19 +179,14 @@ const panelStyle = computed(() => ({
   box-shadow: var(--shadow-md);
 }
 
-/*
- * 序号在标题上方、纵向排列。
- * 横排时序号 + 标题 + 展开标记三者争宽，像「货代纠纷与劳动争议」这类
- * 9 个字的面板名会被挤到溢出面板边界；纵排后标题拿到整行宽度，稳定不溢出。
- */
+/* 图标在上、标题在下，纵向排列（去掉序号后不再需要横排挤宽度） */
 .core-business__toggle {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: var(--space-1);
+  gap: var(--space-2);
   width: 100%;
-  /* 右侧给绝对定位的 +/− 留出位置 */
-  padding: 0 var(--space-6) 0 0;
+  padding: 0;
   border: 0;
   background: transparent;
   color: inherit;
@@ -173,12 +195,24 @@ const panelStyle = computed(() => ({
   cursor: pointer;
 }
 
-/* 序号明显大于标题，形成「字号不要统一」的层次 */
-.core-business__index {
-  color: var(--color-accent);
-  font-size: var(--heading-4);
-  font-weight: 800;
-  line-height: 1;
+/* 图标跟随主题金色；展开时略微放大 */
+.core-business__icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: var(--color-primary);
+  transition: transform var(--transition-base), color var(--transition-base);
+}
+
+.core-business__icon svg {
+  width: 100%;
+  height: 100%;
+}
+
+.core-business__panel--active .core-business__icon {
+  color: var(--color-primary-dark);
+  transform: scale(1.06);
 }
 
 .core-business__title {
@@ -187,22 +221,6 @@ const panelStyle = computed(() => ({
   font-weight: 700;
   line-height: 1.4;
   overflow-wrap: break-word;
-}
-
-/* 收起时提示可展开；展开后旋转成 ×。绝对定位，不参与标题宽度分配 */
-.core-business__marker {
-  position: absolute;
-  top: var(--space-5);
-  right: var(--space-5);
-  color: var(--color-primary);
-  font-size: var(--text-lg);
-  font-weight: 700;
-  line-height: 1;
-  transition: transform var(--transition-base);
-}
-
-.core-business__panel--active .core-business__marker {
-  transform: rotate(45deg);
 }
 
 /*
@@ -231,17 +249,9 @@ const panelStyle = computed(() => ({
   min-height: 0;
 }
 
-/* 唯一的内容容器：收起时高度归零，展开时按内容撑开 */
 .core-business__body-inner {
   min-height: 0;
   overflow: hidden;
-}
-
-.core-business__description {
-  margin-bottom: var(--space-3);
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-  line-height: 1.7;
 }
 
 .core-business__items {
@@ -253,10 +263,10 @@ const panelStyle = computed(() => ({
 }
 
 .core-business__items li {
+  position: relative;
   display: grid;
   gap: 2px;
   padding-left: var(--space-4);
-  position: relative;
 }
 
 /* 细项用金色小方块做项目符号（装饰，不承载文字信息） */
@@ -288,7 +298,6 @@ const panelStyle = computed(() => ({
     flex-direction: column;
   }
 
-  /* 竖排时展开不再靠宽度变化，改为全部内容可见，避免窄屏反复点 */
   .core-business__panel--active {
     flex-grow: 1;
   }
@@ -297,10 +306,6 @@ const panelStyle = computed(() => ({
 @media (max-width: 640px) {
   .core-business {
     padding-block: var(--space-10) var(--space-12);
-  }
-
-  .core-business__index {
-    font-size: var(--text-xl);
   }
 
   .core-business__title {
