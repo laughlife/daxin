@@ -249,7 +249,12 @@ useHead({
  */
 .home-team-intro {
   position: relative;
-  padding-block: var(--space-16);
+  /*
+   * 与首屏拉开距离（2026-10-21 用户要求：首屏撑满一屏后，团队介绍往下拉、中间隔开一块）。
+   * 首屏已用 min-height 占满视口，这里再加一段上下留白，视觉上形成独立区块。
+   */
+  margin-top: var(--space-12);
+  padding-block: var(--space-20);
   /*
    * 未配置背景图时的兜底：主题深色渐变。
    * 用深色而不是白底，是因为文案在这里是白字，白底会直接看不见。
