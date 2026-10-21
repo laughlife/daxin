@@ -148,11 +148,11 @@ const items = computed(() =>
 
 .article-preview-card {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: var(--space-3);
-  height: 320px;
-  padding: var(--space-5);
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-4);
+  height: 168px;
+  padding: var(--space-4);
   background-color: var(--color-bg-page);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
@@ -161,12 +161,12 @@ const items = computed(() =>
     transform var(--transition-base);
 }
 
-/* 每篇最左侧的配图 */
+/* 封面保持接近原始 150px 方图尺寸，避免在卡片内横向放大后发糊。 */
 .article-preview-card__thumb {
   display: block;
-  flex: 0 0 136px;
-  width: 100%;
-  height: 136px;
+  flex: 0 0 124px;
+  width: 124px;
+  height: 124px;
   overflow: hidden;
   border-radius: var(--radius-md);
 }
@@ -184,6 +184,7 @@ const items = computed(() =>
   gap: var(--space-2);
   min-width: 0;
   flex: 1 1 auto;
+  justify-content: center;
 }
 
 .article-preview-card:hover,
@@ -224,6 +225,10 @@ const items = computed(() =>
   margin: 0;
   font-size: var(--text-base);
   line-height: 1.4;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
 }
 
 .article-preview-card__title a {
@@ -261,8 +266,15 @@ const items = computed(() =>
   }
 
   .article-preview-card {
-    height: 320px;
-    padding: var(--space-4);
+    height: 136px;
+    gap: var(--space-3);
+    padding: var(--space-3);
+  }
+
+  .article-preview-card__thumb {
+    flex-basis: 100px;
+    width: 100px;
+    height: 100px;
   }
 }
 </style>
