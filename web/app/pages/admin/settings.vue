@@ -1559,11 +1559,9 @@ function useTextarea(value: string): boolean {
  * 的两列栅格规则，会作用到后台任意层级。
  * 这里把 .admin-settings__rows 内部的行统一压成单列，属于就地覆盖，不会影响顶层字段。
  */
-.admin-settings__fields .admin-settings__rows .admin-settings__field,
-.admin-settings__fields .admin-settings__rows .admin-settings__row,
-.admin-settings__group .admin-settings__rows .admin-settings__field,
-.admin-settings__group .admin-settings__rows .admin-settings__row {
-  grid-template-columns: minmax(0, 1fr) !important;
+.admin-settings__rows .admin-settings__field,
+.admin-settings__rows .admin-settings__row {
+  grid-template-columns: minmax(0, 1fr);
   row-gap: var(--space-2);
   padding-bottom: 0;
   border-bottom: 0;
