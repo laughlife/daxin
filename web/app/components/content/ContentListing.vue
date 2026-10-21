@@ -158,7 +158,7 @@ const eyebrow = computed(() => props.section.path.startsWith('/tro') ? 'TRO SERV
 .listing-page { padding-block:var(--space-section); background:var(--color-bg-light); }
 .listing-page__head { margin-bottom:var(--space-8); }
 .listing-page__eyebrow { margin-bottom:var(--space-3); color:var(--color-primary); font-size:var(--text-sm); font-weight:700; letter-spacing:.12em; }
-.listing-search { display:grid; grid-template-columns:minmax(0,1fr); padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
+.listing-search { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--space-4); padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
 .listing-notice { margin:var(--space-5) 0; color:var(--color-text-muted); font-size:var(--text-sm); }
 @media(max-width:639px) { .listing-search { gap:var(--space-3); padding:var(--space-4); } }
 </style>
