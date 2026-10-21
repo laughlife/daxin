@@ -190,7 +190,16 @@ useHead({
     <!--
       团队介绍（需求 2026-10-20）：一整张背景图 + 图上左侧放介绍。
       原来的「右侧四个业务块」已移出，成为下方独立的「核心业务」区块。
+
+      2026-10-21 用户要求：标题单独放在首屏与团队介绍背景图之间，
+      让两块图片不要直接贴在一起；样式参照「核心业务」的居中标题。
     -->
+    <section class="home-team-heading" aria-label="团队介绍标题">
+      <PageContainer>
+        <SectionHeading align="center" eyebrow="ABOUT US" :title="teamDisplayTitle" />
+      </PageContainer>
+    </section>
+
     <section
       class="home-team-intro"
       :class="{ 'home-team-intro--image': teamBackgroundImage }"
@@ -199,7 +208,6 @@ useHead({
     >
       <PageContainer>
         <div class="home-team-intro__content">
-          <SectionHeading align="left" :title="teamDisplayTitle" />
           <p
             v-for="(paragraph, index) in teamParagraphsFromSettings"
             :key="index"
@@ -207,6 +215,17 @@ useHead({
           >
             {{ paragraph }}
           </p>
+          <!--
+            四项业务亮点（2026-10-21 用户确认）：
+            这四项属于「团队介绍」区块，不是首屏；前面带金色圆圈对号。
+            旧站样例图里还有两个按钮，用户明确不要，故不渲染按钮。
+          -->
+          <ul class="home-team-intro__features">
+            <li>TRO和解/应诉/起诉</li>
+            <li>跨境知识产权服务</li>
+            <li>涉外纠纷</li>
+            <li>货代纠纷与劳动争议</li>
+          </ul>
           <NuxtLink to="/about" class="home-team-intro__more">
             了解更多
             <span aria-hidden="true">→</span>
@@ -247,13 +266,17 @@ useHead({
  * 团队介绍（需求 2026-10-20）：一整张背景图 + 图上左侧放介绍。
  * 原来这里是「左介绍 + 右四个业务块」的两栏布局，业务块已移到下方「核心业务」。
  */
+/* 标题单独占一段浅色区域，把首屏与团队介绍背景图隔开（用户要求） */
+.home-team-heading {
+  padding-block: var(--space-16) var(--space-10);
+  background-color: var(--color-bg-light);
+}
 .home-team-intro {
   position: relative;
   /*
    * 与首屏拉开距离（2026-10-21 用户要求：首屏撑满一屏后，团队介绍往下拉、中间隔开一块）。
    * 首屏已用 min-height 占满视口，这里再加一段上下留白，视觉上形成独立区块。
    */
-  margin-top: var(--space-12);
   padding-block: var(--space-20);
   /*
    * 未配置背景图时的兜底：主题深色渐变。
@@ -317,6 +340,45 @@ useHead({
   color: color-mix(in srgb, var(--color-text-inverse) 84%, transparent);
 }
 
+/* 四项业务亮点：金色圆圈对号 + 文案，两列（窄屏单列） */
+.home-team-intro__features {
+  display: grid;
+  gap: var(--space-3) var(--space-8);
+  grid-template-columns: repeat(2, minmax(0, max-content));
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.home-team-intro__features li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-inverse);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.home-team-intro__features li::before {
+  content: "✓";
+  display: grid;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: var(--color-accent);
+  color: var(--color-primary-dark);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  place-items: center;
+}
+
+@media (max-width: 640px) {
+  .home-team-intro__features {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
 .home-team-intro__paragraph {
   margin: 0;
   color: color-mix(in srgb, var(--color-text-inverse) 88%, transparent);
@@ -347,7 +409,12 @@ useHead({
 }
 
 @media (max-width: 767px) {
-  .home-team-intro {
+  /* 标题单独占一段浅色区域，把首屏与团队介绍背景图隔开（用户要求） */
+.home-team-heading {
+  padding-block: var(--space-16) var(--space-10);
+  background-color: var(--color-bg-light);
+}
+.home-team-intro {
     padding-block: var(--space-12);
   }
 

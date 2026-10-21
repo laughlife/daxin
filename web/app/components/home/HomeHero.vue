@@ -105,33 +105,27 @@ const heroStyle = computed(() => {
         >
       </h1>
       <p class="home-hero__subtitle">{{ text.subtitle }}</p>
-      <!--
-        四项业务亮点（2026-10-21 用户要求）：
-        按旧站首屏补上 ✓ 圆圈 + 文案，四项固定为业务范围概述。
-        底部两个按钮按用户要求去掉，不再渲染。
-      -->
-      <ul class="home-hero__features">
-        <li>TRO和解/应诉/起诉</li>
-        <li>跨境知识产权服务</li>
-        <li>涉外纠纷</li>
-        <li>货代纠纷与劳动争议</li>
-      </ul>
+      <div class="home-hero__actions">
+        <BaseButton :to="text.primaryLink" variant="primary" size="lg">
+          {{ text.primaryLabel }}
+        </BaseButton>
+        <BaseButton variant="secondary" size="lg" class="home-hero__secondary" @click="emit('openContact')">
+          {{ text.secondaryLabel }}
+        </BaseButton>
+      </div>
+      <p class="home-hero__hint">免费初步评估 · 7×24 小时响应 · 跨法域协作</p>
     </PageContainer>
   </section>
 </template>
 
 <style scoped>
 .home-hero {
-  position: relative;
-  overflow: hidden;
-  /*
-   * 首屏占满视口（2026-10-21 用户要求：图片放大拉到刚打开页面的全部空间）。
-   * 用 svh 而不是 vh，避免移动端地址栏收起/展开导致首屏跳动；
-   * 减去顶部公告栏与页头高度，让首屏正好撑满第一屏而不是多出一截。
-   */
+  /* 铺满第一屏（用户要求）：减去公告栏+页头高度，正好等于可视区剩余空间 */
   min-height: calc(100svh - 110px);
   display: flex;
   align-items: center;
+  position: relative;
+  overflow: hidden;
   background-color: var(--color-bg-dark);
   color: var(--color-text-inverse);
   /* 纯 CSS 网格 + 光效，无远程资源 */
@@ -311,7 +305,7 @@ const heroStyle = computed(() => {
 }
 
 .home-hero__title {
-  width: min(760px, 100%);
+  width: min(1080px, 100%);
   aspect-ratio: 67 / 10;
   overflow: hidden;
   line-height: 0;
@@ -328,57 +322,42 @@ const heroStyle = computed(() => {
 
 .home-hero__subtitle {
   max-width: min(100%, 1000px);
-  font-size: clamp(18px, 1.45vw, 21px);
+  font-size: clamp(21px, 1.85vw, 30px);
   line-height: 1.7;
   color: var(--color-text-inverse);
   text-shadow: 0 1px 5px rgb(0 0 0 / 78%);
   white-space: nowrap;
 }
 
-/* 首屏底部两个按钮已按用户要求移除（2026-10-21），相关按钮样式一并删除 */
-
-/* 四项业务亮点：✓ 圆圈 + 文案，两列排布（窄屏单列） */
-.home-hero__features {
-  display: grid;
-  gap: var(--space-3) var(--space-8);
-  grid-template-columns: repeat(2, minmax(0, max-content));
-  margin: var(--space-6) 0 0;
-  padding: 0;
-  list-style: none;
-}
-
-.home-hero__features li {
+.home-hero__actions {
   display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-text-inverse);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  text-shadow: 0 1px 5px rgb(0 0 0 / 70%);
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-top: var(--space-1);
 }
 
-/* ✓ 圆圈：用伪元素绘制，不依赖图标素材 */
-.home-hero__features li::before {
-  content: "✓";
-  display: grid;
-  flex: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background-color: var(--color-accent);
-  color: var(--color-primary-dark);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
-  place-items: center;
+.home-hero__actions :deep(.btn) {
+  min-height: 56px;
+  padding-inline: var(--space-8);
+  border-radius: var(--radius-full);
 }
 
-@media (max-width: 640px) {
-  .home-hero__features {
-    grid-template-columns: minmax(0, 1fr);
-  }
+/*
+ * 首屏主按钮的渐变改用主题令牌（原为硬编码红 #e51b28/#b91c1c）。
+ * 需求 2026-10-20 要求「首屏布局与文案不动」，配色属于全站统一调整，
+ * 硬编码红色在金色主题下会突兀，因此改为引用 --color-primary 系列。
+ */
+.home-hero__actions :deep(.btn--primary) {
+  border-color: rgb(255 255 255 / 52%);
+  background: linear-gradient(135deg, var(--color-accent), var(--color-primary));
+  box-shadow: 0 8px 22px rgb(90 62 18 / 30%);
 }
 
+.home-hero__actions :deep(.btn--primary:hover) {
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
+  box-shadow: 0 10px 26px rgb(90 62 18 / 36%);
+}
 
 /* 联系按钮用轻透的浅灰衬底，从复杂背景里微微提出来。 */
 .home-hero .home-hero__secondary {
@@ -434,7 +413,10 @@ const heroStyle = computed(() => {
     flex-direction: column;
   }
 
-  
+  .home-hero__actions :deep(.btn) {
+    width: 100%;
+  }
+
   .home-hero__line {
     display: none;
   }
