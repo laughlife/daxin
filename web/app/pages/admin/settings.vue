@@ -1549,24 +1549,6 @@ function useTextarea(value: string): boolean {
   color: var(--color-text-muted);
 }
 
-/*
- * 编辑器内部的行不再继承「标签 + 内容」两列栅格。
- *
- * 现象：普法干货的正文段落、核心优势的重点片段被排成错位的多列
- * （第 1 段挤到右侧窄列、第 2 段横跨下方、按钮跑到中间）。
- * 原因：那些子行复用了 .admin-settings__field / __row 类，
- * 而 layouts/admin.vue 里有一条全局 :deep(.admin-settings__field)
- * 的两列栅格规则，会作用到后台任意层级。
- * 这里把 .admin-settings__rows 内部的行统一压成单列，属于就地覆盖，不会影响顶层字段。
- */
-.admin-settings__rows .admin-settings__field,
-.admin-settings__rows .admin-settings__row {
-  grid-template-columns: minmax(0, 1fr);
-  row-gap: var(--space-2);
-  padding-bottom: 0;
-  border-bottom: 0;
-}
-
 .admin-settings__rows {
   display: flex;
   flex-direction: column;
