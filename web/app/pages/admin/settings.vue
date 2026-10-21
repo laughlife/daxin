@@ -93,7 +93,7 @@ const SETTING_LABELS: Record<string, string> = {
   home_core_advantages: '首页核心优势', home_legal_guides: '普法干货轮播',
   home_consultation_title: '咨询区域标题', home_consultation_description: '咨询区域说明', home_consultation_button: '咨询按钮文字',
   about_hero_welcome: '关于我们引导语', about_hero_title: '关于我们标题', about_hero_image: '关于我们主图',
-  about_team_title: '团队介绍标题（首页同步）', about_team_paragraphs: '团队介绍内容（首页同步）',
+  about_team_title: '团队介绍标题', about_team_paragraphs: '团队介绍内容',
   about_contact_title: '主图联系引导文案', about_success_title: '成功案例标题', about_success_images: '成功案例图片',
   about_lecture_title: '企业宣讲标题', about_lecture_images: '企业宣讲图片',
   about_partner_title: '合作伙伴标题', about_partner_images: '合作伙伴 Logo'
