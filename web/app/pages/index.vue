@@ -109,8 +109,15 @@ const teamFeaturesFromSettings = computed(() => {
 
 const teamParagraphsFromSettings = computed(() => {
   const value = siteSettings.value?.settings?.home_team_paragraphs
+  // 后台按纯文本存储、一行一段，这里按换行拆分（兼容历史 json 数组）
+  if (typeof value === 'string') {
+    const lines = value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+    return lines.length ? lines : teamIntro.paragraphs
+  }
   if (!Array.isArray(value)) return teamIntro.paragraphs
-  const paragraphs = value.filter((entry): entry is string => typeof entry === 'string' && Boolean(entry.trim())).map(entry => entry.trim())
+  const paragraphs = value
+    .filter((entry): entry is string => typeof entry === 'string' && Boolean(entry.trim()))
+    .map((entry) => entry.trim())
   return paragraphs.length ? paragraphs : teamIntro.paragraphs
 })
 
@@ -215,7 +222,7 @@ useHead({
     -->
     <section class="home-team-heading" aria-label="团队介绍标题">
       <PageContainer>
-        <SectionHeading align="center" eyebrow="ABOUT US" :title="teamDisplayTitle" />
+        <SectionHeading align="center" title="About US" />
       </PageContainer>
     </section>
 
@@ -227,6 +234,8 @@ useHead({
     >
       <PageContainer>
         <div class="home-team-intro__content">
+          <!-- 大标题固定 About US；后台配置的标题在这里作为正文小标题显示 -->
+          <p class="home-team-intro__lead">{{ teamDisplayTitle }}</p>
           <p
             v-for="(paragraph, index) in teamParagraphsFromSettings"
             :key="index"
@@ -395,6 +404,14 @@ useHead({
     grid-template-columns: minmax(0, 1fr);
   }
 }
+.home-team-intro__lead {
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-inverse);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
 .home-team-intro__paragraph {
   margin: 0;
   color: color-mix(in srgb, var(--color-text-inverse) 88%, transparent);
