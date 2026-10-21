@@ -379,7 +379,7 @@ useHead({
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  color: var(--color-text-inverse);
+  color: var(--color-accent);
   font-size: var(--text-sm);
   font-weight: 600;
 }
@@ -406,7 +406,7 @@ useHead({
 }
 .home-team-intro__lead {
   margin: 0 0 var(--space-4);
-  color: var(--color-text-inverse);
+  color: var(--color-accent);
   font-size: var(--text-xl);
   font-weight: 700;
   letter-spacing: 0.02em;
@@ -414,7 +414,7 @@ useHead({
 
 .home-team-intro__paragraph {
   margin: 0;
-  color: color-mix(in srgb, var(--color-text-inverse) 88%, transparent);
+  color: color-mix(in srgb, var(--color-accent) 82%, white);
   font-size: clamp(1.05rem, 1.2vw, 1.18rem);
   font-weight: 500;
   line-height: 1.75;
