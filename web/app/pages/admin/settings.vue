@@ -182,6 +182,20 @@ const baseline = reactive<Record<GroupKind, string>>({
 /** 结构化编辑器状态 */
 const homeStats = ref<HomeStatEntry[]>([])
 const aboutParagraphs = ref<string[]>([])
+/** 首页团队介绍正文：按换行拆成多段，用带按钮的段落编辑器维护 */
+const homeParagraphs = ref<string[]>([])
+
+function splitTextParagraphs(value: unknown): string[] {
+  if (typeof value !== 'string') return []
+  return value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+}
+
+function moveHomeParagraph(index: number, offset: number) {
+  const target = index + offset
+  if (target < 0 || target >= homeParagraphs.value.length) return
+  const [moved] = homeParagraphs.value.splice(index, 1)
+  if (moved !== undefined) homeParagraphs.value.splice(target, 0, moved)
+}
 const coreAdvantages = ref<CoreAdvantageEditorEntry[]>([])
 const contentSidebar = ref<ContentSidebarConfig>(normalizeContentSidebar(null))
 const legalGuides = ref<LegalGuideSlide[]>(normalizeLegalGuideSlides(null))
@@ -358,6 +372,9 @@ function snapshot(kind: GroupKind): string {
     if (kind === 'home' && item.key === 'home_legal_guides') {
       return { ...item, value: JSON.stringify(legalGuides.value) }
     }
+    if (kind === 'home' && item.key === 'home_team_paragraphs') {
+      return { ...item, value: homeParagraphs.value.join('\n') }
+    }
     if (kind === 'about' && item.key === 'about_team_paragraphs') {
       return { ...item, value: JSON.stringify(aboutParagraphs.value) }
     }
@@ -449,6 +466,8 @@ function applyGroup(kind: GroupKind, payload: { data: GroupPayload }) {
     }
   }
   editItems[kind].value = items
+  const homeBodyItem = items.find(entry => entry.key === 'home_team_paragraphs')
+  if (homeBodyItem) homeParagraphs.value = splitTextParagraphs(homeBodyItem.value)
   baseline[kind] = snapshot(kind)
   return items
 }
@@ -562,6 +581,9 @@ function buildPayload(kind: GroupKind) {
     }
     if (kind === 'home' && item.key === 'home_legal_guides') {
       value = JSON.stringify(legalGuides.value)
+    }
+    if (kind === 'home' && item.key === 'home_team_paragraphs') {
+      value = homeParagraphs.value.join('\n')
     }
     if (kind === 'about' && item.key === 'about_team_paragraphs') {
       value = JSON.stringify(aboutParagraphs.value)
@@ -742,6 +764,7 @@ function isJsonEditor(kind: GroupKind, key: string): boolean {
     || (kind === 'site' && key === 'site_theme')
     || (kind === 'home' && key === 'home_legal_guides')
     || (kind === 'about' && key === 'about_team_paragraphs')
+    || (kind === 'home' && key === 'home_team_paragraphs')
 }
 
 function onSiteThemePresetChange(event: Event) {
@@ -1255,7 +1278,27 @@ function useTextarea(value: string): boolean {
                   </fieldset>
                 </div>
 
-                <!-- about_team_paragraphs：字符串数组 -->
+                <!-- home_team_paragraphs：换行分隔文本，带按钮的分段编辑器 -->
+        <div v-else-if="item.key === 'home_team_paragraphs'" class="admin-settings__rows">
+          <div v-for="(paragraph, index) in homeParagraphs" :key="`home-paragraph-${index}`" class="admin-settings__row">
+            <label class="admin-settings__cell-label" :for="`home-paragraph-${index}`">第 {{ index + 1 }} 段</label>
+            <textarea
+              :id="`home-paragraph-${index}`"
+              v-model="homeParagraphs[index]"
+              class="admin-settings__input"
+              rows="4"
+              :disabled="controlsDisabled || savingKind !== ''"
+            />
+            <div class="admin-settings__row-actions">
+              <button type="button" class="btn btn--ghost btn--sm" :disabled="controlsDisabled || index === 0" @click="moveHomeParagraph(index, -1)">上移</button>
+              <button type="button" class="btn btn--ghost btn--sm" :disabled="controlsDisabled || index === homeParagraphs.length - 1" @click="moveHomeParagraph(index, 1)">下移</button>
+              <button type="button" class="btn btn--ghost btn--sm" :disabled="controlsDisabled || savingKind !== ''" @click="homeParagraphs.splice(index, 1)">删除</button>
+            </div>
+          </div>
+          <button type="button" class="btn btn--secondary btn--sm" :disabled="controlsDisabled || savingKind !== ''" @click="homeParagraphs.push('')">新增一段</button>
+        </div>
+
+        <!-- about_team_paragraphs：字符串数组 -->
                 <div v-else class="admin-settings__rows">
                   <div
                     v-for="(paragraph, index) in aboutParagraphs"
@@ -1509,6 +1552,16 @@ function useTextarea(value: string): boolean {
   min-width: 0;
 }
 
+/*
+ * 「强调展示」这类只有单个复选框的单元格：标签与复选框并排显示。
+ * 之前 cell 是两列栅格，复选框被推到第二列、又因行高被顶到下一行，看起来像"跑出去了"。
+ */
+.admin-settings__cell:has(.admin-settings__inline-option) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
 /* 需要整行占满的字段（如侧栏配置）保持跨两列 */
 .admin-settings__field--full > *:not(.admin-settings__field-head) {
   grid-column: 1 / -1;
