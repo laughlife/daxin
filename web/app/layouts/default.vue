@@ -49,6 +49,11 @@ useHead(() => (
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  background-color: var(--color-bg-light);
+  background-image: var(--site-background-image);
+  background-position: center top;
+  background-repeat: repeat-y;
+  background-size: 100% auto;
 }
 
 .site-shell__main {

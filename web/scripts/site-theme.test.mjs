@@ -47,15 +47,16 @@ test('site theme normalizes custom HEX values and falls back safely for invalid 
   assert.deepEqual(normalizeSiteTheme(null), fallback)
 })
 
-test('site theme exposes only controlled primary and accent CSS variables', () => {
-  // 未带扩展调色板的预设行为不变：只覆盖主色与点缀色
+test('site theme selects the matching wave background for each palette', () => {
   assert.deepEqual(siteThemeCssVariables({ preset: 'business-purple' }), {
     '--color-primary': '#642A86',
     '--color-accent': '#D7B5E8',
+    '--site-background-image': "url('/images/backgrounds/site-background-neutral.png')",
   })
   assert.deepEqual(siteThemeCssVariables({ preset: 'custom', primary: '#0a2b4c' }), {
     '--color-primary': '#0A2B4C',
     '--color-accent': '#C9A45C',
+    '--site-background-image': "url('/images/backgrounds/site-background-neutral.png')",
   })
 })
 
@@ -70,6 +71,7 @@ test('gold preset overrides surface and text colors so the palette is coherent',
     '--color-bg-dark': '#2A2018',
     '--color-text': '#2B2620',
     '--color-text-muted': '#6F6559',
+    '--site-background-image': "url('/images/backgrounds/site-background-warm.png')",
   })
 })
 
@@ -89,5 +91,6 @@ test('public layout applies normalized theme tokens while admin keeps its own th
   assert.match(publicLayoutSource, /class="site-shell"\s+:style="siteThemeStyle"/)
   assert.match(publicLayoutSource, /--color-primary-dark:\s*color-mix/)
   assert.match(publicLayoutSource, /--color-primary-light:\s*color-mix/)
+  assert.match(publicLayoutSource, /background-image:\s*var\(--site-background-image\)/)
   assert.doesNotMatch(adminLayoutSource, /siteThemeCssVariables|site_theme/)
 })

@@ -25,6 +25,7 @@
   /* ===== 背景色 ===== */
   --color-bg-page: #ffffff;          /* 页面默认背景（内容卡片白色） */
   --color-bg-light: #faf6ee;         /* 浅色分区背景（暖米色） */
+  --site-background-image: url('/images/backgrounds/site-background-neutral.png');
   --color-bg-dark: #2a2018;          /* 深色背景（公告栏 / Footer，深棕） */
   --color-bg-overlay: rgb(42 32 24 / 58%); /* 移动端菜单遮罩 */
 

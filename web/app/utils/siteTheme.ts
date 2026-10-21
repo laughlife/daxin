@@ -100,6 +100,7 @@ export function siteThemeCssVariables(value: unknown): Record<string, string> {
     return {
       '--color-primary': theme.primary,
       '--color-accent': '#C9A45C',
+      '--site-background-image': "url('/images/backgrounds/site-background-neutral.png')",
     }
   }
 
@@ -107,6 +108,9 @@ export function siteThemeCssVariables(value: unknown): Record<string, string> {
   const variables: Record<string, string> = {
     '--color-primary': preset.primary,
     '--color-accent': preset.accent,
+    '--site-background-image': theme.preset === 'royal-gold'
+      ? "url('/images/backgrounds/site-background-warm.png')"
+      : "url('/images/backgrounds/site-background-neutral.png')",
   }
 
   // 带扩展调色板的预设额外覆盖底色与文字色，让整站配色真正统一
