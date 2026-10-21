@@ -88,7 +88,7 @@ const SETTING_LABELS: Record<string, string> = {
   home_hero_badge: '首屏眉题', home_hero_title: '首屏标题图片', home_hero_subtitle: '首屏介绍',
   home_hero_primary_label: '主按钮文字', home_hero_primary_link: '主按钮链接',
   home_hero_secondary_label: '次按钮文字', home_hero_background: '首页动态背景视频',
-  home_team_background: '团队介绍背景图', home_team_title: '团队介绍标题', home_team_paragraphs: '团队介绍正文', home_team_features: '团队介绍亮点',
+  home_team_background: '团队介绍背景图', home_team_title: '团队介绍标题', home_team_paragraphs: '团队介绍正文', home_team_features: '团队介绍亮点（多行，已拆分为下面四项）', home_team_feature_1: '亮点一', home_team_feature_2: '亮点二', home_team_feature_3: '亮点三', home_team_feature_4: '亮点四',
   home_hero_background_poster: '首页背景视频封面', home_stats: '首页数据指标',
   home_core_advantages: '首页核心优势', home_legal_guides: '普法干货轮播',
   home_consultation_title: '咨询区域标题', home_consultation_description: '咨询区域说明', home_consultation_button: '咨询按钮文字',
@@ -108,7 +108,7 @@ const SETTING_GROUPS: Record<GroupKind, { id: string, title: string, keys: strin
   ],
   home: [
     { id: 'hero', title: '首页首屏', keys: ['home_hero_badge', 'home_hero_title', 'home_hero_subtitle', 'home_hero_primary_label', 'home_hero_primary_link', 'home_hero_secondary_label', 'home_hero_background', 'home_hero_background_poster'] },
-    { id: 'home-team', title: '首页团队介绍', keys: ['home_team_background', 'home_team_title', 'home_team_paragraphs', 'home_team_features'] },
+    { id: 'home-team', title: '首页团队介绍', keys: ['home_team_background', 'home_team_title', 'home_team_paragraphs', 'home_team_feature_1', 'home_team_feature_2', 'home_team_feature_3', 'home_team_feature_4'] },
     { id: 'stats', title: '首页数据指标', keys: ['home_stats'] },
     { id: 'advantages', title: '核心优势', keys: ['home_core_advantages'] },
     { id: 'guides', title: '普法干货轮播', keys: ['home_legal_guides'] },

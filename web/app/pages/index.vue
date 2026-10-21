@@ -94,10 +94,17 @@ const teamDisplayTitle = computed(() => teamTitleFromSettings.value || '大信�
  */
 const DEFAULT_TEAM_FEATURES = ['TRO和解/应诉/起诉', '跨境知识产权服务', '涉外纠纷', '货代纠纷与劳动争议']
 const teamFeaturesFromSettings = computed(() => {
-  const value = siteSettings.value?.settings?.home_team_features
-  if (typeof value !== 'string') return DEFAULT_TEAM_FEATURES
-  const lines = value.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
-  return lines.length ? lines : DEFAULT_TEAM_FEATURES
+  // 后台拆成四个独立输入框（亮点一~四），按 1→4 顺序渲染，留空的自动跳过
+  const settings = siteSettings.value?.settings ?? {}
+  const items = [
+    settings.home_team_feature_1,
+    settings.home_team_feature_2,
+    settings.home_team_feature_3,
+    settings.home_team_feature_4,
+  ]
+    .map((value) => (typeof value === 'string' ? value.trim() : ''))
+    .filter(Boolean)
+  return items.length ? items : DEFAULT_TEAM_FEATURES
 })
 
 const teamParagraphsFromSettings = computed(() => {
