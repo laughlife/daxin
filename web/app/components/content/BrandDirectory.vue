@@ -277,16 +277,17 @@ useSeoMeta({
 .brand-directory__search-control button { align-self: stretch; min-width: 92px; padding-inline: var(--space-5); border: 0; border-radius: 0 var(--radius-md) var(--radius-md) 0; background: var(--color-primary); color: var(--color-text-on-primary); font-weight: 700; transition: background-color var(--transition-base); }
 .brand-directory__search-control button:hover { background: var(--color-primary-dark); }
 .brand-directory__tabs { display: flex; gap: var(--space-2); padding: 0 var(--space-5) var(--space-4); }
-/* 类型颜色沿用文档图示：商标蓝、专利黄、版权绿，不与金色主题混色。 */
-.brand-directory__tabs button[data-type='trademark'], .brand-card__types span[data-type='trademark'] { --brand-type-color: #3183cf; }
-.brand-directory__tabs button[data-type='patent'], .brand-card__types span[data-type='patent'] { --brand-type-color: #d9a51b; }
-.brand-directory__tabs button[data-type='copyright'], .brand-card__types span[data-type='copyright'] { --brand-type-color: #4a9a63; }
-.brand-directory__tabs button[data-type='trademark'], .brand-directory__tabs button[data-type='patent'], .brand-directory__tabs button[data-type='copyright'] { color: var(--brand-type-color); border-color: color-mix(in srgb, var(--brand-type-color) 45%, white); }
+/* 分类使用固定纯色：商标蓝、专利黄、版权绿，不受站点金色主题影响。 */
+.brand-directory__tabs button[data-type='trademark'], .brand-card__types span[data-type='trademark'] { --brand-type-color: #3183cf; --brand-type-soft: #edf6fd; --brand-type-border: #a8d2f0; --brand-type-text: #3183cf; }
+.brand-directory__tabs button[data-type='patent'], .brand-card__types span[data-type='patent'] { --brand-type-color: #f0c419; --brand-type-soft: #fff9df; --brand-type-border: #f0d766; --brand-type-text: #394150; }
+.brand-directory__tabs button[data-type='copyright'], .brand-card__types span[data-type='copyright'] { --brand-type-color: #4a9a63; --brand-type-soft: #eef8ef; --brand-type-border: #b6dbbd; --brand-type-text: #4a9a63; }
+.brand-directory__tabs button[data-type='trademark'], .brand-directory__tabs button[data-type='patent'], .brand-directory__tabs button[data-type='copyright'] { color: var(--brand-type-text); border-color: var(--brand-type-border); }
 .brand-directory__tabs button { display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: 1px solid transparent; border-radius: var(--radius-full); background: transparent; color: var(--color-text-muted); font: inherit; font-weight: 600; cursor: pointer; transition: color var(--transition-base), background-color var(--transition-base), border-color var(--transition-base); }
 .brand-directory__tabs button:hover { border-color: var(--color-border); color: var(--color-primary); }
 .brand-directory__tabs button[data-type='trademark']:hover, .brand-directory__tabs button[data-type='patent']:hover, .brand-directory__tabs button[data-type='copyright']:hover { border-color: var(--brand-type-color); color: var(--brand-type-color); }
 .brand-directory__tabs button.is-active { border-color: var(--color-primary); background: var(--color-primary); color: var(--color-text-on-primary); }
 .brand-directory__tabs button[data-type='trademark'].is-active, .brand-directory__tabs button[data-type='patent'].is-active, .brand-directory__tabs button[data-type='copyright'].is-active { border-color: var(--brand-type-color); background: var(--brand-type-color); color: #fff; }
+.brand-directory__tabs button[data-type='patent'].is-active { color: #394150; }
 .brand-directory__tabs small { min-width: 1.5em; font-size: var(--text-xs); opacity: .8; }
 .brand-directory__list { padding: var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-page); box-shadow: var(--shadow-sm); }
 .brand-directory__result-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); color: var(--color-text-muted); font-size: var(--text-sm); }
@@ -304,7 +305,7 @@ useSeoMeta({
 .brand-card:hover .brand-card__header h3, .brand-card:focus-visible .brand-card__header h3 { color: var(--color-primary); }
 .brand-card__types { display: flex; flex: 0 0 auto; max-width: 45%; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); }
 .brand-card__types span { flex: none; max-width: 100%; padding: 3px 8px; border: 1px solid color-mix(in srgb, var(--color-primary) 24%, white); border-radius: var(--radius-full); background: color-mix(in srgb, var(--color-primary) 8%, white); color: var(--color-primary); font-size: var(--text-xs); font-weight: 600; text-align: center; white-space: nowrap; }
-.brand-card__types span[data-type] { border-color: color-mix(in srgb, var(--brand-type-color) 35%, white); background: color-mix(in srgb, var(--brand-type-color) 10%, white); color: var(--brand-type-color); }
+.brand-card__types span[data-type] { border-color: var(--brand-type-border); background: var(--brand-type-soft); color: var(--brand-type-text); }
 .brand-card__types .brand-card__type-muted { color: var(--color-text-muted); }
 .brand-card__body { display: grid; grid-template-columns: minmax(0, 1fr) 76px; align-items: center; gap: var(--space-3); min-height: 84px; }
 .brand-card__facts { display: grid; gap: 6px; min-width: 0; }
