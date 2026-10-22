@@ -2,16 +2,26 @@
 import { computed, ref } from 'vue'
 import type { HomeTeamServiceSection } from '~/repositories/home'
 
-/**
- * 首页「核心业务」：01-05 五个竖向面板，悬停或点击后横向展开。
- * 图标使用现有内联 SVG，保持既定图标不变。
- */
 const props = defineProps<{ sections: HomeTeamServiceSection[] }>()
 
 const hoveredIndex = ref(-1)
 const selectedIndex = ref(-1)
 
-/** 点击固定优先；再次点击同一项则收起。 */
+const PANEL_ARTS = [
+  '/images/services/core-business/01-tro-business.jpg',
+  '/images/services/core-business/02-ip.jpg',
+  '/images/services/core-business/03-disputes.jpg',
+  '/images/services/core-business/04-freight-labor.jpg',
+  '/images/services/core-business/05-lifecycle.jpg',
+]
+const PANEL_ARTS_BY_SLUG: Record<string, string> = {
+  'team-tro': PANEL_ARTS[0]!,
+  'team-ip': PANEL_ARTS[1]!,
+  'team-disputes': PANEL_ARTS[2]!,
+  'team-cross-border': PANEL_ARTS[3]!,
+  'team-lifecycle': PANEL_ARTS[4]!,
+}
+
 function toggle(index: number) {
   selectedIndex.value = selectedIndex.value === index ? -1 : index
 }
@@ -32,46 +42,16 @@ const activeIndex = computed(() => (
       : props.sections.length - 1
 ))
 
-/**
- * 按 slug 取图标路径，而不是 icon_key：
- * 库里 team-ip 与 team-lifecycle 的 icon_key 都是 shield，用 icon_key 会撞图标。
- */
-const ICON_PATHS: Record<string, string[]> = {
-  'team-tro': [
-    'M12 3v18',
-    'M5 7h14',
-    'M5 7l-2.5 6h5L5 7zm14 0l-2.5 6h5L19 7z',
-    'M8 21h8',
-  ],
-  'team-ip': [
-    'M12 3l7 3v5c0 4.2-2.8 7.5-7 9-4.2-1.5-7-4.8-7-9V6l7-3z',
-    'M9 12l2 2 4-4',
-  ],
-  'team-disputes': [
-    'M4 8h16v11H4z',
-    'M9 8V6a3 3 0 016 0v2',
-    'M4 13h16',
-  ],
-  'team-cross-border': [
-    'M3 7h11v9H3z',
-    'M14 10h4l3 3v3h-7z',
-    'M7 19a1.6 1.6 0 100-3.2A1.6 1.6 0 007 19z',
-    'M17.5 19a1.6 1.6 0 100-3.2 1.6 1.6 0 000 3.2z',
-  ],
-  'team-lifecycle': [
-    'M12 21a9 9 0 10-9-9',
-    'M12 7v5l3 2',
-    'M3 12l-1.5-3M3 12l3-1.5',
-  ],
+function panelArtStyle(slug: string, index: number): Record<string, string> {
+  const image = PANEL_ARTS_BY_SLUG[slug] ?? PANEL_ARTS[index]
+  return image ? { '--core-panel-art': `url("${image}")` } : {}
 }
 
-const FALLBACK_ICON = ['M12 3l7 3v5c0 4.2-2.8 7.5-7 9-4.2-1.5-7-4.8-7-9V6l7-3z']
-
-function iconPaths(slug: string): string[] {
-  return ICON_PATHS[slug] ?? FALLBACK_ICON
+function hasPanelArt(slug: string, index: number): boolean {
+  return Boolean(PANEL_ARTS_BY_SLUG[slug] ?? PANEL_ARTS[index])
 }
 
-function titleParts(title: string): Array<{ text: string; latin: boolean }> {
+function titleParts(title: string): Array<{ text: string, latin: boolean }> {
   return title.split(/([A-Za-z0-9]+)/).filter(Boolean).map(text => ({
     text,
     latin: /^[A-Za-z0-9]+$/.test(text),
@@ -86,11 +66,10 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
     aria-label="核心业务"
   >
     <PageContainer>
-      <SectionHeading
-        align="center"
-        eyebrow="CORE BUSINESS"
-        title="核心业务"
-      />
+      <header class="core-business__heading">
+        <h2 class="core-business__heading-title">核心业务</h2>
+        <p class="core-business__heading-english">CORE BUSINESS</p>
+      </header>
 
       <div class="core-business__panels">
         <article
@@ -100,7 +79,9 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
           :class="{
             'core-business__panel--active': activeIndex === index,
             'core-business__panel--pinned': selectedIndex === index,
+            'core-business__panel--has-art': hasPanelArt(section.slug, index),
           }"
+          :style="panelArtStyle(section.slug, index)"
           @mouseenter="setHovered(index)"
           @mouseleave="clearHovered(index)"
         >
@@ -108,14 +89,18 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
             :id="`core-business-toggle-${section.slug}`"
             class="core-business__toggle"
             type="button"
+            :aria-label="`${String(index + 1).padStart(2, '0')} ${section.title}`"
             :aria-expanded="activeIndex === index"
             :aria-controls="`core-business-body-${section.slug}`"
             @click="toggle(index)"
           >
             <span class="core-business__number">{{ String(index + 1).padStart(2, '0') }}</span>
             <span class="core-business__icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
-                <path v-for="(d, pathIndex) in iconPaths(section.slug)" :key="pathIndex" :d="d" />
+              <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m27 3-16 16-2-2L25 1l2 2Z" />
+                <path d="m8 16 7 7" />
+                <path d="m11 20-6 6" />
+                <circle cx="4" cy="28" r="1.4" />
               </svg>
             </span>
             <span class="core-business__title">
@@ -131,9 +116,9 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
             :id="`core-business-body-${section.slug}`"
             class="core-business__body"
             role="region"
+            :aria-hidden="activeIndex !== index"
             :aria-labelledby="`core-business-toggle-${section.slug}`"
           >
-            <!-- 只有一个 grid 子元素：grid-template-rows: 0fr 只约束第一行 -->
             <div class="core-business__body-inner">
               <div class="core-business__detail">
                 <ul v-if="section.items.length" class="core-business__items">
@@ -141,12 +126,13 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
                     <span class="core-business__item-title">{{ item.title }}</span>
                   </li>
                 </ul>
-                <div class="core-business__image">
+                <div class="core-business__image" aria-label="业务图片展示位">
                   <img v-if="section.imageUrl" :src="section.imageUrl" :alt="`${section.title}服务图片`" loading="lazy" decoding="async">
-                  <svg v-else viewBox="0 0 48 48" aria-hidden="true">
-                    <path d="M8 36l10-11 7 7 6-8 9 12H8Z" />
-                    <circle cx="17" cy="16" r="4" />
-                    <rect x="5" y="5" width="38" height="38" rx="5" />
+                  <svg v-else viewBox="0 0 32 32" aria-hidden="true">
+                    <path d="m27 3-16 16-2-2L25 1l2 2Z" />
+                    <path d="m8 16 7 7" />
+                    <path d="m11 20-6 6" />
+                    <circle cx="4" cy="28" r="1.4" />
                   </svg>
                 </div>
               </div>
@@ -160,14 +146,55 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
 
 <style scoped>
 .core-business {
+  --core-heading: #2B2927;
+  --core-english: #E6E6E6;
+  --core-outline: #BE8E58;
+  --core-body: #3B3838;
+  --core-accent: #C7965D;
   padding-block: var(--space-12) var(--space-16);
-  background-color: var(--color-bg-light);
+  background: #fffaf2 url('/images/backgrounds/site-background-warm.png') center / cover no-repeat;
+}
+
+.core-business__heading {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-8);
+  text-align: center;
+}
+
+.core-business__heading-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 4vw, 72px);
+  margin: 0;
+  color: var(--core-heading);
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.core-business__heading-title::before,
+.core-business__heading-title::after {
+  width: clamp(32px, 9vw, 140px);
+  height: 1px;
+  background: color-mix(in srgb, var(--core-heading) 72%, transparent);
+  content: '';
+}
+
+.core-business__heading-english {
+  margin: 0;
+  color: var(--core-english);
+  font-size: clamp(1rem, 1.7vw, 1.4rem);
+  font-weight: 800;
+  letter-spacing: .08em;
+  line-height: 1.2;
 }
 
 .core-business__panels {
   display: flex;
   gap: var(--space-3);
-  margin-top: var(--space-8);
   align-items: stretch;
   min-height: 400px;
 }
@@ -178,34 +205,43 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
   flex: 0 0 152px;
   flex-direction: column;
   min-width: 0;
-  padding: var(--space-4) var(--space-3);
-  border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
+  overflow: hidden;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--core-outline) 75%, white);
   border-radius: var(--radius-lg);
-  background-color: var(--color-bg-page);
+  background-color: #9b6843;
+  background-image: var(--core-panel-art);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 100% 100%;
+  box-shadow: 0 8px 22px rgb(95 65 35 / 8%);
   transition:
     flex-grow var(--transition-base),
     flex-basis var(--transition-base),
     background-color var(--transition-base),
+    background-image var(--transition-base),
     border-color var(--transition-base),
     box-shadow var(--transition-base);
 }
 
-/* 收起时形成窄竖条；当前项占用剩余宽度并向左右展开。 */
 .core-business__panel--active {
   flex: 1 1 0;
   padding: var(--space-5);
-  border-color: var(--color-primary);
-  background-color: color-mix(in srgb, var(--color-primary) 5%, var(--color-bg-page));
-  box-shadow: var(--shadow-md);
+  border-color: var(--core-outline);
+  background-color: rgb(255 255 255 / 94%);
+  background-image: none;
+  box-shadow: 0 12px 32px rgb(87 62 38 / 12%);
 }
 
 .core-business__toggle {
   display: flex;
-  flex: 0 0 auto;
+  flex: 1 1 auto;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: var(--space-3);
   width: 100%;
+  min-height: 0;
   padding: 0;
   border: 0;
   background: transparent;
@@ -213,21 +249,33 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
   font: inherit;
   text-align: left;
   cursor: pointer;
+  opacity: 1;
+}
+
+.core-business__panel--has-art:not(.core-business__panel--active) .core-business__toggle {
+  opacity: 0;
+}
+
+.core-business__toggle:focus-visible {
+  outline: 3px solid var(--color-primary);
+  outline-offset: -5px;
+  border-radius: inherit;
 }
 
 .core-business__number {
-  color: var(--color-primary);
-  font-size: var(--text-sm);
+  color: var(--core-outline);
+  font-size: var(--text-xs);
   font-weight: 800;
-  letter-spacing: .12em;
+  letter-spacing: .16em;
 }
 
 .core-business__icon {
   display: grid;
-  width: 42px;
-  height: 42px;
+  width: 26px;
+  height: 26px;
+  flex: none;
   place-items: center;
-  color: var(--color-primary);
+  color: var(--core-outline);
   transition: transform var(--transition-base), color var(--transition-base);
 }
 
@@ -236,14 +284,46 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
   height: 100%;
 }
 
+.core-business__panel--active .core-business__toggle {
+  display: grid;
+  flex: 0 0 auto;
+  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  align-items: center;
+  justify-content: initial;
+  column-gap: var(--space-3);
+  row-gap: 2px;
+  opacity: 1;
+}
+
+.core-business__panel--active .core-business__number {
+  grid-column: 2;
+  grid-row: 1;
+}
+
 .core-business__panel--active .core-business__icon {
-  color: var(--color-primary-dark);
-  transform: scale(1.06);
+  grid-column: 1;
+  grid-row: 1 / 3;
+  width: 25px;
+  height: 25px;
+  color: var(--core-accent);
+}
+
+.core-business__panel--active .core-business__title {
+  grid-column: 2;
+  grid-row: 2;
+  max-height: none;
+  color: var(--core-body);
+  font-size: clamp(1.2rem, 1.8vw, 1.55rem);
+  font-weight: 700;
+  line-height: 1.3;
+  writing-mode: horizontal-tb;
+  overflow-wrap: break-word;
 }
 
 .core-business__title {
   max-height: 220px;
-  color: var(--color-text);
+  color: white;
   font-size: var(--text-base);
   font-weight: 700;
   line-height: 1.4;
@@ -256,30 +336,6 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
   text-combine-upright: all;
 }
 
-.core-business__panel--active .core-business__toggle {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  grid-template-rows: auto 1fr;
-  align-items: center;
-  column-gap: var(--space-3);
-  row-gap: var(--space-2);
-}
-
-.core-business__panel--active .core-business__number {
-  grid-column: 1 / -1;
-}
-
-.core-business__panel--active .core-business__title {
-  grid-column: 2;
-  max-height: none;
-  writing-mode: horizontal-tb;
-  overflow-wrap: break-word;
-}
-
-/*
- * 内容区用 grid-rows 0fr → 1fr 做展开动画，
- * 比 max-height 猜高度稳（内容多少都不需要调魔数）。
- */
 .core-business__body {
   display: grid;
   grid-template-rows: 0fr;
@@ -294,6 +350,7 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
 
 .core-business__panel--active .core-business__body {
   grid-template-rows: 1fr;
+  flex: 1 1 auto;
   margin-top: var(--space-4);
   opacity: 1;
 }
@@ -309,16 +366,18 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
 
 .core-business__detail {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(110px, .8fr);
-  align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(130px, .8fr);
+  align-items: stretch;
   gap: var(--space-4);
+  height: 100%;
 }
 
 .core-business__items {
   display: grid;
-  gap: var(--space-2);
+  align-content: start;
+  gap: var(--space-3);
   margin: 0;
-  padding: 0;
+  padding: var(--space-2) 0;
   list-style: none;
 }
 
@@ -329,33 +388,34 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
   padding-left: var(--space-4);
 }
 
-/* 细项使用主题色标记，随站点主色配置变化。 */
 .core-business__items li::before {
-  content: "";
   position: absolute;
-  top: 0.62em;
+  top: .58em;
   left: 0;
-  width: 6px;
-  height: 6px;
-  background-color: var(--color-primary);
-  transform: rotate(45deg);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--core-accent);
+  content: '';
 }
 
 .core-business__item-title {
-  color: var(--color-text);
-  font-size: var(--text-sm);
+  color: var(--core-body);
+  font-size: var(--text-base);
   font-weight: 600;
+  line-height: 1.6;
 }
 
 .core-business__image {
   display: grid;
   min-width: 0;
+  min-height: 150px;
   overflow: hidden;
-  aspect-ratio: 1.25;
-  border: 1px solid color-mix(in srgb, var(--color-primary) 28%, var(--color-border));
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--color-primary) 7%, var(--color-bg-page));
-  color: color-mix(in srgb, var(--color-primary) 45%, var(--color-bg-page));
+  aspect-ratio: 1.15;
+  border: 1.5px solid var(--core-outline);
+  border-radius: var(--radius-lg);
+  background: rgb(255 255 255 / 70%);
+  color: color-mix(in srgb, var(--core-outline) 16%, white);
   place-items: center;
 }
 
@@ -367,11 +427,11 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
 }
 
 .core-business__image svg {
-  width: 42px;
-  height: 42px;
+  width: 70px;
+  height: 70px;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.5;
+  stroke-width: 1.4;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -391,29 +451,62 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
   .core-business__panel,
   .core-business__panel--active {
     flex: 0 0 auto;
+    min-height: 88px;
+    padding: var(--space-4);
+    border-color: var(--core-outline);
+    background-color: rgb(255 255 255 / 94%);
+    background-image: none;
   }
 
   .core-business__toggle,
   .core-business__panel--active .core-business__toggle {
     display: grid;
-    grid-template-columns: 42px minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
+    flex: 0 0 auto;
+    grid-template-columns: 30px minmax(0, 1fr);
+    grid-template-rows: auto auto;
     align-items: center;
+    justify-content: initial;
     column-gap: var(--space-3);
-    row-gap: var(--space-2);
+    row-gap: 2px;
+    min-height: 54px;
+    opacity: 1;
+  }
+
+  .core-business__panel--has-art:not(.core-business__panel--active) .core-business__toggle {
+    opacity: 1;
   }
 
   .core-business__number,
   .core-business__panel--active .core-business__number {
-    grid-column: 1 / -1;
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  .core-business__icon,
+  .core-business__panel--active .core-business__icon {
+    grid-column: 1;
+    grid-row: 1 / 3;
+    width: 25px;
+    height: 25px;
   }
 
   .core-business__title,
   .core-business__panel--active .core-business__title {
     grid-column: 2;
+    grid-row: 2;
     max-height: none;
+    color: var(--core-body);
+    font-size: var(--text-base);
     writing-mode: horizontal-tb;
     overflow-wrap: break-word;
+  }
+
+  .core-business__panel:not(.core-business__panel--active) .core-business__body {
+    display: none;
+  }
+
+  .core-business__panel--active .core-business__detail {
+    grid-template-columns: minmax(0, 1fr) minmax(120px, .8fr);
   }
 }
 
@@ -422,21 +515,26 @@ function titleParts(title: string): Array<{ text: string; latin: boolean }> {
     padding-block: var(--space-10) var(--space-12);
   }
 
-  .core-business__title {
-    font-size: var(--text-base);
+  .core-business__heading-title {
+    gap: var(--space-3);
+    font-size: 1.75rem;
   }
 
-  .core-business__panel,
-  .core-business__panel--active {
-    padding: var(--space-4);
+  .core-business__heading-title::before,
+  .core-business__heading-title::after {
+    width: 28px;
   }
 
-  .core-business__detail {
+  .core-business__detail,
+  .core-business__panel--active .core-business__detail {
     grid-template-columns: minmax(0, 1fr);
   }
 
   .core-business__image {
+    width: 100%;
     max-width: 420px;
+    min-height: 180px;
+    aspect-ratio: 1.6;
   }
 }
 </style>
