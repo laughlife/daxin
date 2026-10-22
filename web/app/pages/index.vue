@@ -273,7 +273,7 @@ useHead({
 .home-team-intro__layout {
   display: flex;
   align-items: center;
-  min-height: clamp(22rem, 36vw, 32rem);
+  min-height: clamp(34rem, 48vw, 62rem);
 }
 
 .home-team-intro__content {
@@ -282,68 +282,80 @@ useHead({
   align-items: flex-start;
   gap: var(--space-4);
   min-width: 0;
-  width: min(100%, 650px);
+  width: min(100%, 900px);
 }
 
 .home-team-intro__title {
+  width: 100%;
   margin: 0;
   color: var(--color-text);
-  font-size: clamp(2.4rem, 4vw, 3.6rem);
+  font-size: clamp(2.75rem, 4.4vw, 5.5rem);
   font-weight: 800;
-  line-height: 1.08;
+  line-height: 1.12;
   text-shadow: 0 2px 16px rgb(0 0 0 / 18%);
 }
 
 .home-team-intro__title::after {
   display: block;
-  width: min(100%, 280px);
-  height: 3px;
-  margin-top: var(--space-4);
-  background: linear-gradient(90deg, var(--color-primary) 0 28%, rgb(255 255 255 / 34%) 28% 100%);
+  width: min(100%, 820px);
+  height: 4px;
+  margin-top: clamp(1rem, 2vw, 2rem);
+  background: linear-gradient(90deg, #EEAF4E 0 18%, rgb(255 255 255 / 34%) 18% 100%);
   content: "";
 }
 
 .home-team-intro__paragraph {
-  max-width: 28em;
+  max-width: 34em;
   margin: 0;
   color: var(--color-text-muted);
-  font-size: clamp(1.05rem, 1.2vw, 1.2rem);
+  font-size: clamp(1.1rem, 1.4vw, 1.5rem);
   font-weight: 500;
-  line-height: 1.8;
+  line-height: 1.9;
 }
 
 .home-team-intro__features {
   display: grid;
-  gap: var(--space-3) var(--space-8);
+  gap: clamp(1.25rem, 2.7vw, 3.5rem) clamp(1.25rem, 3vw, 3rem);
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: var(--space-2) 0 0;
+  margin: var(--space-3) 0 0;
   padding: 0;
   list-style: none;
 }
 
 .home-team-intro__features li {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: clamp(.75rem, 1vw, 1.25rem);
   color: var(--color-text-muted);
-  font-size: var(--text-sm);
-  font-weight: 600;
+  font-size: clamp(1.05rem, 1.45vw, 1.5rem);
+  font-weight: 500;
 }
 
 .home-team-intro__features li::before {
-  content: "✓";
+  content: "";
   display: grid;
   flex: none;
-  width: 20px;
-  height: 20px;
+  width: clamp(1.8rem, 2vw, 2.4rem);
+  height: clamp(1.8rem, 2vw, 2.4rem);
   border-radius: 50%;
-  border: 1px solid #EEAF4E;
+  border: 0;
   background-color: #EEAF4E;
-  color: var(--color-text-on-primary);
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1;
   place-items: center;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
+}
+
+.home-team-intro__features li::after {
+  position: absolute;
+  top: clamp(.38rem, .55vw, .68rem);
+  left: clamp(.7rem, .82vw, .95rem);
+  width: .52rem;
+  height: .92rem;
+  border: solid #17243a;
+  border-width: 0 .24rem .24rem 0;
+  border-radius: 1px;
+  content: "";
+  transform: rotate(45deg);
 }
 
 @media (max-width: 640px) {
@@ -354,20 +366,21 @@ useHead({
 .home-team-intro__actions {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--space-3);
-  margin-top: var(--space-2);
+  gap: clamp(.75rem, 1.2vw, 1.25rem);
+  margin-top: clamp(1.5rem, 3vw, 3rem);
 }
 
 .home-team-intro__button {
   display: inline-flex;
-  min-height: 48px;
+  min-height: clamp(3.5rem, 5.4vw, 6.75rem);
   align-items: center;
   justify-content: center;
-  padding: 0 var(--space-6);
-  border: 1px solid var(--color-primary);
-  border-radius: var(--radius-full);
+  padding: 0 clamp(1.5rem, 3.4vw, 3.75rem);
+  border: 1px solid transparent;
+  border-radius: clamp(1rem, 1.4vw, 1.75rem);
   font: inherit;
-  font-weight: 700;
+  font-size: clamp(1.15rem, 1.9vw, 2rem);
+  font-weight: 800;
   text-decoration: none;
   transition: color var(--transition-base), background-color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base);
   cursor: pointer;
@@ -381,13 +394,13 @@ useHead({
 .home-team-intro__button--primary {
   border-color: #fff;
   background: #fff;
-  color: var(--color-primary);
+  color: #EEAF4E;
 }
 
 .home-team-intro__button--secondary {
   border-color: #EEAF4E;
   background: #EEAF4E;
-  color: var(--color-text-on-primary);
+  color: #fff;
 }
 
 .home-team-intro--has-background .home-team-intro__title {
