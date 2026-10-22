@@ -11,7 +11,7 @@ const sidebarRoute = new URL('../app/pages/admin/sidebar.vue', import.meta.url)
 const footerRoute = new URL('../app/pages/admin/footer.vue', import.meta.url)
 
 test('站点设置按五个标签分组，字段只保留中文名称和值', () => {
-  for (const label of ['站点信息', '首页内容', '关于我们', '二维码管理', '团队业务范围']) {
+  for (const label of ['站点信息', '首页内容', '关于我们', '二维码管理', '核心业务']) {
     assert.ok(siteSettings.includes(`label: '${label}'`), `${label} 标签存在`)
   }
   assert.match(siteSettings, /SETTING_LABELS/)

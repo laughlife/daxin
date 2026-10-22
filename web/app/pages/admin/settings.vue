@@ -74,7 +74,7 @@ const TABS: { kind: SettingsTabKind, label: string }[] = [
   { kind: 'home', label: '首页内容' },
   { kind: 'about', label: '关于我们' },
   { kind: 'qr', label: '二维码管理' },
-  { kind: 'services', label: '团队业务范围' }
+  { kind: 'services', label: '核心业务' }
 ]
 
 /** 默认展开第一个 tab */

@@ -5,7 +5,7 @@ import { test } from 'node:test'
 const source = await readFile(new URL('../app/components/admin/AdminServicesSettings.vue', import.meta.url), 'utf8')
 const template = source.split('<template>')[1]?.split('</template>')[0] ?? ''
 
-test('业务范围页面只显示板块标题和子项标题', () => {
+test('核心业务配置只显示板块标题、图片和子项标题', () => {
   assert.match(template, />板块标题<\/label>/)
   assert.match(template, />\s*子项标题\s*<\/label>/)
   for (const field of ['副标题', '板块说明', '业务块图标', '子项说明', '排序值', '状态', '详情链接', '显示「了解详情」链接', '标识 slug', '移除本次提交', '移出本次提交']) {
@@ -51,10 +51,10 @@ test('首次加载业务配置时显示加载状态，避免空列表误报未�
   assert.match(source, /const baseline = ref\(JSON\.stringify\(sections\.value\)\)/)
 })
 
-test('业务范围通过站点设置标签维护，旧直达地址会转到对应标签', async () => {
+test('核心业务通过站点设置标签维护，旧直达地址会转到对应标签', async () => {
   const settings = await readFile(new URL('../app/pages/admin/settings.vue', import.meta.url), 'utf8')
   const route = await readFile(new URL('../app/pages/admin/services.vue', import.meta.url), 'utf8')
-  assert.match(settings, /kind: 'services', label: '团队业务范围'/)
+  assert.match(settings, /kind: 'services', label: '核心业务'/)
   assert.match(settings, /<AdminServicesSettings\s*\/>/)
   assert.match(route, /tab=services/)
   assert.doesNotMatch(source, /<h1[^>]*>团队业务配置/)

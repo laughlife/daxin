@@ -48,7 +48,7 @@ test('homepage order is team intro, metrics, then five expandable core-business 
   assert.match(indexSource, /联系我们免费评估案件/)
   assert.doesNotMatch(indexSource, /了解更多/)
 
-  // 横向排列、悬停/点击展开、展开态与收起态配色区分
+  // 竖条横向排列、悬停/点击后向左右展开，展开态与收起态配色区分
   assert.match(coreBusinessSource, /core-business__number/)
   assert.match(coreBusinessSource, /String\(index \+ 1\)\.padStart\(2, '0'\)/)
   assert.match(coreBusinessSource, /core-business__icon/)
@@ -57,7 +57,10 @@ test('homepage order is team intro, metrics, then five expandable core-business 
   assert.match(coreBusinessSource, /@click="toggle\(index\)"/)
   assert.match(coreBusinessSource, /core-business__panel--active/)
   assert.match(coreBusinessSource, /:src="section.imageUrl"/)
-  assert.match(coreBusinessSource, /core-business__summary/)
+  assert.doesNotMatch(coreBusinessSource, /core-business__summary|core-business__item-desc|section\.description|item\.description/)
+  assert.match(coreBusinessSource, /flex:\s*0 0 76px/)
+  assert.match(coreBusinessSource, /writing-mode:\s*vertical-rl/)
+  assert.match(coreBusinessSource, /flex:\s*1 1 0/)
   assert.match(coreBusinessSource, /var\(--color-primary\)/)
 })
 
@@ -77,7 +80,7 @@ test('team intro overlays unchanged copy on its brightened background without a 
 
 test('team business configuration is a site settings tab driven by the database', () => {
   assert.doesNotMatch(adminLayoutSource, /label: '团队业务范围', to: '\/admin\/services'/)
-  assert.match(adminSettingsSource, /kind: 'services', label: '团队业务范围'/)
+  assert.match(adminSettingsSource, /kind: 'services', label: '核心业务'/)
   assert.doesNotMatch(adminHomeSource, /页脚与联系方式|\/admin\/footer/)
   assert.match(adminServicesSource, /navigateTo\('\/admin\/settings\?tab=services'/)
   assert.match(adminServicesSettingsSource, /iconKey|section\.items/)

@@ -107,7 +107,7 @@ async function save() {
   saveSuccess.value = ''
   try {
     await requestFetch('/api/admin/settings', { method: 'PUT', body: { kind: 'services', items: buildPayload() } })
-    saveSuccess.value = '业务范围已保存'
+    saveSuccess.value = '核心业务已保存'
     await refresh()
   } catch (cause) {
     saveError.value = apiErrorMessage(cause) || '保存失败，请稍后重试'

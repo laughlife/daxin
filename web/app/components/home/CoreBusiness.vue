@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 import type { HomeTeamServiceSection } from '~/repositories/home'
 
 /**
- * 首页「核心业务」：01-05 五个流程面板，悬停或点击展开说明和图片。
+ * 首页「核心业务」：01-05 五个竖向面板，悬停或点击后横向展开。
  * 图标使用现有内联 SVG，保持既定图标不变。
  */
 const props = defineProps<{ sections: HomeTeamServiceSection[] }>()
@@ -24,7 +24,13 @@ function clearHovered(index: number) {
   if (hoveredIndex.value === index) hoveredIndex.value = -1
 }
 
-const activeIndex = computed(() => (selectedIndex.value >= 0 ? selectedIndex.value : hoveredIndex.value))
+const activeIndex = computed(() => (
+  selectedIndex.value >= 0
+    ? selectedIndex.value
+    : hoveredIndex.value >= 0
+      ? hoveredIndex.value
+      : 0
+))
 
 /**
  * 按 slug 取图标路径，而不是 icon_key：
@@ -77,7 +83,6 @@ function iconPaths(slug: string): string[] {
         align="center"
         eyebrow="CORE BUSINESS"
         title="核心业务"
-        description="我们解决哪些问题？"
       />
 
       <div class="core-business__panels">
@@ -117,12 +122,10 @@ function iconPaths(slug: string): string[] {
           >
             <!-- 只有一个 grid 子元素：grid-template-rows: 0fr 只约束第一行 -->
             <div class="core-business__body-inner">
-              <p v-if="section.description" class="core-business__summary">{{ section.description }}</p>
               <div class="core-business__detail">
                 <ul v-if="section.items.length" class="core-business__items">
                   <li v-for="item in section.items" :key="`${section.slug}-${item.title}`">
                     <span class="core-business__item-title">{{ item.title }}</span>
-                    <span v-if="item.description" class="core-business__item-desc">{{ item.description }}</span>
                   </li>
                 </ul>
                 <div class="core-business__image">
@@ -153,40 +156,42 @@ function iconPaths(slug: string): string[] {
   gap: var(--space-3);
   margin-top: var(--space-8);
   align-items: stretch;
+  min-height: 400px;
 }
 
 .core-business__panel {
   position: relative;
   display: flex;
-  flex: 1 1 0;
+  flex: 0 0 76px;
   flex-direction: column;
   min-width: 0;
-  padding: var(--space-5);
+  padding: var(--space-4) var(--space-3);
   border: 1px solid color-mix(in srgb, var(--color-primary) 24%, var(--color-border));
   border-radius: var(--radius-lg);
   background-color: var(--color-bg-page);
   transition:
     flex-grow var(--transition-base),
+    flex-basis var(--transition-base),
     background-color var(--transition-base),
     border-color var(--transition-base),
     box-shadow var(--transition-base);
 }
 
-/* 展开态：变宽 + 换带色底 */
+/* 收起时形成窄竖条；当前项占用剩余宽度并向左右展开。 */
 .core-business__panel--active {
-  flex-grow: 2.1;
+  flex: 1 1 0;
+  padding: var(--space-5);
   border-color: var(--color-primary);
   background-color: color-mix(in srgb, var(--color-primary) 5%, var(--color-bg-page));
   box-shadow: var(--shadow-md);
 }
 
 .core-business__toggle {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  grid-template-rows: auto 1fr;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
   align-items: center;
-  column-gap: var(--space-3);
-  row-gap: var(--space-2);
+  gap: var(--space-3);
   width: 100%;
   padding: 0;
   border: 0;
@@ -198,7 +203,6 @@ function iconPaths(slug: string): string[] {
 }
 
 .core-business__number {
-  grid-column: 1 / -1;
   color: var(--color-primary);
   font-size: var(--text-sm);
   font-weight: 800;
@@ -225,11 +229,33 @@ function iconPaths(slug: string): string[] {
 }
 
 .core-business__title {
-  grid-column: 2;
+  max-height: 220px;
   color: var(--color-text);
   font-size: var(--text-base);
   font-weight: 700;
   line-height: 1.4;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  overflow-wrap: anywhere;
+}
+
+.core-business__panel--active .core-business__toggle {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr);
+  grid-template-rows: auto 1fr;
+  align-items: center;
+  column-gap: var(--space-3);
+  row-gap: var(--space-2);
+}
+
+.core-business__panel--active .core-business__number {
+  grid-column: 1 / -1;
+}
+
+.core-business__panel--active .core-business__title {
+  grid-column: 2;
+  max-height: none;
+  writing-mode: horizontal-tb;
   overflow-wrap: break-word;
 }
 
@@ -262,13 +288,6 @@ function iconPaths(slug: string): string[] {
 .core-business__body-inner {
   min-height: 0;
   overflow: hidden;
-}
-
-.core-business__summary {
-  margin: 0 0 var(--space-4);
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-  line-height: 1.65;
 }
 
 .core-business__detail {
@@ -311,12 +330,6 @@ function iconPaths(slug: string): string[] {
   font-weight: 600;
 }
 
-.core-business__item-desc {
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-  line-height: 1.6;
-}
-
 .core-business__image {
   display: grid;
   min-width: 0;
@@ -349,10 +362,35 @@ function iconPaths(slug: string): string[] {
 @media (max-width: 1023px) {
   .core-business__panels {
     flex-direction: column;
+    min-height: 0;
   }
 
+  .core-business__panel,
   .core-business__panel--active {
-    flex-grow: 1;
+    flex: 0 0 auto;
+  }
+
+  .core-business__toggle,
+  .core-business__panel--active .core-business__toggle {
+    display: grid;
+    grid-template-columns: 42px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    align-items: center;
+    column-gap: var(--space-3);
+    row-gap: var(--space-2);
+  }
+
+  .core-business__number,
+  .core-business__panel--active .core-business__number {
+    grid-column: 1 / -1;
+  }
+
+  .core-business__title,
+  .core-business__panel--active .core-business__title {
+    grid-column: 2;
+    max-height: none;
+    writing-mode: horizontal-tb;
+    overflow-wrap: break-word;
   }
 }
 
@@ -363,6 +401,11 @@ function iconPaths(slug: string): string[] {
 
   .core-business__title {
     font-size: var(--text-base);
+  }
+
+  .core-business__panel,
+  .core-business__panel--active {
+    padding: var(--space-4);
   }
 
   .core-business__detail {
