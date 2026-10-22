@@ -90,6 +90,37 @@ const teamParagraphsFromSettings = computed(() => {
   return paragraphs.length ? paragraphs : teamIntro.paragraphs
 })
 
+/** 按参考图在“实力律师”和“全链路”之后换行；保留配置中的原始文字。 */
+function splitTeamParagraph(paragraph: string): string[] {
+  const markers = ['实力律师', '全链路']
+  const lines: string[] = []
+  let remaining = paragraph
+
+  while (remaining) {
+    const match = markers
+      .map(marker => ({ marker, index: remaining.indexOf(marker) }))
+      .filter(item => item.index >= 0)
+      .sort((left, right) => left.index - right.index)[0]
+    if (!match) {
+      lines.push(remaining)
+      break
+    }
+
+    const markerEnd = match.index + match.marker.length
+    const punctuation = remaining.slice(markerEnd).match(/^[，、。！？；：,.;!?]/u)?.[0] ?? ''
+    const splitAt = markerEnd + punctuation.length
+    if (splitAt >= remaining.length) {
+      lines.push(remaining)
+      break
+    }
+
+    lines.push(remaining.slice(0, splitAt).trimEnd())
+    remaining = remaining.slice(splitAt).trimStart()
+  }
+
+  return lines.length ? lines : [paragraph]
+}
+
 const articleColumns = computed(() => homeData.value?.articleColumns ?? [])
 const teamServices = computed(() => homeData.value?.teamServices ?? [])
 const coreAdvantages = computed(() => homeData.value?.coreAdvantages ?? [])
@@ -177,7 +208,10 @@ useHead({
               :key="index"
               class="home-team-intro__paragraph"
             >
-              {{ paragraph }}
+              <template v-for="(line, lineIndex) in splitTeamParagraph(paragraph)" :key="`${index}-${lineIndex}`">
+                <br v-if="lineIndex > 0">
+                {{ line }}
+              </template>
             </p>
             <ul class="home-team-intro__features">
               <li v-for="feature in teamFeaturesFromSettings" :key="feature">{{ feature }}</li>
@@ -270,7 +304,7 @@ useHead({
 }
 
 .home-team-intro__paragraph {
-  max-width: 48rem;
+  max-width: 28em;
   margin: 0;
   color: var(--color-text-muted);
   font-size: clamp(1.05rem, 1.2vw, 1.2rem);
