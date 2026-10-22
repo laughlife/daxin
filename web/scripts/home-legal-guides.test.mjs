@@ -52,6 +52,13 @@ test('carousel reads editable slides and QR images from shared public settings',
   await access(new URL('../public/images/guides/labor-law.png', import.meta.url))
 })
 
+test('carousel keeps the empty logistics slide as the reserved third page', () => {
+  assert.match(guidesSource, /const slides = computed\(\(\) => \{\s*\/\/ 固定保留三页；国际物流暂未填写时显示预留位置，后台补充后直接使用。\s*return normalizeLegalGuideSlides\(settingValue\('home_legal_guides'\)\)/)
+  assert.doesNotMatch(guidesSource, /all\.filter\(slide => Boolean\(slide\.image\)/)
+  assert.match(guidesSource, /v-else class="home-legal-guides__reserved"/)
+  assert.match(contentSettingsSource, /slug: 'logistics',[\s\S]*?paragraphs: \[\],[\s\S]*?image: ''/)
+})
+
 test('admin exposes the same QR selector for all three legal guide slides', () => {
   assert.doesNotMatch(adminSettingsSource, /guide\.slug === 'logistics'/)
   assert.match(adminSettingsSource, /v-for="guide in legalGuides"[\s\S]*?v-model="guide\.qrItemKey"/)

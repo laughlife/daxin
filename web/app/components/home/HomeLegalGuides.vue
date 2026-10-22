@@ -19,15 +19,8 @@ function settingValue(key: string): unknown {
 }
 
 const slides = computed(() => {
-  const all = normalizeLegalGuideSlides(settingValue('home_legal_guides'))
-  /*
-   * 未配置的章节不展示。
-   * 之前缺图的章节会渲染一个空的「预留占位」框（.home-legal-guides__reserved），
-   * 首页上看起来就多了一个没内容的「国际物流」分页。
-   * 这里只保留有真实内容的章节（有配图 / 有正文段落 / 有领取说明），
-   * 后台把第三块配好后会自动重新出现，不需要再改代码。
-   */
-  return all.filter(slide => Boolean(slide.image) || slide.paragraphs.length > 0 || Boolean(slide.benefit))
+  // 固定保留三页；国际物流暂未填写时显示预留位置，后台补充后直接使用。
+  return normalizeLegalGuideSlides(settingValue('home_legal_guides'))
 })
 const currentIndex = ref(0)
 function qrImageForSlide(slide: (typeof slides.value)[number]): string {
@@ -237,7 +230,7 @@ onBeforeUnmount(() => {
   .home-legal-guides__panel { grid-template-columns:1fr; }
   .home-legal-guides__image { min-height:220px; height:220px; }
   .home-legal-guides__image img { max-height:220px; }
-  .home-legal-guides__reserved { display:none; }
+  .home-legal-guides__reserved { min-height:220px; height:220px; border-right:0; border-bottom:1px solid color-mix(in srgb,var(--guide-accent) 16%,white); }
   .home-legal-guides__content { padding:var(--space-5); }
   .home-legal-guides__offer { align-items:center; }
   .home-legal-guides__qr { width:96px; flex-basis:96px; }
