@@ -15,6 +15,8 @@ const saving = ref(false)
 const saveError = ref('')
 const saveSuccess = ref('')
 const uploadingSectionIndexes = ref(new Set<number>())
+const deleteSectionIds = ref<number[]>([])
+const deleteItemIds = ref<number[]>([])
 
 function toText(value: unknown): string {
   return typeof value === 'string' ? value : typeof value === 'number' || typeof value === 'boolean' ? String(value) : ''
@@ -68,13 +70,12 @@ watch(servicesPayload, (payload) => {
   if (payload?.data?.items) applyPayload(payload)
 }, { immediate: true })
 const dirty = computed(() => snapshot() !== baseline.value)
-function canSave(): boolean { return writable.value && !saving.value && !pending.value && uploadingSectionIndexes.value.size === 0 && dirty.value && sections.value.length > 0 }
+function canSave(): boolean { return writable.value && !saving.value && !pending.value && uploadingSectionIndexes.value.size === 0 && dirty.value }
 function saveLabel(): string {
   if (pending.value) return '正在加载配置…'
   if (uploadingSectionIndexes.value.size) return '图片上传中…'
   if (saving.value) return '保存中…'
   if (!writable.value) return '保存（只读角色不可用）'
-  if (!sections.value.length) return '暂无可保存的板块'
   if (!dirty.value) return '保存（暂无修改）'
   return '保存'
 }
@@ -106,8 +107,18 @@ async function save() {
   saveError.value = ''
   saveSuccess.value = ''
   try {
-    await requestFetch('/api/admin/settings', { method: 'PUT', body: { kind: 'services', items: buildPayload() } })
+    await requestFetch('/api/admin/settings', {
+      method: 'PUT',
+      body: {
+        kind: 'services',
+        items: buildPayload(),
+        deleteSectionIds: deleteSectionIds.value,
+        deleteItemIds: deleteItemIds.value
+      }
+    })
     saveSuccess.value = '核心业务已保存'
+    deleteSectionIds.value = []
+    deleteItemIds.value = []
     await refresh()
   } catch (cause) {
     saveError.value = apiErrorMessage(cause) || '保存失败，请稍后重试'
@@ -124,6 +135,18 @@ function moveItem<T>(items: T[], index: number, delta: number) {
 }
 function moveSection(index: number, delta: number) { moveItem(sections.value, index, delta) }
 function moveChild(section: ServiceSection, index: number, delta: number) { moveItem(section.items, index, delta) }
+function removeSection(index: number) {
+  const [section] = sections.value.splice(index, 1)
+  if (!section) return
+  if (section.id > 0 && !deleteSectionIds.value.includes(section.id)) deleteSectionIds.value.push(section.id)
+  saveSuccess.value = ''
+}
+function removeChild(section: ServiceSection, index: number) {
+  const [child] = section.items.splice(index, 1)
+  if (!child) return
+  if (child.id > 0 && !deleteItemIds.value.includes(child.id)) deleteItemIds.value.push(child.id)
+  saveSuccess.value = ''
+}
 function onSectionImageUploaded(section: ServiceSection, payload: { mediaId: number, mediaUrl: string }) {
   section.imageMediaId = payload.mediaId
   section.imageUrl = payload.mediaUrl
@@ -190,6 +213,7 @@ function addChild(section: ServiceSection) {
           <div class="admin-services__row-actions">
             <BaseButton variant="ghost" size="sm" :disabled="!writable || saving || pending || sectionIndex === 0" @click="moveSection(sectionIndex, -1)">上移</BaseButton>
             <BaseButton variant="ghost" size="sm" :disabled="!writable || saving || pending || sectionIndex === sections.length - 1" @click="moveSection(sectionIndex, 1)">下移</BaseButton>
+            <BaseButton class="admin-services__delete" variant="ghost" size="sm" :aria-label="`删除板块：${section.title || '未命名板块'}`" :disabled="!writable || saving || pending || uploadingSectionIndexes.size > 0" @click="removeSection(sectionIndex)">删除</BaseButton>
           </div>
         </div>
 
@@ -213,6 +237,7 @@ function addChild(section: ServiceSection) {
             <div class="admin-services__row-actions">
               <BaseButton variant="ghost" size="sm" :disabled="!writable || saving || pending || childIndex === 0" @click="moveChild(section, childIndex, -1)">上移</BaseButton>
               <BaseButton variant="ghost" size="sm" :disabled="!writable || saving || pending || childIndex === section.items.length - 1" @click="moveChild(section, childIndex, 1)">下移</BaseButton>
+              <BaseButton class="admin-services__delete" variant="ghost" size="sm" :aria-label="`删除子项：${child.title || '未命名子项'}`" :disabled="!writable || saving || pending || uploadingSectionIndexes.size > 0" @click="removeChild(section, childIndex)">删除</BaseButton>
             </div>
           </div>
           <BaseButton variant="secondary" size="sm" :disabled="!writable || saving || pending" @click="addChild(section)">新增子项</BaseButton>
@@ -240,6 +265,8 @@ function addChild(section: ServiceSection) {
 .admin-services__input { width: 100%; min-width: 0; padding: var(--space-3); border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-bg-page); color: var(--color-text); font: inherit; }
 .admin-services__input:disabled { background: var(--color-bg-light); color: var(--color-text-muted); cursor: not-allowed; }
 .admin-services__row-actions { display: flex; gap: var(--space-1); }
+:deep(.admin-services__delete) { color: var(--color-error); }
+:deep(.admin-services__delete:hover) { background: color-mix(in srgb, var(--color-error) 8%, transparent); color: var(--color-error); }
 .admin-services__children { display: grid; gap: var(--space-3); margin-top: var(--space-5); padding-top: var(--space-4); border-top: 1px solid var(--color-border); }
 .admin-services__child-row { padding: var(--space-3); border-radius: var(--radius-md); background: var(--color-bg-light); }
 .admin-services__add-section { margin-top: var(--space-5); }

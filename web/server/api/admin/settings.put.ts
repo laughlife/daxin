@@ -17,6 +17,7 @@ import {
   KIND_INVALID_MESSAGE,
   SETTINGS_GROUP_BY_KIND,
   buildConfigUpsertStatements,
+  buildServiceDeleteStatements,
   buildSettingUpsertStatements,
   normalizeSettingsKind,
   normalizeSettingsPayload,
@@ -175,19 +176,21 @@ async function saveGroupKind(
   return { statements, before, after: items }
 }
 
-/** services：板块与其子项按 id 或 slug upsert，不删除未提交的子项。 */
+/** services：按提交的删除 ID 删除，板块及子项更新与新增仍在同一事务内完成。 */
 async function saveServicesKind(
   connection: SqlConnection,
   sections: ServiceSectionInput[],
+  deleteSectionIds: number[],
+  deleteItemIds: number[],
 ): Promise<SaveOutcome> {
   const sectionClause = orClause([
-    { column: 'id', values: sections.map(section => section.id), numeric: true },
+    { column: 'id', values: [...sections.map(section => section.id), ...deleteSectionIds], numeric: true },
     { column: 'slug', values: sections.map(section => section.slug) },
   ])
   const itemClause = orClause([
-    { column: 'id', values: sections.flatMap(section => section.items.map(item => item.id)), numeric: true },
+    { column: 'id', values: [...sections.flatMap(section => section.items.map(item => item.id)), ...deleteItemIds], numeric: true },
     { column: 'slug', values: sections.flatMap(section => section.items.map(item => item.slug)) },
-    { column: 'section_id', values: sections.map(section => section.id), numeric: true },
+    { column: 'section_id', values: [...sections.map(section => section.id), ...deleteSectionIds], numeric: true },
   ])
 
   const [sectionRows] = await connection.execute(
@@ -199,7 +202,10 @@ async function saveServicesKind(
     itemClause.params,
   )
 
-  const statements = buildConfigUpsertStatements({ kind: 'services', items: sections })
+  const statements = [
+    ...buildServiceDeleteStatements(deleteSectionIds, deleteItemIds),
+    ...buildConfigUpsertStatements({ kind: 'services', items: sections }),
+  ]
   await executeStatements(connection, statements)
   return { statements, before: { sections: sectionRows, items: itemRows }, after: sections }
 }
@@ -261,7 +267,10 @@ export default defineEventHandler(async (event) => {
   const kind = normalizeSettingsKind(bodyRecord.kind)
   if (!kind) return fail(event, 400, 'INVALID_KIND', KIND_INVALID_MESSAGE)
 
-  const payload = normalizeSettingsPayload(kind, bodyRecord.items)
+  const payload = normalizeSettingsPayload(kind, bodyRecord.items, {
+    sectionIds: bodyRecord.deleteSectionIds,
+    itemIds: bodyRecord.deleteItemIds,
+  })
   if (!payload.ok) return fail(event, 400, 'INVALID_ITEMS', `${payload.message}（kind=${kind}）`)
 
   // 各分支的形状由 normalizeSettingsPayload 按 kind 保证，这里取宽松类型后在分支处收窄。
@@ -276,8 +285,15 @@ export default defineEventHandler(async (event) => {
         case 'about':
         case 'seo':
           return saveGroupKind(connection, kind, items as SettingItemInput[], admin.id)
-        case 'services':
-          return saveServicesKind(connection, items as ServiceSectionInput[])
+        case 'services': {
+          if (payload.kind !== 'services') throw new Error('站点配置类型不匹配')
+          return saveServicesKind(
+            connection,
+            payload.items,
+            payload.deleteSectionIds,
+            payload.deleteItemIds,
+          )
+        }
         case 'footer':
           return saveFooterKind(connection, items as FooterItemInput[])
         case 'contact':

@@ -37,10 +37,17 @@ test('保存继续携带隐藏的标识、显示属性与原状态', () => {
   assert.match(source, /showDetailLink: toFlag\(section\.showDetailLink\)/)
 })
 
-test('新增板块和子项仍可用，编辑页面不提供移除按钮', () => {
+test('板块和子项均可删除，删除 ID 随保存提交', () => {
   assert.match(template, /@click="addSection"/)
   assert.match(template, /@click="addChild\(section\)"/)
-  assert.doesNotMatch(template, /@click="removeChild/)
+  assert.match(template, /@click="removeSection\(sectionIndex\)"/)
+  assert.match(template, /@click="removeChild\(section, childIndex\)"/)
+  assert.match(template, /删除板块：\$\{section\.title/)
+  assert.match(template, /删除子项：\$\{child\.title/)
+  assert.match(source, /deleteSectionIds: deleteSectionIds\.value/)
+  assert.match(source, /deleteItemIds: deleteItemIds\.value/)
+  assert.match(source, /deleteSectionIds\.value\.push\(section\.id\)/)
+  assert.match(source, /deleteItemIds\.value\.push\(child\.id\)/)
 })
 
 test('首次加载业务配置时显示加载状态，避免空列表误报未保存或覆盖数据', () => {

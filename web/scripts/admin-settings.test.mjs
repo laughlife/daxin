@@ -19,6 +19,7 @@ import {
   KIND_INVALID_MESSAGE,
   SETTINGS_KINDS,
   buildConfigUpsertStatements,
+  buildServiceDeleteStatements,
   buildSettingUpsertStatements,
   mapSettingRow,
   normalizeSettingsKind,
@@ -327,6 +328,30 @@ test('buildConfigUpsertStatements：footer/contact/qr 按 item_key，services �
   for (const statement of [...existingSection, ...newSection]) {
     assert.equal(placeholderCount(statement.sql), statement.params.length)
   }
+})
+
+test('核心业务删除只允许正整数 ID，先删子项再删板块', () => {
+  const payload = normalizeSettingsPayload('services', [], { sectionIds: [4, '4'], itemIds: [9] })
+  assert.equal(payload.ok, true)
+  assert.deepEqual(payload.items, [])
+  assert.deepEqual(payload.deleteSectionIds, [4])
+  assert.deepEqual(payload.deleteItemIds, [9])
+
+  assert.equal(normalizeSettingsPayload('services', [], {}).ok, false)
+  assert.equal(normalizeSettingsPayload('services', [], { sectionIds: ['bad'] }).ok, false)
+
+  const statements = buildServiceDeleteStatements([4, 4], [9, 12])
+  assert.equal(statements.length, 3)
+  assert.match(statements[0].sql, /^DELETE FROM service_items WHERE id IN \(\?, \?\)$/)
+  assert.match(statements[1].sql, /^DELETE FROM service_items WHERE section_id IN \(\?\)$/)
+  assert.match(statements[2].sql, /^DELETE FROM service_sections WHERE id IN \(\?\)$/)
+  assert.deepEqual(statements.map(statement => statement.params), [[9, 12], [4], [4]])
+  for (const statement of statements) assert.equal(placeholderCount(statement.sql), statement.params.length)
+
+  const api = readFileSync(fileURLToPath(new URL('../server/api/admin/settings.put.ts', import.meta.url)), 'utf8')
+  assert.match(api, /buildServiceDeleteStatements\(deleteSectionIds, deleteItemIds\)/)
+  assert.match(api, /payload\.deleteSectionIds/)
+  assert.match(api, /payload\.deleteItemIds/)
 })
 
 test('toAuditSnapshot：脱敏后不出现 password/token 之类的字段，长文本截断', () => {

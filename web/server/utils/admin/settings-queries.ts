@@ -132,6 +132,11 @@ function normalizeId(value: unknown): number {
   return toPositiveIntOrNull(value) ?? 0
 }
 
+/** 仅用于固定列名配合参数列表生成 IN 占位符。 */
+function placeholdersFor(values: readonly unknown[]): string {
+  return values.map(() => '?').join(', ')
+}
+
 /** 校验入参对象；非对象（含数组）返回 null。 */
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null
@@ -324,8 +329,8 @@ function normalizeServiceItem(record: Record<string, unknown>, fallbackIndex: nu
 }
 
 /** 业务板块归一化：id 与 slug 至少有一个，子项同样要求。 */
-export function normalizeServiceSections(raw: unknown): NormalizeResult<ServiceSectionInput> {
-  if (!Array.isArray(raw) || raw.length === 0) return invalid('items 必须是非空数组')
+export function normalizeServiceSections(raw: unknown, allowEmpty = false): NormalizeResult<ServiceSectionInput> {
+  if (!Array.isArray(raw) || (!allowEmpty && raw.length === 0)) return invalid('items 必须是非空数组')
   const sections: ServiceSectionInput[] = []
   for (const entry of raw) {
     const record = asRecord(entry)
@@ -432,21 +437,44 @@ export function normalizeQrItems(raw: unknown): NormalizeResult<QrItemInput> {
 
 export type SettingsPayload =
   | { ok: true; kind: SettingsGroupKind; items: SettingItemInput[] }
-  | { ok: true; kind: 'services'; items: ServiceSectionInput[] }
+  | { ok: true; kind: 'services'; items: ServiceSectionInput[]; deleteSectionIds: number[]; deleteItemIds: number[] }
   | { ok: true; kind: 'footer'; items: FooterItemInput[] }
   | { ok: true; kind: 'contact'; items: ContactItemInput[] }
   | { ok: true; kind: 'qr'; items: QrItemInput[] }
   | { ok: false; message: string }
 
-/** 按 kind 分派 items 归一化；kind 已由调用方归一化。 */
-export function normalizeSettingsPayload(kind: SettingsKind, raw: unknown): SettingsPayload {
+function normalizeDeleteIds(raw: unknown, label: string): NormalizeResult<number> {
+  if (raw === undefined || raw === null) return { ok: true, items: [] }
+  if (!Array.isArray(raw)) return invalid(`${label}必须是数组`)
+  if (raw.length > 500) return invalid(`${label}数量超出限制`)
+  const ids: number[] = []
+  for (const value of raw) {
+    const id = toPositiveIntOrNull(value)
+    if (!id) return invalid(`${label}只能包含正整数 ID`)
+    if (!ids.includes(id)) ids.push(id)
+  }
+  return { ok: true, items: ids }
+}
+
+/** 按 kind 分派配置与删除标识归一化；kind 已由调用方归一化。 */
+export function normalizeSettingsPayload(
+  kind: SettingsKind,
+  raw: unknown,
+  serviceDeletes: { sectionIds?: unknown; itemIds?: unknown } = {},
+): SettingsPayload {
   if (isSettingsGroupKind(kind)) {
     const result = normalizeSettingItems(raw)
     return result.ok ? { ok: true, kind, items: result.items } : result
   }
   if (kind === 'services') {
-    const result = normalizeServiceSections(raw)
-    return result.ok ? { ok: true, kind, items: result.items } : result
+    const deleteSectionIds = normalizeDeleteIds(serviceDeletes.sectionIds, 'deleteSectionIds')
+    if (!deleteSectionIds.ok) return deleteSectionIds
+    const deleteItemIds = normalizeDeleteIds(serviceDeletes.itemIds, 'deleteItemIds')
+    if (!deleteItemIds.ok) return deleteItemIds
+    const result = normalizeServiceSections(raw, deleteSectionIds.items.length > 0 || deleteItemIds.items.length > 0)
+    return result.ok
+      ? { ok: true, kind, items: result.items, deleteSectionIds: deleteSectionIds.items, deleteItemIds: deleteItemIds.items }
+      : result
   }
   if (kind === 'footer') {
     const result = normalizeFooterItems(raw)
@@ -591,6 +619,30 @@ export type ConfigUpsertInput =
   | { kind: 'footer'; items: readonly FooterItemInput[]; userId?: number | null }
   | { kind: 'contact'; items: readonly ContactItemInput[]; userId?: number | null }
   | { kind: 'qr'; items: readonly QrItemInput[]; userId?: number | null }
+
+/** 生成核心业务板块和子项的显式删除语句；子项先于板块删除。 */
+export function buildServiceDeleteStatements(sectionIds: readonly number[], itemIds: readonly number[]): SqlStatement[] {
+  const sections = [...new Set(sectionIds.filter(id => Number.isInteger(id) && id > 0))]
+  const items = [...new Set(itemIds.filter(id => Number.isInteger(id) && id > 0))]
+  const statements: SqlStatement[] = []
+  if (items.length > 0) {
+    statements.push({
+      sql: `DELETE FROM service_items WHERE id IN (${placeholdersFor(items)})`,
+      params: items,
+    })
+  }
+  if (sections.length > 0) {
+    statements.push({
+      sql: `DELETE FROM service_items WHERE section_id IN (${placeholdersFor(sections)})`,
+      params: sections,
+    })
+    statements.push({
+      sql: `DELETE FROM service_sections WHERE id IN (${placeholdersFor(sections)})`,
+      params: sections,
+    })
+  }
+  return statements
+}
 
 /**
  * 业务板块子项的 section_id 引用片段。
