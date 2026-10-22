@@ -56,7 +56,7 @@ try {
     return getComputedStyle(header).backgroundColor === 'rgb(238, 175, 78)'
       && getComputedStyle(checkmark, '::before').backgroundColor === 'rgb(238, 175, 78)'
       && getComputedStyle(contact).backgroundColor === 'rgb(238, 175, 78)'
-      && getComputedStyle(checkmark, '::after').borderRightColor === 'rgb(23, 36, 58)'
+      && getComputedStyle(checkmark, '::before').maskImage.includes('data:image/svg+xml')
   }))
   check('首页移除了解更多链接', await page.getByRole('link', { name: '了解更多', exact: true }).count() === 0)
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])

@@ -323,7 +323,6 @@ useHead({
 }
 
 .home-team-intro__features li {
-  position: relative;
   display: flex;
   align-items: center;
   gap: clamp(.75rem, 1vw, 1.25rem);
@@ -343,19 +342,8 @@ useHead({
   background-color: #EEAF4E;
   place-items: center;
   box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
-}
-
-.home-team-intro__features li::after {
-  position: absolute;
-  top: clamp(.38rem, .55vw, .68rem);
-  left: clamp(.7rem, .82vw, .95rem);
-  width: .52rem;
-  height: .92rem;
-  border: solid #17243a;
-  border-width: 0 .24rem .24rem 0;
-  border-radius: 1px;
-  content: "";
-  transform: rotate(45deg);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cmask id='m'%3E%3Crect width='40' height='40' fill='white'/%3E%3Cpath d='M9 20l7 7 15-16' fill='none' stroke='black' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/mask%3E%3Ccircle cx='20' cy='20' r='20' fill='white' mask='url(%23m)'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cmask id='m'%3E%3Crect width='40' height='40' fill='white'/%3E%3Cpath d='M9 20l7 7 15-16' fill='none' stroke='black' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/mask%3E%3Ccircle cx='20' cy='20' r='20' fill='white' mask='url(%23m)'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
 }
 
 @media (max-width: 640px) {
