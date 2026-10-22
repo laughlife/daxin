@@ -48,6 +48,16 @@ try {
   check('首页保留案件查询与免费评估按钮',
     await page.getByRole('link', { name: '查询 TRO 案件', exact: true }).count() === 1
     && await page.getByRole('button', { name: '联系我们免费评估案件', exact: true }).count() === 1)
+  check('顶部按钮、对号圆底和免费评估按钮统一为指定金色', await page.evaluate(() => {
+    const header = document.querySelector('.site-header__cta')
+    const checkmark = document.querySelector('.home-team-intro__features li')
+    const contact = document.querySelector('.home-team-intro__button--secondary')
+    if (!header || !checkmark || !contact) return false
+    return getComputedStyle(header).backgroundColor === 'rgb(238, 175, 78)'
+      && getComputedStyle(checkmark, '::before').backgroundColor === 'rgb(238, 175, 78)'
+      && getComputedStyle(contact).backgroundColor === 'rgb(238, 175, 78)'
+      && getComputedStyle(checkmark, '::after').borderRightColor === 'rgb(23, 36, 58)'
+  }))
   check('首页移除了解更多链接', await page.getByRole('link', { name: '了解更多', exact: true }).count() === 0)
   await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
   await page.getByRole('button', { name: '复制 TRO 咨询号 kjzx88', exact: true }).click()
@@ -73,7 +83,8 @@ try {
   }))
   check('核心业务面板预留主题色图片展示位', await coreBusiness.locator('.core-business__image').count() === 5)
   check('展开面板使用书剑 Logo 作为背景水印', await coreBusiness.locator('.core-business__panel--active').evaluate(el =>
-    getComputedStyle(el, '::before').backgroundImage.includes('/favicon.png')))
+    getComputedStyle(el, '::before').backgroundImage.includes('/favicon.png')
+    && getComputedStyle(el, '::before').backgroundPosition === '50% 50%'))
   check('核心业务默认展开最后一个面板',
     await coreBusiness.locator('.core-business__panel').last().locator('.core-business__toggle').getAttribute('aria-expanded') === 'true')
   check('竖排标题里的 TRO 连续显示为一组',

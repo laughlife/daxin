@@ -227,9 +227,9 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
   position: absolute;
   z-index: 0;
   inset: 0;
-  background: url('/favicon.png') 72% center / min(42%, 300px) auto no-repeat;
+  background: url('/favicon.png') center / min(42%, 300px) auto no-repeat;
   content: '';
-  opacity: .1;
+  opacity: .14;
   pointer-events: none;
 }
 
