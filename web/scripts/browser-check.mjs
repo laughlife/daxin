@@ -72,6 +72,8 @@ try {
       && (stats.compareDocumentPosition(core) & Node.DOCUMENT_POSITION_FOLLOWING))
   }))
   check('核心业务面板预留主题色图片展示位', await coreBusiness.locator('.core-business__image').count() === 5)
+  check('核心业务默认展开最后一个面板',
+    await coreBusiness.locator('.core-business__panel').last().locator('.core-business__toggle').getAttribute('aria-expanded') === 'true')
   await coreBusiness.locator('.core-business__toggle').first().click()
   check('点击业务面板后展开文案与图片位',
     await coreBusiness.locator('.core-business__toggle').first().getAttribute('aria-expanded') === 'true'

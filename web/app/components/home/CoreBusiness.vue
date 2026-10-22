@@ -29,7 +29,7 @@ const activeIndex = computed(() => (
     ? selectedIndex.value
     : hoveredIndex.value >= 0
       ? hoveredIndex.value
-      : 0
+      : props.sections.length - 1
 ))
 
 /**
@@ -235,7 +235,7 @@ function iconPaths(slug: string): string[] {
   font-weight: 700;
   line-height: 1.4;
   writing-mode: vertical-rl;
-  text-orientation: mixed;
+  text-orientation: upright;
   overflow-wrap: anywhere;
 }
 
@@ -357,6 +357,12 @@ function iconPaths(slug: string): string[] {
   stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+@media (min-width: 1024px) {
+  .core-business__panel--active .core-business__image {
+    transform: translateX(-12px);
+  }
 }
 
 @media (max-width: 1023px) {
