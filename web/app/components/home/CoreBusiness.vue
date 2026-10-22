@@ -96,12 +96,7 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
           >
             <span class="core-business__number">{{ String(index + 1).padStart(2, '0') }}</span>
             <span class="core-business__icon" aria-hidden="true">
-              <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                <path d="m27 3-16 16-2-2L25 1l2 2Z" />
-                <path d="m8 16 7 7" />
-                <path d="m11 20-6 6" />
-                <circle cx="4" cy="28" r="1.4" />
-              </svg>
+              <img src="/favicon.png" alt="" width="397" height="397" loading="lazy" decoding="async">
             </span>
             <span class="core-business__title">
               <span
@@ -126,14 +121,8 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
                     <span class="core-business__item-title">{{ item.title }}</span>
                   </li>
                 </ul>
-                <div class="core-business__image" aria-label="业务图片展示位">
+                <div class="core-business__image">
                   <img v-if="section.imageUrl" :src="section.imageUrl" :alt="`${section.title}服务图片`" loading="lazy" decoding="async">
-                  <svg v-else viewBox="0 0 32 32" aria-hidden="true">
-                    <path d="m27 3-16 16-2-2L25 1l2 2Z" />
-                    <path d="m8 16 7 7" />
-                    <path d="m11 20-6 6" />
-                    <circle cx="4" cy="28" r="1.4" />
-                  </svg>
                 </div>
               </div>
             </div>
@@ -201,6 +190,7 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
 
 .core-business__panel {
   position: relative;
+  isolation: isolate;
   display: flex;
   flex: 0 0 152px;
   flex-direction: column;
@@ -231,6 +221,21 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
   background-color: rgb(255 255 255 / 94%);
   background-image: none;
   box-shadow: 0 12px 32px rgb(87 62 38 / 12%);
+}
+
+.core-business__panel--active::before {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  background: url('/favicon.png') 72% center / min(42%, 300px) auto no-repeat;
+  content: '';
+  opacity: .1;
+  pointer-events: none;
+}
+
+.core-business__panel--active > * {
+  position: relative;
+  z-index: 1;
 }
 
 .core-business__toggle {
@@ -271,17 +276,19 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
 
 .core-business__icon {
   display: grid;
-  width: 26px;
-  height: 26px;
+  width: 34px;
+  height: 34px;
   flex: none;
   place-items: center;
   color: var(--core-outline);
   transition: transform var(--transition-base), color var(--transition-base);
 }
 
-.core-business__icon svg {
+.core-business__icon img {
+  display: block;
   width: 100%;
   height: 100%;
+  object-fit: contain;
 }
 
 .core-business__panel--active .core-business__toggle {
@@ -304,8 +311,8 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
 .core-business__panel--active .core-business__icon {
   grid-column: 1;
   grid-row: 1 / 3;
-  width: 25px;
-  height: 25px;
+  width: 34px;
+  height: 34px;
   color: var(--core-accent);
 }
 
@@ -414,8 +421,7 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
   aspect-ratio: 1.15;
   border: 1.5px solid var(--core-outline);
   border-radius: var(--radius-lg);
-  background: rgb(255 255 255 / 70%);
-  color: color-mix(in srgb, var(--core-outline) 16%, white);
+  background: rgb(255 255 255 / 42%);
   place-items: center;
 }
 
@@ -424,16 +430,6 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-.core-business__image svg {
-  width: 70px;
-  height: 70px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.4;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 @media (min-width: 1024px) {
@@ -486,8 +482,8 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
   .core-business__panel--active .core-business__icon {
     grid-column: 1;
     grid-row: 1 / 3;
-    width: 25px;
-    height: 25px;
+    width: 30px;
+    height: 30px;
   }
 
   .core-business__title,

@@ -60,9 +60,9 @@ try {
   check('核心业务顺序为 01-05',
     JSON.stringify(await coreBusiness.locator('.core-business__number').allInnerTexts()) === JSON.stringify(['01', '02', '03', '04', '05']))
   check('核心业务不再显示右侧加号', await coreBusiness.locator('.core-business__marker').count() === 0)
-  check('核心业务每个面板都有图标',
+  check('核心业务每个面板都有书剑图标',
     await coreBusiness.locator('.core-business__panel').count() === 5
-    && await coreBusiness.locator('.core-business__icon svg').count() === 5)
+    && await coreBusiness.locator('.core-business__icon img[src="/favicon.png"]').count() === 5)
   check('首页区块顺序为团队介绍、指标、核心业务', await page.evaluate(() => {
     const intro = document.querySelector('.home-team-intro')
     const stats = document.querySelector('.home-about')
@@ -72,6 +72,8 @@ try {
       && (stats.compareDocumentPosition(core) & Node.DOCUMENT_POSITION_FOLLOWING))
   }))
   check('核心业务面板预留主题色图片展示位', await coreBusiness.locator('.core-business__image').count() === 5)
+  check('展开面板使用书剑 Logo 作为背景水印', await coreBusiness.locator('.core-business__panel--active').evaluate(el =>
+    getComputedStyle(el, '::before').backgroundImage.includes('/favicon.png')))
   check('核心业务默认展开最后一个面板',
     await coreBusiness.locator('.core-business__panel').last().locator('.core-business__toggle').getAttribute('aria-expanded') === 'true')
   check('竖排标题里的 TRO 连续显示为一组',
