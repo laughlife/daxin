@@ -24,14 +24,19 @@ const qrSources = computed(() => qrSourcesFromAssets(siteSettings.value?.footer.
  */
 const identity = useSiteIdentity()
 
-/** 首页团队介绍图由后台站点配置维护。 */
+/** 首页团队介绍背景图由后台站点配置维护。 */
 function readSettingText(key: string): string {
   const value = siteSettings.value?.settings?.[key]
   return typeof value === 'string' && value.trim() ? value.trim() : ''
 }
 
-/** 团队介绍的首屏配图以独立图片呈现，保留原图比例和清晰度。 */
+/** 团队介绍的图片铺设为整块背景，文字叠加其上。 */
 const teamBackgroundImage = computed(() => readSettingText('home_team_background'))
+const teamBackgroundStyle = computed(() => ({
+  backgroundImage: teamBackgroundImage.value
+    ? `url(${JSON.stringify(teamBackgroundImage.value)})`
+    : undefined,
+}))
 
 /** 数据概览：配置里是 JSON 数组，非数组时回退静态配置。 */
 const statsFromSettings = computed(() => {
@@ -158,7 +163,13 @@ useHead({
 
 <template>
   <div>
-    <section class="home-team-intro" aria-label="团队介绍">
+    <section
+      class="home-team-intro"
+      :class="{ 'home-team-intro--has-background': teamBackgroundImage }"
+      :style="teamBackgroundStyle"
+      aria-label="团队介绍"
+    >
+      <div v-if="teamBackgroundImage" class="home-team-intro__scrim" aria-hidden="true" />
       <PageContainer>
         <div class="home-team-intro__layout">
           <div class="home-team-intro__content">
@@ -177,17 +188,6 @@ useHead({
             <div class="home-team-intro__actions">
               <NuxtLink to="/tro/cases" class="home-team-intro__button home-team-intro__button--primary">查询 TRO 案件</NuxtLink>
               <button type="button" class="home-team-intro__button home-team-intro__button--secondary" @click="openContactModal('tro')">联系我们免费评估案件</button>
-            </div>
-          </div>
-          <div class="home-team-intro__visual">
-            <img
-              v-if="teamBackgroundImage"
-              :src="teamBackgroundImage"
-              alt="大信法务团队"
-              fetchpriority="high"
-            >
-            <div v-else class="home-team-intro__image-placeholder" aria-hidden="true">
-              <span>大信法务团队</span>
             </div>
           </div>
         </div>
@@ -222,15 +222,29 @@ useHead({
 
 <style scoped>
 .home-team-intro {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   padding-block: clamp(3.5rem, 7vw, 6rem);
   background: var(--color-bg-page);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+}
+
+.home-team-intro__scrim {
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgb(10 18 31 / 78%) 0%, rgb(10 18 31 / 62%) 58%, rgb(10 18 31 / 38%) 100%),
+    linear-gradient(0deg, rgb(10 18 31 / 18%), rgb(10 18 31 / 18%));
 }
 
 .home-team-intro__layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1.06fr) minmax(320px, 0.94fr);
+  display: flex;
   align-items: center;
-  gap: clamp(2.5rem, 6vw, 5.5rem);
+  min-height: clamp(22rem, 42vw, 35rem);
 }
 
 .home-team-intro__content {
@@ -239,6 +253,7 @@ useHead({
   align-items: flex-start;
   gap: var(--space-4);
   min-width: 0;
+  width: min(100%, 850px);
 }
 
 .home-team-intro__eyebrow {
@@ -255,32 +270,6 @@ useHead({
   font-size: clamp(2.4rem, 4vw, 3.6rem);
   font-weight: 800;
   line-height: 1.08;
-}
-
-.home-team-intro__visual {
-  width: 100%;
-  overflow: hidden;
-  aspect-ratio: 1.16;
-  border-radius: calc(var(--radius-lg) * 1.35);
-  background: color-mix(in srgb, var(--color-primary) 8%, var(--color-bg-light));
-  box-shadow: 0 24px 64px rgb(36 40 48 / 12%);
-}
-
-.home-team-intro__visual img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.home-team-intro__image-placeholder {
-  display: grid;
-  width: 100%;
-  height: 100%;
-  color: var(--color-primary);
-  font-size: clamp(1.8rem, 4vw, 3rem);
-  font-weight: 800;
-  place-items: center;
 }
 
 .home-team-intro__paragraph {
@@ -368,6 +357,30 @@ useHead({
   color: var(--color-primary);
 }
 
+.home-team-intro--has-background .home-team-intro__eyebrow,
+.home-team-intro--has-background .home-team-intro__title {
+  color: #fff;
+}
+
+.home-team-intro--has-background .home-team-intro__paragraph,
+.home-team-intro--has-background .home-team-intro__features li {
+  color: rgb(255 255 255 / 94%);
+  text-shadow: 0 1px 8px rgb(0 0 0 / 18%);
+}
+
+.home-team-intro--has-background .home-team-intro__features li::before {
+  border-color: rgb(255 255 255 / 70%);
+  background-color: rgb(255 255 255 / 16%);
+  color: #fff;
+}
+
+.home-team-intro--has-background .home-team-intro__button--secondary {
+  border-color: rgb(255 255 255 / 75%);
+  background: rgb(255 255 255 / 13%);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+
 /* 首页数据指标紧跟团队介绍，之后展示核心业务流程。 */
 .home-about {
   padding-block: var(--space-8) var(--space-16);
@@ -380,12 +393,13 @@ useHead({
 
 @media (max-width: 767px) {
   .home-team-intro__layout {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--space-8);
+    min-height: 0;
   }
 
-  .home-team-intro__visual {
-    max-height: 420px;
+  .home-team-intro__scrim {
+    background:
+      linear-gradient(90deg, rgb(10 18 31 / 76%), rgb(10 18 31 / 58%)),
+      linear-gradient(0deg, rgb(10 18 31 / 20%), rgb(10 18 31 / 20%));
   }
 }
 

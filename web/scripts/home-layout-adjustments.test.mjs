@@ -17,11 +17,13 @@ const adminSettingsSource = await readFile(new URL('../app/pages/admin/settings.
 const homeApiSource = await readFile(new URL('../server/api/public/home.get.ts', import.meta.url), 'utf8')
 const homeRepositorySource = await readFile(new URL('../app/repositories/home.ts', import.meta.url), 'utf8')
 
-test('team intro is the homepage first screen with a contained image and configured heading', () => {
+test('team intro is the homepage first screen with its configured image as the text background', () => {
   assert.doesNotMatch(indexSource, /<HomeTeamServices/)
   assert.doesNotMatch(indexSource, /home-about__layout/)
-  assert.match(indexSource, /<section class="home-team-intro"/)
-  assert.match(indexSource, /:src="teamBackgroundImage"/)
+  assert.match(indexSource, /<section[\s\S]*?class="home-team-intro"/)
+  assert.match(indexSource, /:style="teamBackgroundStyle"/)
+  assert.ok(indexSource.includes('backgroundImage: teamBackgroundImage.value'))
+  assert.doesNotMatch(indexSource, /home-team-intro__visual|:src="teamBackgroundImage"/)
   assert.match(indexSource, /home-team-intro__content/)
   assert.match(indexSource, /<h1 class="home-team-intro__title">\{\{ teamDisplayTitle \}\}<\/h1>/)
   assert.match(indexSource, /teamParagraphsFromSettings/)
@@ -36,7 +38,7 @@ test('team intro image and copy stay configurable, while the old hero settings a
 })
 
 test('homepage order is team intro, metrics, then five expandable core-business panels', () => {
-  const introAt = indexSource.indexOf('<section class="home-team-intro"')
+  const introAt = indexSource.indexOf('class="home-team-intro"')
   const statsAt = indexSource.indexOf('<section class="home-about"')
   const coreAt = indexSource.indexOf('<CoreBusiness')
   assert.ok(introAt > 0, '首页应存在团队介绍区块')
@@ -59,9 +61,11 @@ test('homepage order is team intro, metrics, then five expandable core-business 
   assert.match(coreBusinessSource, /var\(--color-primary\)/)
 })
 
-test('team intro uses a contained editorial layout and prominent copy', () => {
-  assert.match(indexSource, /\.home-team-intro__layout\s*\{[\s\S]*?grid-template-columns/)
-  assert.match(indexSource, /\.home-team-intro__visual\s*\{[\s\S]*?aspect-ratio/)
+test('team intro overlays prominent copy on a cover background with contrast scrim', () => {
+  assert.match(indexSource, /\.home-team-intro\s*\{[\s\S]*?background-size:\s*cover/)
+  assert.match(indexSource, /\.home-team-intro__scrim\s*\{[\s\S]*?linear-gradient/)
+  assert.match(indexSource, /home-team-intro--has-background \.home-team-intro__paragraph/)
+  assert.match(indexSource, /\.home-team-intro__layout\s*\{[\s\S]*?min-height:/)
   assert.match(indexSource, /\.home-team-intro__content\s*\{[\s\S]*?gap:\s*var\(--space-4\)/)
   assert.match(indexSource, /teamDisplayTitle = computed/)
   assert.match(indexSource, /teamParagraphsFromSettings/)

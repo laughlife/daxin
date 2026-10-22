@@ -7,11 +7,15 @@ const settingsSource = await readFile(new URL('../app/pages/admin/settings.vue',
 const seedSource = await readFile(new URL('../../tools/seed-site-config.mjs', import.meta.url), 'utf8')
 const migrationSource = await readFile(new URL('../../database/migrations/035_home_service_images.sql', import.meta.url), 'utf8')
 
-test('homepage removes the old hero module and uses team introduction as its first section', () => {
+test('homepage removes the old hero module and overlays team introduction on its configured background image', () => {
   assert.doesNotMatch(indexSource, /<HomeHero|home_hero_/)
-  assert.match(indexSource, /<section class="home-team-intro"/)
+  assert.match(indexSource, /<section[\s\S]*?class="home-team-intro"/)
   assert.match(indexSource, /<h1 class="home-team-intro__title">\{\{ teamDisplayTitle \}\}/)
-  assert.match(indexSource, /:src="teamBackgroundImage"/)
+  assert.match(indexSource, /:style="teamBackgroundStyle"/)
+  assert.match(indexSource, /backgroundImage:\s*teamBackgroundImage\.value/)
+  assert.match(indexSource, /background-size:\s*cover/)
+  assert.match(indexSource, /home-team-intro__scrim/)
+  assert.doesNotMatch(indexSource, /home-team-intro__visual|:src="teamBackgroundImage"/)
   assert.match(indexSource, /查询 TRO 案件/)
   assert.match(indexSource, /联系我们免费评估案件/)
   assert.doesNotMatch(indexSource, /了解更多/)

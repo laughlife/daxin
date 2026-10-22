@@ -77,17 +77,21 @@ try {
     await coreBusiness.locator('.core-business__toggle').first().getAttribute('aria-expanded') === 'true'
     && await coreBusiness.locator('.core-business__panel').first().locator('.core-business__body').evaluate(el => getComputedStyle(el).opacity) === '1')
 
-  // 团队介绍使用图文并排的首页视觉，不做整屏背景裁切。
+  // 团队介绍配图铺设在整块背景上，文字叠加显示。
   check('团队介绍不再包含四个业务卡片', await page.locator('.home-team-services__card').count() === 0)
-  check('团队介绍配图保持独立比例', await page.locator('.home-team-intro__visual').evaluate(el => getComputedStyle(el).aspectRatio !== 'auto'))
-  check('团队介绍图文并排', await page.evaluate(() => {
+  check('团队介绍背景图覆盖整个区块', await page.locator('.home-team-intro').evaluate(el => {
+    const style = getComputedStyle(el)
+    return style.backgroundSize === 'cover' && style.backgroundRepeat === 'no-repeat'
+  }))
+  check('团队介绍文字叠加在背景图上', await page.evaluate(() => {
     const el = document.querySelector('.home-team-intro')
     const content = el?.querySelector('.home-team-intro__content')
-    const image = el?.querySelector('.home-team-intro__visual')
-    if (!el || !content || !image) return false
-    const copy = content.getBoundingClientRect()
-    const visual = image.getBoundingClientRect()
-    return Math.abs(copy.top - visual.top) < 120 && copy.left < visual.left
+    if (!el || !content) return false
+    const hasBackground = getComputedStyle(el).backgroundImage !== 'none'
+    const hasScrim = el.querySelector('.home-team-intro__scrim') !== null
+    return !el.querySelector('.home-team-intro__visual')
+      && content.closest('.home-team-intro') === el
+      && (!hasBackground || hasScrim)
   }))
 
   // 「精选历史 TRO 案件」区块按需求（2026-10-10）移除
