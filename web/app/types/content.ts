@@ -9,10 +9,10 @@
 export interface HomeStat {
   /** 展示数值，如 “7 年”“1000+” */
   value: string
+  /** 数值下方的标签，如“行业深耕” */
+  label: string
   /** 补充说明 */
   description: string
-  /** 是否强调显示（主色大号） */
-  emphasis: boolean
 }
 
 /** 业务分组：国外业务 / 国内业务 */

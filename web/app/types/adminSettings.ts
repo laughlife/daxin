@@ -91,6 +91,6 @@ export interface QrItem {
 /** home_stats 数组的一项（结构化编辑器用） */
 export interface HomeStatEntry {
   value: string
+  label: string
   description: string
-  emphasis: boolean
 }

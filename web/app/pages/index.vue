@@ -43,12 +43,12 @@ const statsFromSettings = computed(() => {
   const value = siteSettings.value?.settings?.home_stats
   if (!Array.isArray(value) || value.length === 0) return homeStats
   const items = value
-    .map((item) => {
+    .map((item, index) => {
       const record = (item ?? {}) as Record<string, unknown>
       return {
         value: String(record.value ?? ''),
+        label: record.label == null ? (homeStats[index]?.label ?? '') : String(record.label),
         description: String(record.description ?? ''),
-        emphasis: record.emphasis === true,
       }
     })
     .filter((item) => item.value || item.description)
@@ -402,8 +402,12 @@ useHead({
 
 /* 首页数据指标紧跟团队介绍，之后展示核心业务流程。 */
 .home-about {
-  padding-block: var(--space-6) var(--space-8);
-  background-color: var(--color-bg-page);
+  padding-block: clamp(var(--space-8), 4vw, var(--space-12));
+  background-color: #f7f7f7;
+  background-image: url('/images/backgrounds/home-stats-wave.png');
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
 }
 
 .home-about__stats {
@@ -425,7 +429,7 @@ useHead({
   .home-team-intro { padding-block: var(--space-10); }
   .home-team-intro__features { grid-template-columns: minmax(0, 1fr); }
   .home-about {
-    padding-block: var(--space-5) var(--space-8);
+    padding-block: var(--space-8);
   }
 }
 </style>

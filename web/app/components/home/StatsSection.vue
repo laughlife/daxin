@@ -14,11 +14,11 @@ defineProps<{
   <ul class="stats-section">
     <li
       v-for="stat in stats"
-      :key="stat.value"
+      :key="`${stat.value}-${stat.label}`"
       class="stats-section__item"
-      :class="{ 'stats-section__item--emphasis': stat.emphasis }"
     >
       <span class="stats-section__value">{{ stat.value }}</span>
+      <span class="stats-section__label">{{ stat.label }}</span>
       <span class="stats-section__description">{{ stat.description }}</span>
     </li>
   </ul>
@@ -34,28 +34,45 @@ defineProps<{
 .stats-section__item {
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
-  padding: var(--space-4) var(--space-2);
+  align-items: center;
+  gap: 0;
+  min-width: 0;
+  padding: 0 var(--space-2);
   background: transparent;
   border: 0;
   text-align: center;
-  align-items: center;
 }
 
 .stats-section__value {
-  font-size: var(--text-2xl);
-  font-weight: 700;
-  color: var(--color-text);
+  color: #3B3838;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.25rem, 4vw, 3.5rem);
+  font-weight: 500;
+  line-height: 1.15;
 }
 
-.stats-section__item--emphasis .stats-section__value {
-  font-size: var(--text-3xl);
-  color: var(--color-primary);
+.stats-section__label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  margin-top: var(--space-4);
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-full);
+  background: #EEAF4E;
+  color: #fff;
+  font-size: var(--text-base);
+  font-weight: 700;
+  line-height: 1.2;
 }
 
 .stats-section__description {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
+  max-width: 13em;
+  min-height: 3.2em;
+  margin-top: var(--space-2);
+  color: #626060;
+  font-size: var(--text-sm);
+  line-height: 1.6;
 }
 
 /* 平板：3 列 */

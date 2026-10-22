@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref } from 'vue'
 import type { HomeStatEntry, SettingItem } from '~/types/adminSettings'
+import { homeStats as defaultHomeStats } from '~/config/homeContent'
 import {
   normalizeContentSidebar,
   normalizeLegalGuideSlides,
@@ -230,7 +231,7 @@ function toText(value: unknown): string {
   return ''
 }
 
-/** 解析 home_stats（数组，元素为 { value, description, emphasis }） */
+/** 解析 home_stats（数组，元素为 { value, label, description }） */
 function parseHomeStats(items: SettingItem[]): HomeStatEntry[] {
   const item = items.find(entry => entry.key === 'home_stats')
   if (!item) return []
@@ -245,12 +246,12 @@ function parseHomeStats(items: SettingItem[]): HomeStatEntry[] {
     blockingErrors['home:home_stats'] = '首页数据指标配置不是列表，结构化编辑已停用并禁止保存，请先修复该配置。'
     return []
   }
-  return parsed.map((entry) => {
+  return parsed.map((entry, index) => {
     const record = (entry && typeof entry === 'object' ? entry : {}) as Record<string, unknown>
     return {
       value: toText(record.value),
+      label: record.label == null ? (defaultHomeStats[index]?.label ?? '') : toText(record.label),
       description: toText(record.description),
-      emphasis: record.emphasis === true || record.emphasis === 1 || record.emphasis === '1'
     }
   })
 }
@@ -628,7 +629,7 @@ async function save(kind: GroupKind) {
 // ---------------------------------------------------------------------------
 
 function addStat() {
-  homeStats.value.push({ value: '', description: '', emphasis: false })
+  homeStats.value.push({ value: '', label: '', description: '' })
   saveSuccess.home = ''
 }
 
@@ -1030,7 +1031,7 @@ function useTextarea(value: string): boolean {
                   </fieldset>
                 </div>
 
-                <!-- home_stats：数组 of { value, description, emphasis } -->
+                <!-- home_stats：数组 of { value, label, description } -->
                 <div v-else-if="item.key === 'home_stats'" class="admin-settings__rows">
                   <fieldset
                     v-for="(stat, index) in homeStats"
@@ -1047,10 +1048,21 @@ function useTextarea(value: string): boolean {
                           class="admin-settings__input"
                           type="text"
                           :disabled="controlsDisabled || savingKind !== ''"
-                          placeholder="例如：7 年"
+                          placeholder="例如：8 年"
                         >
                       </div>
-                      <div class="admin-settings__cell admin-settings__cell--wide">
+                      <div class="admin-settings__cell">
+                        <label class="admin-settings__cell-label" :for="`stat-${index}-label`">标签</label>
+                        <input
+                          :id="`stat-${index}-label`"
+                          v-model="stat.label"
+                          class="admin-settings__input"
+                          type="text"
+                          :disabled="controlsDisabled || savingKind !== ''"
+                          placeholder="例如：行业深耕"
+                        >
+                      </div>
+                      <div class="admin-settings__cell">
                         <label class="admin-settings__cell-label" :for="`stat-${index}-desc`">说明</label>
                         <input
                           :id="`stat-${index}-desc`"
@@ -1060,15 +1072,6 @@ function useTextarea(value: string): boolean {
                           :disabled="controlsDisabled || savingKind !== ''"
                           placeholder="例如：专注从事跨境电商法律咨询服务"
                         >
-                      </div>
-                      <div class="admin-settings__cell admin-settings__cell--inline">
-                        <input
-                          :id="`stat-${index}-emphasis`"
-                          v-model="stat.emphasis"
-                          type="checkbox"
-                          :disabled="controlsDisabled || savingKind !== ''"
-                        >
-                        <label class="admin-settings__cell-label" :for="`stat-${index}-emphasis`">强调展示</label>
                       </div>
                     </div>
                     <div class="admin-settings__row-actions">
