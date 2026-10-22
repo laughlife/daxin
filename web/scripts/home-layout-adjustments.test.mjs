@@ -91,9 +91,15 @@ test('team business configuration is a site settings tab driven by the database'
   assert.doesNotMatch(homeApiSource, /from '\.\.\/\.\.\/\.\.\/app\/utils\/homeData\.mjs'/)
 })
 
-test('all homepage metrics get a subtle selected hover state', () => {
-  assert.match(statsSource, /stats-section__item:hover/)
-  assert.match(statsSource, /scale\(1\.0\d+\)/)
+test('homepage metrics have no card frames or middle label row and remain evenly distributed', () => {
+  assert.match(statsSource, /grid-template-columns:\s*repeat\(5, minmax\(0, 1fr\)\)/)
+  assert.match(statsSource, /background:\s*transparent/)
+  assert.match(statsSource, /border:\s*0/)
+  assert.doesNotMatch(statsSource, /stats-section__item:hover|stats-section__label/)
+  assert.match(statsSource, /stats-section__value/)
+  assert.match(statsSource, /stats-section__description/)
+  assert.doesNotMatch(indexSource, /label:\s*String\(record\.label/)
+  assert.doesNotMatch(adminSettingsSource, /stat\.label|指标名称/)
 })
 
 test('core advantages omit numeric prefixes, keep a stable card height, and widen the selected card', () => {

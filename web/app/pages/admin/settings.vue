@@ -230,7 +230,7 @@ function toText(value: unknown): string {
   return ''
 }
 
-/** 解析 home_stats（数组，元素为 { value, label, description, emphasis }） */
+/** 解析 home_stats（数组，元素为 { value, description, emphasis }） */
 function parseHomeStats(items: SettingItem[]): HomeStatEntry[] {
   const item = items.find(entry => entry.key === 'home_stats')
   if (!item) return []
@@ -249,7 +249,6 @@ function parseHomeStats(items: SettingItem[]): HomeStatEntry[] {
     const record = (entry && typeof entry === 'object' ? entry : {}) as Record<string, unknown>
     return {
       value: toText(record.value),
-      label: toText(record.label),
       description: toText(record.description),
       emphasis: record.emphasis === true || record.emphasis === 1 || record.emphasis === '1'
     }
@@ -629,7 +628,7 @@ async function save(kind: GroupKind) {
 // ---------------------------------------------------------------------------
 
 function addStat() {
-  homeStats.value.push({ value: '', label: '', description: '', emphasis: false })
+  homeStats.value.push({ value: '', description: '', emphasis: false })
   saveSuccess.home = ''
 }
 
@@ -1031,7 +1030,7 @@ function useTextarea(value: string): boolean {
                   </fieldset>
                 </div>
 
-                <!-- home_stats：数组 of { value, label, description, emphasis } -->
+                <!-- home_stats：数组 of { value, description, emphasis } -->
                 <div v-else-if="item.key === 'home_stats'" class="admin-settings__rows">
                   <fieldset
                     v-for="(stat, index) in homeStats"
@@ -1049,17 +1048,6 @@ function useTextarea(value: string): boolean {
                           type="text"
                           :disabled="controlsDisabled || savingKind !== ''"
                           placeholder="例如：7 年"
-                        >
-                      </div>
-                      <div class="admin-settings__cell">
-                        <label class="admin-settings__cell-label" :for="`stat-${index}-label`">指标名称</label>
-                        <input
-                          :id="`stat-${index}-label`"
-                          v-model="stat.label"
-                          class="admin-settings__input"
-                          type="text"
-                          :disabled="controlsDisabled || savingKind !== ''"
-                          placeholder="例如：行业深耕"
                         >
                       </div>
                       <div class="admin-settings__cell admin-settings__cell--wide">

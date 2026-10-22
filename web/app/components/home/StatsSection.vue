@@ -19,7 +19,6 @@ defineProps<{
       :class="{ 'stats-section__item--emphasis': stat.emphasis }"
     >
       <span class="stats-section__value">{{ stat.value }}</span>
-      <span class="stats-section__label">{{ stat.label }}</span>
       <span class="stats-section__description">{{ stat.description }}</span>
     </li>
   </ul>
@@ -36,20 +35,11 @@ defineProps<{
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  padding: var(--space-5) var(--space-4);
-  background-color: var(--color-bg-page);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
+  padding: var(--space-4) var(--space-2);
+  background: transparent;
+  border: 0;
   text-align: center;
   align-items: center;
-  transition: border-color var(--transition-base), box-shadow var(--transition-base), transform var(--transition-base), background-color var(--transition-base);
-}
-
-.stats-section__item:hover {
-  border-color: var(--color-primary);
-  background-color: var(--color-bg-light);
-  box-shadow: var(--shadow-md);
-  transform: scale(1.02);
 }
 
 .stats-section__value {
@@ -63,25 +53,9 @@ defineProps<{
   color: var(--color-primary);
 }
 
-.stats-section__label {
-  font-size: var(--text-sm);
-  font-weight: 600;
-  color: var(--color-text);
-}
-
 .stats-section__description {
   font-size: var(--text-xs);
   color: var(--color-text-muted);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .stats-section__item {
-    transition: none;
-  }
-
-  .stats-section__item:hover {
-    transform: none;
-  }
 }
 
 /* 平板：3 列 */

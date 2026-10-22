@@ -9,8 +9,6 @@
 export interface HomeStat {
   /** 展示数值，如 “7 年”“1000+” */
   value: string
-  /** 简短标签 */
-  label: string
   /** 补充说明 */
   description: string
   /** 是否强调显示（主色大号） */

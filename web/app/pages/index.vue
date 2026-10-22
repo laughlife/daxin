@@ -47,12 +47,11 @@ const statsFromSettings = computed(() => {
       const record = (item ?? {}) as Record<string, unknown>
       return {
         value: String(record.value ?? ''),
-        label: String(record.label ?? ''),
         description: String(record.description ?? ''),
         emphasis: record.emphasis === true,
       }
     })
-    .filter((item) => item.value || item.label)
+    .filter((item) => item.value || item.description)
   return items.length > 0 ? items : homeStats
 })
 
@@ -383,7 +382,7 @@ useHead({
 
 /* 首页数据指标紧跟团队介绍，之后展示核心业务流程。 */
 .home-about {
-  padding-block: var(--space-8) var(--space-16);
+  padding-block: var(--space-6) var(--space-8);
   background-color: var(--color-bg-page);
 }
 
@@ -407,7 +406,7 @@ useHead({
   .home-team-intro { padding-block: var(--space-10); }
   .home-team-intro__features { grid-template-columns: minmax(0, 1fr); }
   .home-about {
-    padding-block: var(--space-6) var(--space-12);
+    padding-block: var(--space-5) var(--space-8);
   }
 }
 </style>
