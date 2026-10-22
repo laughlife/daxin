@@ -58,7 +58,7 @@ test('homepage order is team intro, metrics, then five expandable core-business 
   assert.match(coreBusinessSource, /core-business__panel--active/)
   assert.match(coreBusinessSource, /:src="section.imageUrl"/)
   assert.doesNotMatch(coreBusinessSource, /core-business__summary|core-business__item-desc|section\.description|item\.description/)
-  assert.match(coreBusinessSource, /flex:\s*0 0 76px/)
+  assert.match(coreBusinessSource, /flex:\s*0 0 152px/)
   assert.match(coreBusinessSource, /writing-mode:\s*vertical-rl/)
   assert.match(coreBusinessSource, /flex:\s*1 1 0/)
   assert.match(coreBusinessSource, /var\(--color-primary\)/)

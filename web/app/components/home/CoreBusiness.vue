@@ -162,7 +162,7 @@ function iconPaths(slug: string): string[] {
 .core-business__panel {
   position: relative;
   display: flex;
-  flex: 0 0 76px;
+  flex: 0 0 152px;
   flex-direction: column;
   min-width: 0;
   padding: var(--space-4) var(--space-3);
