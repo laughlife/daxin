@@ -153,6 +153,16 @@ const identity = useSiteIdentity()
   flex-shrink: 0;
 }
 
+.site-header__cta.btn--primary {
+  background-color: #EEAF4E;
+  color: #fff;
+}
+
+.site-header__cta.btn--primary:hover {
+  background-color: color-mix(in srgb, #EEAF4E 86%, #000);
+  color: #fff;
+}
+
 /* 移动端菜单按钮：仅在桌面导航隐藏时显示 */
 .site-header__menu-toggle {
   display: inline-flex;

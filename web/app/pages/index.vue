@@ -337,8 +337,8 @@ useHead({
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  border: 1px solid var(--color-primary);
-  background-color: var(--color-primary);
+  border: 1px solid #EEAF4E;
+  background-color: #EEAF4E;
   color: var(--color-text-on-primary);
   font-size: 12px;
   font-weight: 700;
@@ -385,7 +385,8 @@ useHead({
 }
 
 .home-team-intro__button--secondary {
-  background: var(--color-primary);
+  border-color: #EEAF4E;
+  background: #EEAF4E;
   color: var(--color-text-on-primary);
 }
 
