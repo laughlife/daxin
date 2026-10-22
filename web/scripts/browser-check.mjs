@@ -74,7 +74,14 @@ try {
   check('核心业务面板预留主题色图片展示位', await coreBusiness.locator('.core-business__image').count() === 5)
   check('核心业务默认展开最后一个面板',
     await coreBusiness.locator('.core-business__panel').last().locator('.core-business__toggle').getAttribute('aria-expanded') === 'true')
+  check('竖排标题里的 TRO 连续显示为一组',
+    await coreBusiness.locator('.core-business__title-latin').first().innerText() === 'TRO'
+    && await coreBusiness.locator('.core-business__title-latin').first().evaluate(el => getComputedStyle(el).textCombineUpright) === 'all')
   await coreBusiness.locator('.core-business__toggle').first().click()
+  await page.waitForFunction(() => {
+    const body = document.querySelector('.core-business__panel .core-business__body')
+    return body !== null && getComputedStyle(body).opacity === '1'
+  })
   check('点击业务面板后展开文案与图片位',
     await coreBusiness.locator('.core-business__toggle').first().getAttribute('aria-expanded') === 'true'
     && await coreBusiness.locator('.core-business__panel').first().locator('.core-business__body').evaluate(el => getComputedStyle(el).opacity) === '1')

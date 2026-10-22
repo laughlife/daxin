@@ -61,6 +61,8 @@ test('homepage order is team intro, metrics, then five expandable core-business 
   assert.match(coreBusinessSource, /flex:\s*0 0 152px/)
   assert.match(coreBusinessSource, /writing-mode:\s*vertical-rl/)
   assert.match(coreBusinessSource, /text-orientation:\s*upright/)
+  assert.match(coreBusinessSource, /title\.split\(\/\(\[A-Za-z0-9\]\+\)\/\)/)
+  assert.match(coreBusinessSource, /text-combine-upright:\s*all/)
   assert.match(coreBusinessSource, /props\.sections\.length\s*-\s*1/)
   assert.match(coreBusinessSource, /core-business__panel--active \.core-business__image\s*\{\s*transform:\s*translateX\(-12px\)/)
   assert.match(coreBusinessSource, /flex:\s*1 1 0/)

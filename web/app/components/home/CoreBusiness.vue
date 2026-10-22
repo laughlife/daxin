@@ -70,6 +70,13 @@ const FALLBACK_ICON = ['M12 3l7 3v5c0 4.2-2.8 7.5-7 9-4.2-1.5-7-4.8-7-9V6l7-3z']
 function iconPaths(slug: string): string[] {
   return ICON_PATHS[slug] ?? FALLBACK_ICON
 }
+
+function titleParts(title: string): Array<{ text: string; latin: boolean }> {
+  return title.split(/([A-Za-z0-9]+)/).filter(Boolean).map(text => ({
+    text,
+    latin: /^[A-Za-z0-9]+$/.test(text),
+  }))
+}
 </script>
 
 <template>
@@ -111,7 +118,13 @@ function iconPaths(slug: string): string[] {
                 <path v-for="(d, pathIndex) in iconPaths(section.slug)" :key="pathIndex" :d="d" />
               </svg>
             </span>
-            <span class="core-business__title">{{ section.title }}</span>
+            <span class="core-business__title">
+              <span
+                v-for="(part, partIndex) in titleParts(section.title)"
+                :key="`${section.slug}-title-${partIndex}`"
+                :class="{ 'core-business__title-latin': part.latin }"
+              >{{ part.text }}</span>
+            </span>
           </button>
 
           <div
@@ -237,6 +250,10 @@ function iconPaths(slug: string): string[] {
   writing-mode: vertical-rl;
   text-orientation: upright;
   overflow-wrap: anywhere;
+}
+
+.core-business__title-latin {
+  text-combine-upright: all;
 }
 
 .core-business__panel--active .core-business__toggle {
