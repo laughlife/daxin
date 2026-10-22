@@ -61,9 +61,11 @@ test('homepage order is team intro, metrics, then five expandable core-business 
   assert.match(coreBusinessSource, /var\(--color-primary\)/)
 })
 
-test('team intro overlays prominent copy on a cover background with contrast scrim', () => {
-  assert.match(indexSource, /\.home-team-intro\s*\{[\s\S]*?background-size:\s*cover/)
-  assert.match(indexSource, /\.home-team-intro__scrim\s*\{[\s\S]*?linear-gradient/)
+test('team intro overlays unchanged copy on its brightened background without a color overlay', () => {
+  assert.match(indexSource, /\.home-team-intro__background\s*\{[\s\S]*?background-size:\s*cover/)
+  assert.match(indexSource, /filter:\s*brightness\(1\.18\)/)
+  assert.doesNotMatch(indexSource, /home-team-intro__scrim|ABOUT US/)
+  assert.match(indexSource, /\.home-team-intro__title::after\s*\{[\s\S]*?linear-gradient/)
   assert.match(indexSource, /home-team-intro--has-background \.home-team-intro__paragraph/)
   assert.match(indexSource, /\.home-team-intro__layout\s*\{[\s\S]*?min-height:/)
   assert.match(indexSource, /\.home-team-intro__content\s*\{[\s\S]*?gap:\s*var\(--space-4\)/)

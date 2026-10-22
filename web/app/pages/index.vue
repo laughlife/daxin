@@ -165,14 +165,12 @@ useHead({
     <section
       class="home-team-intro"
       :class="{ 'home-team-intro--has-background': teamBackgroundImage }"
-      :style="teamBackgroundStyle"
       aria-label="团队介绍"
     >
-      <div v-if="teamBackgroundImage" class="home-team-intro__scrim" aria-hidden="true" />
+      <div v-if="teamBackgroundImage" class="home-team-intro__background" :style="teamBackgroundStyle" aria-hidden="true" />
       <PageContainer>
         <div class="home-team-intro__layout">
           <div class="home-team-intro__content">
-            <p class="home-team-intro__eyebrow">ABOUT US</p>
             <h1 class="home-team-intro__title">{{ teamDisplayTitle }}</h1>
             <p
               v-for="(paragraph, index) in teamParagraphsFromSettings"
@@ -224,26 +222,24 @@ useHead({
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  padding-block: clamp(3.5rem, 7vw, 6rem);
-  background: var(--color-bg-page);
-  background-position: center;
-  background-repeat: no-repeat;
-  background-size: cover;
+  padding-block: clamp(2.5rem, 5vw, 4rem);
+  background: #101a2a;
 }
 
-.home-team-intro__scrim {
+.home-team-intro__background {
   position: absolute;
   z-index: -1;
   inset: 0;
-  background:
-    linear-gradient(90deg, rgb(10 18 31 / 78%) 0%, rgb(10 18 31 / 62%) 58%, rgb(10 18 31 / 38%) 100%),
-    linear-gradient(0deg, rgb(10 18 31 / 18%), rgb(10 18 31 / 18%));
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: cover;
+  filter: brightness(1.18);
 }
 
 .home-team-intro__layout {
   display: flex;
   align-items: center;
-  min-height: clamp(22rem, 42vw, 35rem);
+  min-height: clamp(22rem, 36vw, 32rem);
 }
 
 .home-team-intro__content {
@@ -252,15 +248,7 @@ useHead({
   align-items: flex-start;
   gap: var(--space-4);
   min-width: 0;
-  width: min(100%, 850px);
-}
-
-.home-team-intro__eyebrow {
-  margin: 0;
-  color: var(--color-primary);
-  font-size: var(--text-sm);
-  font-weight: 700;
-  letter-spacing: .12em;
+  width: min(100%, 650px);
 }
 
 .home-team-intro__title {
@@ -269,6 +257,16 @@ useHead({
   font-size: clamp(2.4rem, 4vw, 3.6rem);
   font-weight: 800;
   line-height: 1.08;
+  text-shadow: 0 2px 16px rgb(0 0 0 / 18%);
+}
+
+.home-team-intro__title::after {
+  display: block;
+  width: min(100%, 280px);
+  height: 3px;
+  margin-top: var(--space-4);
+  background: linear-gradient(90deg, var(--color-primary) 0 28%, rgb(255 255 255 / 34%) 28% 100%);
+  content: "";
 }
 
 .home-team-intro__paragraph {
@@ -306,8 +304,8 @@ useHead({
   height: 20px;
   border-radius: 50%;
   border: 1px solid var(--color-primary);
-  background-color: color-mix(in srgb, var(--color-primary) 9%, white);
-  color: var(--color-primary);
+  background-color: var(--color-primary);
+  color: var(--color-text-on-primary);
   font-size: 12px;
   font-weight: 700;
   line-height: 1;
@@ -347,16 +345,16 @@ useHead({
 }
 
 .home-team-intro__button--primary {
+  border-color: #fff;
+  background: #fff;
+  color: var(--color-primary);
+}
+
+.home-team-intro__button--secondary {
   background: var(--color-primary);
   color: var(--color-text-on-primary);
 }
 
-.home-team-intro__button--secondary {
-  background: transparent;
-  color: var(--color-primary);
-}
-
-.home-team-intro--has-background .home-team-intro__eyebrow,
 .home-team-intro--has-background .home-team-intro__title {
   color: #fff;
 }
@@ -365,19 +363,6 @@ useHead({
 .home-team-intro--has-background .home-team-intro__features li {
   color: rgb(255 255 255 / 94%);
   text-shadow: 0 1px 8px rgb(0 0 0 / 18%);
-}
-
-.home-team-intro--has-background .home-team-intro__features li::before {
-  border-color: rgb(255 255 255 / 70%);
-  background-color: rgb(255 255 255 / 16%);
-  color: #fff;
-}
-
-.home-team-intro--has-background .home-team-intro__button--secondary {
-  border-color: rgb(255 255 255 / 75%);
-  background: rgb(255 255 255 / 13%);
-  color: #fff;
-  backdrop-filter: blur(8px);
 }
 
 /* 首页数据指标紧跟团队介绍，之后展示核心业务流程。 */
@@ -395,10 +380,9 @@ useHead({
     min-height: 0;
   }
 
-  .home-team-intro__scrim {
-    background:
-      linear-gradient(90deg, rgb(10 18 31 / 76%), rgb(10 18 31 / 58%)),
-      linear-gradient(0deg, rgb(10 18 31 / 20%), rgb(10 18 31 / 20%));
+  .home-team-intro__background {
+    background-position: 64% center;
+    filter: brightness(1.08);
   }
 }
 
