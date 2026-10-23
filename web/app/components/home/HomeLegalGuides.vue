@@ -89,6 +89,12 @@ function showSlide(index: number) {
   scheduleRotation()
 }
 
+function moveSlide(direction: -1 | 1) {
+  if (slides.value.length < 2) return
+  currentIndex.value = (currentIndex.value + direction + slides.value.length) % slides.value.length
+  scheduleRotation()
+}
+
 onMounted(scheduleRotation)
 
 onBeforeUnmount(() => {
@@ -98,12 +104,15 @@ onBeforeUnmount(() => {
 
 <template>
   <section v-if="slides.length" class="home-legal-guides" aria-label="普法干货">
-    <PageContainer>
-      <SectionHeading
-        align="center"
-        eyebrow="LEGAL GUIDES"
-        title="普法干货"
-      />
+    <PageContainer size="wide">
+      <div class="home-legal-guides__heading">
+        <span aria-hidden="true" />
+        <div class="home-legal-guides__heading-copy">
+          <h2>普法干货</h2>
+          <p>LEGAL GUIDES</p>
+        </div>
+        <span aria-hidden="true" />
+      </div>
 
       <div
         class="home-legal-guides__carousel"
@@ -112,6 +121,15 @@ onBeforeUnmount(() => {
         @focusin="onFocusIn"
         @focusout="onFocusOut"
       >
+        <button
+          type="button"
+          class="home-legal-guides__arrow home-legal-guides__arrow--previous"
+          aria-label="上一条普法干货"
+          @click="moveSlide(-1)"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
+        </button>
+
         <div class="home-legal-guides__stage">
           <article
             v-for="(slide, index) in slides"
@@ -155,6 +173,15 @@ onBeforeUnmount(() => {
           </article>
         </div>
 
+        <button
+          type="button"
+          class="home-legal-guides__arrow home-legal-guides__arrow--next"
+          aria-label="下一条普法干货"
+          @click="moveSlide(1)"
+        >
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+        </button>
+
         <div class="home-legal-guides__indicators" role="group" aria-label="选择普法主题">
           <button
             v-for="(slide, index) in slides"
@@ -176,15 +203,30 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.home-legal-guides { padding-block:var(--space-section); background:var(--color-bg-page); }
-.home-legal-guides__stage { display:grid; margin-top:var(--space-8); }
+.home-legal-guides {
+  padding-block:clamp(4.5rem,8vw,7rem);
+  background-color:#fff;
+  background-image:url('/images/backgrounds/legal-guides-faceted.png');
+  background-position:center;
+  background-repeat:no-repeat;
+  background-size:cover;
+}
+.home-legal-guides__heading { display:flex; align-items:center; justify-content:center; gap:clamp(1.25rem,2.2vw,2.8rem); margin-bottom:clamp(3rem,6vw,5rem); text-align:center; }
+.home-legal-guides__heading-copy { display:grid; justify-items:center; gap:.45rem; }
+.home-legal-guides__heading h2 { margin:0; color:#2B2927; font-size:clamp(2.2rem,3.7vw,4rem); font-weight:900; line-height:1.15; white-space:nowrap; }
+.home-legal-guides__heading p { margin:0; color:#E6E6E6; font-size:clamp(1.35rem,2.35vw,2.35rem); font-weight:800; letter-spacing:.015em; line-height:1.1; }
+.home-legal-guides__heading > span { width:clamp(4rem,9vw,11.5rem); height:2px; background:#2B2927; }
+.home-legal-guides__carousel { display:grid; grid-template-columns:clamp(3.25rem,5vw,6rem) minmax(0,1fr) clamp(3.25rem,5vw,6rem); align-items:center; column-gap:clamp(.75rem,1.8vw,2rem); }
+.home-legal-guides__stage { display:grid; min-width:0; }
+.home-legal-guides__arrow { display:grid; width:clamp(3.25rem,5vw,6rem); aspect-ratio:1; place-items:center; padding:0; border:0; border-radius:50%; color:#fff; background:#F3D59E; cursor:pointer; transition:background-color .2s ease,transform .2s ease; }
+.home-legal-guides__arrow:hover { background:#EEAF4E; transform:scale(1.04); }
+.home-legal-guides__arrow:focus-visible { outline:3px solid #2B2927; outline-offset:4px; }
+.home-legal-guides__arrow svg { width:48%; height:48%; fill:none; stroke:currentColor; stroke-linecap:round; stroke-linejoin:round; stroke-width:1.8; }
 .home-legal-guides__panel {
-  /* 原来这里是硬编码蓝 #216695，金色主题下会串色，改为跟主题主色走 */
-  --guide-accent:var(--color-primary);
+  --guide-accent:#642a86;
   display:grid;
   grid-area:1 / 1;
   grid-template-columns:minmax(240px,0.9fr) minmax(0,1.1fr);
-  /* 需求 2026-10-20：外框缩短一点点，整体比例协调（原 420px） */
   min-height:370px;
   overflow:hidden;
   border:1px solid color-mix(in srgb,var(--guide-accent) 22%,white);
@@ -199,14 +241,6 @@ onBeforeUnmount(() => {
   transition:opacity .3s ease,transform .3s ease,visibility .3s;
 }
 .home-legal-guides__panel--active { z-index:1; opacity:1; visibility:visible; pointer-events:auto; transform:translateX(0); }
-/*
- * 图片单元格用绝对定位托住图片。
- *
- * 为什么：图片是竖版（修剪后 859x1115），若按普通流布局，网格行会被图片的
- * 固有高度撑开——实测把面板从 441px 顶到 721px，反而更不高。
- * 绝对定位的图片不参与尺寸计算，面板高度只由右侧文字栏决定，
- * 图片再 object-fit: contain 填满这块区域，做到「框更矮、图更大」。
- */
 .home-legal-guides__image { position:relative; min-height:370px; overflow:hidden; background:color-mix(in srgb,var(--guide-accent) 3%,white); }
 .home-legal-guides__image img { position:absolute; inset:0; display:block; width:100%; height:100%; object-fit:contain; }
 .home-legal-guides__content { display:flex; min-width:0; flex-direction:column; align-items:flex-start; padding:clamp(18px,2.2vw,32px); }
@@ -221,12 +255,16 @@ onBeforeUnmount(() => {
 .home-legal-guides__qr figcaption { margin-top:6px; font-size:var(--text-xs); font-weight:700; }
 .home-legal-guides__reserved { min-height:370px; border-right:1px solid color-mix(in srgb,var(--guide-accent) 16%,white); background:linear-gradient(145deg,white, color-mix(in srgb,var(--guide-accent) 10%,white)); }
 .home-legal-guides__panel--logistics .home-legal-guides__content { align-items:center; justify-content:center; }
-.home-legal-guides__indicators { display:flex; justify-content:center; gap:8px; margin-top:var(--space-4); }
+.home-legal-guides__indicators { display:flex; grid-column:2; justify-content:center; gap:8px; margin-top:var(--space-4); }
 .home-legal-guides__indicator { display:block; width:8px; height:8px; padding:0; border:0; border-radius:999px; background:var(--color-border-strong); cursor:pointer; transition:width .25s ease,background-color .25s ease; }
 .home-legal-guides__indicator--active { width:24px; background:var(--guide-accent); }
 .home-legal-guides__indicator:focus-visible { outline:2px solid var(--guide-accent); outline-offset:4px; }
 @media(max-width:767px) {
   .home-legal-guides { padding-block:var(--space-section); }
+  .home-legal-guides__heading { gap:clamp(.75rem,3vw,1.25rem); margin-bottom:var(--space-8); }
+  .home-legal-guides__heading > span { width:clamp(1.5rem,8vw,3rem); }
+  .home-legal-guides__carousel { grid-template-columns:2.75rem minmax(0,1fr) 2.75rem; gap:.5rem; }
+  .home-legal-guides__arrow { width:2.75rem; }
   .home-legal-guides__panel { grid-template-columns:1fr; }
   .home-legal-guides__image { min-height:220px; height:220px; }
   .home-legal-guides__image img { max-height:220px; }
@@ -236,8 +274,9 @@ onBeforeUnmount(() => {
   .home-legal-guides__qr { width:96px; flex-basis:96px; }
   .home-legal-guides__qr img { width:92px; height:92px; }
   .home-legal-guides__panel--logistics .home-legal-guides__content { min-height:180px; }
+  .home-legal-guides__indicators { grid-column:2; }
 }
 @media(prefers-reduced-motion:reduce) {
-  .home-legal-guides__indicator,.home-legal-guides__panel { transition:none; }
+  .home-legal-guides__indicator,.home-legal-guides__panel,.home-legal-guides__arrow { transition:none; }
 }
 </style>

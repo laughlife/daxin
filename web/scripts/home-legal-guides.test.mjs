@@ -77,3 +77,17 @@ test('carousel keeps one shared height by stacking all three slides in the same 
   assert.match(guidesSource, /home-legal-guides__panel\s*\{[^}]*grid-area:\s*1\s*\/\s*1/s)
   assert.doesNotMatch(guidesSource, /<Transition name="home-legal-guides__slide" mode="out-in">/)
 })
+
+test('legal guides use the faceted background, reference heading, and accessible side arrows', async () => {
+  assert.match(guidesSource, /background-image:url\('\/images\/backgrounds\/legal-guides-faceted\.png'\)/)
+  assert.match(guidesSource, /<h2>普法干货<\/h2>[\s\S]*?<p>LEGAL GUIDES<\/p>/)
+  assert.match(guidesSource, /color:#2B2927/)
+  assert.match(guidesSource, /color:#E6E6E6/)
+  assert.match(guidesSource, /aria-label="上一条普法干货"[\s\S]*?@click="moveSlide\(-1\)"/)
+  assert.match(guidesSource, /aria-label="下一条普法干货"[\s\S]*?@click="moveSlide\(1\)"/)
+  assert.match(guidesSource, /function moveSlide\(direction: -1 \| 1\)/)
+  assert.match(contentSettingsSource, /slug: 'tro',[\s\S]*?accent: '#642a86'/)
+  assert.match(contentSettingsSource, /slug: 'labor',[\s\S]*?accent: '#a84d18'/)
+  assert.match(contentSettingsSource, /slug: 'logistics',[\s\S]*?accent: '#216695'/)
+  await access(new URL('../public/images/backgrounds/legal-guides-faceted.png', import.meta.url))
+})
