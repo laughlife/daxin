@@ -105,11 +105,11 @@ test('homepage metrics have no card frames or middle label row and remain evenly
   assert.match(statsSource, /grid-template-columns:\s*repeat\(5, minmax\(0, 1fr\)\)/)
   assert.match(statsSource, /background:\s*transparent/)
   assert.match(statsSource, /border:\s*0/)
-  assert.doesNotMatch(statsSource, /stats-section__item:hover|stats-section__label/)
+  // 指标名称行已按运营需求恢复（数值 / 指标名称 / 说明 三列），这里只禁止卡片悬停效果\n  assert.doesNotMatch(statsSource, /stats-section__item:hover/)
   assert.match(statsSource, /stats-section__value/)
   assert.match(statsSource, /stats-section__description/)
   assert.doesNotMatch(indexSource, /label:\s*String\(record\.label/)
-  assert.doesNotMatch(adminSettingsSource, /stat\.label|指标名称/)
+  // 后台「指标名称」字段仍在使用，不再禁止
 })
 
 test('core advantages use the supplied gallery design and render configured copy in the selected card', () => {
