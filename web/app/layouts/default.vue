@@ -8,7 +8,13 @@ import { siteThemeCssVariables } from '~/utils/siteTheme'
  * 布局仅负责结构组合，具体实现位于 components/layout/ 下的各个组件。
  */
 const { data: siteSettings } = await useSiteSettings()
-const siteThemeStyle = computed(() => siteThemeCssVariables(siteSettings.value?.settings?.site_theme))
+const route = useRoute()
+const siteThemeStyle = computed(() => {
+  const themeVariables = siteThemeCssVariables(siteSettings.value?.settings?.site_theme)
+  return route.path === '/'
+    ? themeVariables
+    : { ...themeVariables, '--color-bg-light': '#fff', '--site-background-image': 'none' }
+})
 
 /*
  * 浏览器标签页图标（favicon）：后台「品牌与网站资料 → 浏览器标签页图标」配置。
@@ -31,7 +37,7 @@ useHead(() => (
 </script>
 
 <template>
-  <div class="site-shell" :style="siteThemeStyle">
+  <div class="site-shell" :class="{ 'site-shell--interior': route.path !== '/' }" :style="siteThemeStyle">
     <a class="skip-link" href="#main-content">跳到主要内容</a>
     <SiteAnnouncement />
     <SiteHeader />
@@ -54,6 +60,12 @@ useHead(() => (
   background-position: center top;
   background-repeat: repeat-y;
   background-size: 100% auto;
+}
+
+.site-shell--interior {
+  --color-bg-light: #fff;
+  background-color: #fff;
+  background-image: none;
 }
 
 .site-shell__main {

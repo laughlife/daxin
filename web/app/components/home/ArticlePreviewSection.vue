@@ -40,10 +40,14 @@ const items = computed(() =>
 <template>
   <section class="article-preview-section" aria-label="案例分享">
     <PageContainer>
-      <SectionHeading
-        align="center"
-        title="案例分享"
-      />
+      <div class="article-preview-section__heading">
+        <div class="article-preview-section__heading-row">
+          <span class="article-preview-section__heading-rule" aria-hidden="true" />
+          <h2 class="article-preview-section__heading-title">案例分享</h2>
+          <span class="article-preview-section__heading-rule" aria-hidden="true" />
+        </div>
+        <p class="article-preview-section__heading-english">CASE SHARING</p>
+      </div>
       <div class="article-preview-section__columns">
         <div
           v-for="item in items"
@@ -91,7 +95,44 @@ const items = computed(() =>
 <style scoped>
 .article-preview-section {
   padding-block: var(--space-section);
-  background-color: var(--color-bg-light);
+  background-color: var(--color-bg-page);
+}
+
+.article-preview-section__heading {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  text-align: center;
+}
+
+.article-preview-section__heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(var(--space-4), 3vw, var(--space-8));
+  width: 100%;
+}
+
+.article-preview-section__heading-title {
+  flex: none;
+  color: #2b2927;
+  font-size: clamp(36px, 3.2vw, 64px);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.article-preview-section__heading-rule {
+  width: clamp(40px, 6.2vw, 128px);
+  height: 1px;
+  background-color: #2b2927;
+}
+
+.article-preview-section__heading-english {
+  color: #e6e6e6;
+  font-size: clamp(20px, 1.8vw, 36px);
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
 }
 
 /* 四个栏目上下排列（需求：不用左右两列） */

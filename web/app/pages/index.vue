@@ -442,7 +442,7 @@ useHead({
 </style>
 
 <style scoped>
-.home-content { padding-block:var(--space-section-compact); background:var(--color-bg-light); }
+.home-content { padding-block:var(--space-section-compact); background:var(--color-bg-page); }
 .home-content :deep(.case-preview-section), .home-content :deep(.article-preview-section) { padding:0 0 28px; background:transparent; }
 .home-content :deep(.case-preview-section > .page-container), .home-content :deep(.article-preview-section > .page-container) { padding:0; }
 .home-content :deep(.case-preview-section__grid) { grid-template-columns:1fr; }

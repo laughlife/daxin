@@ -88,7 +88,10 @@ test('admin settings edits site_theme as structured data and blocks invalid cust
 test('public layout applies normalized theme tokens while admin keeps its own theme', () => {
   assert.match(publicLayoutSource, /useSiteSettings\(/)
   assert.match(publicLayoutSource, /siteThemeCssVariables\(/)
-  assert.match(publicLayoutSource, /class="site-shell"\s+:style="siteThemeStyle"/)
+  assert.match(publicLayoutSource, /class="site-shell"\s+:class="\{[^}]*site-shell--interior[^}]*\}"\s+:style="siteThemeStyle"/)
+  assert.match(publicLayoutSource, /route\.path === '\/'/)
+  assert.match(publicLayoutSource, /'--color-bg-light': '#fff'/)
+  assert.match(publicLayoutSource, /'--site-background-image': 'none'/)
   assert.match(publicLayoutSource, /--color-primary-dark:\s*color-mix/)
   assert.match(publicLayoutSource, /--color-primary-light:\s*color-mix/)
   assert.match(publicLayoutSource, /background-image:\s*var\(--site-background-image\)/)
