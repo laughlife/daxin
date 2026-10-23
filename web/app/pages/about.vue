@@ -178,7 +178,7 @@ useSeoMeta({
 
 .about-page__lead {
   margin-top: var(--space-4);
-  font-weight: 600;
+  font-weight: 400;
   line-height: var(--leading-relaxed);
   color: var(--color-text);
 }
