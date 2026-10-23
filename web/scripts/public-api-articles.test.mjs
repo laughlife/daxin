@@ -198,12 +198,14 @@ test('列表映射：日期、详情路径、配图字段，且不泄漏摘要�
   // 对外展示中文分类名，href 由分类 slug 决定
   assert.equal(summary.category, 'TRO 侵权预警')
   assert.equal(summary.href, '/tro/alerts/frisbee-24-7')
+  // 标题字号：未配置时为 null（回填后有值则为 22 之类）
+  assert.equal(summary.titleFontSize, null)
   assert.equal(summary.imageSrc, null)
   assert.equal(summary.imageAlt, 'Frisbee 飞盘商标再发案')
   // 即使旧行仍带摘要或正文纯文本，也不进入公开响应。
   assert.deepEqual(
     Object.keys(summary).sort(),
-    ['category', 'href', 'id', 'imageAlt', 'imageSrc', 'publishedAt', 'slug', 'title'],
+    ['category', 'href', 'id', 'imageAlt', 'imageSrc', 'publishedAt', 'slug', 'title', 'titleFontSize'],
   )
   assert.equal(articleHref('tro-success', 'x'), '/tro/success-cases/x')
   assert.equal(articleHref('news', 'x'), '/tro/news/x')
