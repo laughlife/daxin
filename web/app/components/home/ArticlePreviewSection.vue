@@ -189,10 +189,10 @@ const items = computed(() =>
 
 .article-preview-card {
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  flex-direction: column;
+  align-items: stretch;
   gap: var(--space-4);
-  height: 168px;
+  
   padding: var(--space-4);
   background-color: var(--color-bg-page);
   border: 1px solid var(--color-border);
@@ -205,18 +205,18 @@ const items = computed(() =>
 /* 封面保持接近原始 150px 方图尺寸，避免在卡片内横向放大后发糊。 */
 .article-preview-card__thumb {
   display: block;
-  flex: 0 0 124px;
-  width: 124px;
-  height: 124px;
+  width: 100%;
+  aspect-ratio: 900 / 382;
   overflow: hidden;
   border-radius: var(--radius-md);
+  background: var(--color-bg-light);
 }
 
 .article-preview-card__thumb img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .article-preview-card__body {
@@ -313,9 +313,12 @@ const items = computed(() =>
   }
 
   .article-preview-card__thumb {
-    flex-basis: 100px;
-    width: 100px;
-    height: 100px;
-  }
+  display: block;
+  width: 100%;
+  aspect-ratio: 900 / 382;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-light);
+}
 }
 </style>
