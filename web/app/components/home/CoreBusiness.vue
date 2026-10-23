@@ -95,9 +95,6 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
             @click="toggle(index)"
           >
             <span class="core-business__number">{{ String(index + 1).padStart(2, '0') }}</span>
-            <span class="core-business__icon" aria-hidden="true">
-              <img src="/favicon.png" alt="" width="397" height="397" loading="lazy" decoding="async">
-            </span>
             <span class="core-business__title">
               <span
                 v-for="(part, partIndex) in titleParts(section.title)"
@@ -274,50 +271,25 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
   letter-spacing: .16em;
 }
 
-.core-business__icon {
-  display: grid;
-  width: 34px;
-  height: 34px;
-  flex: none;
-  place-items: center;
-  color: var(--core-outline);
-  transition: transform var(--transition-base), color var(--transition-base);
-}
-
-.core-business__icon img {
-  display: block;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
 .core-business__panel--active .core-business__toggle {
   display: grid;
   flex: 0 0 auto;
-  grid-template-columns: 30px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto auto;
   align-items: center;
   justify-content: initial;
-  column-gap: var(--space-3);
+  column-gap: 0;
   row-gap: 2px;
   opacity: 1;
 }
 
 .core-business__panel--active .core-business__number {
-  grid-column: 2;
+  grid-column: 1;
   grid-row: 1;
 }
 
-.core-business__panel--active .core-business__icon {
-  grid-column: 1;
-  grid-row: 1 / 3;
-  width: 34px;
-  height: 34px;
-  color: var(--core-accent);
-}
-
 .core-business__panel--active .core-business__title {
-  grid-column: 2;
+  grid-column: 1;
   grid-row: 2;
   max-height: none;
   color: var(--core-body);
@@ -373,7 +345,7 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
 
 .core-business__detail {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(130px, .8fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, .9fr);
   align-items: stretch;
   gap: var(--space-4);
   height: 100%;
@@ -415,6 +387,7 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
 
 .core-business__image {
   display: grid;
+  width: 100%;
   min-width: 0;
   min-height: 150px;
   overflow: hidden;
@@ -432,9 +405,9 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
   object-fit: cover;
 }
 
-@media (min-width: 1024px) {
+@media (min-width: 641px) {
   .core-business__panel--active .core-business__image {
-    transform: translateX(-12px);
+    transform: translateX(-24px);
   }
 }
 
@@ -458,11 +431,11 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
   .core-business__panel--active .core-business__toggle {
     display: grid;
     flex: 0 0 auto;
-    grid-template-columns: 30px minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto auto;
     align-items: center;
     justify-content: initial;
-    column-gap: var(--space-3);
+    column-gap: 0;
     row-gap: 2px;
     min-height: 54px;
     opacity: 1;
@@ -474,21 +447,13 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
 
   .core-business__number,
   .core-business__panel--active .core-business__number {
-    grid-column: 2;
-    grid-row: 1;
-  }
-
-  .core-business__icon,
-  .core-business__panel--active .core-business__icon {
     grid-column: 1;
-    grid-row: 1 / 3;
-    width: 30px;
-    height: 30px;
+    grid-row: 1;
   }
 
   .core-business__title,
   .core-business__panel--active .core-business__title {
-    grid-column: 2;
+    grid-column: 1;
     grid-row: 2;
     max-height: none;
     color: var(--core-body);
