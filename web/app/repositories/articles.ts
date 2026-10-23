@@ -15,6 +15,8 @@ import {
 
 /** 文章列表项，字段与公开接口一致。 */
 export interface ArticleSummary {
+  /** 微信原文标题字号（px）；为空时用默认字号 */
+  titleFontSize?: number | null
   id: string
   slug: string
   title: string

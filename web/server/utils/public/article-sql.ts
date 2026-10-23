@@ -8,7 +8,7 @@ import { escapeLikePattern, type ArticleFilters, type ArticleRow } from './artic
  * 封面 OSS 地址 → 正文第一张配图的 OSS 地址 → 原文 https 外链 → null。
  * 原文地址优先使用公众号链接，其次回落到旧站原文链接。
  */
-const ARTICLE_COLUMNS = `a.id, a.slug, a.title,
+const ARTICLE_COLUMNS = `a.id, a.slug, a.title, a.title_font_size,
   DATE_FORMAT(a.published_at, '%Y-%m-%d') AS published_at,
   c.slug AS category_slug,
   c.name AS category_name,

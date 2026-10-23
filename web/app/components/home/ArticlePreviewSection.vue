@@ -35,6 +35,13 @@ const items = computed(() =>
     }
   })
 )
+
+/** 首页案例标题字号：同列表页，取微信原文字号，缺失时用样式表默认值。 */
+function previewTitleStyle(article: { titleFontSize?: number | null }) {
+  const size = article.titleFontSize
+  if (!size || size < 10 || size > 40) return undefined
+  return { fontSize: `${size}px` }
+}
 </script>
 
 <template>
@@ -76,7 +83,7 @@ const items = computed(() =>
                       {{ article.publishedAt }}
                     </time>
                   </div>
-                  <h4 class="article-preview-card__title">
+                  <h4 class="article-preview-card__title" :style="previewTitleStyle(article)">
                     <NuxtLink :to="article.href">{{ article.title }}</NuxtLink>
                   </h4>
                 </div>

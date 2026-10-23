@@ -81,6 +81,8 @@ export interface CaseRecord {
 
 /** 文章 / 案例分享记录 */
 export interface ArticleRecord {
+  /** 微信原文标题字号（px）；为空时用默认字号 */
+  titleFontSize?: number | null
   /** 唯一标识 */
   id: string
   /** 分类，如 “TRO 案件进展”“劳动法案例” */

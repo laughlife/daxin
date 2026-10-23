@@ -21,6 +21,8 @@ export interface ArticleSummary {
   href: string
   imageSrc: string | null
   imageAlt: string
+  /** 标题字号（px）：取自微信原文，为空时前端用默认字号 */
+  titleFontSize: number | null
 }
 
 /** 归一化后的文章列表筛选条件；空串表示未筛选。 */
@@ -142,6 +144,8 @@ export interface ArticleRow {
   /** 公众号或旧站原文地址；存在时列表标题和封面直接跳转原文。 */
   source_url?: string | null
   cover_url?: string | null
+  /** articles.title_font_size：微信原文标题字号，前台按此渲染 */
+  title_font_size?: number | null
   image_url?: string | null
   image_source_url?: string | null
   image_alt?: string | null
@@ -191,6 +195,17 @@ function toDateOnlyText(value: unknown): string {
   return match ? match[1]! : ''
 }
 
+/**
+ * articles.title_font_size → 可用的字号（px）。
+ * 微信侧偶尔给出异常值，超出合理范围一律视为未配置，交给前端默认字号。
+ */
+function normalizeFontSize(value: unknown): number | null {
+  const size = Number(value)
+  if (!Number.isFinite(size)) return null
+  const rounded = Math.round(size)
+  return rounded >= 10 && rounded <= 40 ? rounded : null
+}
+
 export function toArticleSummary(row: ArticleRow): ArticleSummary {
   const slug = normalizeText(row.slug)
   const title = normalizeText(row.title)
@@ -213,5 +228,6 @@ export function toArticleSummary(row: ArticleRow): ArticleSummary {
     href: sourceUrl ?? articleHref(categorySlug, slug),
     imageSrc: sourceUrl ? toPublicImageUrl(row.cover_url) : pickArticleImageSrc(imageInput),
     imageAlt: pickArticleImageAlt(imageInput),
+    titleFontSize: normalizeFontSize(row.title_font_size),
   }
 }

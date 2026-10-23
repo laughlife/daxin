@@ -1,6 +1,16 @@
 <script setup lang="ts">
 import type { ArticleSummary } from '~/repositories/articles'
 defineProps<{ articles: ArticleSummary[] }>()
+
+/**
+ * 标题字号：用微信原文的字号（articles.title_font_size），未配置时交给样式表默认值。
+ * 只接受合理范围，避免脏数据把标题撑爆或缩没。
+ */
+function titleStyle(article: { titleFontSize?: number | null }) {
+  const size = article.titleFontSize
+  if (!size || size < 10 || size > 40) return undefined
+  return { fontSize: `${size}px` }
+}
 </script>
 <template>
   <div class="article-list">
@@ -17,7 +27,7 @@ defineProps<{ articles: ArticleSummary[] }>()
       <NuxtLink v-if="article.imageSrc" :to="article.href" class="article-list__cover">
         <img :src="article.imageSrc" :alt="article.imageAlt" loading="lazy">
       </NuxtLink>
-      <h2><NuxtLink :to="article.href">{{ article.title }}</NuxtLink></h2>
+      <h2 :style="titleStyle(article)"><NuxtLink :to="article.href">{{ article.title }}</NuxtLink></h2>
     </article>
     <p v-if="!articles.length" class="article-list__empty" role="status">
       此条件下暂无内容，请调整关键词。
