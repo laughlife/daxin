@@ -88,6 +88,12 @@ const EXCLUDED_NAMES = new Set([
   '.DS_Store',
   'Thumbs.db',
   'uploaded-assets.json',
+  // Codex 本地诊断脚本，不属于站点运行或部署所需文件。
+  'codex-check-thread-model.py',
+  'codex-model-usage.py',
+  'codex-recent-errors.py',
+  'codex-thread-models.py',
+  'codex-triage.py',
 ])
 
 /** 排除的后缀。 */
