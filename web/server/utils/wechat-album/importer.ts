@@ -9,8 +9,20 @@ import { normalizeWechatImageUrl, wechatImageIdentity } from './content.mjs'
 import { canonicalArticleUrl } from './parser.mjs'
 import { wechatShanghaiDateKey } from './schedule.mjs'
 import { classifyImportedArticle } from './article-classify.mjs'
+import {
+  MOBILE_WECHAT_UA,
+  createTitleFontSizeReader,
+  extractMsgCdnUrl,
+  resolveArticleCoverId,
+  type TitleFontSizeReader,
+} from './article-page.ts'
 
-const USER_AGENT = 'DaxinWechatAlbumSync/1.0 (+https://daxinfawu.com/)'
+/*
+ * 文章页必须用手机微信 UA：采集器 UA（DaxinWechatAlbumSync/1.0）抓 mp.weixin.qq.com/s
+ * 会被微信拦成「环境异常」，取不到 msg_cdn_url，也读不到标题字号。
+ * 专辑接口（/mp/appmsgalbum）用同一个 UA 同样可以正常分页。
+ */
+const USER_AGENT = MOBILE_WECHAT_UA
 const MAX_PAGE_BYTES = 12 * 1024 * 1024
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024
 const PAGE_DELAY_MS = 1000
@@ -37,6 +49,12 @@ type AlbumItem = {
 }
 type IdRow = { id: number | string }
 type ArticleRow = { id: number | string; cover_media_id: number | string | null; legacy_source_table: string | null }
+type ArticleCoverRow = {
+  id: number | string
+  cover_media_id: number | string | null
+  width: number | string | null
+  height: number | string | null
+}
 type MediaRow = { id: number | string; public_url: string; object_key: string }
 type DbHeader = { insertId?: number | string }
 type UploadedImage = { id: number; publicUrl: string; objectKey: string; mimeType: string; byteSize: number }
@@ -124,6 +142,29 @@ async function fetchWechatText(urlValue: string, referer?: string): Promise<stri
     throw new Error('公众号页面要求访问验证，已停止采集')
   }
   return text
+}
+
+/**
+ * 读取文章页长图（msg_cdn_url，900x382）。
+ *
+ * 抓取失败、被拦、页面没有该变量都只告警并返回空串：调用方会退回专辑方图，
+ * 不影响整条采集（延续「封面失败不中断」的既有原则）。
+ */
+async function readArticleLongCover(url: string): Promise<string> {
+  try {
+    const html = await fetchWechatText(url)
+    const cover = extractMsgCdnUrl(html)
+    if (!cover) {
+      console.warn('[wechat-album-import] 文章页没有 msg_cdn_url，退回专辑方图', { url: url.slice(0, 120) })
+    }
+    return cover
+  } catch (error) {
+    console.warn('[wechat-album-import] 文章页长图获取失败，退回专辑方图', {
+      url: url.slice(0, 120),
+      message: error instanceof Error ? error.message : String(error),
+    })
+    return ''
+  }
 }
 
 function imageFormat(bytes: Uint8Array): { mimeType: string; extension: string } | null {
@@ -239,14 +280,30 @@ async function writeArticle(
   source: AlbumSource,
   item: AlbumItem,
   cover: UploadedImage | null,
+  coverIsLong: boolean,
+  titleFontSize: number | null,
   categoryId: number,
   existingArticleId: number | null,
 ): Promise<{ articleId: number; inserted: boolean }> {
   const identity = articleIdentity(item)
   return withTargetTransaction(async (connection: SqlConnection) => {
-    const [existingRows] = await connection.execute('SELECT id FROM articles WHERE slug = ? LIMIT 1', [identity.slug])
-    let articleId = existingArticleId || Number((existingRows as IdRow[])[0]?.id ?? 0)
+    // 连表取出当前封面尺寸：长图封面不能被专辑方图覆盖回去（原 COALESCE 会覆盖）。
+    const [existingRows] = await connection.execute(
+      `SELECT a.id, a.cover_media_id, m.width, m.height
+       FROM articles a LEFT JOIN media_assets m ON m.id = a.cover_media_id
+       WHERE a.slug = ? LIMIT 1`,
+      [identity.slug],
+    )
+    const existing = (existingRows as ArticleCoverRow[])[0]
+    let articleId = existingArticleId || Number(existing?.id ?? 0)
     const inserted = articleId === 0
+    const coverMediaId = resolveArticleCoverId({
+      existingCoverId: Number(existing?.cover_media_id ?? 0) || null,
+      existingCoverWidth: Number(existing?.width ?? 0) || null,
+      existingCoverHeight: Number(existing?.height ?? 0) || null,
+      nextCoverId: cover?.id ?? null,
+      nextIsLong: coverIsLong,
+    })
     if (inserted) {
       const title = item.title.trim().slice(0, 255)
       const publishedAt = item.publishedAt
@@ -255,31 +312,31 @@ async function writeArticle(
       const [header] = await connection.execute(
         `INSERT INTO articles
            (slug, title, summary, content_html, content_text, category_id, cover_media_id, published_at,
-            status, is_featured, show_in_sidebar, legacy_source_table, legacy_source_id, created_at, updated_at)
-         VALUES (?, ?, NULL, NULL, NULL, ?, ?, ?, 'published', 0, 0, 'wechat_album', ?, NOW(), NOW())`,
-        [identity.slug, title, categoryId, cover?.id ?? null, publishedAt, identity.legacyId],
+            title_font_size, status, is_featured, show_in_sidebar, legacy_source_table, legacy_source_id, created_at, updated_at)
+         VALUES (?, ?, NULL, NULL, NULL, ?, ?, ?, ?, 'published', 0, 0, 'wechat_album', ?, NOW(), NOW())`,
+        [identity.slug, title, categoryId, coverMediaId, publishedAt, titleFontSize, identity.legacyId],
       )
       articleId = Number((header as DbHeader).insertId ?? 0)
       if (!articleId) throw new Error(`写入公众号文章失败：${title}`)
     } else {
       await connection.execute(
         `UPDATE articles SET title = ?, summary = NULL, content_html = NULL, content_text = NULL,
-           category_id = ?, cover_media_id = COALESCE(?, cover_media_id), published_at = ?,
+           category_id = ?, cover_media_id = ?, title_font_size = COALESCE(?, title_font_size), published_at = ?,
            status = 'published', legacy_source_table = 'wechat_album', legacy_source_id = ?, updated_at = NOW()
          WHERE id = ?`,
-        [item.title.trim().slice(0, 255), categoryId, cover?.id ?? null, item.publishedAt, identity.legacyId, articleId],
+        [item.title.trim().slice(0, 255), categoryId, coverMediaId, titleFontSize, item.publishedAt, identity.legacyId, articleId],
       )
       await removeArticleBodyImages(connection, articleId)
     }
 
     await connection.execute(
       `INSERT INTO wechat_album_items
-         (source_id, message_id, item_index, article_hash, article_id, source_url, title, cover_source_url, published_at, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+         (source_id, message_id, item_index, article_hash, article_id, source_url, title, cover_source_url, published_at, title_font_size, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
        ON DUPLICATE KEY UPDATE article_hash = VALUES(article_hash), article_id = VALUES(article_id),
          source_url = VALUES(source_url), title = VALUES(title), cover_source_url = VALUES(cover_source_url),
-         published_at = VALUES(published_at), updated_at = NOW()`,
-      [source.id, item.messageId, item.itemIndex, identity.hash, articleId, identity.url.slice(0, 2048), item.title.slice(0, 255), item.coverUrl.slice(0, 2048), item.publishedAt || null],
+         published_at = VALUES(published_at), title_font_size = COALESCE(VALUES(title_font_size), title_font_size), updated_at = NOW()`,
+      [source.id, item.messageId, item.itemIndex, identity.hash, articleId, identity.url.slice(0, 2048), item.title.slice(0, 255), item.coverUrl.slice(0, 2048), item.publishedAt || null, titleFontSize],
     )
     return { articleId, inserted }
   })
@@ -319,28 +376,34 @@ async function importArticle(
   source: AlbumSource,
   item: AlbumItem,
   categoryId: number,
+  titleFontSizeReader: TitleFontSizeReader,
 ): Promise<{ inserted: boolean; imageCount: number }> {
   const sourceId = Number(source.id)
   const existingItemArticle = await findExistingSourceItem(sourceId, item)
   if (!item.title.trim()) throw new Error(`文章 ${item.url} 缺少标题`)
   if (!item.publishedAt) throw new Error(`文章“${item.title}”缺少发布时间`)
 
+  const identity = articleIdentity(item)
+
   /*
-   * 封面缺失或下载失败时**不再中断整次采集**，而是以无封面方式入库。
+   * 封面优先级：文章页长图（msg_cdn_url，900x382）→ 专辑方图（cover_img_1_1，150x150）。
    *
+   * 文章页抓取失败/被拦不能中断整次采集：readArticleLongCover 内部只告警并返回空串，
+   * 这里自动退回专辑方图，与「封面处理失败改为无封面入库」的既有原则一致。
+   *
+   * 另外，封面缺失或下载失败时也**不中断整次采集**，而是以无封面方式入库：
    * 原来这里对空封面直接 throw，后果是：专辑里任意一篇文章封面不可用，
    * 整个来源（可能上百篇）立刻中止、游标不推进，下次重跑还会卡在同一篇。
    * 实测 tro-classic-album 与 tro-knowledge-album 就是因为各自一篇的封面
-   * 取不到而整源失败。
-   *
-   * `articles.cover_media_id` 允许 NULL，writeArticle 本来就接受
-   * `cover: UploadedImage | null`（写入 `cover?.id ?? null`），
-   * 因此无封面入库是既有能力，只需把这里的硬失败降级为告警。
+   * 取不到而整源失败。`articles.cover_media_id` 允许 NULL，writeArticle 接受
+   * `cover: UploadedImage | null`，因此无封面入库是既有能力。
    */
-  const coverUrl = normalizeWechatImageUrl(item.coverUrl)
+  const longCoverUrl = await readArticleLongCover(identity.url)
+  const coverIsLong = Boolean(longCoverUrl)
+  const coverUrl = longCoverUrl || normalizeWechatImageUrl(item.coverUrl)
   let cover: UploadedImage | null = null
   if (!coverUrl) {
-    console.warn('[wechat-album-import] 跳过封面（无可读取地址）', {
+    console.warn('[wechat-album-import] 跳过封面（文章页与专辑都没有可读取地址）', {
       title: item.title,
       coverSource: item.coverUrl,
     })
@@ -356,11 +419,13 @@ async function importArticle(
     }
   }
 
-  const identity = articleIdentity(item)
+  // 标题字号是运行时 computed 值，读取失败返回 null，不阻断文章入库。
+  const titleFontSize = await titleFontSizeReader.read(identity.url)
+
   const existingArticle = existingItemArticle
     ? await findArticleById(existingItemArticle)
     : await findExistingArticle(identity.url) ?? await findLegacyArticle(item, categoryId)
-  const result = await writeArticle(source, item, cover, categoryId, existingArticle ? Number(existingArticle.id) : null)
+  const result = await writeArticle(source, item, cover, coverIsLong, titleFontSize, categoryId, existingArticle ? Number(existingArticle.id) : null)
   return { inserted: result.inserted, imageCount: cover ? 1 : 0 }
 }
 
@@ -403,6 +468,8 @@ async function importSource(source: AlbumSource, scheduledDate: string, deployme
   const cursor = full ? null : { messageId: source.cursor_message_id, itemIndex: source.cursor_item_index }
   const empty: ImportResult = { fetchedCount: 0, insertedCount: 0, duplicateCount: 0, imageCount: 0 }
   await writeRunStart(source, scheduledDate, runMode)
+  // 整次同步复用一个浏览器（惰性启动）；读字号失败只告警，不影响入库。
+  const titleFontSizeReader = createTitleFontSizeReader()
   try {
     const crawl = await crawlWechatAlbum({
       sourceUrl: source.album_url,
@@ -445,7 +512,7 @@ async function importSource(source: AlbumSource, scheduledDate: string, deployme
         if (target === 'tro-alert' && troRoutingEnabled && routedCategoryIds['tro-alert']) return routedCategoryIds['tro-alert']
         return categoryId
       })()
-      const imported = await importArticle(source, item, routedCategoryId)
+      const imported = await importArticle(source, item, routedCategoryId, titleFontSizeReader)
       result.insertedCount += imported.inserted ? 1 : 0
       result.duplicateCount += imported.inserted ? 0 : 1
       result.imageCount += imported.imageCount
@@ -463,6 +530,8 @@ async function importSource(source: AlbumSource, scheduledDate: string, deployme
     }
     console.error('[wechat-album-import] 专辑同步失败', { source: source.source_key, mode, message })
     return { source: source.source_key, mode, failed: true, result: empty }
+  } finally {
+    await titleFontSizeReader.close()
   }
 }
 

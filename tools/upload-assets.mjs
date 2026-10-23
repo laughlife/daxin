@@ -9,11 +9,19 @@
 // 用法：
 //   node tools/upload-assets.mjs --dir <本地目录> --source legacy-site [--dry-run]
 //   node tools/upload-assets.mjs --files <文件1> <文件2> ... --source legacy-site
-import { createHash, createHmac } from 'node:crypto'
 import { readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { basename, extname, join } from 'node:path'
 
-import { executeSql, queryRows, quoteLiteral, readEnvFile, resolveTargetConnection } from './migrate-legacy/mysql-client.mjs'
+import { executeSql, quoteLiteral, resolveTargetConnection } from './migrate-legacy/mysql-client.mjs'
+import {
+  MIME,
+  isOssConfigComplete,
+  objectKeyFor,
+  publicUrlFor,
+  putObject,
+  readImageSize,
+  readOssConfig,
+} from './migrate-legacy/oss-client.mjs'
 
 // ---------------------------------------------------------------- 参数
 
@@ -33,125 +41,6 @@ function parseArgs(argv) {
     else throw new Error(`未知参数：${arg}`)
   }
   return options
-}
-
-// ---------------------------------------------------------------- 工具
-
-const MIME = {
-  '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
-  '.webp': 'image/webp', '.gif': 'image/gif', '.svg': 'image/svg+xml',
-}
-
-/** uuidv5：用命名空间 + 名称做 SHA-1，按 RFC 4122 设置版本位。 */
-function uuidv5(namespace, name) {
-  const hash = createHash('sha1')
-  hash.update(Buffer.from(namespace.replace(/-/g, ''), 'hex'))
-  hash.update(name, 'utf8')
-  const bytes = hash.digest().subarray(0, 16)
-  bytes[6] = (bytes[6] & 0x0f) | 0x50
-  bytes[8] = (bytes[8] & 0x3f) | 0x80
-  const hex = bytes.toString('hex')
-  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
-}
-
-/** URL 命名空间（RFC 4122 附录 C）。 */
-const NAMESPACE_URL = '6ba7b811-9dad-11d1-80b4-00c04fd430c8'
-
-function objectKeyFor(sourceId, extension, prefix) {
-  const date = new Date()
-  const stamp = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}`
-  return `${prefix ? `${prefix.replace(/\/+$/, '')}/` : ''}${stamp}/${uuidv5(NAMESPACE_URL, sourceId)}${extension}`
-}
-
-/** 读取 JPEG / PNG 的像素尺寸；其它格式返回 null，不阻断上传。 */
-function readImageSize(buffer, extension) {
-  if (extension === '.png') {
-    if (buffer.length < 24 || buffer.readUInt32BE(0) !== 0x89504e47) return null
-    return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) }
-  }
-  if (extension === '.jpg' || extension === '.jpeg') {
-    let offset = 2
-    while (offset < buffer.length - 9) {
-      if (buffer[offset] !== 0xff) { offset += 1; continue }
-      const marker = buffer[offset + 1]
-      // SOF0..SOF15（排除 DHT/DAC 等）
-      if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) {
-        return { height: buffer.readUInt16BE(offset + 5), width: buffer.readUInt16BE(offset + 7) }
-      }
-      const length = buffer.readUInt16BE(offset + 2)
-      offset += 2 + length
-    }
-    return null
-  }
-  if (extension === '.webp') {
-    // RIFF 容器：'RIFF' + 文件长度(4) + 'WEBP' + 若干 chunk
-    if (buffer.length < 30) return null
-    if (buffer.toString('ascii', 0, 4) !== 'RIFF') return null
-    if (buffer.toString('ascii', 8, 12) !== 'WEBP') return null
-
-    let offset = 12
-    while (offset + 8 <= buffer.length) {
-      const fourCC = buffer.toString('ascii', offset, offset + 4)
-      const chunkSize = buffer.readUInt32LE(offset + 4)
-
-      if (fourCC === 'VP8X') {
-        // 扩展格式（含动画）：画布尺寸存为「值减一」的 24 位小端
-        const data = offset + 8
-        if (data + 10 > buffer.length) return null
-        const width = 1 + (buffer[data + 4] | (buffer[data + 5] << 8) | (buffer[data + 6] << 16))
-        const height = 1 + (buffer[data + 7] | (buffer[data + 8] << 8) | (buffer[data + 9] << 16))
-        return { width, height }
-      }
-      if (fourCC === 'VP8 ') {
-        // 有损：帧头里是 14 位宽高
-        const data = offset + 8
-        if (data + 10 > buffer.length) return null
-        return {
-          width: buffer.readUInt16LE(data + 6) & 0x3fff,
-          height: buffer.readUInt16LE(data + 8) & 0x3fff,
-        }
-      }
-      if (fourCC === 'VP8L') {
-        // 无损：14 位宽高打包在 4 字节里
-        const data = offset + 8
-        if (data + 5 > buffer.length) return null
-        const bits = buffer.readUInt32LE(data + 1)
-        return {
-          width: 1 + (bits & 0x3fff),
-          height: 1 + ((bits >> 14) & 0x3fff),
-        }
-      }
-
-      // chunk 按偶数字节对齐
-      offset += 8 + chunkSize + (chunkSize % 2)
-    }
-    return null
-  }
-  return null
-}
-
-/** OSS Signature V1 上传（PUT）。
- *
- * host 必须是 **虚拟主机形式** `https://<bucket>.<endpoint>`；
- * 只传 endpoint（oss-cn-shenzhen.aliyuncs.com）会请求到错误的主机导致 fetch failed。
- * CanonicalizedResource 必须带 bucket 前缀。
- */
-async function putObject({ host, bucket, accessKeyId, accessKeySecret, objectKey, body, contentType }) {
-  const date = new Date().toUTCString()
-  const resource = `/${bucket}/${objectKey}`
-  const stringToSign = ['PUT', '', contentType, date, resource].join('\n')
-  const signature = createHmac('sha1', accessKeySecret).update(stringToSign, 'utf8').digest('base64')
-  return fetch(`${host}/${objectKey}`, {
-    method: 'PUT',
-    headers: {
-      Date: date,
-      'Content-Type': contentType,
-      'Content-Length': String(body.length),
-      Authorization: `OSS ${accessKeyId}:${signature}`,
-    },
-    body,
-    signal: AbortSignal.timeout(120000),
-  })
 }
 
 // ---------------------------------------------------------------- 主流程
@@ -177,15 +66,8 @@ async function main() {
     return
   }
 
-  const env = readEnvFile('web/.env')
-  const oss = {
-    accessKeyId: String(env.ALIYUN_OSS_ACCESS_KEY_ID ?? '').trim(),
-    accessKeySecret: String(env.ALIYUN_OSS_ACCESS_KEY_SECRET ?? '').trim(),
-    endpoint: String(env.ALIYUN_OSS_ENDPOINT ?? '').trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, ''),
-  }
-  const bucket = String(env.ALIYUN_OSS_BUCKET ?? '').trim()
-  const publicBase = String(env.ALIYUN_OSS_PUBLIC_BASE_URL ?? '').trim().replace(/^https?:\/\//i, '').replace(/\/+$/, '')
-  if (!oss.accessKeyId || !oss.accessKeySecret || !oss.endpoint || !bucket) {
+  const oss = readOssConfig()
+  if (!isOssConfigComplete(oss)) {
     console.error('OSS 配置不完整（需要 ALIYUN_OSS_ACCESS_KEY_ID / SECRET / ENDPOINT / BUCKET）')
     process.exitCode = 2
     return
@@ -198,7 +80,7 @@ async function main() {
     return
   }
 
-  console.log(`准备上传 ${files.length} 个文件 → ${bucket}${options.prefix ? `/${options.prefix}` : ''}`)
+  console.log(`准备上传 ${files.length} 个文件 → ${oss.bucket}${options.prefix ? `/${options.prefix}` : ''}`)
   const results = []
 
   for (const path of files) {
@@ -216,7 +98,7 @@ async function main() {
       continue
     }
 
-    const response = await putObject({ ...oss, host: `https://${bucket}.${oss.endpoint}`, bucket, objectKey, body, contentType })
+    const response = await putObject(oss, { objectKey, body, contentType })
     if (!response.ok) {
       const text = await response.text().catch(() => '')
       console.log(`  ✖ ${name} 上传失败 HTTP ${response.status} ${text.slice(0, 120)}`)
@@ -224,7 +106,7 @@ async function main() {
       continue
     }
 
-    const publicUrl = `https://${publicBase || `${bucket}.${oss.endpoint}`}/${objectKey}`
+    const publicUrl = publicUrlFor(oss, objectKey)
     const title = name.replace(/\.[^.]+$/, '')
     await executeSql(target, `
 INSERT INTO media_assets

@@ -4,35 +4,20 @@
 // 接口没有删除 OSS 对象的能力，因此需要本脚本收尾。
 //
 // 用法：node tools/remove-oss-object.mjs <objectKey>
-import { createHmac } from 'node:crypto'
-
-import { executeSql, queryRows, quoteLiteral, readEnvFile, resolveTargetConnection } from './migrate-legacy/mysql-client.mjs'
+import { executeSql, queryRows, quoteLiteral, resolveTargetConnection } from './migrate-legacy/mysql-client.mjs'
+import { deleteObject, isOssConfigComplete, readOssConfig } from './migrate-legacy/oss-client.mjs'
 
 const objectKey = String(process.argv[2] ?? '').trim()
 if (!objectKey) {
   console.error('用法：node tools/remove-oss-object.mjs <objectKey>')
   process.exitCode = 2
 } else {
-  const env = readEnvFile('web/.env')
-  const accessKeyId = String(env.ALIYUN_OSS_ACCESS_KEY_ID ?? '').trim()
-  const accessKeySecret = String(env.ALIYUN_OSS_ACCESS_KEY_SECRET ?? '').trim()
-  const endpoint = String(env.ALIYUN_OSS_ENDPOINT ?? '').trim().replace(/^https?:\/\//i, '').replace(/\/.*$/, '')
-  const bucket = String(env.ALIYUN_OSS_BUCKET ?? '').trim()
-
-  if (!accessKeyId || !accessKeySecret || !endpoint || !bucket) {
+  const config = readOssConfig()
+  if (!isOssConfigComplete(config)) {
     console.error('OSS 配置不完整，无法删除对象')
     process.exitCode = 2
   } else {
-    // OSS Signature V1 DELETE；CanonicalizedResource 必须带 bucket 前缀
-    const date = new Date().toUTCString()
-    const resource = `/${bucket}/${objectKey}`
-    const stringToSign = ['DELETE', '', '', date, resource].join('\n')
-    const signature = createHmac('sha1', accessKeySecret).update(stringToSign, 'utf8').digest('base64')
-    const response = await fetch(`https://${bucket}.${endpoint}/${objectKey}`, {
-      method: 'DELETE',
-      headers: { Date: date, Authorization: `OSS ${accessKeyId}:${signature}` },
-      signal: AbortSignal.timeout(60000),
-    })
+    const response = await deleteObject(config, objectKey)
     console.log(`删除 OSS 对象 → HTTP ${response.status}${response.status === 204 || response.status === 404 ? '（已删除或本就不存在）' : ''}`)
 
     const target = resolveTargetConnection()

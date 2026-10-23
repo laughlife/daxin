@@ -7,13 +7,34 @@ const scheduler = await readFile(new URL('../server/plugins/wechat-album-schedul
 
 test('article import stores list metadata, category and OSS cover without requesting or saving the body', () => {
   assert.match(importer, /INSERT INTO articles[\s\S]*?content_html, content_text, category_id, cover_media_id, published_at/)
-  assert.match(importer, /VALUES \(\?, \?, NULL, NULL, NULL, \?, \?, \?, 'published'/)
+  assert.match(importer, /VALUES \(\?, \?, NULL, NULL, NULL, \?, \?, \?, \?, 'published'/)
   assert.match(importer, /status, is_featured, show_in_sidebar, legacy_source_table, legacy_source_id/)
-  assert.doesNotMatch(importer, /parseWechatArticlePage|fetchWechatText\(identity\.url/)
+  assert.doesNotMatch(importer, /parseWechatArticlePage/)
   assert.match(importer, /INSERT INTO wechat_album_items[\s\S]*?source_url, title, cover_source_url, published_at/)
   assert.match(importer, /findLegacyArticle\(item, categoryId\)/)
   assert.match(importer, /cover_media_id/)
   assert.match(importer, /WHERE slug = \? AND status = 1/)
+})
+
+test('cover prefers the article-page long image and falls back to the album square', () => {
+  assert.match(importer, /const longCoverUrl = await readArticleLongCover\(identity\.url\)/)
+  assert.match(importer, /const coverUrl = longCoverUrl \|\| normalizeWechatImageUrl\(item\.coverUrl\)/)
+  assert.match(importer, /const coverIsLong = Boolean\(longCoverUrl\)/)
+  assert.match(importer, /extractMsgCdnUrl\(html\)/)
+  assert.match(importer, /resolveArticleCoverId\(/)
+  // 抓文章页失败只告警，不 throw 中断整条采集
+  assert.match(importer, /文章页长图获取失败，退回专辑方图/)
+  assert.match(importer, /USER_AGENT = MOBILE_WECHAT_UA/)
+  assert.doesNotMatch(importer, /const USER_AGENT = 'DaxinWechatAlbumSync/)
+})
+
+test('title font size is read from the rendered page and stored on both article and album item', () => {
+  assert.match(importer, /titleFontSizeReader\.read\(identity\.url\)/)
+  assert.match(importer, /titleFontSizeReader: TitleFontSizeReader/)
+  assert.match(importer, /cover_media_id, published_at,\s*\n\s*title_font_size, status/)
+  assert.match(importer, /title_font_size = COALESCE\(\?, title_font_size\)/)
+  assert.match(importer, /published_at, title_font_size, created_at, updated_at/)
+  assert.match(importer, /title_font_size = COALESCE\(VALUES\(title_font_size\), title_font_size\)/)
 })
 
 test('only the cover is uploaded as verified article media; body image handling is absent', () => {
