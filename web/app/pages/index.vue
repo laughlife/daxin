@@ -285,6 +285,12 @@ useHead({
   width: min(100%, 900px);
 }
 
+@media (min-width: 1400px) {
+  .home-team-intro__content {
+    transform: translateX(clamp(-7rem, calc(42rem - 50vw), -3rem));
+  }
+}
+
 .home-team-intro__title {
   width: 100%;
   margin: 0;
