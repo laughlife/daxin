@@ -1,17 +1,12 @@
--- 037_home_visual_settings.sql
---
--- @data-migration
---
--- 需求（2026-10-21 至 2026-10-23）：
---   1. 首页「普法干货」三项强调色恢复为紫、橙、蓝；
---   2. 首页团队介绍标题与正文采用最终确认文案。
---
--- 重复执行安全：只在目标值不一致时更新；每次更新当前配置行并递增版本。
+-- 首页视觉配置生产数据补丁（需人工执行，不属于 schema_migrations 自动迁移）
+-- 内容：普法干货强调色，以及团队介绍标题和正文。
 -- 普法干货顺序固定为 tro / labor / logistics。
+--
+-- 重复执行安全：仅在目标值不一致时更新；没有命中当前配置时 ROW_COUNT() 为 0。
 
 SET NAMES utf8mb4;
 
--- 预检：应查到这三条当前配置；home_legal_guides 的 json_valid 应为 1。
+-- 预检：三条当前配置应存在，且 home_legal_guides 的 json_valid 应为 1。
 SELECT setting_key, value_type, version, status, is_current,
        JSON_VALID(setting_value) AS json_valid
 FROM site_settings
@@ -87,7 +82,7 @@ LIMIT 1;
 
 SELECT ROW_COUNT() AS home_team_paragraphs_updated;
 
--- 核对：三个 key 的目标值正确后执行 COMMIT；若不正确或目标行缺失，执行 ROLLBACK。
+-- 核对：三个 key 的目标值正确后提交；若不正确或配置行缺失则回滚。
 SELECT setting_key, setting_value, value_type, version, status, is_current
 FROM site_settings
 WHERE setting_key IN (
