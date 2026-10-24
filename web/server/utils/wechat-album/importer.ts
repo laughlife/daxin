@@ -19,6 +19,39 @@ import {
  * 会被微信拦成「环境异常」，取不到 msg_cdn_url。
  * 专辑接口（/mp/appmsgalbum）用同一个 UA 同样可以正常分页。
  */
+/**
+ * 栏目优先级：同一篇文章可能同时出现在多个专辑（微信允许一稿多投到多个合集），
+ * 采集到不同来源时不能让后采的栏目覆盖更专业的栏目。
+ * 目前只处理已确认的冲突：文章同时在「科普干货」与「TRO成功案例」时，保留科普干货。
+ * 数值越小优先级越高。
+ */
+const CATEGORY_PRIORITY: Record<string, number> = {
+  knowledge: 1,
+  'cpsc-recalls': 2,
+  'patent-alert': 3,
+  'tro-alert': 4,
+  'tro-success': 5,
+  'labor-case': 6,
+  'freight-case': 7,
+  news: 8,
+}
+
+/** 当前栏目的优先级不低于新栏目时，保留当前栏目。 */
+async function resolveCategoryId(connection: SqlConnection, articleId: number, nextCategoryId: number): Promise<number> {
+  if (!articleId) return nextCategoryId
+  const [rows] = await connection.execute(
+    'SELECT c.slug, c.id FROM articles a JOIN article_categories c ON c.id = a.category_id WHERE a.id = ? LIMIT 1',
+    [articleId],
+  )
+  const current = (rows as { slug: string; id: number }[])[0]
+  if (!current?.slug) return nextCategoryId
+  const currentRank = CATEGORY_PRIORITY[current.slug] ?? 99
+  const [nextRows] = await connection.execute('SELECT slug FROM article_categories WHERE id = ? LIMIT 1', [nextCategoryId])
+  const nextSlug = (nextRows as { slug: string }[])[0]?.slug ?? ''
+  const nextRank = CATEGORY_PRIORITY[nextSlug] ?? 99
+  return currentRank <= nextRank ? Number(current.id) : nextCategoryId
+}
+
 const USER_AGENT = MOBILE_WECHAT_UA
 const MAX_PAGE_BYTES = 12 * 1024 * 1024
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024
@@ -315,12 +348,14 @@ async function writeArticle(
       articleId = Number((header as DbHeader).insertId ?? 0)
       if (!articleId) throw new Error(`写入公众号文章失败：${title}`)
     } else {
+      // 同一篇文章可能来自多个专辑：按优先级决定是否改写栏目
+      const effectiveCategoryId = await resolveCategoryId(connection, articleId, categoryId)
       await connection.execute(
         `UPDATE articles SET title = ?, summary = NULL, content_html = NULL, content_text = NULL,
            category_id = ?, cover_media_id = ?, published_at = ?,
            status = 'published', legacy_source_table = 'wechat_album', legacy_source_id = ?, updated_at = NOW()
          WHERE id = ?`,
-        [item.title.trim().slice(0, 255), categoryId, coverMediaId, item.publishedAt, identity.legacyId, articleId],
+        [item.title.trim().slice(0, 255), effectiveCategoryId, coverMediaId, item.publishedAt, identity.legacyId, articleId],
       )
       await removeArticleBodyImages(connection, articleId)
     }
