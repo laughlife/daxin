@@ -24,10 +24,10 @@ test('品牌卡片整体可点击，展示案件相关信息并移除独立操�
   assert.match(directory, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/)
 })
 
-test('品牌类型标签使用蓝、黄、绿纯色区分，不继承金色主题', () => {
+test('品牌类型标签使用蓝、绿、红纯色区分，不继承金色主题', () => {
   assert.match(directory, /data-type='trademark'[^\n]*--brand-type-color:\s*#3183cf/)
-  assert.match(directory, /data-type='patent'[^\n]*--brand-type-color:\s*#ffd400/)
-  assert.match(directory, /data-type='copyright'[^\n]*--brand-type-color:\s*#4a9a63/)
+  assert.match(directory, /data-type='patent'[^\n]*--brand-type-color:\s*#10b981/)
+  assert.match(directory, /data-type='copyright'[^\n]*--brand-type-color:\s*#d92d2d/)
   assert.doesNotMatch(directory, /#f97316|#ea580c/i)
 })
 
