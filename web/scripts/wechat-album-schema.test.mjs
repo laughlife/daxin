@@ -5,6 +5,7 @@ import test from 'node:test'
 const migration = await readFile(new URL('../../database/migrations/022_wechat_album_import.sql', import.meta.url), 'utf8')
 const fullSyncMigration = await readFile(new URL('../../database/migrations/024_wechat_album_deployment_full_sync.sql', import.meta.url), 'utf8')
 const sourceMigration = await readFile(new URL('../../database/migrations/037_wechat_album_sources.sql', import.meta.url), 'utf8')
+const categoryMigration = await readFile(new URL('../../database/migrations/038_tro_patent_and_album_categories.sql', import.meta.url), 'utf8')
 
 test('公众号同步迁移包含来源、文章去重映射和每日运行台账', () => {
   assert.match(migration, /CREATE TABLE IF NOT EXISTS wechat_album_sources/i)
@@ -38,4 +39,17 @@ test('新增 CPSC、专利预警与 TRO 热点资讯来源并保留重复应用�
   assert.match(sourceMigration, /album_id=4028684241973166092&scene=126/)
   assert.match(sourceMigration, /ON DUPLICATE KEY UPDATE[\s\S]*?enabled = 1/)
   assert.doesNotMatch(sourceMigration, /\b(?:DROP|TRUNCATE|DELETE|ALTER)\b/i)
+})
+
+test('TRO 分类迁移新增专利预警并修正来源与已采集文章分类', () => {
+  assert.match(categoryMigration, /^-- @data-migration/m)
+  assert.match(categoryMigration, /\('patent-alert',\s*'专利预警',\s*'tro'[\s\S]*?ON DUPLICATE KEY UPDATE/i)
+  assert.match(categoryMigration, /WHEN 'cpsc-album' THEN 'cpsc-recalls'/)
+  assert.match(categoryMigration, /WHEN 'patent-alert-album' THEN 'patent-alert'/)
+  assert.match(categoryMigration, /WHEN 'tro-hotspot-album' THEN 'news'/)
+  assert.match(categoryMigration, /WHEN 'tro-2025-album' THEN 'tro-alert'/)
+  assert.match(categoryMigration, /WHEN 'tro-2026-album' THEN 'tro-alert'/)
+  assert.match(categoryMigration, /WHEN 'tro-classic-album' THEN 'tro-success'/)
+  assert.match(categoryMigration, /UPDATE articles a[\s\S]*?FROM wechat_album_items wai[\s\S]*?SET a\.category_id = c\.id/i)
+  assert.doesNotMatch(categoryMigration, /\b(?:DROP|TRUNCATE|DELETE|ALTER)\b/i)
 })
