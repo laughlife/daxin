@@ -8,6 +8,17 @@ import type { HomeStat } from '~/types/content'
 defineProps<{
   stats: HomeStat[]
 }>()
+
+function descriptionLines(stat: HomeStat): string[] {
+  if (stat.label !== '行业深耕') return [stat.description]
+
+  const marker = '跨境电商'
+  const markerStart = stat.description.indexOf(marker)
+  if (markerStart < 0) return [stat.description]
+
+  const breakAt = markerStart + marker.length
+  return [stat.description.slice(0, breakAt), stat.description.slice(breakAt)]
+}
 </script>
 
 <template>
@@ -19,7 +30,12 @@ defineProps<{
     >
       <span class="stats-section__value">{{ stat.value }}</span>
       <span class="stats-section__label">{{ stat.label }}</span>
-      <span class="stats-section__description">{{ stat.description }}</span>
+      <span class="stats-section__description">
+        <template v-for="(line, index) in descriptionLines(stat)" :key="index">
+          <br v-if="index > 0">
+          {{ line }}
+        </template>
+      </span>
     </li>
   </ul>
 </template>
@@ -44,8 +60,15 @@ defineProps<{
 }
 
 .stats-section__value {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 1.15em;
   color: #3B3838;
-  font-family: Georgia, 'Times New Roman', serif;
+  font-family: 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', SimSun, Georgia, 'Times New Roman', serif;
+  font-variant-numeric: lining-nums tabular-nums;
+  font-feature-settings: 'lnum' 1, 'tnum' 1;
   font-size: clamp(2.25rem, 4vw, 3.5rem);
   font-weight: 500;
   line-height: 1.15;
