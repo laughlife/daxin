@@ -104,7 +104,7 @@ onBeforeUnmount(() => {
 
 <template>
   <section v-if="slides.length" class="home-legal-guides" aria-label="普法干货">
-    <PageContainer size="wide">
+    <PageContainer>
       <div class="home-legal-guides__heading">
         <h2 class="home-legal-guides__heading-title">普法干货</h2>
         <p class="home-legal-guides__heading-english">LEGAL GUIDES</p>

@@ -87,7 +87,7 @@ function segments(item: CoreAdvantage) {
 
 <template>
   <section v-if="props.items.length" class="home-core-advantages" aria-label="核心优势">
-    <PageContainer size="wide">
+    <PageContainer>
       <div class="home-core-advantages__heading">
         <h2 class="home-core-advantages__heading-title">核心优势</h2>
         <p class="home-core-advantages__heading-english">WHY DAXIN</p>
@@ -140,10 +140,6 @@ function segments(item: CoreAdvantage) {
   background-repeat: no-repeat;
   background-position: center;
   background-size: cover;
-}
-
-.home-core-advantages :deep(.page-container) {
-  max-width: 1980px;
 }
 
 .home-core-advantages__heading {
