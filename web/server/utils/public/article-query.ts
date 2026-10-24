@@ -28,6 +28,7 @@ export interface ArticleSummary {
 /** 归一化后的文章列表筛选条件；空串表示未筛选。 */
 export interface ArticleFilters {
   category: string
+  sourceKey: 'tro-2025-album' | 'tro-2026-album' | ''
   keyword: string
   from: string
   to: string
@@ -35,6 +36,7 @@ export interface ArticleFilters {
 
 /** 分类 slug 白名单形态：小写字母数字与连字符（article_categories.slug）。 */
 const CATEGORY_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{0,63}$/
+const ALBUM_SOURCE_KEYS = new Set(['tro-2025-album', 'tro-2026-album'])
 /** 关键词长度上限，避免超长输入拖垮 LIKE 查询。 */
 const MAX_KEYWORD_LENGTH = 60
 
@@ -45,10 +47,12 @@ const MAX_KEYWORD_LENGTH = 60
 export function parseArticleFilters(input?: Record<string, unknown> | null): ArticleFilters {
   const source = input ?? {}
   const category = normalizeText(source.category).toLowerCase()
+  const sourceKey = normalizeText(source.sourceKey).toLowerCase()
   const from = normalizeDateOnly(source.from)
   const to = normalizeDateOnly(source.to)
   return {
     category: CATEGORY_SLUG_PATTERN.test(category) ? category : '',
+    sourceKey: ALBUM_SOURCE_KEYS.has(sourceKey) ? sourceKey as ArticleFilters['sourceKey'] : '',
     keyword: normalizeText(source.keyword).slice(0, MAX_KEYWORD_LENGTH),
     from,
     // from > to 时结果必然为空，丢弃上界，避免把区间写反伪装成“没有内容”。
@@ -116,6 +120,7 @@ export function pickArticleImageAlt(input: ArticleImageInput): string {
  */
 const SECTION_PATHS: Record<string, string> = {
   'tro-alert': '/tro/alerts',
+  'patent-alert': '/tro/patent-alerts',
   'tro-success': '/tro/success-cases',
   'cpsc-recalls': '/tro/cpsc-recalls',
   knowledge: '/tro/guides',

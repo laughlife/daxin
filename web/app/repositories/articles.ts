@@ -31,6 +31,8 @@ export interface ArticleSummary {
 export interface ArticleQuery {
   /** 分类 slug，如 tro-alert */
   category?: string
+  /** 公众号专辑来源标识；目前用于 TRO 年度侵权案例合集筛选。 */
+  sourceKey?: 'tro-2025-album' | 'tro-2026-album'
   keyword?: string
   /** 发布时间起（YYYY-MM-DD） */
   from?: string
@@ -59,6 +61,7 @@ function toQueryParams(query: ArticleQuery): Record<string, string | number> {
   const params: Record<string, string | number> = {}
   const category = query.category?.trim()
   if (category) params.category = category
+  if (query.sourceKey) params.sourceKey = query.sourceKey
   const keyword = query.keyword?.trim()
   if (keyword) params.keyword = keyword
   if (query.from) params.from = query.from

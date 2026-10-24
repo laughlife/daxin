@@ -32,33 +32,49 @@ function queryPage(value: unknown): number {
 
 const keyword = ref(queryString(initialQuery.q))
 const page = ref(queryPage(initialQuery.page))
+const annualYears = [2026, 2025] as const
+type AnnualYear = typeof annualYears[number]
+
+function queryYear(value: unknown): AnnualYear {
+  return queryString(value) === '2025' ? 2025 : 2026
+}
+
+const selectedYear = ref(queryYear(initialQuery.year))
+const usesAnnualSourceFilter = computed(() => props.section.path === '/tro/alerts')
+const selectedSourceKey = computed(() => {
+  if (!usesAnnualSourceFilter.value) return undefined
+  return `tro-${selectedYear.value}-album` as `tro-${AnnualYear}-album`
+})
 
 function emptyPage(): { items: ArticleSummary[]; total: number; page: number; pageSize: number; totalPages: number } {
   return { items: [], total: 0, page: 1, pageSize: PAGE_SIZE, totalPages: 1 }
 }
 
 const { data, status, error, refresh } = await useAsyncData(
-  () => `content-listing:${props.section.path}:${keyword.value}:${page.value}`,
+  () => `content-listing:${props.section.path}:${selectedSourceKey.value ?? ''}:${keyword.value}:${page.value}`,
   async () => {
     if (!props.section.category) return emptyPage()
-    const first = await fetchArticles({
+    const query = {
       category: props.section.category,
-      keyword: keyword.value.trim() || undefined,
+      sourceKey: selectedSourceKey.value,
+      keyword: keyword.value.trim() || undefined
+    }
+    const first = await fetchArticles({
+      ...query,
       page: page.value,
       pageSize: PAGE_SIZE
     })
     // 服务端会把越界页码夹到最后一页并返回空数组；按夹取后的页码再取一次。
     if (page.value > first.totalPages) {
       return await fetchArticles({
-        category: props.section.category,
-        keyword: keyword.value.trim() || undefined,
+        ...query,
         page: first.page,
         pageSize: PAGE_SIZE
       })
     }
     return first
   },
-  { default: () => null, watch: [() => props.section.path, keyword, page] }
+  { default: () => null, watch: [() => props.section.path, selectedYear, keyword, page] }
 )
 
 const result = computed(() => data.value ?? emptyPage())
@@ -71,6 +87,7 @@ const errorMessage = computed(() =>
 
 /** 关键词变化时回到第一页 */
 watch(keyword, () => { page.value = 1 }, { flush: 'sync' })
+watch(selectedYear, () => { page.value = 1 }, { flush: 'sync' })
 
 /** 客户端把越界页码修正为服务端夹取后的页码，并把 URL 一并修正。 */
 if (import.meta.client) {
@@ -81,6 +98,7 @@ if (import.meta.client) {
 
 function buildQuery(): Record<string, string> {
   const query: Record<string, string> = {}
+  if (usesAnnualSourceFilter.value && selectedYear.value !== 2026) query.year = String(selectedYear.value)
   if (keyword.value.trim()) query.q = keyword.value.trim()
   if (page.value > 1) query.page = String(page.value)
   return query
@@ -89,6 +107,7 @@ function buildQuery(): Record<string, string> {
 function readQuery(query: typeof route.query) {
   keyword.value = queryString(query.q)
   page.value = queryPage(query.page)
+  if (usesAnnualSourceFilter.value) selectedYear.value = queryYear(query.year)
 }
 
 function syncUrl() {
@@ -99,7 +118,7 @@ function syncUrl() {
   }
 }
 
-watch([keyword, page], syncUrl, { flush: 'post', immediate: true })
+watch([selectedYear, keyword, page], syncUrl, { flush: 'post', immediate: true })
 watch(() => route.query, query => { if (ready) readQuery(query) }, { flush: 'sync' })
 onMounted(() => {
   ready = true
@@ -119,6 +138,17 @@ const eyebrow = computed(() => props.section.path.startsWith('/tro') ? 'TRO SERV
       </header>
       <ContentColumns :group="section.group">
         <ContentSectionTabs :path="section.path" />
+
+        <nav v-if="usesAnnualSourceFilter" class="annual-source-tabs" aria-label="按年份筛选侵权预警">
+          <button
+            v-for="year in annualYears"
+            :key="year"
+            type="button"
+            :aria-pressed="selectedYear === year"
+            :class="{ 'annual-source-tabs__button--active': selectedYear === year }"
+            @click="selectedYear = year"
+          >{{ year }}</button>
+        </nav>
 
         <form class="listing-search" role="search" @submit.prevent>
           <!-- 有标签导航的内容列表统一只保留关键词搜索。 -->
@@ -158,6 +188,10 @@ const eyebrow = computed(() => props.section.path.startsWith('/tro') ? 'TRO SERV
 .listing-page { padding-block:var(--space-section); background:var(--color-bg-light); }
 .listing-page__head { margin-bottom:var(--space-8); }
 .listing-page__eyebrow { margin-bottom:var(--space-3); color:var(--color-primary); font-size:var(--text-sm); font-weight:700; letter-spacing:.12em; }
+.annual-source-tabs { display:flex; gap:var(--space-3); margin-bottom:var(--space-4); }
+.annual-source-tabs button { min-width:96px; padding:var(--space-2) var(--space-5); border:1px solid var(--color-border); border-radius:var(--radius-full); background:var(--color-bg-page); color:var(--color-text); font:inherit; font-size:var(--text-sm); font-weight:600; cursor:pointer; transition:background-color var(--transition-base),border-color var(--transition-base),color var(--transition-base); }
+.annual-source-tabs button:hover { border-color:var(--color-primary); color:var(--color-primary); }
+.annual-source-tabs button[aria-pressed=true] { border-color:var(--color-primary); background:var(--color-primary); color:white; }
 .listing-search { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--space-4); padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
 .listing-notice { margin:var(--space-5) 0; color:var(--color-text-muted); font-size:var(--text-sm); }
 @media(max-width:639px) { .listing-search { gap:var(--space-3); padding:var(--space-4); } }

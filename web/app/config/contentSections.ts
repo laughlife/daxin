@@ -31,6 +31,13 @@ export const contentSections: ContentSection[] = [
     category: 'tro-alert'
   },
   {
+    path: '/tro/patent-alerts',
+    title: '专利预警',
+    group: 'tro',
+    description: '关注专利侵权案件动态与产品风险预警。',
+    category: 'patent-alert'
+  },
+  {
     path: '/tro/success-cases',
     title: 'TRO 成功案例',
     group: 'tro',

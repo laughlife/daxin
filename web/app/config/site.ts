@@ -54,6 +54,7 @@ export const siteConfig: SiteConfig = {
       label: 'TRO 业务',
       children: [
         { label: 'TRO 侵权预警', to: '/tro/alerts' },
+        { label: '专利预警', to: '/tro/patent-alerts' },
         { label: 'TRO 成功案例', to: '/tro/success-cases' },
         { label: 'CPSC 召回', to: '/tro/cpsc-recalls' },
         { label: '科普干货', to: '/tro/guides' },

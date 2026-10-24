@@ -66,11 +66,11 @@ test('页码越界返回空窗口并把 page 夹到最后一页；total=0 也有
 test('文章筛选参数：分类白名单、关键词归一化与截断、日期校验与区间方向', () => {
   assert.deepEqual(
     parseArticleFilters({ category: 'TRO-Alert', keyword: '  Keith   案  ', from: '2025-01-01', to: '2025-01-31' }),
-    { category: 'tro-alert', keyword: 'Keith 案', from: '2025-01-01', to: '2025-01-31' },
+    { category: 'tro-alert', sourceKey: '', keyword: 'Keith 案', from: '2025-01-01', to: '2025-01-31' },
   )
   assert.deepEqual(
     parseArticleFilters(null),
-    { category: '', keyword: '', from: '', to: '' },
+    { category: '', sourceKey: '', keyword: '', from: '', to: '' },
   )
   // 非分类 slug 形态（路径穿越、空格、非法日期）一律丢弃
   assert.equal(parseArticleFilters({ category: '../etc/passwd' }).category, '')
@@ -80,11 +80,24 @@ test('文章筛选参数：分类白名单、关键词归一化与截断、日�
   // 区间写反时丢弃上界，避免把输入错误伪装成“没有内容”
   assert.deepEqual(
     parseArticleFilters({ from: '2025-01-31', to: '2025-01-01' }),
-    { category: '', keyword: '', from: '2025-01-31', to: '' },
+    { category: '', sourceKey: '', keyword: '', from: '2025-01-31', to: '' },
   )
   assert.equal(parseArticleFilters({ keyword: 'x'.repeat(200) }).keyword.length, 60)
   // h3 的 query 可能是数组，取第一个字符串
   assert.equal(parseArticleFilters({ keyword: ['飞盘', 'ignore'] }).keyword, '飞盘')
+})
+
+test('年度合集来源筛选只接受 2025/2026 专辑并加入文章来源关联条件', async () => {
+  const filters = parseArticleFilters({ category: 'tro-alert', sourceKey: 'TRO-2026-ALBUM' })
+  assert.deepEqual(filters, { category: 'tro-alert', sourceKey: 'tro-2026-album', keyword: '', from: '', to: '' })
+  assert.equal(parseArticleFilters({ sourceKey: 'tro-private-album' }).sourceKey, '')
+
+  const sql = await (await import('node:fs/promises')).readFile(
+    new URL('../server/utils/public/article-sql.ts', import.meta.url),
+    'utf8',
+  )
+  const filterSection = sql.slice(sql.indexOf('export function buildArticleFilterSql'), sql.indexOf('export interface ArticleCountRow'))
+  assert.match(filterSection, /if \(filters\.sourceKey\)[\s\S]*?FROM wechat_album_items source_item[\s\S]*?source\.source_key = \?[\s\S]*?params\.push\(filters\.sourceKey\)/)
 })
 
 test('LIKE 通配符转义，用户输入不会变成隐式通配匹配', () => {
@@ -227,10 +240,19 @@ test('列表映射：日期、详情路径、配图字段，且不泄漏摘要�
   assert.equal(withImage.category, 'news')
 })
 
-test('CPSC 与跨境咨询栏目按新分类查询并为文章生成原栏目详情路径', () => {
+test('CPSC 与跨境咨询栏目按新分类查询并为文章生成原栏目详情路径', async () => {
   const cpsc = findContentSection('/tro/cpsc-recalls')
+  const patent = findContentSection('/tro/patent-alerts')
   const crossBorder = findContentSection('/domestic/cross-border-news')
   assert.equal(cpsc?.category, 'cpsc-recalls')
+  assert.equal(patent?.category, 'patent-alert')
+  assert.equal(patent?.group, 'tro')
+  assert.equal(articleHref('patent-alert', 'patent-article'), '/tro/patent-alerts/patent-article')
+  const siteConfig = await (await import('node:fs/promises')).readFile(
+    new URL('../app/config/site.ts', import.meta.url),
+    'utf8',
+  )
+  assert.match(siteConfig, /label: 'TRO 业务',[\s\S]*?label: '专利预警', to: '\/tro\/patent-alerts'/)
   assert.equal(crossBorder?.category, 'cross-border-consulting')
   assert.equal(crossBorder?.title, '跨境咨询')
   assert.equal(articleHref('cpsc-recalls', 'recall-article'), '/tro/cpsc-recalls/recall-article')

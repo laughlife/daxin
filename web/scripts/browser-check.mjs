@@ -167,10 +167,37 @@ try {
     check(`${path} 精确使用对应业务二维码`, JSON.stringify(ids) === JSON.stringify(expected))
   }
 
-  // 用有真实数据的分类验证检索与阅读。
-  // 说明：原脚本用的是 /tro/alerts（TRO侵权预警），但该分类当前 0 篇文章
-  // （公众号采集落到了 tro-success / knowledge / labor-case / freight-case），
-  // 空分类无法验证「渲染真实文章 / 关键词检索」，故改用 /tro/success-cases。
+  await visit('/tro/alerts')
+  const annualTabs = page.locator('.annual-source-tabs button')
+  check('侵权预警显示 2026 和 2025 年份筛选',
+    JSON.stringify(await annualTabs.allInnerTexts()) === JSON.stringify(['2026', '2025']))
+  check('年度合集默认选中最新的 2026', await page.getByRole('button', { name: '2026', exact: true }).getAttribute('aria-pressed') === 'true')
+  const year2025Response = page.waitForResponse((response) => {
+    const url = new URL(response.url())
+    return url.pathname.endsWith('/api/public/articles') && url.searchParams.get('sourceKey') === 'tro-2025-album'
+  })
+  await page.getByRole('button', { name: '2025', exact: true }).click()
+  const year2025Result = await year2025Response
+  const year2025Payload = await year2025Result.json()
+  await page.waitForURL(url => url.searchParams.get('year') === '2025')
+  await page.waitForFunction(title => document.querySelector('.article-list__card h2 a')?.textContent?.trim() === title, year2025Payload.data[0]?.title)
+  check('点击 2025 查询 2025 年专辑来源',
+    year2025Result.ok() && await page.getByRole('button', { name: '2025', exact: true }).getAttribute('aria-pressed') === 'true'
+    && new URL(page.url()).searchParams.get('year') === '2025')
+  const year2026Response = page.waitForResponse((response) => {
+    const url = new URL(response.url())
+    return url.pathname.endsWith('/api/public/articles') && url.searchParams.get('sourceKey') === 'tro-2026-album'
+  })
+  await page.getByRole('button', { name: '2026', exact: true }).click()
+  const year2026Result = await year2026Response
+  const year2026Payload = await year2026Result.json()
+  await page.waitForURL(url => !url.searchParams.has('year'))
+  await page.waitForFunction(title => document.querySelector('.article-list__card h2 a')?.textContent?.trim() === title, year2026Payload.data[0]?.title)
+  check('切回 2026 查询 2026 年专辑来源',
+    year2026Result.ok() && await page.getByRole('button', { name: '2026', exact: true }).getAttribute('aria-pressed') === 'true'
+    && !new URL(page.url()).searchParams.has('year'))
+
+  // 年份筛选已单独验证；用「成功案例」测试通用栏目检索与文章阅读。
   await visit('/tro/success-cases')
   check('栏目列表渲染真实文章', await page.locator('.article-list__card').count() > 0)
   await page.locator('.listing-search input[type=search]').fill('Keith')

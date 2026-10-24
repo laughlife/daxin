@@ -86,6 +86,17 @@ export function buildArticleFilterSql(filters: ArticleFilters): ArticleFilterSql
     params.push(filters.category)
   }
 
+  if (filters.sourceKey) {
+    clauses.push(`EXISTS (
+    SELECT 1
+    FROM wechat_album_items source_item
+    JOIN wechat_album_sources source ON source.id = source_item.source_id
+    WHERE source_item.article_id = a.id
+      AND source.source_key = ?
+  )`)
+    params.push(filters.sourceKey)
+  }
+
   if (filters.keyword) {
     const like = `%${escapeLikePattern(filters.keyword)}%`
     clauses.push(`(
