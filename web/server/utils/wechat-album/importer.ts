@@ -348,14 +348,18 @@ async function writeArticle(
       articleId = Number((header as DbHeader).insertId ?? 0)
       if (!articleId) throw new Error(`写入公众号文章失败：${title}`)
     } else {
-      // 同一篇文章可能来自多个专辑：按优先级决定是否改写栏目
-      const effectiveCategoryId = await resolveCategoryId(connection, articleId, categoryId)
+      // 多对多：同一篇文章可能来自多个专辑（一稿多投），
+      // 只在关联表里补一条栏目归属，不改写主栏目，避免后采的源覆盖先前的归类。
+      await connection.execute(
+        'INSERT IGNORE INTO article_category_links (article_id, category_id) VALUES (?, ?)',
+        [articleId, categoryId],
+      )
       await connection.execute(
         `UPDATE articles SET title = ?, summary = NULL, content_html = NULL, content_text = NULL,
-           category_id = ?, cover_media_id = ?, published_at = ?,
+           cover_media_id = ?, published_at = ?,
            status = 'published', legacy_source_table = 'wechat_album', legacy_source_id = ?, updated_at = NOW()
          WHERE id = ?`,
-        [item.title.trim().slice(0, 255), effectiveCategoryId, coverMediaId, item.publishedAt, identity.legacyId, articleId],
+        [item.title.trim().slice(0, 255), coverMediaId, item.publishedAt, identity.legacyId, articleId],
       )
       await removeArticleBodyImages(connection, articleId)
     }

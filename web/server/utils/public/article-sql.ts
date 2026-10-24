@@ -82,7 +82,15 @@ export function buildArticleFilterSql(filters: ArticleFilters): ArticleFilterSql
   const params: unknown[] = []
 
   if (filters.category) {
-    clauses.push('c.slug = ?')
+    // 多对多：一篇文章可同时属于多个栏目（一稿多投到多个公众号合集），
+    // 用 EXISTS 过滤，既不漏也不产生重复行。
+    clauses.push(`EXISTS (
+      SELECT 1
+      FROM article_category_links link
+      JOIN article_categories link_category ON link_category.id = link.category_id
+      WHERE link.article_id = a.id
+      AND link_category.slug = ?
+    )`)
     params.push(filters.category)
   }
 
@@ -173,12 +181,15 @@ export async function queryRecentArticleRowsByCategory(
   return queryTarget<ArticleRow>(
     `SELECT * FROM (
   SELECT ${ARTICLE_COLUMNS},
-    ROW_NUMBER() OVER (PARTITION BY c.slug ORDER BY a.published_at DESC, a.id DESC) AS rn
+    link_category.slug AS link_category_slug,
+    ROW_NUMBER() OVER (PARTITION BY link_category.slug ORDER BY a.published_at DESC, a.id DESC) AS rn
   FROM ${ARTICLE_FROM}
-  WHERE ${ARTICLE_BASE_CONDITIONS} AND c.slug IN (${placeholders})
+  JOIN article_category_links link ON link.article_id = a.id
+  JOIN article_categories link_category ON link_category.id = link.category_id
+  WHERE ${ARTICLE_BASE_CONDITIONS} AND link_category.slug IN (${placeholders})
 ) ranked
 WHERE ranked.rn <= ?
-ORDER BY ranked.category_slug, ranked.rn`,
+ORDER BY ranked.link_category_slug, ranked.rn`,
     [...categorySlugs, perCategory],
   )
 }

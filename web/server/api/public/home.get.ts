@@ -161,7 +161,8 @@ export default defineEventHandler(async (event) => {
     // 必须用原始行的 category_slug（否则分组永远匹配不到）。
     const byCategory = new Map<string, ArticleSummary[]>()
     for (const row of articleRows) {
-      const slug = String(row.category_slug ?? '').trim().toLowerCase()
+      // 多对多：优先用关联表带来的栏目 slug，保证一篇文章能出现在它所属的每个栏目
+  const slug = String(row.link_category_slug ?? row.category_slug ?? '').trim().toLowerCase()
       if (!slug) continue
       const list = byCategory.get(slug) ?? []
       list.push(toArticleSummary(row))

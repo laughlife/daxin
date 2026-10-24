@@ -146,6 +146,8 @@ export interface ArticleRow {
   category_slug?: string | null
   /** article_categories.name：对外的中文展示分类。 */
   category_name?: string | null
+  /** 关联表带来的栏目 slug（首页按栏目取数时使用） */
+  link_category_slug?: string | null
   /** 公众号或旧站原文地址；存在时列表标题和封面直接跳转原文。 */
   source_url?: string | null
   cover_url?: string | null
