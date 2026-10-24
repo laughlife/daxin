@@ -21,6 +21,13 @@ const PANEL_ARTS_BY_SLUG: Record<string, string> = {
   'team-cross-border': PANEL_ARTS[3]!,
   'team-lifecycle': PANEL_ARTS[4]!,
 }
+const PANEL_SUBTITLES_BY_SLUG: Record<string, string> = {
+  'team-tro': 'TRO SERVICES',
+  'team-ip': 'IP PROTECTION',
+  'team-disputes': 'DISPUTE RESOLUTION',
+  'team-cross-border': 'CROSS-BORDER LEGAL',
+  'team-lifecycle': 'LEGAL PROTECTION',
+}
 
 function toggle(index: number) {
   selectedIndex.value = selectedIndex.value === index ? -1 : index
@@ -102,6 +109,7 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
                 :class="{ 'core-business__title-latin': part.latin }"
               >{{ part.text }}</span>
             </span>
+            <span class="core-business__subtitle">{{ PANEL_SUBTITLES_BY_SLUG[section.slug] ?? 'LEGAL SERVICES' }}</span>
           </button>
 
           <div
@@ -137,7 +145,7 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
   --core-outline: #BE8E58;
   --core-body: #3B3838;
   --core-accent: #C7965D;
-  padding-block: var(--space-12) var(--space-16);
+  padding-block: calc(var(--space-12) + var(--space-2)) calc(var(--space-16) + var(--space-2));
   background: #fffaf2 url('/images/backgrounds/site-background-warm.png') center / cover no-repeat;
 }
 
@@ -182,7 +190,7 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
   display: flex;
   gap: var(--space-3);
   align-items: stretch;
-  min-height: 400px;
+  min-height: 440px;
 }
 
 .core-business__panel {
@@ -213,7 +221,7 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
 
 .core-business__panel--active {
   flex: 1 1 0;
-  padding: var(--space-5);
+  padding: var(--space-5) var(--space-5) calc(var(--space-5) + 24px);
   border-color: var(--core-outline);
   background-color: rgb(255 255 255 / 94%);
   background-image: none;
@@ -272,32 +280,59 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
 }
 
 .core-business__panel--active .core-business__toggle {
-  display: grid;
+  position: static;
+  display: flex;
   flex: 0 0 auto;
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto;
-  align-items: center;
-  justify-content: initial;
-  column-gap: 0;
-  row-gap: 2px;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2px;
+  padding-top: var(--space-2);
   opacity: 1;
 }
 
 .core-business__panel--active .core-business__number {
-  grid-column: 1;
-  grid-row: 1;
+  position: absolute;
+  bottom: var(--space-3);
+  left: 50%;
+  z-index: 2;
+  transform: translateX(-50%);
 }
 
 .core-business__panel--active .core-business__title {
-  grid-column: 1;
-  grid-row: 2;
+  position: relative;
+  display: block;
   max-height: none;
+  padding-left: var(--space-3);
   color: var(--core-body);
   font-size: clamp(1.2rem, 1.8vw, 1.55rem);
   font-weight: 700;
   line-height: 1.3;
   writing-mode: horizontal-tb;
   overflow-wrap: break-word;
+}
+
+.core-business__panel--active .core-business__title::before {
+  position: absolute;
+  top: .08em;
+  bottom: .08em;
+  left: 0;
+  width: 4px;
+  background: var(--core-accent);
+  content: '';
+}
+
+.core-business__subtitle {
+  display: none;
+}
+
+.core-business__panel--active .core-business__subtitle {
+  display: block;
+  padding-left: var(--space-3);
+  color: var(--core-outline);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: .04em;
+  line-height: 1.2;
 }
 
 .core-business__title {
@@ -411,6 +446,14 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
   }
 }
 
+@media (min-width: 1024px) {
+  .core-business__panel--active .core-business__image {
+    align-self: center;
+    min-height: 0;
+    aspect-ratio: 1;
+  }
+}
+
 @media (max-width: 1023px) {
   .core-business__panels {
     flex-direction: column;
@@ -449,6 +492,8 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
   .core-business__panel--active .core-business__number {
     grid-column: 1;
     grid-row: 1;
+    position: static;
+    transform: none;
   }
 
   .core-business__title,
@@ -473,7 +518,7 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
 
 @media (max-width: 640px) {
   .core-business {
-    padding-block: var(--space-10) var(--space-12);
+    padding-block: calc(var(--space-10) + var(--space-2)) calc(var(--space-12) + var(--space-2));
   }
 
   .core-business__heading-title {
