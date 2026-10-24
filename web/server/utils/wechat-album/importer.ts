@@ -347,6 +347,12 @@ async function writeArticle(
       )
       articleId = Number((header as DbHeader).insertId ?? 0)
       if (!articleId) throw new Error(`写入公众号文章失败：${title}`)
+
+      // 新插入的文章：写入主栏目关联（列表按关联表查询，缺这条会漏文章）
+      await connection.execute(
+        'INSERT IGNORE INTO article_category_links (article_id, category_id) VALUES (?, ?)',
+        [articleId, categoryId],
+      )
     } else {
       // 多对多：同一篇文章可能来自多个专辑（一稿多投），
       // 只在关联表里补一条栏目归属，不改写主栏目，避免后采的源覆盖先前的归类。
