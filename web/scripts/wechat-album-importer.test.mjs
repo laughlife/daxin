@@ -17,7 +17,11 @@ test('article import stores list metadata, category and OSS cover without reques
 })
 
 test('cover prefers the article-page long image and falls back to the album square', () => {
-  assert.match(importer, /const longCoverUrl = await readArticleLongCover\(identity\.url\)/)
+  // 现在返回 { cover, unavailable }，隐私受限的文章会整篇跳过
+  assert.match(importer, /const articlePage = await readArticleLongCover\(identity\.url\)/)
+  assert.match(importer, /const longCoverUrl = articlePage\.cover/)
+  assert.match(importer, /class SkipArticleError/)
+  assert.match(importer, /isUnavailableArticlePage\(html\)/)
   assert.match(importer, /const coverUrl = longCoverUrl \|\| normalizeWechatImageUrl\(item\.coverUrl\)/)
   assert.match(importer, /const coverIsLong = Boolean\(longCoverUrl\)/)
   assert.match(importer, /extractMsgCdnUrl\(html\)/)

@@ -180,20 +180,42 @@ async function fetchWechatText(urlValue: string, referer?: string): Promise<stri
  * 抓取失败、被拦、页面没有该变量都只告警并返回空串：调用方会退回专辑方图，
  * 不影响整条采集（延续「封面失败不中断」的既有原则）。
  */
-async function readArticleLongCover(url: string): Promise<string> {
+/**
+ * 文章页不可用（作者隐私设置、已删除、仅关注可见等）时抛出，
+ * 由采集循环捕获并跳过：不入库、不计入失败。
+ */
+class SkipArticleError extends Error {
+  readonly url: string
+  constructor(url: string, reason: string) {
+    super(`跳过不可用文章：${reason}`)
+    this.name = 'SkipArticleError'
+    this.url = url
+  }
+}
+
+/** 页面缺少标题元素与长图变量 → 视为不可用（隐私受限或已删除）。 */
+function isUnavailableArticlePage(html: string): boolean {
+  return !html.includes('activity-name') && !html.includes('msg_cdn_url')
+}
+
+async function readArticleLongCover(url: string): Promise<{ cover: string; unavailable: boolean }> {
   try {
     const html = await fetchWechatText(url)
+    if (isUnavailableArticlePage(html)) {
+      // 隐私受限/已删除：交给上层跳过，不写入数据库
+      return { cover: '', unavailable: true }
+    }
     const cover = extractMsgCdnUrl(html)
     if (!cover) {
       console.warn('[wechat-album-import] 文章页没有 msg_cdn_url，退回专辑方图', { url: url.slice(0, 120) })
     }
-    return cover
+    return { cover, unavailable: false }
   } catch (error) {
     console.warn('[wechat-album-import] 文章页长图获取失败，退回专辑方图', {
       url: url.slice(0, 120),
       message: error instanceof Error ? error.message : String(error),
     })
-    return ''
+    return { cover: '', unavailable: false }
   }
 }
 
@@ -438,7 +460,12 @@ async function importArticle(
    * 取不到而整源失败。`articles.cover_media_id` 允许 NULL，writeArticle 接受
    * `cover: UploadedImage | null`，因此无封面入库是既有能力。
    */
-  const longCoverUrl = await readArticleLongCover(identity.url)
+  const articlePage = await readArticleLongCover(identity.url)
+  if (articlePage.unavailable) {
+    // 隐私受限 / 已删除：整篇跳过，不入库也不计失败
+    throw new SkipArticleError(identity.url, '作者隐私设置或内容不可见')
+  }
+  const longCoverUrl = articlePage.cover
   const coverIsLong = Boolean(longCoverUrl)
   const coverUrl = longCoverUrl || normalizeWechatImageUrl(item.coverUrl)
   let cover: UploadedImage | null = null
@@ -522,8 +549,20 @@ async function importSource(source: AlbumSource, scheduledDate: string, deployme
     const categoryId = Number(categoryRows[0]?.id ?? 0)
     if (!categoryId) throw new Error(`目标文章分类不可用：${source.category_slug}`)
 
+    let skippedCount = 0
     for (const item of crawl.items as AlbumItem[]) {
-      const imported = await importArticle(source, item, categoryId)
+            let imported: { inserted: boolean; imageCount: number }
+      try {
+        imported = await importArticle(source, item, categoryId)
+      } catch (error) {
+        if (error instanceof SkipArticleError) {
+          // 隐私受限/已删除：跳过，不影响整次同步
+          skippedCount += 1
+          console.warn('[wechat-album-import] 跳过不可用文章', { url: error.url, reason: error.message })
+          continue
+        }
+        throw error
+      }
       result.insertedCount += imported.inserted ? 1 : 0
       result.duplicateCount += imported.inserted ? 0 : 1
       result.imageCount += imported.imageCount
@@ -532,7 +571,7 @@ async function importSource(source: AlbumSource, scheduledDate: string, deployme
 
     await updateSourceCursor(source, crawl.latestItem as AlbumItem, full)
     await finishRun(source, scheduledDate, 'success', { ...result, pageCount: crawl.pageCount })
-    console.info('[wechat-album-import] 专辑同步完成', { source: source.source_key, mode, ...result, pageCount: crawl.pageCount })
+    console.info('[wechat-album-import] 专辑同步完成', { source: source.source_key, mode, ...result, skippedCount, pageCount: crawl.pageCount })
     return { source: source.source_key, mode, result, pageCount: crawl.pageCount }
   } catch (error) {
     const message = error instanceof Error ? error.message : '公众号文章同步失败'
