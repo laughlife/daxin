@@ -74,11 +74,22 @@ test('crawler remains public-only and rejects verification pages without credent
 
 test('source categories stay configured for public article sections', async () => {
   const migration = await readFile(new URL('../../database/migrations/022_wechat_album_import.sql', import.meta.url), 'utf8')
+  const categoryMigration = await readFile(new URL('../../database/migrations/038_tro_patent_and_album_categories.sql', import.meta.url), 'utf8')
   assert.match(migration, /'tro-2025-album'[\s\S]*?'tro-success'/)
   assert.match(migration, /'tro-classic-album'[\s\S]*?'tro-success'/)
   assert.match(migration, /'tro-knowledge-album'[\s\S]*?'knowledge'/)
   assert.match(migration, /'tro-2026-album'[\s\S]*?'tro-success'/)
   assert.match(migration, /'labor-public-album'[\s\S]*?'labor-case'/)
+  assert.match(categoryMigration, /WHEN 'tro-2025-album' THEN 'tro-alert'/)
+  assert.match(categoryMigration, /WHEN 'tro-2026-album' THEN 'tro-alert'/)
+  assert.match(categoryMigration, /WHEN 'tro-classic-album' THEN 'tro-success'/)
+  assert.match(categoryMigration, /WHEN 'patent-alert-album' THEN 'patent-alert'/)
+})
+
+test('采集文章只使用来源配置的分类，不再按标题二次分流', () => {
+  assert.match(importer, /SELECT id FROM article_categories WHERE slug = \? AND status = 1 LIMIT 1/)
+  assert.match(importer, /importArticle\(source, item, categoryId\)/)
+  assert.doesNotMatch(importer, /classifyImportedArticle|ROUTABLE_SLUGS|troRoutingEnabled/)
 })
 
 test('production scheduler performs one deployment full import and retains daily incremental import', () => {
