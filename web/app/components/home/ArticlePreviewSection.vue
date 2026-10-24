@@ -36,12 +36,6 @@ const items = computed(() =>
   })
 )
 
-/** 首页案例标题字号：同列表页，取微信原文字号，缺失时用样式表默认值。 */
-function previewTitleStyle(article: { titleFontSize?: number | null }) {
-  const size = article.titleFontSize
-  if (!size || size < 10 || size > 40) return undefined
-  return { fontSize: `${size}px` }
-}
 </script>
 
 <template>
@@ -79,7 +73,7 @@ function previewTitleStyle(article: { titleFontSize?: number | null }) {
                       {{ article.publishedAt }}
                     </time>
                   </div>
-                  <h4 class="article-preview-card__title" :style="previewTitleStyle(article)">
+                  <h4 class="article-preview-card__title">
                     <NuxtLink :to="article.href">{{ article.title }}</NuxtLink>
                   </h4>
                 </div>
@@ -153,21 +147,30 @@ function previewTitleStyle(article: { titleFontSize?: number | null }) {
 
 .article-preview-section__column-head {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-4);
+  gap: var(--space-4);
+  margin-bottom: var(--space-3);
 }
 
 .article-preview-section__column-title {
   margin: 0;
-  font-size: var(--text-lg);
   color: var(--color-text);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  line-height: 1.3;
 }
 
 .article-preview-section__more {
-  font-size: var(--text-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
   color: var(--color-primary);
+  background: var(--color-primary-light);
+  font-size: var(--text-base);
+  font-weight: 600;
   white-space: nowrap;
 }
 
@@ -182,6 +185,7 @@ function previewTitleStyle(article: { titleFontSize?: number | null }) {
 .article-preview-section__list {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: 1fr;
   align-items: stretch;
   gap: var(--space-4);
   margin: 0;
@@ -189,8 +193,16 @@ function previewTitleStyle(article: { titleFontSize?: number | null }) {
   list-style: none;
 }
 
+.article-preview-section__list > li {
+  display: flex;
+  min-width: 0;
+}
+
 .article-preview-card {
   display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
   flex-direction: column;
   align-items: stretch;
   gap: var(--space-4);
@@ -266,8 +278,10 @@ function previewTitleStyle(article: { titleFontSize?: number | null }) {
 
 .article-preview-card__title {
   margin: 0;
-  font-size: var(--text-base);
-  line-height: 1.4;
+  min-height: calc(1.45em * 3);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: 1.45;
   display: -webkit-box;
   overflow: hidden;
   -webkit-box-orient: vertical;
@@ -309,7 +323,7 @@ function previewTitleStyle(article: { titleFontSize?: number | null }) {
   }
 
   .article-preview-card {
-    height: 136px;
+    height: 250px;
     gap: var(--space-3);
     padding: var(--space-3);
   }

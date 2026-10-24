@@ -28,6 +28,14 @@ test('首页文章和案件卡片保留标题链接，不再显示指向同地�
   assert.match(homeCaseCard, /<NuxtLink :to="`\/tro\/cases\/\$\{record\.slug\}`">\{\{ record\.plaintiffBrand \|\| record\.caseNumber \}\}<\/NuxtLink>/)
 })
 
+test('首页和栏目页文章标题使用统一的常规字号，不读取数据库字号', () => {
+  for (const source of [articleList, homeArticles]) {
+    assert.doesNotMatch(source, /titleFontSize|titleStyle|previewTitleStyle/)
+    assert.match(source, /font-size:\s*var\(--text-sm\)/)
+    assert.match(source, /font-weight:\s*400/)
+  }
+})
+
 test('文章摘要不再进入页面 SEO description', () => {
   assert.doesNotMatch(articlePage, /article\.value\?\.excerpt/)
 })

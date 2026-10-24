@@ -26,7 +26,8 @@ test('article detail and article cards use shared type, spacing, and radius toke
   assert.match(detail, /h1\s*\{[^}]*font-size:\s*var\(--heading-1\)/s)
   assert.match(articleList, /\.article-list\s*\{[^}]*gap:\s*var\(--space-5\)/s)
   assert.match(articleList, /\.article-list__card\s*\{[^}]*border-radius:\s*var\(--radius-lg\)/s)
-  assert.match(articleList, /h2\s*\{[^}]*font-size:\s*var\(--heading-3\)/s)
+  assert.match(articleList, /h2\s*\{[^}]*font-size:\s*var\(--text-sm\)/s)
+  assert.match(articleList, /h2\s*\{[^}]*font-weight:\s*400/s)
 })
 
 test('two-column content and sidebars share measured spacing and card padding', () => {
