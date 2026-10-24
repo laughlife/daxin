@@ -154,7 +154,7 @@ onBeforeUnmount(() => {
 
 .desktop-nav__item--active > .desktop-nav__link,
 .desktop-nav__item--active > .desktop-nav__trigger {
-  color: var(--color-primary);
+  color: var(--color-home-highlight);
   font-weight: 600;
 }
 

@@ -21,6 +21,7 @@
   --color-primary-dark: #7a5216;     /* 主色加深（hover / 深色底） */
   --color-primary-light: #f7eeda;    /* 主色浅底（选中态背景等） */
   --color-accent: #d4af37;           /* 亮金点缀，仅装饰不承载正文 */
+  --color-home-highlight: #eeaf4e;   /* 首页重点色：导航、勾选图标与行动按钮统一使用 */
 
   /* ===== 背景色 ===== */
   --color-bg-page: #ffffff;          /* 页面默认背景（内容卡片白色） */

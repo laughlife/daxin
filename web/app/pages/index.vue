@@ -306,7 +306,7 @@ useHead({
   width: min(100%, 820px);
   height: 4px;
   margin-top: clamp(1rem, 2vw, 2rem);
-  background: linear-gradient(90deg, #EEAF4E 0 18%, rgb(255 255 255 / 34%) 18% 100%);
+  background: linear-gradient(90deg, var(--color-home-highlight) 0 18%, rgb(255 255 255 / 34%) 18% 100%);
   content: "";
 }
 
@@ -316,7 +316,7 @@ useHead({
   color: var(--color-text-muted);
   font-size: clamp(1.1rem, 1.4vw, 1.5rem);
   font-weight: 500;
-  line-height: 1.9;
+  line-height: 1.65;
 }
 
 .home-team-intro__features {
@@ -345,7 +345,7 @@ useHead({
   height: clamp(1.8rem, 2vw, 2.4rem);
   border-radius: 50%;
   border: 0;
-  background-color: #EEAF4E;
+  background-color: var(--color-home-highlight);
   place-items: center;
   box-shadow: 0 1px 2px rgb(0 0 0 / 12%);
   -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cmask id='m'%3E%3Crect width='40' height='40' fill='white'/%3E%3Cpath d='M9 20l7 7 15-16' fill='none' stroke='black' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/mask%3E%3Ccircle cx='20' cy='20' r='20' fill='white' mask='url(%23m)'/%3E%3C/svg%3E") center / 100% 100% no-repeat;
@@ -388,12 +388,12 @@ useHead({
 .home-team-intro__button--primary {
   border-color: #fff;
   background: #fff;
-  color: #EEAF4E;
+  color: var(--color-home-highlight);
 }
 
 .home-team-intro__button--secondary {
-  border-color: #EEAF4E;
-  background: #EEAF4E;
+  border-color: var(--color-home-highlight);
+  background: var(--color-home-highlight);
   color: #fff;
 }
 

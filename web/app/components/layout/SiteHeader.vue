@@ -124,8 +124,10 @@ const identity = useSiteIdentity()
 }
 
 .site-header__logo-img {
-  height: 44px;
-  width: auto;
+  flex: 0 0 180px;
+  width: 180px;
+  height: 56px;
+  object-fit: contain;
 }
 
 /* 无正式 Logo 时的文字回退（有 logo 时不渲染这一块） */
@@ -154,12 +156,12 @@ const identity = useSiteIdentity()
 }
 
 .site-header__cta.btn--primary {
-  background-color: #EEAF4E;
+  background-color: var(--color-home-highlight);
   color: #fff;
 }
 
 .site-header__cta.btn--primary:hover {
-  background-color: color-mix(in srgb, #EEAF4E 86%, #000);
+  background-color: color-mix(in srgb, var(--color-home-highlight) 86%, #000);
   color: #fff;
 }
 
