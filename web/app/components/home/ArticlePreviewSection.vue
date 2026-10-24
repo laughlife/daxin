@@ -48,11 +48,7 @@ function previewTitleStyle(article: { titleFontSize?: number | null }) {
   <section class="article-preview-section" aria-label="案例分享">
     <PageContainer>
       <div class="article-preview-section__heading">
-        <div class="article-preview-section__heading-row">
-          <span class="article-preview-section__heading-rule" aria-hidden="true" />
-          <h2 class="article-preview-section__heading-title">案例分享</h2>
-          <span class="article-preview-section__heading-rule" aria-hidden="true" />
-        </div>
+        <h2 class="article-preview-section__heading-title">案例分享</h2>
         <p class="article-preview-section__heading-english">CASE SHARING</p>
       </div>
       <div class="article-preview-section__columns">
@@ -112,34 +108,33 @@ function previewTitleStyle(article: { titleFontSize?: number | null }) {
   text-align: center;
 }
 
-.article-preview-section__heading-row {
+.article-preview-section__heading-title {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(var(--space-4), 3vw, var(--space-8));
-  width: 100%;
-}
-
-.article-preview-section__heading-title {
-  flex: none;
+  gap: clamp(18px, 4vw, 72px);
+  margin: 0;
   color: #2b2927;
-  font-size: clamp(36px, 3.2vw, 64px);
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
   font-weight: 700;
-  line-height: 1.2;
+  line-height: 1.15;
 }
 
-.article-preview-section__heading-rule {
-  width: clamp(40px, 6.2vw, 128px);
+.article-preview-section__heading-title::before,
+.article-preview-section__heading-title::after {
+  width: clamp(32px, 9vw, 140px);
   height: 1px;
-  background-color: #2b2927;
+  background: color-mix(in srgb, #2b2927 72%, transparent);
+  content: '';
 }
 
 .article-preview-section__heading-english {
+  margin: 0;
   color: #e6e6e6;
-  font-size: clamp(20px, 1.8vw, 36px);
-  font-weight: 700;
+  font-size: clamp(1rem, 1.7vw, 1.4rem);
+  font-weight: 800;
   line-height: 1.2;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.08em;
 }
 
 /* 四个栏目上下排列（需求：不用左右两列） */
@@ -327,5 +322,17 @@ function previewTitleStyle(article: { titleFontSize?: number | null }) {
   border-radius: var(--radius-md);
   background: var(--color-bg-light);
 }
+}
+
+@media (max-width: 640px) {
+  .article-preview-section__heading-title {
+    gap: var(--space-3);
+    font-size: 1.75rem;
+  }
+
+  .article-preview-section__heading-title::before,
+  .article-preview-section__heading-title::after {
+    width: 28px;
+  }
 }
 </style>

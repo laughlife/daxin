@@ -106,12 +106,8 @@ onBeforeUnmount(() => {
   <section v-if="slides.length" class="home-legal-guides" aria-label="普法干货">
     <PageContainer size="wide">
       <div class="home-legal-guides__heading">
-        <span aria-hidden="true" />
-        <div class="home-legal-guides__heading-copy">
-          <h2>普法干货</h2>
-          <p>LEGAL GUIDES</p>
-        </div>
-        <span aria-hidden="true" />
+        <h2 class="home-legal-guides__heading-title">普法干货</h2>
+        <p class="home-legal-guides__heading-english">LEGAL GUIDES</p>
       </div>
 
       <div
@@ -211,11 +207,11 @@ onBeforeUnmount(() => {
   background-repeat:no-repeat;
   background-size:cover;
 }
-.home-legal-guides__heading { display:flex; align-items:center; justify-content:center; gap:clamp(1.25rem,2.2vw,2.8rem); margin-bottom:clamp(3rem,6vw,5rem); text-align:center; }
-.home-legal-guides__heading-copy { display:grid; justify-items:center; gap:.45rem; }
-.home-legal-guides__heading h2 { margin:0; color:#2B2927; font-size:clamp(2.2rem,3.7vw,4rem); font-weight:900; line-height:1.15; white-space:nowrap; }
-.home-legal-guides__heading p { margin:0; color:#E6E6E6; font-size:clamp(1.35rem,2.35vw,2.35rem); font-weight:800; letter-spacing:.015em; line-height:1.1; }
-.home-legal-guides__heading > span { width:clamp(4rem,9vw,11.5rem); height:2px; background:#2B2927; }
+.home-legal-guides__heading { display:grid; justify-items:center; gap:var(--space-2); margin-bottom:clamp(3rem,6vw,5rem); text-align:center; }
+.home-legal-guides__heading-title { display:flex; align-items:center; justify-content:center; gap:clamp(18px,4vw,72px); margin:0; color:#2B2927; font-size:clamp(1.8rem,3vw,2.6rem); font-weight:700; line-height:1.15; }
+.home-legal-guides__heading-title::before,
+.home-legal-guides__heading-title::after { width:clamp(32px,9vw,140px); height:1px; background:color-mix(in srgb,#2B2927 72%,transparent); content:''; }
+.home-legal-guides__heading-english { margin:0; color:#E6E6E6; font-size:clamp(1rem,1.7vw,1.4rem); font-weight:800; letter-spacing:.08em; line-height:1.2; }
 .home-legal-guides__carousel { display:grid; grid-template-columns:clamp(3.25rem,5vw,6rem) minmax(0,1fr) clamp(3.25rem,5vw,6rem); align-items:center; column-gap:clamp(.75rem,1.8vw,2rem); }
 .home-legal-guides__stage { display:grid; min-width:0; }
 .home-legal-guides__arrow { display:grid; width:clamp(3.25rem,5vw,6rem); aspect-ratio:1; place-items:center; padding:0; border:0; border-radius:50%; color:#fff; background:#F3D59E; cursor:pointer; transition:background-color .2s ease,transform .2s ease; }
@@ -261,8 +257,7 @@ onBeforeUnmount(() => {
 .home-legal-guides__indicator:focus-visible { outline:2px solid var(--guide-accent); outline-offset:4px; }
 @media(max-width:767px) {
   .home-legal-guides { padding-block:var(--space-section); }
-  .home-legal-guides__heading { gap:clamp(.75rem,3vw,1.25rem); margin-bottom:var(--space-8); }
-  .home-legal-guides__heading > span { width:clamp(1.5rem,8vw,3rem); }
+  .home-legal-guides__heading { margin-bottom:var(--space-8); }
   .home-legal-guides__carousel { grid-template-columns:2.75rem minmax(0,1fr) 2.75rem; gap:.5rem; }
   .home-legal-guides__arrow { width:2.75rem; }
   .home-legal-guides__panel { grid-template-columns:1fr; }
@@ -275,6 +270,11 @@ onBeforeUnmount(() => {
   .home-legal-guides__qr img { width:92px; height:92px; }
   .home-legal-guides__panel--logistics .home-legal-guides__content { min-height:180px; }
   .home-legal-guides__indicators { grid-column:2; }
+}
+@media(max-width:640px) {
+  .home-legal-guides__heading-title { gap:var(--space-3); font-size:1.75rem; }
+  .home-legal-guides__heading-title::before,
+  .home-legal-guides__heading-title::after { width:28px; }
 }
 @media(prefers-reduced-motion:reduce) {
   .home-legal-guides__indicator,.home-legal-guides__panel,.home-legal-guides__arrow { transition:none; }

@@ -89,12 +89,8 @@ function segments(item: CoreAdvantage) {
   <section v-if="props.items.length" class="home-core-advantages" aria-label="核心优势">
     <PageContainer size="wide">
       <div class="home-core-advantages__heading">
-        <span aria-hidden="true" />
-        <div class="home-core-advantages__heading-copy">
-          <h2>核心优势</h2>
-          <p>WHY DAXIN</p>
-        </div>
-        <span aria-hidden="true" />
+        <h2 class="home-core-advantages__heading-title">核心优势</h2>
+        <p class="home-core-advantages__heading-english">WHY DAXIN</p>
       </div>
 
       <div class="home-core-advantages__grid" :style="{ gridTemplateColumns }">
@@ -151,42 +147,40 @@ function segments(item: CoreAdvantage) {
 }
 
 .home-core-advantages__heading {
-  display: flex;
-  align-items: flex-start;
-  justify-content: center;
-  gap: clamp(1.25rem, 2.2vw, 2.8rem);
-  margin-bottom: clamp(3.5rem, 7vw, 6.25rem);
-}
-
-.home-core-advantages__heading h2 {
-  margin: 0;
-  color: #2b2927;
-  font-size: clamp(2rem, 3vw, 3.25rem);
-  font-weight: 700;
-  line-height: 1.2;
-  white-space: nowrap;
-}
-
-.home-core-advantages__heading-copy {
   display: grid;
   justify-items: center;
-  gap: 0.25rem;
+  gap: var(--space-2);
+  margin-bottom: clamp(3.5rem, 7vw, 6.25rem);
+  text-align: center;
 }
 
-.home-core-advantages__heading-copy p {
+.home-core-advantages__heading-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(18px, 4vw, 72px);
   margin: 0;
-  color: #FFDEAB;
-  font-size: clamp(1.15rem, 1.75vw, 1.65rem);
-  font-weight: 800;
-  letter-spacing: 0.035em;
-  line-height: 1.2;
+  color: #2B2927;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-weight: 700;
+  line-height: 1.15;
 }
 
-.home-core-advantages__heading span {
-  width: clamp(3rem, 9vw, 7rem);
+.home-core-advantages__heading-title::before,
+.home-core-advantages__heading-title::after {
+  width: clamp(32px, 9vw, 140px);
   height: 1px;
-  margin-top: 1.2em;
-  background: #2b2927;
+  background: color-mix(in srgb, #2B2927 72%, transparent);
+  content: '';
+}
+
+.home-core-advantages__heading-english {
+  margin: 0;
+  color: #E6E6E6;
+  font-size: clamp(1rem, 1.7vw, 1.4rem);
+  font-weight: 800;
+  letter-spacing: .08em;
+  line-height: 1.2;
 }
 
 .home-core-advantages__grid {
@@ -320,12 +314,7 @@ function segments(item: CoreAdvantage) {
 
 @media (max-width: 767px) {
   .home-core-advantages__heading {
-    gap: 1rem;
     margin-bottom: 2rem;
-  }
-
-  .home-core-advantages__heading span {
-    margin-top: 1rem;
   }
 
   .home-core-advantages__grid {
@@ -364,6 +353,18 @@ function segments(item: CoreAdvantage) {
 
   .home-core-advantages__description {
     font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .home-core-advantages__heading-title {
+    gap: var(--space-3);
+    font-size: 1.75rem;
+  }
+
+  .home-core-advantages__heading-title::before,
+  .home-core-advantages__heading-title::after {
+    width: 28px;
   }
 }
 

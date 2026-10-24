@@ -80,7 +80,7 @@ test('carousel keeps one shared height by stacking all three slides in the same 
 
 test('legal guides use the faceted background, reference heading, and accessible side arrows', async () => {
   assert.match(guidesSource, /background-image:url\('\/images\/backgrounds\/legal-guides-faceted\.png'\)/)
-  assert.match(guidesSource, /<h2>普法干货<\/h2>[\s\S]*?<p>LEGAL GUIDES<\/p>/)
+  assert.match(guidesSource, /<h2 class="home-legal-guides__heading-title">普法干货<\/h2>[\s\S]*?<p class="home-legal-guides__heading-english">LEGAL GUIDES<\/p>/)
   assert.match(guidesSource, /color:#2B2927/)
   assert.match(guidesSource, /color:#E6E6E6/)
   assert.match(guidesSource, /aria-label="上一条普法干货"[\s\S]*?@click="moveSlide\(-1\)"/)

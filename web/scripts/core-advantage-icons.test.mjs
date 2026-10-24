@@ -14,8 +14,9 @@ test('core advantage uses the supplied category images and wave background', asy
   assert.match(advantages, /const expandedSwatches: Record<string, string>/)
   assert.match(advantages, /function iconPath\(title: string, expanded: boolean\)/)
   assert.match(advantages, /:src="iconPath\(item\.title, expandedIndex === index\)"/)
-  assert.match(advantages, /<p>WHY DAXIN<\/p>/)
-  assert.match(advantages, /color:\s*#FFDEAB/)
+  assert.match(advantages, /class="home-core-advantages__heading-english">WHY DAXIN<\/p>/)
+  assert.match(advantages, /font-size:\s*clamp\(1rem, 1\.7vw, 1\.4rem\)/)
+  assert.match(advantages, /color:\s*#E6E6E6/)
   assert.match(advantages, /background-image:\s*url\('\/images\/backgrounds\/core-advantages-wave\.png'\)/)
 })
 
