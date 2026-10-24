@@ -7,7 +7,7 @@ const scheduler = await readFile(new URL('../server/plugins/wechat-album-schedul
 
 test('article import stores list metadata, category and OSS cover without requesting or saving the body', () => {
   assert.match(importer, /INSERT INTO articles[\s\S]*?content_html, content_text, category_id, cover_media_id, published_at/)
-  assert.match(importer, /VALUES \(\?, \?, NULL, NULL, NULL, \?, \?, \?, \?, 'published'/)
+  assert.match(importer, /VALUES \(\?, \?, NULL, NULL, NULL, \?, \?, \?, 'published'/)
   assert.match(importer, /status, is_featured, show_in_sidebar, legacy_source_table, legacy_source_id/)
   assert.doesNotMatch(importer, /parseWechatArticlePage/)
   assert.match(importer, /INSERT INTO wechat_album_items[\s\S]*?source_url, title, cover_source_url, published_at/)
@@ -28,13 +28,8 @@ test('cover prefers the article-page long image and falls back to the album squa
   assert.doesNotMatch(importer, /const USER_AGENT = 'DaxinWechatAlbumSync/)
 })
 
-test('title font size is read from the rendered page and stored on both article and album item', () => {
-  assert.match(importer, /titleFontSizeReader\.read\(identity\.url\)/)
-  assert.match(importer, /titleFontSizeReader: TitleFontSizeReader/)
-  assert.match(importer, /cover_media_id, published_at,\s*\n\s*title_font_size, status/)
-  assert.match(importer, /title_font_size = COALESCE\(\?, title_font_size\)/)
-  assert.match(importer, /published_at, title_font_size, created_at, updated_at/)
-  assert.match(importer, /title_font_size = COALESCE\(VALUES\(title_font_size\), title_font_size\)/)
+test('daily album import does not open article pages to read or store title font size', () => {
+  assert.doesNotMatch(importer, /titleFontSize|title_font_size|createTitleFontSizeReader|Playwright/)
 })
 
 test('only the cover is uploaded as verified article media; body image handling is absent', () => {

@@ -11,15 +11,13 @@ import { wechatShanghaiDateKey } from './schedule.mjs'
 import { classifyImportedArticle } from './article-classify.mjs'
 import {
   MOBILE_WECHAT_UA,
-  createTitleFontSizeReader,
   extractMsgCdnUrl,
   resolveArticleCoverId,
-  type TitleFontSizeReader,
 } from './article-page.ts'
 
 /*
  * 文章页必须用手机微信 UA：采集器 UA（DaxinWechatAlbumSync/1.0）抓 mp.weixin.qq.com/s
- * 会被微信拦成「环境异常」，取不到 msg_cdn_url，也读不到标题字号。
+ * 会被微信拦成「环境异常」，取不到 msg_cdn_url。
  * 专辑接口（/mp/appmsgalbum）用同一个 UA 同样可以正常分页。
  */
 const USER_AGENT = MOBILE_WECHAT_UA
@@ -281,7 +279,6 @@ async function writeArticle(
   item: AlbumItem,
   cover: UploadedImage | null,
   coverIsLong: boolean,
-  titleFontSize: number | null,
   categoryId: number,
   existingArticleId: number | null,
 ): Promise<{ articleId: number; inserted: boolean }> {
@@ -312,31 +309,31 @@ async function writeArticle(
       const [header] = await connection.execute(
         `INSERT INTO articles
            (slug, title, summary, content_html, content_text, category_id, cover_media_id, published_at,
-            title_font_size, status, is_featured, show_in_sidebar, legacy_source_table, legacy_source_id, created_at, updated_at)
-         VALUES (?, ?, NULL, NULL, NULL, ?, ?, ?, ?, 'published', 0, 0, 'wechat_album', ?, NOW(), NOW())`,
-        [identity.slug, title, categoryId, coverMediaId, publishedAt, titleFontSize, identity.legacyId],
+            status, is_featured, show_in_sidebar, legacy_source_table, legacy_source_id, created_at, updated_at)
+         VALUES (?, ?, NULL, NULL, NULL, ?, ?, ?, 'published', 0, 0, 'wechat_album', ?, NOW(), NOW())`,
+        [identity.slug, title, categoryId, coverMediaId, publishedAt, identity.legacyId],
       )
       articleId = Number((header as DbHeader).insertId ?? 0)
       if (!articleId) throw new Error(`写入公众号文章失败：${title}`)
     } else {
       await connection.execute(
         `UPDATE articles SET title = ?, summary = NULL, content_html = NULL, content_text = NULL,
-           category_id = ?, cover_media_id = ?, title_font_size = COALESCE(?, title_font_size), published_at = ?,
+           category_id = ?, cover_media_id = ?, published_at = ?,
            status = 'published', legacy_source_table = 'wechat_album', legacy_source_id = ?, updated_at = NOW()
          WHERE id = ?`,
-        [item.title.trim().slice(0, 255), categoryId, coverMediaId, titleFontSize, item.publishedAt, identity.legacyId, articleId],
+        [item.title.trim().slice(0, 255), categoryId, coverMediaId, item.publishedAt, identity.legacyId, articleId],
       )
       await removeArticleBodyImages(connection, articleId)
     }
 
     await connection.execute(
       `INSERT INTO wechat_album_items
-         (source_id, message_id, item_index, article_hash, article_id, source_url, title, cover_source_url, published_at, title_font_size, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+         (source_id, message_id, item_index, article_hash, article_id, source_url, title, cover_source_url, published_at, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
        ON DUPLICATE KEY UPDATE article_hash = VALUES(article_hash), article_id = VALUES(article_id),
          source_url = VALUES(source_url), title = VALUES(title), cover_source_url = VALUES(cover_source_url),
-         published_at = VALUES(published_at), title_font_size = COALESCE(VALUES(title_font_size), title_font_size), updated_at = NOW()`,
-      [source.id, item.messageId, item.itemIndex, identity.hash, articleId, identity.url.slice(0, 2048), item.title.slice(0, 255), item.coverUrl.slice(0, 2048), item.publishedAt || null, titleFontSize],
+         published_at = VALUES(published_at), updated_at = NOW()`,
+      [source.id, item.messageId, item.itemIndex, identity.hash, articleId, identity.url.slice(0, 2048), item.title.slice(0, 255), item.coverUrl.slice(0, 2048), item.publishedAt || null],
     )
     return { articleId, inserted }
   })
@@ -376,7 +373,6 @@ async function importArticle(
   source: AlbumSource,
   item: AlbumItem,
   categoryId: number,
-  titleFontSizeReader: TitleFontSizeReader,
 ): Promise<{ inserted: boolean; imageCount: number }> {
   const sourceId = Number(source.id)
   const existingItemArticle = await findExistingSourceItem(sourceId, item)
@@ -419,13 +415,10 @@ async function importArticle(
     }
   }
 
-  // 标题字号是运行时 computed 值，读取失败返回 null，不阻断文章入库。
-  const titleFontSize = await titleFontSizeReader.read(identity.url)
-
   const existingArticle = existingItemArticle
     ? await findArticleById(existingItemArticle)
     : await findExistingArticle(identity.url) ?? await findLegacyArticle(item, categoryId)
-  const result = await writeArticle(source, item, cover, coverIsLong, titleFontSize, categoryId, existingArticle ? Number(existingArticle.id) : null)
+  const result = await writeArticle(source, item, cover, coverIsLong, categoryId, existingArticle ? Number(existingArticle.id) : null)
   return { inserted: result.inserted, imageCount: cover ? 1 : 0 }
 }
 
@@ -468,8 +461,6 @@ async function importSource(source: AlbumSource, scheduledDate: string, deployme
   const cursor = full ? null : { messageId: source.cursor_message_id, itemIndex: source.cursor_item_index }
   const empty: ImportResult = { fetchedCount: 0, insertedCount: 0, duplicateCount: 0, imageCount: 0 }
   await writeRunStart(source, scheduledDate, runMode)
-  // 整次同步复用一个浏览器（惰性启动）；读字号失败只告警，不影响入库。
-  const titleFontSizeReader = createTitleFontSizeReader()
   try {
     const crawl = await crawlWechatAlbum({
       sourceUrl: source.album_url,
@@ -512,7 +503,7 @@ async function importSource(source: AlbumSource, scheduledDate: string, deployme
         if (target === 'tro-alert' && troRoutingEnabled && routedCategoryIds['tro-alert']) return routedCategoryIds['tro-alert']
         return categoryId
       })()
-      const imported = await importArticle(source, item, routedCategoryId, titleFontSizeReader)
+      const imported = await importArticle(source, item, routedCategoryId)
       result.insertedCount += imported.inserted ? 1 : 0
       result.duplicateCount += imported.inserted ? 0 : 1
       result.imageCount += imported.imageCount
@@ -530,8 +521,6 @@ async function importSource(source: AlbumSource, scheduledDate: string, deployme
     }
     console.error('[wechat-album-import] 专辑同步失败', { source: source.source_key, mode, message })
     return { source: source.source_key, mode, failed: true, result: empty }
-  } finally {
-    await titleFontSizeReader.close()
   }
 }
 

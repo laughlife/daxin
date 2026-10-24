@@ -1,14 +1,12 @@
-// 公众号文章页解析的纯函数单测：长图提取、字号解析、封面优先级判定。
+// 公众号文章页解析的纯函数单测：长图提取与封面优先级判定。
 //
-// 这些逻辑决定「长图不会被方图覆盖回去」和「字号入库是否合法」，
-// 因此不依赖浏览器与数据库单独覆盖。
+// 这些逻辑决定「长图不会被方图覆盖回去」，因此不依赖数据库单独覆盖。
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
 import {
   extractMsgCdnUrl,
   isWideCover,
-  parseFontSizePx,
   resolveArticleCoverId,
 } from '../server/utils/wechat-album/article-page.ts'
 
@@ -24,21 +22,6 @@ test('extractMsgCdnUrl 只认文章页内联脚本里的 msg_cdn_url', () => {
   assert.equal(extractMsgCdnUrl(''), '')
   // 允许中间任意空白
   assert.equal(extractMsgCdnUrl('var  msg_cdn_url\t=\t"https://mmbiz.qpic.cn/b/0"'), 'https://mmbiz.qpic.cn/b/0')
-})
-
-test('parseFontSizePx 把 "20px" 这样的 computed 值转成整数像素', () => {
-  assert.equal(parseFontSizePx('20px'), 20)
-  assert.equal(parseFontSizePx(' 22px '), 22)
-  assert.equal(parseFontSizePx('22.4px'), 22)
-  assert.equal(parseFontSizePx('17.6px'), 18)
-  // 非法值一律 null，避免把脏数据写进 SMALLINT
-  assert.equal(parseFontSizePx(''), null)
-  assert.equal(parseFontSizePx(null), null)
-  assert.equal(parseFontSizePx(undefined), null)
-  assert.equal(parseFontSizePx('22'), null)
-  assert.equal(parseFontSizePx('0px'), null)
-  assert.equal(parseFontSizePx('300px'), null)
-  assert.equal(parseFontSizePx('auto'), null)
 })
 
 test('isWideCover 按宽高判断长图（900x382 是长图，150x150 不是）', () => {
