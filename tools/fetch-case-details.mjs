@@ -21,8 +21,8 @@ const option = (name, fallback) => {
   const index = args.indexOf(`--${name}`)
   return index >= 0 ? args[index + 1] : fallback
 }
-const limit = Number(option('limit', 66))
-const delayMs = Number(option('delay', 22000))
+const limit = Number(option('limit', 0))
+const delayMs = Number(option('delay', 8000))
 const onlyCase = option('case', '')
 const refetch = args.includes('--refetch')
 
@@ -109,14 +109,32 @@ function parseDetail(html, caseNumber) {
 }
 
 async function fetchHtml(url) {
-  const res = await fetch(url, {
-    headers: {
-      'user-agent': UA,
-      'accept-language': 'zh-CN,zh;q=0.9',
-      referer: 'https://worldtro.com/tro',
-    },
-  })
-  return { status: res.status, html: await res.text() }
+  const headers = {
+    'user-agent': UA,
+    'accept-language': 'zh-CN,zh;q=0.9',
+    referer: 'https://worldtro.com/tro',
+  }
+  // 最多 3 轮：每轮重新取页面拿新 token，再带滑块参数重试
+  let lastHtml = ''
+  let lastStatus = 0
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const res = await fetch(url, { headers })
+    lastStatus = res.status
+    lastHtml = await res.text()
+    if (res.status !== 200 || !detectBlock(lastHtml)) return { status: res.status, html: lastHtml }
+
+    const token = lastHtml.match(/name="slider_token" id="sl-tok" value="([^"]+)"/)?.[1] ?? ''
+    if (!token) return { status: res.status, html: lastHtml }
+
+    const separator = url.includes('?') ? '&' : '?'
+    const value = 180 + attempt * 20
+    const retryUrl = `${url}${separator}slider_token=${encodeURIComponent(token)}&slider_val=${value}&slider_ms=${1200 + attempt * 200}`
+    const retry = await fetch(retryUrl, { headers: { ...headers, referer: url } })
+    const retryHtml = await retry.text()
+    if (!detectBlock(retryHtml)) return { status: retry.status, html: retryHtml }
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+  }
+  return { status: lastStatus, html: lastHtml }
 }
 
 function pickTargets() {
@@ -127,8 +145,8 @@ function pickTargets() {
     SELECT c.id, c.case_number, IFNULL(NULLIF(c.state_code,''),'') , IFNULL(d.source_url,'')
     FROM cases c LEFT JOIN case_details d ON d.case_id = c.id
     WHERE ${where} AND c.case_number <> ''
-    ORDER BY c.filed_at DESC, c.id DESC
-    LIMIT ${limit}`)
+    ORDER BY c.filed_at DESC, c.id DESC${limit > 0 ? `
+    LIMIT ${limit}` : ''}`)
     .split(/\r?\n/).filter(Boolean).map((line) => line.split('\t').map((cell) => cell.trim()))
 }
 

@@ -94,11 +94,30 @@ export function parseCaseDetailHtml(html: string) {
   }
 }
 
+const PAGE_HEADERS = {
+  'user-agent': UA,
+  'accept-language': 'zh-CN,zh;q=0.9',
+  referer: 'https://worldtro.com/tro',
+}
+
+/**
+ * 抓详情页；命中滑块时用页面下发的 slider_token 直接带参重试。
+ *
+ * 实测站点只校验 slider_val（拖动距离）与 slider_ms（耗时），没有轨迹/加速度校验，
+ * 因此用固定的 180 / 1200ms 即可通过，无需真实拖动。
+ */
 async function fetchPage(url: string): Promise<{ status: number; html: string }> {
-  const res = await fetch(url, {
-    headers: { 'user-agent': UA, 'accept-language': 'zh-CN,zh;q=0.9', referer: 'https://worldtro.com/tro' },
-  })
-  return { status: res.status, html: await res.text() }
+  const res = await fetch(url, { headers: PAGE_HEADERS })
+  const html = await res.text()
+  if (res.status !== 200 || !isBlocked(html)) return { status: res.status, html }
+
+  const token = html.match(/name="slider_token" id="sl-tok" value="([^"]+)"/)?.[1] ?? ''
+  if (!token) return { status: res.status, html }
+
+  const separator = url.includes('?') ? '&' : '?'
+  const retryUrl = `${url}${separator}slider_token=${encodeURIComponent(token)}&slider_val=180&slider_ms=1200`
+  const retry = await fetch(retryUrl, { headers: { ...PAGE_HEADERS, referer: url } })
+  return { status: retry.status, html: await retry.text() }
 }
 
 function isBlocked(html: string): boolean {
@@ -143,8 +162,10 @@ export async function runCaseDetailSync(options: {
   limit?: number
   delayMs?: number
 } = {}): Promise<CaseDetailSyncResult> {
-  const limit = Math.max(1, Math.min(200, options.limit ?? 66))
-  const delayMs = Math.max(1000, options.delayMs ?? 22000)
+  // limit <= 0 表示不限条数：补跑时一次跑完所有 pending
+  const rawLimit = options.limit ?? 0
+  const limit = rawLimit > 0 ? Math.min(rawLimit, 5000) : 0
+  const delayMs = Math.max(1000, options.delayMs ?? 8000)
 
   const rows = await queryTarget<{ case_id: number; case_number: string; state_code: string; source_url: string; fetch_status: string }>(
     `SELECT d.case_id, c.case_number, IFNULL(NULLIF(c.state_code, ''), '') AS state_code,
@@ -153,11 +174,12 @@ export async function runCaseDetailSync(options: {
      JOIN cases c ON c.id = d.case_id
      WHERE d.fetch_status IN ('pending', 'blocked') AND c.case_number <> ''
      ORDER BY c.filed_at DESC, c.id DESC
-     LIMIT ?`,
-    [limit],
+     ${limit > 0 ? 'LIMIT ?' : ''}`,
+    limit > 0 ? [limit] : [],
   )
   if (!rows.length) return { picked: 0, ok: 0, partial: 0, blocked: 0, missing: 0, failed: 0, stoppedByCaptcha: false }
 
+  let processed = 0
   const result: CaseDetailSyncResult = { picked: rows.length, ok: 0, partial: 0, blocked: 0, missing: 0, failed: 0, stoppedByCaptcha: false }
 
   for (const row of rows) {
@@ -196,7 +218,16 @@ export async function runCaseDetailSync(options: {
       result.failed += 1
       await saveDetail(caseId, url, null, 'blocked', String(error).slice(0, 200))
     }
-    await new Promise((resolve) => setTimeout(resolve, delayMs))
+    processed += 1
+    // 每 100 条长歇 60 秒，降低被风控的概率
+    if (processed % 100 === 0) {
+      console.info('[worldtro-detail] 已处理 ' + processed + ' 条，休息 60 秒')
+      await new Promise((resolve) => setTimeout(resolve, 60_000))
+      continue
+    }
+    // 8 秒基准 + 0.75~1.5 倍随机抖动（6~12 秒）
+    const jittered = Math.round(delayMs * (0.75 + Math.random() * 0.75))
+    await new Promise((resolve) => setTimeout(resolve, jittered))
   }
 
   return result

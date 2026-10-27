@@ -12,8 +12,8 @@ export default defineNitroPlugin((nitroApp) => {
     console.info('[worldtro-scheduler] 每日列表采集已完成', result)
     try {
       const detail = await runCaseDetailSync({
-        limit: Number(process.env.WORLDTRO_DETAIL_LIMIT ?? 66),
-        delayMs: Number(process.env.WORLDTRO_DETAIL_DELAY_MS ?? 22000),
+        limit: Number(process.env.WORLDTRO_DETAIL_LIMIT ?? 0),
+        delayMs: Number(process.env.WORLDTRO_DETAIL_DELAY_MS ?? 8000),
       })
       console.info('[worldtro-scheduler] 案件详情抓取完成', detail)
       return { result, detail }
