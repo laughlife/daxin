@@ -46,9 +46,11 @@ function toLines(html: string): string[] {
 
 function pickLabel(lines: string[], labels: string[]): string {
   for (let i = 0; i < lines.length; i += 1) {
-    const line = lines[i] ?? ''
+    // 去掉行首的 # / > 等装饰，只认「行首就是标签」的行，避免正文里提到标签被误抓
+    const raw = lines[i] ?? ''
+    const line = raw.replace(/^[\s#>*-]+/, '')
     for (const label of labels) {
-      if (!line.includes(label)) continue
+      if (!line.startsWith(label)) continue
       const rest = line.replace(label, '').replace(/[：:]\s*/, '').trim()
       if (rest) return rest
       const next = lines[i + 1]
@@ -69,16 +71,29 @@ function splitList(value: string): string[] {
 export function parseCaseDetailHtml(html: string) {
   const lines = toLines(html)
   const events: { date: string; title: string; dedupeKey: string }[] = []
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i] ?? ''
     const match = line.match(DATE_RE)
     if (!match) continue
     const year = match[1] ?? ''
     const month = String(match[2] ?? '1').padStart(2, '0')
     const day = String(match[3] ?? '1').padStart(2, '0')
     const date = `${year}-${month}-${day}`
-    const title = line.replace(DATE_RE, '').replace(/^[\s\-—:：]+/, '').trim().slice(0, 180)
-    if (!title || title.length < 2 || !EVENT_HINTS.test(title)) continue
-    events.push({ date, title, dedupeKey: createHash('md5').update(`${date}|${title}`).digest('hex') })
+    const title = line.replace(DATE_RE, '')
+      .replace(/^[\s\-—:：]+/, '')
+      .replace(/^\d{1,2}:\d{2}(:\d{2})?\s*(UTC)?\s*/i, '')
+      .replace(/^[\s\-—:：]+/, '')
+      .trim()
+      .slice(0, 180)
+    let resolved = title
+    if (!resolved || resolved.length < 2) {
+      const nextLine = (lines[i + 1] ?? '').replace(/^[\s#>*-]+/, '').trim()
+      resolved = nextLine.slice(0, 180)
+    }
+    if (!resolved || resolved.length < 2) continue
+    // 排除表头/导航文案
+    if (/^(日期|案件进程|翻译|订阅|联系)/.test(resolved)) continue
+    events.push({ date, title: resolved, dedupeKey: createHash('md5').update(`${date}|${resolved}`).digest('hex') })
   }
 
   return {
@@ -131,7 +146,10 @@ async function fetchPage(url: string): Promise<{ status: number; html: string }>
 }
 
 function isBlocked(html: string): boolean {
-  return CAPTCHA_HINTS.some((hint) => html.includes(hint)) || html.length < 6000
+  // 正常详情页 17~27KB；验证页只有 4.4~4.9KB。
+  // 注意：正常页里也内嵌了「完成验证」的滑块脚本，不能按关键词判定，否则会误杀。
+  if (html.length < 6000) return true
+  return html.includes('向右拖动滑块完成验证') && !html.includes('案件')
 }
 
 function isMissing(html: string): boolean {

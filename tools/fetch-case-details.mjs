@@ -57,7 +57,10 @@ const CAPTCHA_HINTS = ['安全验证', '向右拖动滑块', '完成验证']
 const MISSING_HINTS = ['页面不存在', '404', '找不到']
 
 function detectBlock(html) {
-  return CAPTCHA_HINTS.some((hint) => html.includes(hint)) || html.length < 6000
+  // 正常详情页 17~27KB；验证页只有 4.4~4.9KB。
+  // 正常页也内嵌了「完成验证」滑块脚本，按关键词判定会误杀，因此只按体积判。
+  if (html.length < 6000) return true
+  return html.includes('向右拖动滑块完成验证') && !html.includes('案件')
 }
 
 function detectMissing(html) {
@@ -67,9 +70,11 @@ function detectMissing(html) {
 /** 从文本行里按标签抓值：标签后同一行或下一行 */
 function pickLabel(lines, labels) {
   for (let i = 0; i < lines.length; i += 1) {
+    const raw = lines[i] ?? ''
+    const line = raw.replace(/^[\s#>*-]+/, '')
     for (const label of labels) {
-      if (!lines[i].includes(label)) continue
-      const rest = lines[i].replace(label, '').replace(/[：:]\s*/, '').trim()
+      if (!line.startsWith(label)) continue
+      const rest = line.replace(label, '').replace(/[：:]\s*/, '').trim()
       if (rest) return rest
       const next = lines[i + 1]
       if (next && next.length <= 200) return next
@@ -84,15 +89,26 @@ function parseDetail(html, caseNumber) {
   const lines = toLines(html)
   // 案件进展时间线：形如「2026-10-27 立案」或「2026/10/27  TRO 临时禁令」
   const events = []
-  for (const line of lines) {
+  for (let i = 0; i < lines.length; i += 1) {
+    const line = lines[i] ?? ''
     const match = line.match(DATE_RE)
     if (!match) continue
     const date = `${match[1]}-${String(match[2]).padStart(2, '0')}-${String(match[3]).padStart(2, '0')}`
-    const title = line.replace(DATE_RE, '').replace(/^[\s\-—:：]+/, '').trim().slice(0, 180)
-    if (!title || title.length < 2) continue
-    if (!/立案|起诉|冻结|禁令|TRO|PI|和解|判决|撤诉|延长|听证|送达|缺席|动议|驳回|开庭|进展/i.test(title)) continue
-    const dedupeKey = createHash('md5').update(`${date}|${title}`).digest('hex')
-    events.push({ date, title, dedupeKey })
+    const title = line.replace(DATE_RE, '')
+      .replace(/^[\s\-—:：]+/, '')
+      .replace(/^\d{1,2}:\d{2}(:\d{2})?\s*(UTC)?\s*/i, '')
+      .replace(/^[\s\-—:：]+/, '')
+      .trim()
+      .slice(0, 180)
+    let resolved = title
+    if (!resolved || resolved.length < 2) {
+      const nextLine = (lines[i + 1] ?? '').replace(/^[\s#>*-]+/, '').trim()
+      resolved = nextLine.slice(0, 180)
+    }
+    if (!resolved || resolved.length < 2) continue
+    if (/^(日期|案件进程|翻译|订阅|联系)/.test(resolved)) continue
+    const dedupeKey = createHash('md5').update(`${date}|${resolved}`).digest('hex')
+    events.push({ date, title: resolved, dedupeKey })
   }
 
   return {
