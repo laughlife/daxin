@@ -315,7 +315,7 @@ useHead({
 
 .home-team-intro__features {
   display: grid;
-  gap: clamp(1.25rem, 2.7vw, 3.5rem) clamp(1.25rem, 3vw, 3rem);
+  gap: clamp(1.25rem, 1.8vw, 1.75rem) clamp(1.25rem, 3vw, 3rem);
   grid-template-columns: repeat(2, minmax(0, 1fr));
   margin: var(--space-3) 0 0;
   padding: 0;
