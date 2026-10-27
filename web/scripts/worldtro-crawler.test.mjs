@@ -81,12 +81,15 @@ test('skips incomplete rows and continues through later listing pages', async ()
   assert.equal(result.pageCount, 2)
 })
 
-test('scheduler uses China time and starts after noon each day', () => {
+test('scheduler runs twice daily (00:15 / 12:15) in China time', () => {
   const beforeNoon = new Date('2026-10-19T03:00:00.000Z') // 11:00 in Shanghai
   const atOnePm = new Date('2026-10-19T05:00:00.000Z') // 13:00 in Shanghai
   assert.equal(shanghaiDateKey(beforeNoon), '2026-10-19')
+  // 11:00 → 下一个班次是 12:15（1 小时 15 分后）
   assert.equal(millisecondsUntilNextWorldTroRun(beforeNoon), 75 * 60 * 1000)
-  assert.equal(millisecondsUntilNextWorldTroRun(atOnePm), 23 * 60 * 60 * 1000 + 15 * 60 * 1000)
-  assert.equal(millisecondsUntilFirstWorldTroRun(beforeNoon), 75 * 60 * 1000)
+  // 13:00 → 下一个班次是次日 00:15（11 小时 15 分后）
+  assert.equal(millisecondsUntilNextWorldTroRun(atOnePm), 11 * 60 * 60 * 1000 + 15 * 60 * 1000)
+  // 首跑语义：今天已有班次到点就立即补跑
+  assert.equal(millisecondsUntilFirstWorldTroRun(beforeNoon), 0)
   assert.equal(millisecondsUntilFirstWorldTroRun(atOnePm), 0)
 })

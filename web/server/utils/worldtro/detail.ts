@@ -143,8 +143,8 @@ export async function runCaseDetailSync(options: {
   limit?: number
   delayMs?: number
 } = {}): Promise<CaseDetailSyncResult> {
-  const limit = Math.max(1, Math.min(200, options.limit ?? 20))
-  const delayMs = Math.max(1000, options.delayMs ?? 25000)
+  const limit = Math.max(1, Math.min(200, options.limit ?? 66))
+  const delayMs = Math.max(1000, options.delayMs ?? 22000)
 
   const rows = await queryTarget<{ case_id: number; case_number: string; state_code: string; source_url: string; fetch_status: string }>(
     `SELECT d.case_id, c.case_number, IFNULL(NULLIF(c.state_code, ''), '') AS state_code,

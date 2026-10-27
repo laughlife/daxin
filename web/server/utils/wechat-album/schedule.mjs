@@ -1,6 +1,5 @@
 const TIME_ZONE = 'Asia/Shanghai'
-const RUN_HOUR = 12
-const RUN_MINUTE = 15
+const RUN_SLOTS = [ { hour: 0, minute: 15 }, { hour: 12, minute: 15 } ]
 const MINUTE_MS = 60_000
 
 function shanghaiParts(date) {
@@ -23,16 +22,25 @@ export function millisecondsUntilNextWechatAlbumMinute(date = new Date()) {
 }
 
 /** 返回距离下一个每日 12:15（北京时间）的毫秒数；已过今日时间则安排到明日。 */
+export function wechatShanghaiSlotKey(date = new Date()) {
+  const { hour } = shanghaiParts(date)
+  return hour < 12 ? '00' : '12'
+}
+
 export function millisecondsUntilNextWechatAlbumRun(date = new Date()) {
   const parts = shanghaiParts(date)
-  const todayPassed = parts.hour > RUN_HOUR || (parts.hour === RUN_HOUR && parts.minute >= RUN_MINUTE)
-  const target = new Date(Date.UTC(parts.year, parts.month - 1, parts.day + (todayPassed ? 1 : 0), 4, RUN_MINUTE, 0))
+  const nowMinutes = parts.hour * 60 + parts.minute
+  const nextSlot = RUN_SLOTS.find((slot) => slot.hour * 60 + slot.minute > nowMinutes)
+  const target = nextSlot
+    ? new Date(Date.UTC(parts.year, parts.month - 1, parts.day, nextSlot.hour - 8, nextSlot.minute, 0))
+    : new Date(Date.UTC(parts.year, parts.month - 1, parts.day + 1, RUN_SLOTS[0].hour - 8, RUN_SLOTS[0].minute, 0))
   return Math.max(0, target.getTime() - date.getTime())
 }
 
 /** 服务在当天 12:15 后启动时立即补跑；运行台账会阻止当天重复导入。 */
 export function millisecondsUntilFirstWechatAlbumRun(date = new Date()) {
   const parts = shanghaiParts(date)
-  const todayPassed = parts.hour > RUN_HOUR || (parts.hour === RUN_HOUR && parts.minute >= RUN_MINUTE)
-  return todayPassed ? 0 : millisecondsUntilNextWechatAlbumRun(date)
+  const nowMinutes = parts.hour * 60 + parts.minute
+  const anyPassed = RUN_SLOTS.some((slot) => slot.hour * 60 + slot.minute <= nowMinutes)
+  return anyPassed ? 0 : millisecondsUntilNextWechatAlbumRun(date)
 }

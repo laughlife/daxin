@@ -21,8 +21,8 @@ const option = (name, fallback) => {
   const index = args.indexOf(`--${name}`)
   return index >= 0 ? args[index + 1] : fallback
 }
-const limit = Number(option('limit', 5))
-const delayMs = Number(option('delay', 25000))
+const limit = Number(option('limit', 66))
+const delayMs = Number(option('delay', 22000))
 const onlyCase = option('case', '')
 const refetch = args.includes('--refetch')
 

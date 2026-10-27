@@ -247,10 +247,14 @@ export async function runWorldTroImport(now = new Date()) {
     if (!hasLock) return { skipped: true, reason: 'another-run-is-active' }
 
     const runs = await queryTarget<RunRow>(
-      'SELECT status FROM case_ingest_runs WHERE source_key = ? AND scheduled_date = ? LIMIT 1',
+      // 每天两班（00:15 / 12:15）：同一班次内不重复执行，跨班次允许再跑一次
+      `SELECT status FROM case_ingest_runs
+       WHERE source_key = ? AND scheduled_date = ?
+         AND status = 'success' AND finished_at >= (NOW() - INTERVAL 6 HOUR)
+       LIMIT 1`,
       [SOURCE_KEY, scheduledDate],
     )
-    if (runs[0]?.status === 'success') return { skipped: true, reason: 'already-completed-today' }
+    if (runs[0]?.status === 'success') return { skipped: true, reason: 'already-completed-this-slot' }
     await queryTarget(
       `INSERT INTO case_ingest_runs (source_key, scheduled_date, status, started_at, finished_at, error_message)
        VALUES (?, ?, 'running', NOW(), NULL, '')
