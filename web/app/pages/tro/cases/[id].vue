@@ -427,6 +427,8 @@ useSeoMeta({
 .case-detail__grid {
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
+  /* 与上方标题卡片保持间距（此前被 margin: 0 抹掉，两个卡片贴在一起） */
+  margin-top: var(--space-6);
 }
 
 .case-detail__timeline {
