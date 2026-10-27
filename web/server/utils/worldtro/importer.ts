@@ -188,6 +188,12 @@ async function persistCases(cases: WorldTroCase[], initialImport: boolean) {
         insertedCount += 1
       }
 
+      // 详情抓取占位：新入库/已存在的案件都确保进入待抓队列（幂等）
+      await connection.execute(
+        "INSERT IGNORE INTO case_details (case_id, fetch_status) VALUES (?, 'pending')",
+        [caseId],
+      )
+
       const brandId = await findOrCreateEntity(connection, 'brand', item.brand, entityIds)
       if (brandId) await connection.execute('INSERT IGNORE INTO case_brands (case_id, brand_id, created_at) VALUES (?, ?, NOW())', [caseId, brandId])
 

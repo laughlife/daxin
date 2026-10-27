@@ -1,15 +1,33 @@
 import { millisecondsUntilFirstWorldTroRun, millisecondsUntilNextWorldTroRun } from '../utils/worldtro/schedule.mjs'
 import { runWorldTroImport } from '../utils/worldtro/importer'
+import { runCaseDetailSync } from '../utils/worldtro/detail'
 
 export default defineNitroPlugin((nitroApp) => {
   if (process.env.NODE_ENV !== 'production' || process.env.NUXT_WORLDTRO_IMPORT_ENABLED === 'false') return
+
+  /** 列表采集 + 详情抓取（限量、慢速；详情命中滑块会自动停止，不影响列表结果）。 */
+  async function runDailySync() {
+    const result = await runWorldTroImport()
+    if (result.skipped) return { result, detail: null }
+    console.info('[worldtro-scheduler] 每日列表采集已完成', result)
+    try {
+      const detail = await runCaseDetailSync({
+        limit: Number(process.env.WORLDTRO_DETAIL_LIMIT ?? 20),
+        delayMs: Number(process.env.WORLDTRO_DETAIL_DELAY_MS ?? 25000),
+      })
+      console.info('[worldtro-scheduler] 案件详情抓取完成', detail)
+      return { result, detail }
+    } catch (error) {
+      console.error('[worldtro-scheduler] 案件详情抓取失败', error)
+      return { result, detail: null }
+    }
+  }
 
   let timer: ReturnType<typeof setTimeout> | undefined
   const schedule = (firstRun = false) => {
     timer = setTimeout(async () => {
       try {
-        const result = await runWorldTroImport()
-        if (!result.skipped) console.info('[worldtro-scheduler] 每日列表采集已完成', result)
+        await runDailySync()
       } catch (error) {
         console.error('[worldtro-scheduler] 每日列表采集失败', error)
       } finally {
@@ -26,8 +44,7 @@ export default defineNitroPlugin((nitroApp) => {
   if (runOnStart) {
     timer = setTimeout(async () => {
       try {
-        const result = await runWorldTroImport()
-        if (!result.skipped) console.info('[worldtro-scheduler] 启动补跑已完成', result)
+        await runDailySync()
       } catch (error) {
         console.error('[worldtro-scheduler] 启动补跑失败', error)
       } finally {
