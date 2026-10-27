@@ -54,7 +54,8 @@ function toLines(html) {
 }
 
 const CAPTCHA_HINTS = ['安全验证', '向右拖动滑块', '完成验证']
-const MISSING_HINTS = ['页面不存在', '404', '找不到']
+// 正常详情页里也会出现「404」字样（脚本/CSS），因此只认明确的缺失文案
+const MISSING_HINTS = ['页面不存在', '该页面不存在', '案件不存在']
 
 function detectBlock(html) {
   // 正常详情页 17~27KB；验证页只有 4.4~4.9KB。
@@ -64,7 +65,7 @@ function detectBlock(html) {
 }
 
 function detectMissing(html) {
-  return MISSING_HINTS.some((hint) => html.includes(hint))
+  return html.length < 12000 && MISSING_HINTS.some((hint) => html.includes(hint))
 }
 
 /** 从文本行里按标签抓值：标签后同一行或下一行 */

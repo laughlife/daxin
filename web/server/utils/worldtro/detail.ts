@@ -16,7 +16,8 @@ import { queryTarget } from '../db/query'
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
 const CAPTCHA_HINTS = ['安全验证', '向右拖动滑块', '完成验证']
-const MISSING_HINTS = ['页面不存在', '404', '找不到']
+// 正常详情页里也会出现「404」字样（脚本/CSS），因此只认明确的缺失文案
+const MISSING_HINTS = ['页面不存在', '该页面不存在', '案件不存在']
 const DATE_RE = /(20\d{2})[-/年.](\d{1,2})[-/月.](\d{1,2})/
 const EVENT_HINTS = /立案|起诉|冻结|禁令|TRO|PI|和解|判决|撤诉|延长|听证|送达|缺席|动议|驳回|开庭|进展/i
 
@@ -155,7 +156,8 @@ function isBlocked(html: string): boolean {
 }
 
 function isMissing(html: string): boolean {
-  return MISSING_HINTS.some((hint) => html.includes(hint))
+  // 正常详情页很长且可能含「404」字样，只有短页面 + 明确文案才算缺失
+  return html.length < 12000 && MISSING_HINTS.some((hint) => html.includes(hint))
 }
 
 async function saveDetail(caseId: number, url: string, parsed: ReturnType<typeof parseCaseDetailHtml> | null, status: string, error: string) {
