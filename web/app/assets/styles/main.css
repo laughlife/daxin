@@ -98,7 +98,7 @@ button {
   cursor: pointer;
 }
 
-:where(input:not([type='checkbox']):not([type='radio']):not([type='file']), select, textarea) {
+:where(input:not([type='checkbox']):not([type='radio']):not([type='file']):not(.search-pill__input), select, textarea) {
   min-height: 48px;
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--color-border-strong);
@@ -109,11 +109,11 @@ button {
   transition: border-color var(--transition-base), box-shadow var(--transition-base), background-color var(--transition-base);
 }
 
-:where(input:not([type='checkbox']):not([type='radio']):not([type='file']), select, textarea):hover {
+:where(input:not([type='checkbox']):not([type='radio']):not([type='file']):not(.search-pill__input), select, textarea):hover {
   border-color: color-mix(in srgb, var(--color-primary) 40%, var(--color-border-strong));
 }
 
-:where(input:not([type='checkbox']):not([type='radio']):not([type='file']), select, textarea):focus-visible {
+:where(input:not([type='checkbox']):not([type='radio']):not([type='file']):not(.search-pill__input), select, textarea):focus-visible {
   outline: none;
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary) 14%, transparent);
