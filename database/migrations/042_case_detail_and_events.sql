@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS case_events (
   event_date DATE NULL DEFAULT NULL,
   title VARCHAR(191) NOT NULL DEFAULT '',
   description TEXT NULL,
-  dedupe_key CHAR(32) NOT NULL,
+  dedupe_key CHAR(32) NOT NULL DEFAULT '',
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uk_case_events_dedupe (case_id, dedupe_key),
