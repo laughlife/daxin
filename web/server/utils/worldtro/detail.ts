@@ -70,7 +70,7 @@ function splitList(value: string): string[] {
 
 export function parseCaseDetailHtml(html: string) {
   const lines = toLines(html)
-  const events: { date: string; title: string; dedupeKey: string }[] = []
+  const events: { date: string; time: string; title: string; dedupeKey: string }[] = []
   for (let i = 0; i < lines.length; i += 1) {
     const line = lines[i] ?? ''
     const match = line.match(DATE_RE)
@@ -93,14 +93,16 @@ export function parseCaseDetailHtml(html: string) {
     if (!resolved || resolved.length < 2) continue
     // 排除表头/导航文案
     if (/^(日期|案件进程|翻译|订阅|联系)/.test(resolved)) continue
-    events.push({ date, title: resolved, dedupeKey: createHash('md5').update(`${date}|${resolved}`).digest('hex') })
+    const timeMatch = line.match(/(\d{1,2}:\d{2}(?::\d{2})?)/)
+    const time = timeMatch?.[1] ? (timeMatch[1].length === 5 ? timeMatch[1] + ':00' : timeMatch[1]) : ''
+    events.push({ date, time, title: resolved, dedupeKey: createHash('md5').update(`${date}|${resolved}`).digest('hex') })
   }
 
   return {
     courtFull: pickLabel(lines, ['法院', '审理法院']).slice(0, 190),
-    defendants: splitList(pickLabel(lines, ['被告', '被告名单'])),
-    lawFirms: splitList(pickLabel(lines, ['原告律所', '律所', '代理律所'])),
-    brands: splitList(pickLabel(lines, ['原告品牌', '品牌', '涉案品牌'])),
+    defendants: splitList(pickLabel(lines, ['被告名单'])),
+    lawFirms: splitList(pickLabel(lines, ['原告律所：', '代理律所：', '律所：'])),
+    brands: splitList(pickLabel(lines, ['品牌：', '原告品牌：', '涉案品牌：'])),
     causeOfAction: pickLabel(lines, ['案由', '侵权类型']).slice(0, 250),
     frozenAmount: pickLabel(lines, ['冻结金额', '冻结']).slice(0, 60),
     claimAmount: pickLabel(lines, ['索赔金额', '和解金额', '索赔']).slice(0, 60),
@@ -242,9 +244,9 @@ export async function runCaseDetailSync(options: {
       await saveDetail(caseId, url, parsed, filled ? 'ok' : 'partial', filled ? '' : '未解析到字段')
       for (const event of parsed.events) {
         await queryTarget(
-          `INSERT IGNORE INTO case_events (case_id, event_date, title, dedupe_key)
-           VALUES (?, ?, ?, ?)`,
-          [caseId, event.date, event.title, event.dedupeKey],
+          `INSERT IGNORE INTO case_events (case_id, event_date, event_time, title, dedupe_key)
+           VALUES (?, ?, ?, ?, ?)`,
+          [caseId, event.date, event.time, event.title, event.dedupeKey],
         )
       }
       if (filled) result.ok += 1

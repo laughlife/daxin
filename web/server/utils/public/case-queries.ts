@@ -274,8 +274,8 @@ export async function findPublishedCaseByNumber(caseNumber: string): Promise<Cas
     [record.id],
   )
 
-  const events = await queryTarget<{ event_date: string | Date | null; title: string; description: string | null }>(
-    `SELECT event_date, title, description FROM case_events
+  const events = await queryTarget<{ event_date: string | Date | null; event_time: string | null; title: string; description: string | null }>(
+    `SELECT event_date, event_time, title, description FROM case_events
      WHERE case_id = ? ORDER BY event_date DESC, id DESC LIMIT 60`,
     [record.id],
   )
@@ -300,11 +300,14 @@ export async function findPublishedCaseByNumber(caseNumber: string): Promise<Cas
       fetchStatus: detailRow?.fetch_status ?? '',
       events: events.map((row) => ({
         // event_date 可能是 Date 对象或 YYYY-MM-DD 字符串，统一格式化，避免出现英文星期
+        // DATE 列在 mysql2 里是本地时区的 Date；用 toISOString 会因时区换算少一天，
+        // 因此按本地年月日拼接
         date: row.event_date
           ? (row.event_date instanceof Date
-              ? row.event_date.toISOString().slice(0, 10)
+              ? `${row.event_date.getFullYear()}-${String(row.event_date.getMonth() + 1).padStart(2, '0')}-${String(row.event_date.getDate()).padStart(2, '0')}`
               : String(row.event_date).slice(0, 10))
           : '',
+        time: row.event_time ?? '',
         title: row.title,
         description: row.description ?? '',
       })),

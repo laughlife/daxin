@@ -60,7 +60,7 @@ export interface CaseDetailInfo {
   claimAmount: string
   sourceUrl: string
   fetchStatus: string
-  events: { date: string; title: string; description: string }[]
+  events: { date: string; time: string; title: string; description: string }[]
 }
 
 export interface CaseRecord {

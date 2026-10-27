@@ -157,22 +157,13 @@ useSeoMeta({
             <h2 class="case-detail__timeline-title">案件进展</h2>
             <ol class="case-detail__timeline-list">
               <li v-for="(event, index) in detail.events" :key="`${event.date}-${index}`">
-                <time :datetime="event.date" class="case-detail__timeline-date">{{ event.date }}</time>
-                <div class="case-detail__timeline-body">
-                  <p class="case-detail__timeline-event">{{ event.title }}</p>
-                  <p v-if="event.description" class="case-detail__timeline-desc">{{ event.description }}</p>
-                </div>
+                <dt class="case-detail__timeline-date">
+                  {{ event.time ? event.date + ' ' + event.time : event.date }}
+                </dt>
+                <dd class="case-detail__timeline-event">{{ event.title }}</dd>
+                <dd v-if="event.description" class="case-detail__timeline-desc">{{ event.description }}</dd>
               </li>
             </ol>
-            <a
-              v-if="detail?.sourceUrl"
-              :href="detail.sourceUrl"
-              class="case-detail__timeline-source"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              查看原文 ↗
-            </a>
           </aside>
         </div>
 
@@ -395,30 +386,23 @@ useSeoMeta({
 .case-detail__timeline-date {
   display: block;
   color: var(--color-text-muted);
-  font-size: var(--text-xs);
+  font-size: 13px;
+  line-height: 1.6;
 }
 
 .case-detail__timeline-event {
   margin: 2px 0 0;
   color: var(--color-text);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  line-height: 1.6;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 1.7;
 }
 
 .case-detail__timeline-desc {
   margin: 4px 0 0;
   color: var(--color-text-muted);
-  font-size: var(--text-xs);
+  font-size: 13px;
   line-height: 1.7;
-}
-
-.case-detail__timeline-source {
-  display: inline-block;
-  margin-top: var(--space-2);
-  color: var(--color-primary);
-  font-size: var(--text-sm);
-  font-weight: 600;
 }
 
 @media (max-width: 1023px) {

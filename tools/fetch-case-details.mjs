@@ -107,15 +107,17 @@ function parseDetail(html, caseNumber) {
     }
     if (!resolved || resolved.length < 2) continue
     if (/^(日期|案件进程|翻译|订阅|联系)/.test(resolved)) continue
+    const timeMatch = line.match(/(\d{1,2}:\d{2}(?::\d{2})?)/)
+    const time = timeMatch?.[1] ? (timeMatch[1].length === 5 ? timeMatch[1] + ':00' : timeMatch[1]) : ''
     const dedupeKey = createHash('md5').update(`${date}|${resolved}`).digest('hex')
-    events.push({ date, title: resolved, dedupeKey })
+    events.push({ date, time, title: resolved, dedupeKey })
   }
 
   return {
     courtFull: pickLabel(lines, ['法院', '审理法院']),
-    defendants: pickLabel(lines, ['被告', '被告名单']),
-    lawFirms: pickLabel(lines, ['原告律所', '律所', '代理律所']),
-    brands: pickLabel(lines, ['原告品牌', '品牌', '涉案品牌']),
+    defendants: pickLabel(lines, ['被告名单']),
+    lawFirms: pickLabel(lines, ['原告律所：', '代理律所：', '律所：']),
+    brands: pickLabel(lines, ['品牌：', '原告品牌：', '涉案品牌：']),
     causeOfAction: pickLabel(lines, ['案由', '侵权类型', '类型']),
     frozenAmount: pickLabel(lines, ['冻结金额', '冻结']),
     claimAmount: pickLabel(lines, ['索赔金额', '和解金额', '索赔']),
@@ -224,8 +226,8 @@ for (const [caseId, caseNumber, state, existingUrl] of targets) {
     const filled = [parsed.courtFull, parsed.defendants, parsed.lawFirms, parsed.brands].filter(Boolean).length
     saveDetail(caseId, url, parsed, filled ? 'ok' : 'partial', filled ? '' : '未解析到字段')
     for (const event of parsed.events) {
-      sql(`INSERT IGNORE INTO case_events (case_id, event_date, title, dedupe_key)
-           VALUES (${caseId}, ${q(event.date)}, ${q(event.title)}, ${q(event.dedupeKey)})`)
+      sql(`INSERT IGNORE INTO case_events (case_id, event_date, event_time, title, dedupe_key)
+           VALUES (${caseId}, ${q(event.date)}, ${q(event.time)}, ${q(event.title)}, ${q(event.dedupeKey)})`)
     }
     console.log(`  ✓ ${caseNumber}: 字段 ${filled}/4，进展 ${parsed.events.length} 条`)
     ok += 1
