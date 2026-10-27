@@ -198,17 +198,24 @@ export async function runCaseDetailSync(options: {
   const delayMs = Math.max(1000, options.delayMs ?? 8000)
 
   /*
-   * 复查：立案 30 天内的案件，进展仍在持续更新（立案 → TRO → PI → 和解）。
+   * 复查：立案 N 天内的案件，进展仍在持续更新（立案 → TRO → PI → 和解）。
+   * N 由 WORLDTRO_RECHECK_DAYS 配置，默认 30 天。
    * 已抓成功且距上次抓取超过 12 小时的，重新置为 pending 再抓一次；
    * case_events 有 (case_id, dedupe_key) 唯一键，重复抓取只会追加新进展。
    */
+  // 复查窗口天数：WORLDTRO_RECHECK_DAYS，默认 30 天，夹取 1~365
+  const recheckDays = Math.max(1, Math.min(365, Number(process.env.WORLDTRO_RECHECK_DAYS ?? 30) || 30))
+  const recheckConditions = `
+       d.fetch_status = 'ok'
+       AND c.filed_at >= DATE_SUB(CURDATE(), INTERVAL ? DAY)
+       AND (d.fetched_at IS NULL OR d.fetched_at < (NOW() - INTERVAL 11 HOUR))`
+
   const recheckCandidates = await queryTarget<{ total: number | string }>(
     `SELECT COUNT(*) AS total
      FROM case_details d
      JOIN cases c ON c.id = d.case_id
-     WHERE d.fetch_status = 'ok'
-       AND c.filed_at >= (CURDATE() - INTERVAL 30 DAY)
-       AND (d.fetched_at IS NULL OR d.fetched_at < (NOW() - INTERVAL 12 HOUR))`,
+     WHERE ${recheckConditions}`,
+    [recheckDays],
   )
   const recheckCount = Number(recheckCandidates[0]?.total ?? 0)
   if (recheckCount > 0) {
@@ -216,11 +223,10 @@ export async function runCaseDetailSync(options: {
       `UPDATE case_details d
        JOIN cases c ON c.id = d.case_id
        SET d.fetch_status = 'pending'
-       WHERE d.fetch_status = 'ok'
-         AND c.filed_at >= (CURDATE() - INTERVAL 30 DAY)
-         AND (d.fetched_at IS NULL OR d.fetched_at < (NOW() - INTERVAL 12 HOUR))`,
+       WHERE ${recheckConditions}`,
+      [recheckDays],
     )
-    console.info('[worldtro-detail] 活跃案件复查：' + recheckCount + ' 条重新入队（立案 30 天内）')
+    console.info('[worldtro-detail] 活跃案件复查：' + recheckCount + ' 条重新入队（立案 ' + recheckDays + ' 天内）')
   }
 
   const rows = await queryTarget<{ case_id: number; case_number: string; state_code: string; source_url: string; fetch_status: string }>(
