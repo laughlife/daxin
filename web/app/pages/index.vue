@@ -341,10 +341,12 @@ useHead({
 }
 
 .home-team-intro__features {
+  --team-feature-row-gap: clamp(1.25rem, 2.7vw, 3.5rem);
   display: grid;
-  gap: clamp(1.25rem, 1.8vw, 1.75rem) clamp(1.25rem, 3vw, 3rem);
+  row-gap: var(--team-feature-row-gap);
+  column-gap: clamp(1.25rem, 3vw, 3rem);
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin: var(--space-3) 0 0;
+  margin: var(--team-feature-row-gap) 0 0;
   padding: 0;
   list-style: none;
 }
