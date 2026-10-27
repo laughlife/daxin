@@ -2,7 +2,14 @@
 import { computed, ref } from 'vue'
 import type { HomeTeamServiceSection } from '~/repositories/home'
 
-const props = defineProps<{ sections: HomeTeamServiceSection[] }>()
+const props = withDefaults(defineProps<{
+  sections: HomeTeamServiceSection[]
+  backgroundImage?: string
+  coverImages?: string[]
+}>(), {
+  backgroundImage: '',
+  coverImages: () => [],
+})
 
 const hoveredIndex = ref(-1)
 const selectedIndex = ref(-1)
@@ -20,6 +27,13 @@ const PANEL_ARTS_BY_SLUG: Record<string, string> = {
   'team-disputes': PANEL_ARTS[2]!,
   'team-cross-border': PANEL_ARTS[3]!,
   'team-lifecycle': PANEL_ARTS[4]!,
+}
+const PANEL_ART_INDEX_BY_SLUG: Record<string, number> = {
+  'team-tro': 0,
+  'team-ip': 1,
+  'team-disputes': 2,
+  'team-cross-border': 3,
+  'team-lifecycle': 4,
 }
 const PANEL_SUBTITLES_BY_SLUG: Record<string, string> = {
   'team-tro': 'TRO SERVICES',
@@ -50,13 +64,19 @@ const activeIndex = computed(() => (
 ))
 
 function panelArtStyle(slug: string, index: number): Record<string, string> {
-  const image = PANEL_ARTS_BY_SLUG[slug] ?? PANEL_ARTS[index]
+  const artIndex = PANEL_ART_INDEX_BY_SLUG[slug] ?? index
+  const image = props.coverImages[artIndex] || PANEL_ARTS_BY_SLUG[slug] || PANEL_ARTS[index]
   return image ? { '--core-panel-art': `url("${image}")` } : {}
 }
 
 function hasPanelArt(slug: string, index: number): boolean {
-  return Boolean(PANEL_ARTS_BY_SLUG[slug] ?? PANEL_ARTS[index])
+  const artIndex = PANEL_ART_INDEX_BY_SLUG[slug] ?? index
+  return Boolean(props.coverImages[artIndex] || PANEL_ARTS_BY_SLUG[slug] || PANEL_ARTS[index])
 }
+
+const sectionBackgroundStyle = computed(() => props.backgroundImage
+  ? { backgroundImage: `url(${JSON.stringify(props.backgroundImage)})` }
+  : {})
 
 function titleParts(title: string): Array<{ text: string, latin: boolean }> {
   return title.split(/([A-Za-z0-9]+)/).filter(Boolean).map(text => ({
@@ -71,6 +91,7 @@ function titleParts(title: string): Array<{ text: string, latin: boolean }> {
     v-if="sections.length"
     class="core-business"
     aria-label="核心业务"
+    :style="sectionBackgroundStyle"
   >
     <PageContainer>
       <header class="core-business__heading">

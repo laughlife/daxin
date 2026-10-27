@@ -1,29 +1,34 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { CoreAdvantage } from '~/repositories/home'
-import swatchTeam from '~/assets/images/core-advantages/swatch-team.png?inline'
-import swatchExperience from '~/assets/images/core-advantages/swatch-experience.png?inline'
-import swatchEfficiency from '~/assets/images/core-advantages/swatch-efficiency.png?inline'
-import swatchProtection from '~/assets/images/core-advantages/swatch-protection.png?inline'
 
 const props = defineProps<{
   items: CoreAdvantage[]
+  backgroundImage?: string
+  coverImages?: string[]
+  expandedImages?: string[]
 }>()
 
 const hoveredIndex = ref(-1)
 const selectedIndex = ref<number | null>(null)
-const expandedSwatches: Record<string, string> = {
-  team: swatchTeam,
-  experience: swatchExperience,
-  efficiency: swatchEfficiency,
-  protection: swatchProtection,
-}
+const DEFAULT_COVER_IMAGES = [
+  '/images/icons/core-advantage-team.png',
+  '/images/icons/core-advantage-experience.png',
+  '/images/icons/core-advantage-efficiency.png',
+  '/images/icons/core-advantage-protection.png',
+]
+const DEFAULT_EXPANDED_IMAGES = [
+  '/images/icons/core-advantage-expanded-team.png',
+  '/images/icons/core-advantage-expanded-experience.png',
+  '/images/icons/core-advantage-expanded-efficiency.png',
+  '/images/icons/core-advantage-expanded-protection.png',
+]
 const expandedIndex = computed(() => {
   if (selectedIndex.value !== null) return selectedIndex.value
   return hoveredIndex.value
 })
 const gridTemplateColumns = computed(() => {
-  const columns = Math.min(4, props.items.length)
+  const columns = Math.min(5, props.items.length)
   if (expandedIndex.value < 0) return `repeat(${columns}, minmax(0, 1fr))`
   return Array.from({ length: columns }, (_, index) => index === expandedIndex.value ? '1.6fr' : '1fr').join(' ')
 })
@@ -40,21 +45,20 @@ function clearHovered(index: number) {
   if (selectedIndex.value === null && hoveredIndex.value === index) hoveredIndex.value = -1
 }
 
-function iconKey(title: string) {
-  if (title.includes('专业')) return 'team'
-  if (title.includes('经验')) return 'experience'
-  if (title.includes('高效')) return 'efficiency'
-  return 'protection'
-}
-
-function iconPath(title: string, expanded: boolean) {
-  const key = iconKey(title)
-  return expanded ? expandedSwatches[key] ?? '' : `/images/icons/core-advantage-${key}.png`
+function iconPath(index: number, expanded: boolean): string {
+  const configuredImages = expanded ? props.expandedImages : props.coverImages
+  return configuredImages?.[index]?.trim()
+    || (expanded ? DEFAULT_EXPANDED_IMAGES[index] : DEFAULT_COVER_IMAGES[index])
+    || ''
 }
 
 function displayTitle(title: string) {
-  return title.replace(/^0?[1-4][.、\s]+/, '').trim()
+  return title.replace(/^0?[1-5][.、\s]+/, '').trim()
 }
+
+const sectionBackgroundStyle = computed(() => props.backgroundImage
+  ? { backgroundImage: `url(${JSON.stringify(props.backgroundImage)})` }
+  : undefined)
 
 function segments(item: CoreAdvantage) {
   const text = item.description
@@ -86,7 +90,7 @@ function segments(item: CoreAdvantage) {
 </script>
 
 <template>
-  <section v-if="props.items.length" class="home-core-advantages" aria-label="核心优势">
+  <section v-if="props.items.length" class="home-core-advantages" aria-label="核心优势" :style="sectionBackgroundStyle">
     <PageContainer>
       <div class="home-core-advantages__heading">
         <h2 class="home-core-advantages__heading-title">核心优势</h2>
@@ -111,8 +115,9 @@ function segments(item: CoreAdvantage) {
             @blur="clearHovered(index)"
           >
             <img
+              v-if="iconPath(index, expandedIndex === index)"
               class="home-core-advantages__icon"
-              :src="iconPath(item.title, expandedIndex === index)"
+              :src="iconPath(index, expandedIndex === index)"
               alt=""
               aria-hidden="true"
             >

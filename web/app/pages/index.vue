@@ -37,6 +37,24 @@ const teamBackgroundStyle = computed(() => ({
     ? `url(${JSON.stringify(teamBackgroundImage.value)})`
     : undefined,
 }))
+const statsBackgroundStyle = computed(() => {
+  const image = readSettingText('home_stats_background')
+  return image ? { backgroundImage: `url(${JSON.stringify(image)})` } : undefined
+})
+const coreBusinessBackgroundImage = computed(() => readSettingText('home_core_business_background'))
+const coreBusinessCoverImages = computed(() => Array.from(
+  { length: 5 },
+  (_, index) => readSettingText(`home_core_business_cover_${index + 1}`),
+))
+const coreAdvantagesBackgroundImage = computed(() => readSettingText('home_core_advantages_background'))
+const coreAdvantageCoverImages = computed(() => Array.from(
+  { length: 5 },
+  (_, index) => readSettingText(`home_core_advantage_cover_${index + 1}`),
+))
+const coreAdvantageExpandedImages = computed(() => Array.from(
+  { length: 5 },
+  (_, index) => readSettingText(`home_core_advantage_expanded_${index + 1}`),
+))
 
 /** 数据概览：配置里是 JSON 数组，非数组时回退静态配置。 */
 const statsFromSettings = computed(() => {
@@ -225,15 +243,24 @@ useHead({
       </PageContainer>
     </section>
 
-    <section class="home-about" aria-label="数据概览">
+    <section class="home-about" aria-label="数据概览" :style="statsBackgroundStyle">
       <PageContainer>
         <StatsSection class="home-about__stats" :stats="statsFromSettings" />
       </PageContainer>
     </section>
 
-    <CoreBusiness :sections="teamServices" />
+    <CoreBusiness
+      :sections="teamServices"
+      :background-image="coreBusinessBackgroundImage"
+      :cover-images="coreBusinessCoverImages"
+    />
 
-    <HomeCoreAdvantages :items="coreAdvantages" />
+    <HomeCoreAdvantages
+      :items="coreAdvantages"
+      :background-image="coreAdvantagesBackgroundImage"
+      :cover-images="coreAdvantageCoverImages"
+      :expanded-images="coreAdvantageExpandedImages"
+    />
     <HomeLegalGuides />
     <section class="home-content"><PageContainer>
       <ErrorState

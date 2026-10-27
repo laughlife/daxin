@@ -8,6 +8,13 @@ import { qrImageForItemKey } from '~/utils/contactQr'
 
 const { data: siteSettings } = await useSiteSettings()
 
+const backgroundStyle = computed(() => {
+  const value = siteSettings.value?.settings?.home_legal_guides_background
+  return typeof value === 'string' && value.trim()
+    ? { backgroundImage: `url(${JSON.stringify(value.trim())})` }
+    : undefined
+})
+
 function settingValue(key: string): unknown {
   const value = siteSettings.value?.settings?.[key]
   if (typeof value !== 'string') return value
@@ -103,7 +110,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section v-if="slides.length" class="home-legal-guides" aria-label="普法干货">
+  <section v-if="slides.length" class="home-legal-guides" aria-label="普法干货" :style="backgroundStyle">
     <PageContainer>
       <div class="home-legal-guides__heading">
         <h2 class="home-legal-guides__heading-title">普法干货</h2>
