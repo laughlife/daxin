@@ -49,7 +49,23 @@ export interface BusinessCard {
 export type CaseType = 'trademark' | 'patent' | 'copyright'
 
 /** TRO 案件记录 */
+/** worldtro 详情页抓取结果；全部字段可能为空，前端按「有值才渲染」处理 */
+export interface CaseDetailInfo {
+  courtFull: string
+  defendants: string[]
+  lawFirms: string[]
+  brands: string[]
+  causeOfAction: string
+  frozenAmount: string
+  claimAmount: string
+  sourceUrl: string
+  fetchStatus: string
+  events: { date: string; title: string; description: string }[]
+}
+
 export interface CaseRecord {
+  /** 详情页附加信息（未抓取时为空对象字段） */
+  detail?: CaseDetailInfo
   /** 唯一标识 */
   id: string
   /** 案件号 */

@@ -53,6 +53,8 @@ if (!data.value && !error.value) {
 
 const record = computed(() => data.value?.record ?? null)
 const relatedCases = computed(() => data.value?.related ?? [])
+/** 详情附加信息；未抓取时为空，模板里按字段是否存在决定渲染 */
+const detail = computed(() => record.value?.detail ?? null)
 const errorMessage = computed(() =>
   error.value instanceof Error && error.value.message
     ? error.value.message
@@ -91,44 +93,88 @@ useSeoMeta({
           <p class="case-detail__number">案件号：{{ record.caseNumber || '—' }}</p>
         </header>
 
-        <dl class="case-detail__facts">
-          <div>
-            <dt>起诉时间</dt>
-            <dd>{{ record.filedAt || '—' }}</dd>
-          </div>
-          <div>
-            <dt>代理律所</dt>
-            <dd>
-              <NuxtLink
-                v-if="record.lawFirm"
-                :to="entityDirectoryHref('firm', record.lawFirm)"
-              >
-                {{ record.lawFirm }}
-              </NuxtLink>
-              <span v-else>—</span>
-            </dd>
-          </div>
-          <div>
-            <dt>原告</dt>
-            <dd>{{ record.plaintiffName || '—' }}</dd>
-          </div>
-          <div>
-            <dt>涉案品牌</dt>
-            <dd>
-              <NuxtLink
-                v-if="record.plaintiffBrand"
-                :to="entityDirectoryHref('brand', record.plaintiffBrand)"
-              >
-                {{ record.plaintiffBrand }} · 历史发案
-              </NuxtLink>
-              <span v-else>—</span>
-            </dd>
-          </div>
-          <div>
-            <dt>侵权类型</dt>
-            <dd>{{ caseTypeLabel(record.caseType) }}</dd>
-          </div>
-        </dl>
+        <div class="case-detail__grid">
+          <dl class="case-detail__facts">
+            <div>
+              <dt>起诉时间</dt>
+              <dd>{{ record.filedAt || '—' }}</dd>
+            </div>
+            <div v-if="detail?.courtFull">
+              <dt>受理法院</dt>
+              <dd>{{ detail.courtFull }}</dd>
+            </div>
+            <div>
+              <dt>代理律所</dt>
+              <dd>
+                <NuxtLink
+                  v-if="record.lawFirm"
+                  :to="entityDirectoryHref('firm', record.lawFirm)"
+                >
+                  {{ record.lawFirm }}
+                </NuxtLink>
+                <span v-else>—</span>
+              </dd>
+            </div>
+            <div>
+              <dt>原告</dt>
+              <dd>{{ record.plaintiffName || '—' }}</dd>
+            </div>
+            <div v-if="detail?.defendants.length">
+              <dt>被告</dt>
+              <dd>{{ detail.defendants.join('、') }}</dd>
+            </div>
+            <div>
+              <dt>涉案品牌</dt>
+              <dd>
+                <NuxtLink
+                  v-if="record.plaintiffBrand"
+                  :to="entityDirectoryHref('brand', record.plaintiffBrand)"
+                >
+                  {{ record.plaintiffBrand }} · 历史发案
+                </NuxtLink>
+                <span v-else>—</span>
+              </dd>
+            </div>
+            <div>
+              <dt>侵权类型</dt>
+              <dd>{{ caseTypeLabel(record.caseType) }}</dd>
+            </div>
+            <div v-if="detail?.causeOfAction && detail.causeOfAction !== caseTypeLabel(record.caseType)">
+              <dt>案由</dt>
+              <dd>{{ detail.causeOfAction }}</dd>
+            </div>
+            <div v-if="detail?.frozenAmount">
+              <dt>冻结金额</dt>
+              <dd>{{ detail.frozenAmount }}</dd>
+            </div>
+            <div v-if="detail?.claimAmount">
+              <dt>索赔金额</dt>
+              <dd>{{ detail.claimAmount }}</dd>
+            </div>
+          </dl>
+
+          <aside v-if="detail?.events.length" class="case-detail__timeline" aria-label="案件进展">
+            <h2 class="case-detail__timeline-title">案件进展</h2>
+            <ol class="case-detail__timeline-list">
+              <li v-for="(event, index) in detail.events" :key="`${event.date}-${index}`">
+                <time :datetime="event.date" class="case-detail__timeline-date">{{ event.date }}</time>
+                <div class="case-detail__timeline-body">
+                  <p class="case-detail__timeline-event">{{ event.title }}</p>
+                  <p v-if="event.description" class="case-detail__timeline-desc">{{ event.description }}</p>
+                </div>
+              </li>
+            </ol>
+            <a
+              v-if="detail?.sourceUrl"
+              :href="detail.sourceUrl"
+              class="case-detail__timeline-source"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              查看原文 ↗
+            </a>
+          </aside>
+        </div>
 
         <section v-if="record.source" class="case-detail__section" aria-label="资料来源">
           <SectionHeading :level="2" title="资料来源" />
@@ -299,5 +345,85 @@ useSeoMeta({
   gap: var(--space-3);
   flex-wrap: wrap;
   margin-top: var(--space-8);
+}
+
+.case-detail__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: var(--space-8);
+  align-items: start;
+}
+
+.case-detail__timeline {
+  padding: var(--space-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-light);
+}
+
+.case-detail__timeline-title {
+  margin: 0 0 var(--space-4);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--color-text);
+}
+
+.case-detail__timeline-list {
+  position: relative;
+  margin: 0;
+  padding: 0 0 0 var(--space-5);
+  list-style: none;
+  border-left: 2px solid color-mix(in srgb, var(--color-primary) 22%, transparent);
+}
+
+.case-detail__timeline-list li {
+  position: relative;
+  padding-bottom: var(--space-4);
+}
+
+.case-detail__timeline-list li::before {
+  content: "";
+  position: absolute;
+  top: 0.45em;
+  left: calc(var(--space-5) * -1 - 5px);
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.case-detail__timeline-date {
+  display: block;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+}
+
+.case-detail__timeline-event {
+  margin: 2px 0 0;
+  color: var(--color-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.case-detail__timeline-desc {
+  margin: 4px 0 0;
+  color: var(--color-text-muted);
+  font-size: var(--text-xs);
+  line-height: 1.7;
+}
+
+.case-detail__timeline-source {
+  display: inline-block;
+  margin-top: var(--space-2);
+  color: var(--color-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+@media (max-width: 1023px) {
+  .case-detail__grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 </style>

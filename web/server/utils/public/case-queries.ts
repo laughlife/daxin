@@ -254,7 +254,57 @@ export async function findPublishedCaseByNumber(caseNumber: string): Promise<Cas
   const [first] = rows
   if (!first) return null
   const [record] = await mapCaseRows([first])
-  return record ?? null
+  if (!record) return null
+
+  // 详情页附加数据：worldtro 详情抓取结果（可能尚未抓取，缺失时前端整块不渲染）
+  const [detailRow] = await queryTarget<{
+    source_url: string
+    court_full: string
+    defendants: unknown
+    law_firms: unknown
+    brands: unknown
+    cause_of_action: string
+    frozen_amount: string
+    claim_amount: string
+    fetch_status: string
+  }>(
+    `SELECT source_url, court_full, defendants, law_firms, brands,
+            cause_of_action, frozen_amount, claim_amount, fetch_status
+     FROM case_details WHERE case_id = ? LIMIT 1`,
+    [record.id],
+  )
+
+  const events = await queryTarget<{ event_date: string | Date | null; title: string; description: string | null }>(
+    `SELECT event_date, title, description FROM case_events
+     WHERE case_id = ? ORDER BY event_date DESC, id DESC LIMIT 60`,
+    [record.id],
+  )
+
+  const asList = (value: unknown): string[] => {
+    if (Array.isArray(value)) return value.map((item) => String(item)).filter(Boolean)
+    if (typeof value === 'string' && value.trim()) return value.split(/[、,，;；]/).map((s) => s.trim()).filter(Boolean)
+    return []
+  }
+
+  return {
+    ...record,
+    detail: {
+      courtFull: detailRow?.court_full ?? '',
+      defendants: asList(detailRow?.defendants),
+      lawFirms: asList(detailRow?.law_firms),
+      brands: asList(detailRow?.brands),
+      causeOfAction: detailRow?.cause_of_action ?? '',
+      frozenAmount: detailRow?.frozen_amount ?? '',
+      claimAmount: detailRow?.claim_amount ?? '',
+      sourceUrl: detailRow?.source_url ?? '',
+      fetchStatus: detailRow?.fetch_status ?? '',
+      events: events.map((row) => ({
+        date: row.event_date ? String(row.event_date).slice(0, 10) : '',
+        title: row.title,
+        description: row.description ?? '',
+      })),
+    },
+  }
 }
 
 /** 品牌 / 律所公开关联案件数：只统计已发布案件，随发布状态实时变化。 */
