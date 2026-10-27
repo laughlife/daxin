@@ -38,7 +38,7 @@ test('后台菜单直接显示业务入口，不包含首页、内容审核、�
   assert.doesNotMatch(layout, /团队业务范围|\/admin\/services/)
   const settingsIndex = layout.indexOf("{ label: '站点设置'")
   assert.ok(settingsIndex > layout.indexOf("{ label: '用户与权限'"), '站点设置应位于菜单最后')
-  assert.doesNotMatch(layout, /文章管理|\/admin\/articles/)
+  assert.match(layout, /文章管理.*\/admin\/articles/)
   assert.match(home, /navigateTo\('\/admin\/cases'/)
 })
 
