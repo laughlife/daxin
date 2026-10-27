@@ -299,7 +299,12 @@ export async function findPublishedCaseByNumber(caseNumber: string): Promise<Cas
       sourceUrl: detailRow?.source_url ?? '',
       fetchStatus: detailRow?.fetch_status ?? '',
       events: events.map((row) => ({
-        date: row.event_date ? String(row.event_date).slice(0, 10) : '',
+        // event_date 可能是 Date 对象或 YYYY-MM-DD 字符串，统一格式化，避免出现英文星期
+        date: row.event_date
+          ? (row.event_date instanceof Date
+              ? row.event_date.toISOString().slice(0, 10)
+              : String(row.event_date).slice(0, 10))
+          : '',
         title: row.title,
         description: row.description ?? '',
       })),
