@@ -423,4 +423,47 @@ useSeoMeta({
   margin: 0;
   align-self: stretch;
 }
+/* 上下结构：字段整块在上，案件进展整块在下（避免右侧窄列导致长句换行） */
+.case-detail__grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-4);
+}
+
+.case-detail__timeline {
+  height: auto;
+}
+
+.case-detail__timeline-list li {
+  display: grid;
+  grid-template-columns: 152px minmax(0, 1fr);
+  column-gap: var(--space-4);
+  padding-bottom: var(--space-3);
+}
+
+.case-detail__timeline-date {
+  grid-column: 1;
+  padding-top: 1px;
+}
+
+.case-detail__timeline-event {
+  grid-column: 2;
+  margin: 0;
+}
+
+.case-detail__timeline-desc {
+  grid-column: 2;
+  margin: 2px 0 0;
+}
+
+@media (max-width: 640px) {
+  .case-detail__timeline-list li {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 2px;
+  }
+
+  .case-detail__timeline-event,
+  .case-detail__timeline-desc {
+    grid-column: 1;
+  }
+}
 </style>
