@@ -164,14 +164,15 @@ async function saveDetail(caseId: number, url: string, parsed: ReturnType<typeof
   await queryTarget(
     `INSERT INTO case_details
        (case_id, source_url, court_full, defendants, law_firms, brands, cause_of_action,
-        frozen_amount, claim_amount, raw_text, fetch_status, fetch_error, fetched_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())
+        frozen_amount, claim_amount, raw_text, fetch_status, fetch_error, fetched_at, fetch_attempts)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), 1)
      ON DUPLICATE KEY UPDATE
        source_url = VALUES(source_url), court_full = VALUES(court_full),
        defendants = VALUES(defendants), law_firms = VALUES(law_firms), brands = VALUES(brands),
        cause_of_action = VALUES(cause_of_action), frozen_amount = VALUES(frozen_amount),
        claim_amount = VALUES(claim_amount), raw_text = VALUES(raw_text),
-       fetch_status = VALUES(fetch_status), fetch_error = VALUES(fetch_error), fetched_at = NOW()`,
+       fetch_status = VALUES(fetch_status), fetch_error = VALUES(fetch_error), fetched_at = NOW(),
+       fetch_attempts = fetch_attempts + 1`,
     [
       caseId,
       url,
@@ -236,7 +237,16 @@ export async function runCaseDetailSync(options: {
             IFNULL(d.source_url, '') AS source_url, d.fetch_status
      FROM case_details d
      JOIN cases c ON c.id = d.case_id
-     WHERE d.fetch_status IN ('pending', 'blocked') AND c.case_number <> ''
+     WHERE c.case_number <> ''
+       AND (
+         d.fetch_status IN ('pending', 'blocked')
+         -- 页面暂时不存在（源站延迟发布等）：7 天后重试，最多 2 次
+         OR (d.fetch_status = 'missing' AND d.fetch_attempts < 2
+             AND (d.fetched_at IS NULL OR d.fetched_at < (NOW() - INTERVAL 7 DAY)))
+         -- 抓到了但没解析到字段：1 天后重试，最多 5 次
+         OR (d.fetch_status = 'partial' AND d.fetch_attempts < 5
+             AND (d.fetched_at IS NULL OR d.fetched_at < (NOW() - INTERVAL 1 DAY)))
+       )
      ORDER BY c.filed_at DESC, c.id DESC
      ${limit > 0 ? 'LIMIT ?' : ''}`,
     limit > 0 ? [limit] : [],
