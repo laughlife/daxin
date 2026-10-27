@@ -171,6 +171,7 @@ if (!targets.length) {
 }
 
 console.log(`待抓 ${targets.length} 条，间隔 ${Math.round(delayMs / 1000)}s`)
+let consecutiveBlocked = 0
 let ok = 0; let blocked = 0; let missing = 0; let failed = 0
 
 for (const [caseId, caseNumber, state, existingUrl] of targets) {
@@ -186,10 +187,17 @@ for (const [caseId, caseNumber, state, existingUrl] of targets) {
     const { status, html } = await fetchHtml(url)
     if (detectBlock(html)) {
       saveDetail(caseId, url, { courtFull: '', defendants: '', lawFirms: '', brands: '', causeOfAction: '', frozenAmount: '', claimAmount: '', lines: [] }, 'blocked', '触发站点滑块验证')
-      console.log(`  ! ${caseNumber}: 触发验证，停止本次运行（次日重试）`)
       blocked += 1
-      break
+      consecutiveBlocked += 1
+      console.log(`  ! ${caseNumber}: 触发验证（连续 ${consecutiveBlocked} 条）`)
+      // 偶发一次继续；连续 3 条被拦说明风控了，结束本轮
+      if (consecutiveBlocked >= 3) {
+        console.log('  ! 连续 3 条被拦，停止本次运行（下一班次重试）')
+        break
+      }
+      continue
     }
+    consecutiveBlocked = 0
     if (status === 404 || detectMissing(html)) {
       saveDetail(caseId, url, { courtFull: '', defendants: '', lawFirms: '', brands: '', causeOfAction: '', frozenAmount: '', claimAmount: '', lines: [] }, 'missing', `HTTP ${status}`)
       console.log(`  - ${caseNumber}: 详情页不存在`)

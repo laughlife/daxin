@@ -107,17 +107,27 @@ const PAGE_HEADERS = {
  * 因此用固定的 180 / 1200ms 即可通过，无需真实拖动。
  */
 async function fetchPage(url: string): Promise<{ status: number; html: string }> {
-  const res = await fetch(url, { headers: PAGE_HEADERS })
-  const html = await res.text()
-  if (res.status !== 200 || !isBlocked(html)) return { status: res.status, html }
+  // 最多 3 轮：每轮重新取页面拿新 token，再带滑块参数重试
+  let lastStatus = 0
+  let lastHtml = ''
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const res = await fetch(url, { headers: PAGE_HEADERS })
+    lastStatus = res.status
+    lastHtml = await res.text()
+    if (res.status !== 200 || !isBlocked(lastHtml)) return { status: res.status, html: lastHtml }
 
-  const token = html.match(/name="slider_token" id="sl-tok" value="([^"]+)"/)?.[1] ?? ''
-  if (!token) return { status: res.status, html }
+    const token = lastHtml.match(/name="slider_token" id="sl-tok" value="([^"]+)"/)?.[1] ?? ''
+    if (!token) return { status: res.status, html: lastHtml }
 
-  const separator = url.includes('?') ? '&' : '?'
-  const retryUrl = `${url}${separator}slider_token=${encodeURIComponent(token)}&slider_val=180&slider_ms=1200`
-  const retry = await fetch(retryUrl, { headers: { ...PAGE_HEADERS, referer: url } })
-  return { status: retry.status, html: await retry.text() }
+    const separator = url.includes('?') ? '&' : '?'
+    const value = 180 + attempt * 20
+    const retryUrl = `${url}${separator}slider_token=${encodeURIComponent(token)}&slider_val=${value}&slider_ms=${1200 + attempt * 200}`
+    const retry = await fetch(retryUrl, { headers: { ...PAGE_HEADERS, referer: url } })
+    const retryHtml = await retry.text()
+    if (!isBlocked(retryHtml)) return { status: retry.status, html: retryHtml }
+    await new Promise((resolve) => setTimeout(resolve, 1500))
+  }
+  return { status: lastStatus, html: lastHtml }
 }
 
 function isBlocked(html: string): boolean {
@@ -180,6 +190,7 @@ export async function runCaseDetailSync(options: {
   if (!rows.length) return { picked: 0, ok: 0, partial: 0, blocked: 0, missing: 0, failed: 0, stoppedByCaptcha: false }
 
   let processed = 0
+  let consecutiveBlocked = 0
   const result: CaseDetailSyncResult = { picked: rows.length, ok: 0, partial: 0, blocked: 0, missing: 0, failed: 0, stoppedByCaptcha: false }
 
   for (const row of rows) {
@@ -194,9 +205,15 @@ export async function runCaseDetailSync(options: {
       if (isBlocked(html)) {
         await saveDetail(caseId, url, null, 'blocked', '触发站点滑块验证')
         result.blocked += 1
-        result.stoppedByCaptcha = true
-        break
+        consecutiveBlocked += 1
+        // 偶发一次继续跑；连续 3 条都被拦说明已被风控，结束本轮等下一班次
+        if (consecutiveBlocked >= 3) {
+          result.stoppedByCaptcha = true
+          break
+        }
+        continue
       }
+      consecutiveBlocked = 0
       if (status === 404 || isMissing(html)) {
         await saveDetail(caseId, url, null, 'missing', `HTTP ${status}`)
         result.missing += 1
