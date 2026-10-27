@@ -88,7 +88,7 @@ const SETTING_LABELS: Record<string, string> = {
   content_sidebar: '', site_theme: '公开页面配色',
   home_team_background: '团队介绍图片', home_team_title: '团队介绍标题', home_team_paragraphs: '团队介绍正文', home_team_features: '团队介绍亮点（多行，已拆分为下面四项）', home_team_feature_1: '亮点一', home_team_feature_2: '亮点二', home_team_feature_3: '亮点三', home_team_feature_4: '亮点四',
   home_stats: '首页数据指标',
-  home_stats_background: '8年数据区块背景图',
+  home_stats_background: '数据区块背景图',
   home_core_advantages: '首页核心优势', home_legal_guides: '普法干货轮播',
   home_core_business_background: '核心业务背景图',
   home_core_advantages_background: '核心优势背景图',
