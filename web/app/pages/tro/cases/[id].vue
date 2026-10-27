@@ -269,6 +269,8 @@ useSeoMeta({
 }
 
 .case-detail__facts {
+  height: 100%;
+  margin: 0;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: var(--space-3);
@@ -340,13 +342,18 @@ useSeoMeta({
 
 .case-detail__grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
-  gap: var(--space-8);
-  align-items: start;
+  grid-template-columns: minmax(0, 1.4fr) minmax(300px, 1fr);
+  gap: var(--space-6);
+  /* 两列等高：左列字段与右列时间线的上下边严格对齐 */
+  align-items: stretch;
 }
 
 .case-detail__timeline {
-  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  /* 高度跟随左列，视觉上两框上下对齐 */
+  height: 100%;
+  padding: var(--space-5) var(--space-5) var(--space-4);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
   background: var(--color-bg-light);
@@ -409,5 +416,11 @@ useSeoMeta({
   .case-detail__grid {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+/* 覆盖前面残留的外边距，保证两列严格上下对齐 */
+.case-detail__grid > .case-detail__facts,
+.case-detail__grid > .case-detail__timeline {
+  margin: 0;
+  align-self: stretch;
 }
 </style>

@@ -100,7 +100,7 @@ export function parseCaseDetailHtml(html: string) {
 
   return {
     courtFull: pickLabel(lines, ['法院', '审理法院']).slice(0, 190),
-    defendants: splitList(pickLabel(lines, ['被告名单'])),
+    defendants: splitList(pickLabel(lines, ['被告：', '被告:'])),
     lawFirms: splitList(pickLabel(lines, ['原告律所：', '代理律所：', '律所：'])),
     brands: splitList(pickLabel(lines, ['品牌：', '原告品牌：', '涉案品牌：'])),
     causeOfAction: pickLabel(lines, ['案由', '侵权类型']).slice(0, 250),
