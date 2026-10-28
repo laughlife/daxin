@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { fetchCaseDetail, fetchCases } from '~/repositories/cases'
 import { caseTypeLabel } from '~/utils/caseTypeLabel'
-import { entityDirectoryHref } from '~/utils/content'
 import type { CaseRecord } from '~/types/content'
 
 const { isRecent } = useContentDate()
@@ -107,11 +106,12 @@ useSeoMeta({
               <dt>代理律所</dt>
               <dd>
                 <NuxtLink
-                  v-if="record.lawFirm"
-                  :to="entityDirectoryHref('firm', record.lawFirm)"
+                  v-if="record.lawFirm && record.firmSlug"
+                  :to="`/law-firms/${record.firmSlug}`"
                 >
                   {{ record.lawFirm }}
                 </NuxtLink>
+                <span v-else-if="record.lawFirm" class="case-detail__plain">{{ record.lawFirm }}</span>
                 <span v-else>—</span>
               </dd>
             </div>
@@ -127,11 +127,12 @@ useSeoMeta({
               <dt>涉案品牌</dt>
               <dd>
                 <NuxtLink
-                  v-if="record.plaintiffBrand"
-                  :to="entityDirectoryHref('brand', record.plaintiffBrand)"
+                  v-if="record.plaintiffBrand && record.brandSlug"
+                  :to="`/brands/${record.brandSlug}`"
                 >
                   {{ record.plaintiffBrand }} · 历史发案
                 </NuxtLink>
+                <span v-else-if="record.plaintiffBrand" class="case-detail__plain">{{ record.plaintiffBrand }}</span>
                 <span v-else>—</span>
               </dd>
             </div>
@@ -468,4 +469,9 @@ useSeoMeta({
     grid-column: 1;
   }
 }
+
+.case-detail__plain {
+  color: var(--color-text-muted);
+}
 </style>
+

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { entityDirectoryHref } from '~/utils/content'
 import { caseTypeLabel } from '~/utils/caseTypeLabel'
 import type { CaseRecord } from '~/types/content'
 
@@ -53,7 +52,7 @@ const emit = defineEmits<{
             <NuxtLink
               v-if="record.lawFirm && record.firmSlug"
               class="case-table__firm"
-              :to="entityDirectoryHref('firm', record.firmSlug)"
+              :to="`/law-firms/${record.firmSlug}`"
             >
               {{ record.lawFirm }}
             </NuxtLink>
@@ -65,7 +64,7 @@ const emit = defineEmits<{
             <NuxtLink
               v-if="record.plaintiffBrand && record.brandSlug"
               class="case-table__brand"
-              :to="entityDirectoryHref('brand', record.brandSlug)"
+              :to="`/brands/${record.brandSlug}`"
             >
               {{ record.plaintiffBrand }}
             </NuxtLink>
