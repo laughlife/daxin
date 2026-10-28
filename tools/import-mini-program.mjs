@@ -241,7 +241,7 @@ async function saveBrand(db, item, detail, hash) {
        is_published = 1, source_hash = VALUES(source_hash),
        detail_synced_at = IF(?, NOW(), detail_synced_at), updated_at = NOW()`,
     [
-      item.id, item.mc || '', `${slugOf(item.mc || 'brand')}-${item.id}`,
+      item.id, item.mc || '', `brand-${item.id}`,
       item.flmc || '', item.qslx || '', item.ppf || '', item.dlls || '',
       detail ? detail.images[0] || '' : '', hash,
       detail ? 1 : 0, detail ? 1 : 0,
@@ -272,7 +272,7 @@ async function saveLawFirm(db, item, detail, hash) {
        is_published = 1, source_hash = VALUES(source_hash),
        detail_synced_at = IF(?, NOW(), detail_synced_at), updated_at = NOW()`,
     [
-      item.id, name, `${slugOf(name || 'firm')}-${item.id}`, item.jc || '', (item.dz || '').trim(),
+      item.id, name, `firm-${item.id}`, item.jc || '', (item.dz || '').trim(),
       (item.ls_url || item.url || '').trim(), detail ? detail.images[0] || '' : '', hash,
       detail ? 1 : 0, detail ? 1 : 0,
     ],
