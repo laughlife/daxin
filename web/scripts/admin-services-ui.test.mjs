@@ -55,7 +55,7 @@ test('首次加载业务配置时显示加载状态，避免空列表误报未�
   assert.match(template, /role="status"[^>]*>正在加载配置/)
   assert.match(source, /canSave\(\): boolean \{[^}]*!pending\.value/)
   assert.match(template, /:disabled="!writable \|\| saving \|\| pending"/)
-  assert.match(source, /const baseline = ref\(JSON\.stringify\(sections\.value\)\)/)
+  assert.match(source, /const baselineSections = ref\(JSON\.stringify\(sections\.value\)\)/)
 })
 
 test('核心业务通过站点设置标签维护，旧直达地址会转到对应标签', async () => {

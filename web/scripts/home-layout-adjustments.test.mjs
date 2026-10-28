@@ -90,7 +90,8 @@ test('team business configuration is a site settings tab driven by the database'
   assert.doesNotMatch(adminHomeSource, /页脚与联系方式|\/admin\/footer/)
   assert.match(adminServicesSource, /navigateTo\('\/admin\/settings\?tab=services'/)
   assert.match(adminServicesSettingsSource, /iconKey|section\.items/)
-  assert.match(adminServicesSettingsSource, /板块图片/)
+  // 图片配置已移入所属模块：板块里分别维护「详情图片」与「首页封面图」
+  assert.match(adminServicesSettingsSource, /详情图片|首页封面图/)
   assert.match(adminServicesSettingsSource, /SettingImageField/)
   // 数据经公开接口 → 仓库层 → 页面，三层字段口径一致
   assert.match(homeApiSource, /ss\.icon_key[\s\S]*?iconKey: String\(row\.icon_key/)
