@@ -27,7 +27,7 @@ test('品牌详情接口返回资料、介绍与图片', () => {
 })
 
 test('品牌详情页展示资料 / 介绍 / 图片，且不再渲染历史发案', () => {
-  assert.match(detail, /class="entity-detail__profile"/)
+  assert.match(detail, /class="entity-detail__profile/)
   assert.match(detail, /v-for="fact in brandFacts"/)
   // 品牌 / 律所详情都不再渲染历史案件列表（页面只做档案展示）
   assert.doesNotMatch(detail, /entity-detail__cases|代理的历史案件/)
@@ -42,9 +42,17 @@ test('品牌详情与律所详情共用两列资料版式，品牌方 / 品牌�
   assert.match(detail, /\.entity-detail__facts > \.entity-detail__fact--wide \{ grid-column:1 \/ -1; \}/)
   const brandFacts = detail.slice(detail.indexOf('const brandFacts'), detail.indexOf('/* ------------------------------- 律所资料'))
   const order = [...brandFacts.matchAll(/\{ label: '([^']+)'/g)].map(match => match[1])
-  assert.deepEqual(order, ['品牌分类', '起诉州', '关联案件', '代理律所', '品牌原告', '品牌方'])
+  // 前四个固定：分类 / 起诉州 / 代理律所 / 关联案件；原告与品牌方按是否重复动态追加
+  assert.deepEqual(order.slice(0, 4), ['品牌分类', '起诉州', '代理律所', '关联案件'])
+  assert.match(brandFacts, /label: '品牌方（原告）'[\s\S]*?wide: true/)
   assert.match(brandFacts, /label: '品牌原告'[\s\S]*?wide: true/)
   assert.match(brandFacts, /label: '品牌方'[\s\S]*?wide: true/)
+})
+
+test('品牌原告与品牌方重复时合并成一行', () => {
+  assert.match(detail, /function sameParty\(a: string, b: string\): boolean/)
+  assert.match(detail, /const duplicateParties = sameParty\(plaintiff, owner\)/)
+  assert.match(detail, /if \(duplicateParties\) \{[\s\S]*?品牌方（原告）/)
 })
 
 test('品牌标题比其它页面小一号，长名称不会占满整屏', () => {

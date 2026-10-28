@@ -51,9 +51,10 @@ test('律所详情保留横长图，作为资料卡底部的通栏', () => {
   assert.match(detailEndpoint, /intro: toSafeRichText\(found\.firm\.intro\)/)
   assert.match(detail, /entity-detail__profile--firm/)
   assert.match(detail, /<h2>律所介绍<\/h2>/)
-  // 图片是 1500×600 左右的横图：放在资料下方，负边距贴到卡片边缘
+  // 图片是 1500×600 左右的横图：放在资料下方，贴到卡片左下角、不加白边
   assert.match(detail, /class="entity-detail__banner"/)
-  assert.match(detail, /\.entity-detail__banner \{ margin:0 calc\(-1 \* var\(--space-8\)\) calc\(-1 \* var\(--space-8\)\); \}/)
+  assert.match(detail, /\.entity-detail__banner \{ display:flex; justify-content:flex-start; margin:0 calc\(-1 \* var\(--space-8\)\) calc\(-1 \* var\(--space-8\)\); background:transparent; \}/)
+  assert.match(detail, /width:auto; max-width:100%; height:auto; max-height:380px; object-fit:contain;/)
   // 详情已去掉右栏头图与图片画廊（避免同一张图重复）
   assert.doesNotMatch(detail, /entity-detail__cover--firm/)
   assert.doesNotMatch(detail, /<h2>律所图片<\/h2>/)

@@ -81,18 +81,45 @@ const brandCover = computed(() => summary.value?.coverUrl || allBrandImages.valu
 /** 画廊里去掉已作为封面展示的那张，避免同一张图出现两次。 */
 const brandImages = computed(() => allBrandImages.value.filter(url => url && url !== brandCover.value))
 
+/**
+ * 品牌方与品牌原告经常是同一个主体（库里 603 个可匹配品牌中有 288 个文本完全一致，
+ * 还有一大部分是「Zhenbiao Zhang / Zhang」这种简写）。比较时去掉标点空格、忽略大小写，
+ * 短的一方被长的一方包含也算同一主体；重复时合并成一行，避免同一家公司出现两次。
+ */
+function normalizeParty(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '')
+}
+
+function sameParty(a: string, b: string): boolean {
+  if (!a || !b) return false
+  const left = normalizeParty(a)
+  const right = normalizeParty(b)
+  if (!left || !right) return false
+  if (left === right) return true
+  const [short, long] = left.length <= right.length ? [left, right] : [right, left]
+  return short.length >= 4 && long.includes(short)
+}
+
 const brandFacts = computed(() => {
   const item = summary.value
   if (!item) return []
-  // 顺序即版式：短字段两两成排，较长的品牌方 / 品牌原告整行放在下面。
-  return [
+  const owner = item.brandOwner || ''
+  const plaintiff = item.plaintiff || ''
+  const duplicateParties = sameParty(plaintiff, owner)
+  const facts = [
+    // 顺序即版式：短字段两两成排，较长的名称整行放在下面。
     { label: '品牌分类', value: item.ipCategory || item.lawsuitType || '', wide: false },
     { label: '起诉州', value: item.stateCode || '', wide: false },
-    { label: '关联案件', value: item.caseCount > 0 ? `${item.caseCount} 起` : '暂无公开案件', wide: false },
     { label: '代理律所', value: item.lawFirm || '', wide: false },
-    { label: '品牌原告', value: item.plaintiff || '', wide: true },
-    { label: '品牌方', value: item.brandOwner || '', wide: true },
-  ].filter(fact => fact.value)
+    { label: '关联案件', value: item.caseCount > 0 ? `${item.caseCount} 起` : '暂无公开案件', wide: false },
+  ]
+  if (duplicateParties) {
+    facts.push({ label: '品牌方（原告）', value: owner || plaintiff, wide: true })
+  } else {
+    if (plaintiff) facts.push({ label: '品牌原告', value: plaintiff, wide: true })
+    if (owner) facts.push({ label: '品牌方', value: owner, wide: true })
+  }
+  return facts.filter(fact => fact.value)
 })
 
 /** 首屏最多展示 12 张，其余点「显示全部」再渲染，避免一次拉 70+ 张大图。 */
@@ -129,10 +156,6 @@ watch(() => props.slug, () => {
   firmCoverFailed.value = false
 })
 
-function entityInitial(name: string): string {
-  return Array.from(name.trim())[0] || 'L'
-}
-
 /** 详情页 meta description：没有简介摘要时退到介绍正文的纯文本。 */
 function plainText(html?: string): string {
   return (html ?? '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
@@ -161,19 +184,9 @@ useSeoMeta({
         />
 
         <template v-else-if="summary">
-          <!-- 品牌：封面 + 资料 + 介绍 + 图片；不展示历史发案 -->
+          <!-- 品牌：资料 + 介绍 + 图片；不展示历史发案 -->
           <template v-if="kind === 'brand'">
-            <header class="entity-detail__profile">
-              <div class="entity-detail__cover" :class="{ 'is-placeholder': !brandCover || coverFailed }">
-                <img
-                  v-if="brandCover && !coverFailed"
-                  :src="brandCover"
-                  :alt="`${summary.name} 品牌图片`"
-                  decoding="async"
-                  @error="coverFailed = true"
-                >
-                <span v-else aria-hidden="true">{{ entityInitial(summary.name) }}</span>
-              </div>
+            <header class="entity-detail__profile entity-detail__profile--brand">
               <div class="entity-detail__headline">
                 <p class="entity-detail__eyebrow">品牌档案 · BRAND PROFILE</p>
                 <h1>{{ summary.name }}</h1>
@@ -188,6 +201,15 @@ useSeoMeta({
                   </div>
                 </dl>
               </div>
+              <!-- 封面同样作为资料卡底部的通栏图（与律所一致） -->
+              <figure v-if="brandCover && !coverFailed" class="entity-detail__banner">
+                <img
+                  :src="brandCover"
+                  :alt="`${summary.name} 品牌图片`"
+                  decoding="async"
+                  @error="coverFailed = true"
+                >
+              </figure>
             </header>
 
             <section v-if="summary.intro" class="entity-detail__section">
@@ -277,15 +299,11 @@ useSeoMeta({
 .entity-detail { padding-block:var(--space-section-compact) var(--space-section); background:var(--color-bg-light); }
 .entity-detail__crumb { margin-bottom:var(--space-6); color:var(--color-text-muted); font-size:var(--text-sm); }
 
-/* 品牌资料卡：左侧封面，右侧名称与字段 */
-.entity-detail__profile { display:grid; grid-template-columns:200px minmax(0,1fr); gap:var(--space-8); padding:var(--space-8); overflow:hidden; border:1px solid var(--color-border); border-top:3px solid var(--color-primary); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
-/* 律所资料卡：文字在上、横长图通栏在下 */
-.entity-detail__profile--firm { grid-template-columns:minmax(0,1fr); gap:var(--space-6); }
-.entity-detail__banner { margin:0 calc(-1 * var(--space-8)) calc(-1 * var(--space-8)); }
-.entity-detail__banner img { display:block; width:100%; height:auto; }
-.entity-detail__cover { display:grid; width:100%; aspect-ratio:1; place-items:center; overflow:hidden; border:1px solid var(--color-border); border-radius:var(--radius-md); background:#f6f7f9; }
-.entity-detail__cover img { width:100%; height:100%; object-fit:contain; }
-.entity-detail__cover.is-placeholder span { color:var(--color-primary); font-size:3rem; font-weight:750; }
+/* 资料卡：文字在上、图片通栏在下（品牌与律所共用） */
+.entity-detail__profile { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--space-6); padding:var(--space-8); overflow:hidden; border:1px solid var(--color-border); border-top:3px solid var(--color-primary); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
+/* 右下角通栏图：图片按原比例贴到卡片左下角，不铺底色、不裁切，避免出现白边 */
+.entity-detail__banner { display:flex; justify-content:flex-start; margin:0 calc(-1 * var(--space-8)) calc(-1 * var(--space-8)); background:transparent; }
+.entity-detail__banner img { display:block; width:auto; max-width:100%; height:auto; max-height:380px; object-fit:contain; }
 .entity-detail__headline { min-width:0; }
 .entity-detail__eyebrow { color:var(--color-primary); font-size:var(--text-xs); font-weight:700; letter-spacing:.1em; }
 /* 品牌名可能很长（最长 57 字），标题比其它页面小一号，避免占满整屏 */
@@ -318,9 +336,7 @@ useSeoMeta({
 
 
 @media(max-width:767px) {
-  .entity-detail__profile,
-  .entity-detail__profile--firm { grid-template-columns:1fr; gap:var(--space-5); padding:var(--space-5); }
-  .entity-detail__cover { max-width:220px; }
+  .entity-detail__profile { gap:var(--space-5); padding:var(--space-5); }
   /* 手机端资料收成单列，避免两列挤在一起 */
   .entity-detail__facts { grid-template-columns:minmax(0, 1fr); }
   /* 手机端横图同样通栏，左右贴到卡片内边距之外 */
