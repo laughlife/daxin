@@ -17,8 +17,12 @@ import { caseTypeLabel, UNKNOWN_CASE_TYPE_LABEL } from '~/utils/caseTypeLabel'
 /**
  * 案例管理（/admin/cases）。
  *
- * 列表展示案件字段、发布状态与操作；品牌 / 律所关联在编辑表单中显示名称。
+ * 列表展示案件字段与操作；品牌 / 律所关联在编辑表单中显示名称。
  * 侵权类型统一经 `caseTypeLabel()` 渲染，无法确认时显示「待确认类型」，绝不臆造具体类型。
+ *
+ * 采集已直接写 publish_status='published'，后台不再提供发布 / 草稿相关的操作：
+ * 列表没有发布状态列与勾选发布，表单也没有「发布案例」按钮。
+ * 后台新建的案例同样直接发布；编辑时请求体不带 publishStatus，服务端保留原状态。
  *
  * 关联编辑（品牌 / 律所）：候选项来自后台列表接口（`/api/admin/brands`、`/api/admin/law-firms`），
  * 通过 AdminRemoteSelect 分页 + 关键词检索，不把 228 个品牌一次性塞进一个巨型 `<select>`。
@@ -185,38 +189,6 @@ watch(keyword, () => { page.value = 1 }, { flush: 'sync' })
 
 const notice = ref('')
 const actionError = ref('')
-const selectedCaseIds = ref<number[]>([])
-const allVisibleSelected = computed(() => (
-  items.value.some(item => item.publishStatus !== 'archived')
-  && items.value.filter(item => item.publishStatus !== 'archived').every(item => selectedCaseIds.value.includes(item.id))
-))
-const selectedDraftCount = computed(() => items.value.filter(item => (
-  selectedCaseIds.value.includes(item.id) && item.publishStatus === 'draft'
-)).length)
-
-watch([page, pageSize, keyword], () => { selectedCaseIds.value = [] })
-watch(items, (nextItems) => {
-  const visibleIds = new Set(nextItems.map(item => item.id))
-  selectedCaseIds.value = selectedCaseIds.value.filter(id => visibleIds.has(id))
-})
-
-function isCaseSelected(id: number) {
-  return selectedCaseIds.value.includes(id)
-}
-
-function toggleCaseSelection(item: AdminCaseItem, checked: boolean) {
-  if (item.publishStatus === 'archived') return
-  selectedCaseIds.value = checked
-    ? [...new Set([...selectedCaseIds.value, item.id])]
-    : selectedCaseIds.value.filter(id => id !== item.id)
-}
-
-function toggleVisibleSelection(checked: boolean) {
-  const selectableIds = items.value.filter(item => item.publishStatus !== 'archived').map(item => item.id)
-  selectedCaseIds.value = checked
-    ? [...new Set([...selectedCaseIds.value, ...selectableIds])]
-    : selectedCaseIds.value.filter(id => !selectableIds.includes(id))
-}
 
 /** 编辑器状态 */
 const editorOpen = ref(false)
@@ -247,7 +219,6 @@ interface CaseForm {
   filedAt: string
   plaintiff: string
   status: string
-  publishStatus: string
   brandId: number | null
   brandName: string
   lawFirmId: number | null
@@ -260,7 +231,6 @@ const form = reactive<CaseForm>({
   filedAt: '',
   plaintiff: '',
   status: 'open',
-  publishStatus: 'draft',
   brandId: null,
   brandName: '',
   lawFirmId: null,
@@ -298,7 +268,6 @@ function resetForm() {
   form.filedAt = ''
   form.plaintiff = ''
   form.status = 'open'
-  form.publishStatus = 'draft'
   form.brandId = null
   form.brandName = ''
   form.lawFirmId = null
@@ -333,7 +302,6 @@ async function openEdit(item: AdminCaseItem) {
   form.plaintiff = item.plaintiff
   form.brandName = item.brand
   form.lawFirmName = item.lawFirm
-  form.publishStatus = item.publishStatus || 'draft'
   form.status = item.status || 'open'
   originalCaseTypeSlug.value = item.caseType
   try {
@@ -343,7 +311,6 @@ async function openEdit(item: AdminCaseItem) {
     form.filedAt = toDateValue(record.filedAt)
     form.plaintiff = record.plaintiff
     form.status = record.status || 'open'
-    form.publishStatus = record.publishStatus || 'draft'
     form.brandId = record.brandId
     form.brandName = record.brand
     form.lawFirmId = record.lawFirmId
@@ -446,8 +413,11 @@ async function createLawFirm(name: string) {
   }
 }
 
-/** 保存：新建走 POST，编辑走 PUT；只有被触碰过的关联字段才会出现在请求体里。 */
-async function onSubmit(publish = false) {
+/**
+ * 保存：新建走 POST，编辑走 PUT；只有被触碰过的关联字段才会出现在请求体里。
+ * 发布状态不再由后台操作：新建直接发布（采集同样直接发布），编辑不带 publishStatus 以保留原状态。
+ */
+async function onSubmit() {
   if (!canWrite.value) {
     saveError.value = readOnlyReason
     return
@@ -461,16 +431,17 @@ async function onSubmit(publish = false) {
   notice.value = ''
   actionError.value = ''
 
+  const isEdit = editingId.value !== null
   const body: Record<string, unknown> = {
     caseNumber: form.caseNumber.trim(),
     filedAt: form.filedAt || '',
     plaintiff: form.plaintiff,
     status: form.status,
-    publishStatus: publish ? 'published' : form.publishStatus
   }
+  // 新建即发布：后台已没有发布入口，草稿状态会让案例永远不出现在公开页面。
+  if (!isEdit) body.publishStatus = 'published'
 
   // 新建时关联一定一起写；编辑时只有触碰过才写（未触碰 = 请求里不带该字段 = 保留现状）。
-  const isEdit = editingId.value !== null
   if (!isEdit || touched.brandId) body.brandId = form.brandId
   if (!isEdit || touched.lawFirmId) body.lawFirmId = form.lawFirmId
   if (!isEdit || touched.ipTypeId) body.ipTypeId = form.ipTypeId === '' ? null : Number(form.ipTypeId)
@@ -478,10 +449,10 @@ async function onSubmit(publish = false) {
   try {
     if (isEdit) {
       await requestAdminApi<AdminWriteResult>(`/api/admin/cases/${editingId.value}`, { method: 'PUT', body, requestFetch })
-      notice.value = publish ? '案例已发布' : '案例已保存'
+      notice.value = '案例已保存'
     } else {
       await requestAdminApi<AdminWriteResult>('/api/admin/cases', { method: 'POST', body, requestFetch })
-      notice.value = publish ? '案例已发布' : '案例已新建'
+      notice.value = '案例已新建并发布'
     }
     await refreshList()
     closeEditor()
@@ -492,7 +463,7 @@ async function onSubmit(publish = false) {
   }
 }
 
-function onFormSubmit() { return onSubmit(false) }
+function onFormSubmit() { return onSubmit() }
 
 /** 归档（软删除：publish_status 置为 archived，不物理删除数据） */
 async function onArchive(item: AdminCaseItem) {
@@ -506,42 +477,6 @@ async function onArchive(item: AdminCaseItem) {
     await refreshList()
   } catch (error) {
     actionError.value = adminRequestErrorMessage(error, '归档失败，请稍后重试')
-  }
-}
-
-async function onPublishOne(item: AdminCaseItem) {
-  if (!canWrite.value || item.publishStatus !== 'draft') return
-  actionError.value = ''
-  notice.value = ''
-  try {
-    await requestAdminApi<AdminWriteResult>(`/api/admin/cases/${item.id}`, {
-      method: 'PUT',
-      body: { publishStatus: 'published' },
-      requestFetch,
-    })
-    selectedCaseIds.value = selectedCaseIds.value.filter(id => id !== item.id)
-    notice.value = `案件 ${item.caseNumber} 已发布`
-    await refreshList()
-  } catch (error) {
-    actionError.value = adminRequestErrorMessage(error, '发布失败，请稍后重试')
-  }
-}
-
-async function onPublishSelected() {
-  if (!canWrite.value || selectedCaseIds.value.length === 0 || selectedDraftCount.value === 0) return
-  if (!window.confirm(`确认发布已选案件中的 ${selectedDraftCount.value} 条草稿？`)) return
-  actionError.value = ''
-  notice.value = ''
-  try {
-    const result = await requestAdminApi<{ publishedCount: number, unchangedCount: number }>(
-      '/api/admin/cases/bulk-publish',
-      { method: 'POST', body: { ids: selectedCaseIds.value }, requestFetch },
-    )
-    notice.value = `已发布 ${result.publishedCount} 条案件${result.unchangedCount ? `，${result.unchangedCount} 条状态未变` : ''}`
-    selectedCaseIds.value = []
-    await refreshList()
-  } catch (error) {
-    actionError.value = adminRequestErrorMessage(error, '批量发布失败，请稍后重试')
   }
 }
 
@@ -586,66 +521,29 @@ function onPageSize(next: number) {
         <p v-if="isLoading" class="admin-cases__loading" role="status">正在加载案例列表…</p>
 
         <div v-if="items.length" class="admin-cases__table-wrap">
-          <div class="admin-cases__bulk-actions">
-            <label class="admin-cases__select-page">
-              <input
-                type="checkbox"
-                :checked="allVisibleSelected"
-                :disabled="!canWrite || !items.some(item => item.publishStatus !== 'archived')"
-                @change="toggleVisibleSelection(($event.target as HTMLInputElement).checked)"
-              >
-              全选本页
-            </label>
-            <span>已选 {{ selectedCaseIds.length }} 条</span>
-            <BaseButton
-              variant="secondary"
-              size="sm"
-              :disabled="!canWrite || selectedDraftCount === 0"
-              :title="canWrite ? undefined : readOnlyReason"
-              @click="onPublishSelected"
-            >
-              发布已选草稿
-            </BaseButton>
-          </div>
           <table class="admin-cases__table">
             <caption class="admin-cases__caption">
               共 {{ meta.total }} 条案例，当前第 {{ meta.page }} / {{ meta.totalPages }} 页
             </caption>
             <thead>
               <tr>
-                <th scope="col">选择</th>
                 <th scope="col">案件号</th>
                 <th scope="col">起诉时间</th>
                 <th scope="col">代理律所</th>
                 <th scope="col">原告</th>
                 <th scope="col">涉案品牌</th>
                 <th scope="col">侵权类型</th>
-                <th scope="col">状态</th>
                 <th scope="col">操作</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="item in items" :key="item.id">
-                <td>
-                  <input
-                    type="checkbox"
-                    :checked="isCaseSelected(item.id)"
-                    :disabled="!canWrite || item.publishStatus === 'archived'"
-                    :aria-label="`选择案件 ${item.caseNumber || item.id}`"
-                    @change="toggleCaseSelection(item, ($event.target as HTMLInputElement).checked)"
-                  >
-                </td>
                 <td>{{ item.caseNumber }}</td>
                 <td>{{ item.filedAt || '未填写' }}</td>
                 <td>{{ item.lawFirm || '未关联' }}</td>
                 <td>{{ item.plaintiff || '未填写' }}</td>
                 <td>{{ item.brand || '未关联' }}</td>
                 <td>{{ caseTypeLabel(item.caseType) }}</td>
-                <td>
-                  <span class="admin-cases__status" :class="`admin-cases__status--${item.publishStatus || 'draft'}`">
-                    {{ item.publishStatus === 'published' ? '已发布' : item.publishStatus === 'archived' ? '已归档' : '草稿' }}
-                  </span>
-                </td>
                 <td class="admin-cases__cell-actions">
                   <BaseButton
                     variant="secondary"
@@ -655,16 +553,6 @@ function onPageSize(next: number) {
                     @click="openEdit(item)"
                   >
                     编辑
-                  </BaseButton>
-                  <BaseButton
-                    v-if="item.publishStatus === 'draft'"
-                    variant="primary"
-                    size="sm"
-                    :disabled="!canWrite"
-                    :title="canWrite ? undefined : readOnlyReason"
-                    @click="onPublishOne(item)"
-                  >
-                    发布
                   </BaseButton>
                   <BaseButton
                     variant="ghost"
@@ -827,7 +715,6 @@ function onPageSize(next: number) {
           >
             {{ saving ? '保存中…' : '保存' }}
           </BaseButton>
-          <BaseButton type="button" variant="secondary" :disabled="!canWrite || !formValid || saving || detailLoading" @click="onSubmit(true)">发布案例</BaseButton>
           <BaseButton variant="secondary" :disabled="saving" @click="closeEditor">取消</BaseButton>
         </div>
       </form>
@@ -989,49 +876,6 @@ function onPageSize(next: number) {
   background-color: var(--color-bg-page);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-}
-
-.admin-cases__bulk-actions {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--color-border);
-  color: var(--color-text-muted);
-  font-size: var(--text-sm);
-}
-
-.admin-cases__select-page {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-2);
-  color: var(--color-text);
-  cursor: pointer;
-}
-
-.admin-cases__status {
-  display: inline-flex;
-  align-items: center;
-  padding: 2px var(--space-2);
-  border-radius: var(--radius-full);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  white-space: nowrap;
-}
-
-.admin-cases__status--draft {
-  background: color-mix(in srgb, var(--color-warning) 12%, transparent);
-  color: var(--color-warning);
-}
-
-.admin-cases__status--published {
-  background: color-mix(in srgb, var(--color-success) 12%, transparent);
-  color: var(--color-success);
-}
-
-.admin-cases__status--archived {
-  background: var(--color-bg-light);
-  color: var(--color-text-muted);
 }
 
 .admin-cases__table {
