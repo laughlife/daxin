@@ -46,6 +46,15 @@ test('查看面板不再显示「查看品牌 / 律所 #id」标题与状态徽�
   assert.doesNotMatch(entityTemplate, /admin-entity__status/)
 })
 
+test('查看面板展示小程序「起诉信息」历史发案', () => {
+  assert.match(entityTemplate, /历史发案（\{\{ viewItem\.historyCases\.length \}\} 行）/)
+  assert.match(entityTemplate, /v-for="\(row, index\) in viewItem\.historyCases"/)
+  for (const header of ['起诉时间', '案件号', '代理律所', '受理法院']) {
+    assert.ok(entityTemplate.includes(`<th scope="col">${header}</th>`), `后台历史发案缺少列：${header}`)
+  }
+  assert.match(entityTemplate, /admin-entity__case-table/)
+})
+
 test('用户管理仍由现有管理员权限保护', () => {
   assert.match(users, /definePageMeta\(\{ layout: 'admin', middleware: 'admin' \}\)/)
   assert.match(users, /useAdminSession\(\)/)

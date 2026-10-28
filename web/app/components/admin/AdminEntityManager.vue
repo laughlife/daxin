@@ -371,6 +371,31 @@ function onPageSize(next: number) {
             </div>
           </section>
 
+          <!-- 小程序「起诉信息」：品牌历史发案，原样展示 -->
+          <section v-if="viewItem.historyCases?.length" class="admin-entity__view-section">
+            <h4>历史发案（{{ viewItem.historyCases.length }} 行）</h4>
+            <div class="admin-entity__case-wrap">
+              <table class="admin-entity__case-table">
+                <thead>
+                  <tr>
+                    <th scope="col">起诉时间</th>
+                    <th scope="col">案件号</th>
+                    <th scope="col">代理律所</th>
+                    <th scope="col">受理法院</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(row, index) in viewItem.historyCases" :key="`${row.caseNumber}-${index}`">
+                    <td>{{ row.filedAt || '—' }}</td>
+                    <td>{{ row.caseNumber }}</td>
+                    <td>{{ row.lawFirm || '—' }}</td>
+                    <td>{{ row.court || '—' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+
           <div class="admin-entity__actions">
             <BaseButton variant="secondary" @click="closeView">关闭</BaseButton>
           </div>
@@ -566,6 +591,15 @@ function onPageSize(next: number) {
 .admin-entity__gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: var(--space-3); }
 .admin-entity__gallery a { display: block; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #f6f7f9; }
 .admin-entity__gallery img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+/* 历史发案（小程序「起诉信息」） */
+.admin-entity__case-wrap { margin-top: var(--space-2); overflow-x: auto; }
+.admin-entity__case-table { width: 100%; min-width: 560px; border-collapse: collapse; font-size: var(--text-sm); }
+.admin-entity__case-table th,
+.admin-entity__case-table td { padding: var(--space-2) var(--space-3); text-align: left; border-bottom: 1px solid var(--color-border); vertical-align: top; }
+.admin-entity__case-table th { background: var(--color-bg-light); color: var(--color-text-muted); font-size: var(--text-xs); font-weight: 600; white-space: nowrap; }
+.admin-entity__case-table td { color: var(--color-text); }
+.admin-entity__case-table td:nth-child(2) { word-break: break-all; }
+.admin-entity__case-table tbody tr:last-child td { border-bottom: none; }
 .admin-entity__actions {
   display: flex;
   flex-wrap: wrap;

@@ -10,6 +10,7 @@
 // 相对导入显式带 .ts 后缀：node 的类型剥离不做扩展名补全，
 // 而 Nuxt 生成的 tsconfig 已开启 allowImportingTsExtensions。
 import { escapeLikePattern } from '../public/article-query.ts'
+import { toDateOnly } from '../public/case-mapper.ts'
 import { publishedEntityCaseCountSql, WATERMARKED_ENTITY_IMAGE_SQL } from '../public/entity-match.ts'
 import { normalizeDateOnly, normalizeText } from '../public/query.ts'
 
@@ -985,6 +986,14 @@ WHERE entity_type = '${entityType}' AND entity_id = ?
 ORDER BY sort_order, id`
 }
 
+/** 后台实体的「历史发案」（小程序「起诉信息」），按起诉时间倒序。 */
+export function adminEntityCaseRowsSql(table: AdminEntityTable): string {
+  const entityType = entitySpec(table).entityType
+  return `SELECT filed_at, case_number, law_firm, court FROM entity_case_rows
+WHERE entity_type = '${entityType}' AND entity_id = ?
+ORDER BY (filed_at IS NULL) ASC, filed_at DESC, sort_order, id`
+}
+
 /** 品牌 / 律所总数统计；与列表复用同一份过滤片段。 */
 export function adminEntityCountSql(table: AdminEntityTable): string {
   entitySpec(table)
@@ -1158,6 +1167,8 @@ export interface AdminEntityItem {
   intro: string
   /** 采集图片，仅详情接口返回。 */
   images: string[]
+  /** 小程序「起诉信息」：历史发案，仅详情接口返回。 */
+  historyCases: AdminEntityCaseRow[]
   /** 只读：与公开站同一套文本匹配统计，不接受后台写入。 */
   caseCount: number
   status: 0 | 1
@@ -1185,10 +1196,28 @@ export interface AdminEntityRow {
   website?: unknown
   intro?: unknown
   images?: unknown
+  historyCases?: unknown
   case_count?: unknown
   status?: unknown
   created_at?: unknown
   updated_at?: unknown
+}
+
+/** 后台实体历史发案的一行（小程序「起诉信息」，与公开站品牌详情同源）。 */
+export interface AdminEntityCaseRow {
+  filedAt: string
+  caseNumber: string
+  lawFirm: string
+  court: string
+}
+
+export function mapAdminEntityCaseRow(row: Record<string, unknown>): AdminEntityCaseRow {
+  return {
+    filedAt: toDateOnly(row.filed_at),
+    caseNumber: toText(row.case_number),
+    lawFirm: toText(row.law_firm),
+    court: toText(row.court),
+  }
 }
 
 export function mapAdminEntityRow(row: AdminEntityRow): AdminEntityItem {
@@ -1212,6 +1241,12 @@ export function mapAdminEntityRow(row: AdminEntityRow): AdminEntityItem {
     website: toText(row.website),
     intro: toText(row.intro),
     images: Array.isArray(row.images) ? row.images.map(item => toText(item)).filter(Boolean) : [],
+    historyCases: Array.isArray(row.historyCases)
+      ? row.historyCases
+        .filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object')
+        .map(mapAdminEntityCaseRow)
+        .filter(item => item.caseNumber)
+      : [],
     caseCount: toCount(row.case_count),
     status: readEntityStatus(row.status) ?? 0,
     createdAt: toDateTimeText(row.created_at),

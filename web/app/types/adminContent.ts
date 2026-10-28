@@ -55,6 +55,14 @@ export interface AdminCaseDetail extends AdminCaseItem {
   ipTypeId: number | null
 }
 
+/** 小程序「起诉信息」的一行（品牌历史发案） */
+export interface AdminEntityHistoryCase {
+  filedAt: string
+  caseNumber: string
+  lawFirm: string
+  court: string
+}
+
 /** 品牌 / 律所列表项（律所的 region 有值，品牌恒为空串） */
 export interface AdminEntityItem {
   id: number
@@ -80,6 +88,8 @@ export interface AdminEntityItem {
   intro: string
   /** 采集图片，仅详情接口返回 */
   images: string[]
+  /** 小程序「起诉信息」（历史发案），仅详情接口返回 */
+  historyCases: AdminEntityHistoryCase[]
   /** 只读：与公开站同一套文本匹配统计，后台不可写 */
   caseCount: number
   /** 1 = 正常，0 = 归档 */

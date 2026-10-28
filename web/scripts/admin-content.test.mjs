@@ -498,6 +498,29 @@ test('后台列表分页：统一支持 10/20/30/40/50 条，接口最多返回 
   assert.equal(beyond.totalPages, 5)
 })
 
+test('后台品牌详情返回小程序「起诉信息」历史发案', async () => {
+  const detailApi = await readFile(new URL('../server/api/admin/brands/[id].get.ts', import.meta.url), 'utf8')
+  assert.match(detailApi, /adminEntityCaseRowsSql\('brands'\)/)
+  assert.match(detailApi, /historyCases/)
+  assert.match(adminQueries.adminEntityCaseRowsSql('brands'), /FROM entity_case_rows/)
+  assert.match(adminQueries.adminEntityCaseRowsSql('brands'), /ORDER BY \(filed_at IS NULL\) ASC, filed_at DESC/)
+
+  const mapped = mapAdminEntityRow({
+    id: 1,
+    historyCases: [
+      { filed_at: '2026-04-17', case_number: '26-cv-04347、26-cv-04343', law_firm: 'GBC', court: '伊利诺伊州北区地方法院' },
+      { filed_at: null, case_number: '', law_firm: '', court: '' },
+    ],
+  })
+  assert.equal(mapped.historyCases.length, 1)
+  assert.deepEqual(mapped.historyCases[0], {
+    filedAt: '2026-04-17',
+    caseNumber: '26-cv-04347、26-cv-04343',
+    lawFirm: 'GBC',
+    court: '伊利诺伊州北区地方法院',
+  })
+})
+
 test('后台所有分页接口使用后台 50 条上限，前端所有分页器共用五档选项', async () => {
   const adminApiSource = await readFile(new URL('../app/utils/adminApi.ts', import.meta.url), 'utf8')
   assert.match(adminApiSource, /ADMIN_MAX_PAGE_SIZE\s*=\s*50/)

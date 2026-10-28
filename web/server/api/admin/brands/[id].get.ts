@@ -1,11 +1,19 @@
 // GET /api/admin/brands/[id]
 //
-// 后台品牌详情：基础字段 + 小程序采集字段（分类 / 品牌方 / 封面）+ 关联案件数 + 简介 + 图片。
+// 后台品牌详情：基础字段 + 小程序采集字段（分类 / 品牌方 / 封面）+ 关联案件数 + 简介 + 图片
+// + 历史发案（小程序「起诉信息」）。
 // region 恒为空串（品牌没有地区列），保持品牌 / 律所响应结构一致。
 // 权限：brand:read。
 import { requireAdmin } from '#server/utils/auth/context'
 import { queryTarget } from '#server/utils/db/query'
-import { adminEntityDetailSql, adminEntityImagesSql, mapAdminEntityRow, toRouteId, type AdminEntityRow } from '#server/utils/admin/content-queries'
+import {
+  adminEntityCaseRowsSql,
+  adminEntityDetailSql,
+  adminEntityImagesSql,
+  mapAdminEntityRow,
+  toRouteId,
+  type AdminEntityRow,
+} from '#server/utils/admin/content-queries'
 import { adminAuthError, fail } from '#server/utils/admin/http'
 
 export default defineEventHandler(async (event) => {
@@ -22,10 +30,17 @@ export default defineEventHandler(async (event) => {
     const rows = await queryTarget<AdminEntityRow>(adminEntityDetailSql('brands'), [id])
     const row = rows[0]
     if (!row) return fail(event, 404, 'BRAND_NOT_FOUND', '品牌不存在')
-    const images = await queryTarget<{ image_url: string }>(adminEntityImagesSql('brands'), [id])
+    const [images, historyCases] = await Promise.all([
+      queryTarget<{ image_url: string }>(adminEntityImagesSql('brands'), [id]),
+      queryTarget<Record<string, unknown>>(adminEntityCaseRowsSql('brands'), [id]),
+    ])
     return {
       data: {
-        brand: mapAdminEntityRow({ ...row, images: images.map(item => item.image_url) }),
+        brand: mapAdminEntityRow({
+          ...row,
+          images: images.map(item => item.image_url),
+          historyCases,
+        }),
       },
     }
   } catch (error) {
