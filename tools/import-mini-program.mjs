@@ -9,6 +9,7 @@
 //   node tools/import-mini-program.mjs --only brands
 //   node tools/import-mini-program.mjs --only brands --brand 1029   # 只同步一个品牌（强制重抓详情）
 //   node tools/import-mini-program.mjs --only brands --force --limit 200   # 强制重抓详情（补历史发案）
+//   WX_DETAIL_SLICE=0 node tools/import-mini-program.mjs   # 补全量后：只在列表字段变化时抓详情（更快）
 //   node tools/import-mini-program.mjs                 # 全量
 import { readFileSync, existsSync } from 'node:fs'
 import { createHash } from 'node:crypto'
@@ -65,10 +66,14 @@ const ONLY = option('only', '') // brands | lawfirms
 const ONLY_BRAND = option('brand', '')
 // 强制重抓所有详情（首次补「起诉信息」/图片时用，耗时长，建议配合 --limit 分批）
 const FORCE_DETAIL = args.includes('--force')
-// 滚动刷新：每班次额外抓 1/N 详情（默认 4 → 4 个班次覆盖全部）
-const DETAIL_SLICE = Math.max(1, Number(env.WX_DETAIL_SLICE || 4))
+// 滚动刷新：每班次额外抓 1/N 详情（默认 4 → 4 个班次覆盖全部）。
+// 设为 0 表示只在列表字段变化时抓详情：补过一次全量之后，日常跑会明显更快。
+const rawSlice = Number(env.WX_DETAIL_SLICE ?? 4)
+const DETAIL_SLICE = Number.isFinite(rawSlice) ? Math.max(0, Math.floor(rawSlice)) : 4
 // 当前班次序号（0..N-1），用于挑选本班次要刷新的切片
-const SLICE_INDEX = Math.abs(Number(option('slice', new Date().getHours() < 12 ? 0 : 1))) % DETAIL_SLICE
+const SLICE_INDEX = DETAIL_SLICE > 0
+  ? Math.abs(Number(option('slice', new Date().getHours() < 12 ? 0 : 1))) % DETAIL_SLICE
+  : 0
 
 function listHash(item, kind) {
   const parts = kind === 'brand'
@@ -339,6 +344,8 @@ async function shouldFetchDetail(db, kind, mpId, hash) {
   const row = rows[0]
   if (!row) return true
   if ((row.source_hash || '') !== hash) return true
+  // WX_DETAIL_SLICE=0：关闭滚动刷新，列表字段没变就不再抓详情
+  if (DETAIL_SLICE === 0) return false
   const [remainder] = await db.execute('SELECT ? % ? AS r', [Number(mpId), DETAIL_SLICE])
   return Number(remainder[0].r) === SLICE_INDEX
 }
