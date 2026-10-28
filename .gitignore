@@ -50,3 +50,6 @@ Thumbs.db
 /release/
 *.zip
 
+# 小程序后台账号密码（本地私有）
+.env.local
+
