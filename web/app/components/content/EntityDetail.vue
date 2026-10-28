@@ -1,18 +1,19 @@
 <script setup lang="ts">
 import { fetchBrandDetail, fetchLawFirmDetail } from '~/repositories/entities'
 import { caseTypeLabel } from '~/utils/caseTypeLabel'
-import { entityDirectoryHref, externalUrlLabel, safeExternalUrl } from '~/utils/content'
+import { externalUrlLabel, safeExternalUrl } from '~/utils/content'
 import type { CaseRecord } from '~/types/content'
 
 /**
  * 品牌 / 律所详情。
  *
  * 品牌页：封面 + 资料（分类 / 品牌方 / 原告 / 代理律所 / 起诉州 / 关联案件）
- * + 小程序采集的富文本介绍 + 品牌图片；**不展示历史发案**。
+ * + 小程序采集的富文本介绍 + 品牌图片。
  *
- * 律所页：图片放在名称右侧，展示简称 / 地址 / 官网 / 侵权类型 / 关联案件，
- * 下方是律所介绍、律所图片，以及该律所代理的历史案件。
+ * 律所页：图片放在名称右侧（不套边框），展示简称 / 地址 / 官网 / 侵权类型 / 关联案件，
+ * 下方是律所介绍与律所图片。
  *
+ * 两类详情都只做档案展示，不再嵌入历史案件列表（案件数仍作为字段展示）。
  * 通过仓储 fetchBrandDetail / fetchLawFirmDetail 读取数据；不存在返回 404，
  * 接口失败展示中文错误状态（不回退演示数据）。
  */
@@ -220,7 +221,7 @@ useSeoMeta({
             </section>
           </template>
 
-          <!-- 律所：图片在名称右侧 + 资料 + 介绍 + 图片 + 代理的历史案件 -->
+          <!-- 律所：图片在名称右侧 + 资料 + 介绍 + 图片（不再嵌入历史案件列表） -->
           <template v-else>
             <header class="entity-detail__profile entity-detail__profile--firm">
               <div class="entity-detail__headline">
@@ -278,42 +279,6 @@ useSeoMeta({
                 </a>
               </div>
             </section>
-
-            <section class="entity-detail__cases">
-              <h2>代理的历史案件</h2>
-              <article v-for="record in cases" :key="record.id">
-                <div>
-                  <time :datetime="record.filedAt">{{ record.filedAt || '—' }}</time>
-                  · {{ caseTypeLabel(record.caseType) }}
-                </div>
-                <h3>
-                  <NuxtLink :to="`/tro/cases/${record.slug}`">{{ record.caseNumber }} · {{ record.plaintiffBrand }}</NuxtLink>
-                </h3>
-                <p>
-                  原告：{{ record.plaintiffName || '—' }}
-                  · 代理律所：
-                  <NuxtLink
-                    v-if="record.lawFirm"
-                    :to="entityDirectoryHref('firm', record.lawFirm)"
-                  >
-                    {{ record.lawFirm }}
-                  </NuxtLink>
-                  <span v-else>—</span>
-                  · 品牌：
-                  <NuxtLink
-                    v-if="record.plaintiffBrand"
-                    :to="entityDirectoryHref('brand', record.plaintiffBrand)"
-                  >
-                    {{ record.plaintiffBrand }}
-                  </NuxtLink>
-                  <span v-else>—</span>
-                </p>
-              </article>
-
-              <p v-if="!cases.length" class="entity-detail__empty" role="status">
-                暂无可展示的公开案件记录。
-              </p>
-            </section>
           </template>
         </template>
       </ContentColumns>
@@ -327,11 +292,15 @@ useSeoMeta({
 
 /* 品牌资料卡：左侧封面，右侧名称与字段 */
 .entity-detail__profile { display:grid; grid-template-columns:200px minmax(0,1fr); gap:var(--space-8); padding:var(--space-8); border:1px solid var(--color-border); border-top:3px solid var(--color-primary); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
-/* 律所资料卡：名称在左、图片在右上 */
-.entity-detail__profile--firm { grid-template-columns:minmax(0,1fr) clamp(160px, 24%, 220px); }
+/* 律所资料卡：名称在左、图片在右上；图片不套边框，按原比例完整展示 */
+.entity-detail__profile--firm { grid-template-columns:minmax(0,1fr) clamp(260px, 44%, 460px); align-items:start; }
 .entity-detail__cover { display:grid; width:100%; aspect-ratio:1; place-items:center; overflow:hidden; border:1px solid var(--color-border); border-radius:var(--radius-md); background:#f6f7f9; }
 .entity-detail__cover img { width:100%; height:100%; object-fit:contain; }
 .entity-detail__cover.is-placeholder span { color:var(--color-primary); font-size:3rem; font-weight:750; }
+/* 律所头图：去掉外框与底色，按容器宽度等比缩放，完整显示不裁切 */
+.entity-detail__cover--firm { aspect-ratio:auto; border:0; border-radius:0; background:transparent; overflow:visible; }
+.entity-detail__cover--firm img { width:100%; height:auto; max-height:280px; object-fit:contain; }
+.entity-detail__cover--firm.is-placeholder span { font-size:clamp(2rem, 4vw, 3rem); }
 .entity-detail__headline { min-width:0; }
 .entity-detail__eyebrow { color:var(--color-primary); font-size:var(--text-xs); font-weight:700; letter-spacing:.1em; }
 /* 品牌名可能很长（最长 57 字），标题比其它页面小一号，避免占满整屏 */
@@ -359,20 +328,15 @@ useSeoMeta({
 .entity-detail__more { margin-top:var(--space-4); padding:var(--space-2) var(--space-4); border:1px solid var(--color-border-strong); border-radius:var(--radius-full); background:var(--color-bg-page); color:var(--color-primary); font:inherit; font-size:var(--text-sm); cursor:pointer; }
 .entity-detail__more:hover { border-color:var(--color-primary); }
 
-/* 律所历史案件列表 */
-.entity-detail__cases { margin-top:var(--space-8); }
-.entity-detail__cases h2 { margin-bottom:var(--space-5); font-size:var(--heading-2); }
-.entity-detail__cases article { margin-top:var(--space-4); padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); }
-.entity-detail__cases article div, .entity-detail__cases article p { color:var(--color-text-muted); font-size:var(--text-sm); line-height:var(--leading-relaxed); }
-.entity-detail__cases h3 { margin:var(--space-3) 0; font-size:var(--text-xl); }
-.entity-detail__empty { padding:var(--space-8); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); color:var(--color-text-muted); text-align:center; }
+
 
 @media(max-width:767px) {
   .entity-detail__profile,
   .entity-detail__profile--firm { grid-template-columns:1fr; gap:var(--space-5); padding:var(--space-5); }
   .entity-detail__cover { max-width:220px; }
-  /* 手机上律所图片放到名称上方 */
-  .entity-detail__profile--firm .entity-detail__cover { order:-1; max-width:180px; }
+  /* 手机上律所图片放到名称上方，占满整行、不套框 */
+  .entity-detail__profile--firm .entity-detail__cover { order:-1; max-width:100%; }
+  .entity-detail__profile--firm .entity-detail__cover img { max-height:220px; }
   .entity-detail__section { padding:var(--space-5); }
 }
 @media(max-width:639px) {

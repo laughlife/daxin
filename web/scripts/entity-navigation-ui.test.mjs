@@ -12,7 +12,9 @@ const articleSearch = await read('../app/components/content/ContentListing.vue')
 test('品牌与律所页面删除重复详情入口和统计口径提示，保留标题跳转', () => {
   assert.doesNotMatch(entityDetail, /查看完整案件/)
   assert.doesNotMatch(entityDirectory, /统计来自公开案件资料|查看\{\{ kind === 'brand' \? '品牌历史发案'/)
-  assert.match(entityDetail, /<NuxtLink :to="`\/tro\/cases\/\$\{record\.slug\}`">\{\{ record\.caseNumber \}\}/)
+  // 详情页只做档案展示，不再嵌入案件列表与案件链接
+  assert.doesNotMatch(entityDetail, /\/tro\/cases\//)
+  assert.match(entityDetail, /代理律所 · LAW FIRM PROFILE/)
   assert.match(entityDirectory, /<NuxtLink :to="`\$\{kind === 'brand' \? '\/brands' : '\/law-firms'\}\/\$\{item\.slug\}`">\{\{ item\.name \}\}<\/NuxtLink>/)
 })
 

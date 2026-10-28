@@ -18,24 +18,31 @@ test('律所列表接口返回简称 / 地址 / 官网 / 图片，品牌不查�
   assert.match(queries, /COALESCE\(e\.short_name, ''\) AS short_name/)
   assert.match(queries, /COALESCE\(e\.address, ''\) AS address/)
   assert.match(queries, /COALESCE\(e\.website, ''\) AS website/)
-  assert.match(queries, /COALESCE\(NULLIF\(e\.logo_url, ''\), \(/)
-  assert.match(queries, /entity_images ei/)
-  assert.match(queries, /logoUrl: toText\(row\.logo_url\)/)
+  // 列表不展示图片，因此列表查询不再查 logo_url
+  const summaries = queries.slice(
+    queries.indexOf('export async function findEntitySummaries'),
+    queries.indexOf('export async function countPublicBrandDirectoryEntries'),
+  )
+  assert.doesNotMatch(summaries, /e\.logo_url/)
   assert.match(listEndpoint, /findEntitySummaries\('law_firms'/)
 })
 
-test('律所列表卡片只显示名称 / 简称 / 官网 / 关联案件，并带图片', () => {
+test('律所列表卡片只显示名称 / 简称 / 官网 / 关联案件，不放图片', () => {
+  const template = directory.slice(directory.indexOf('<template>'))
   assert.match(directory, /<p v-if="item\.shortName" class="directory__short-name">/)
   assert.match(directory, /简称：<strong>\{\{ item\.shortName \}\}<\/strong>/)
   assert.match(directory, /官网：<a :href="safeWebsite\(item\.website\)"/)
   // 律所卡片不显示地址；「简介资料整理后补充」只在品牌分支（v-else）里
-  const firmCard = directory.slice(directory.indexOf('class="directory__body"'), directory.indexOf('directory__count'))
-  assert.doesNotMatch(firmCard, /item\.address/)
+  assert.doesNotMatch(template, /item\.address/)
   assert.match(directory, /<p v-else class="directory__description">/)
-  // 图片：有图显示，失败回退首字占位
-  assert.match(directory, /v-if="item\.logoUrl && !failedLogos\.has\(item\.slug\)"/)
-  assert.match(directory, /@error="markLogoFailed\(item\.slug\)"/)
-  assert.match(directory, /entityInitial\(item\.name\)/)
+  // 列表不再渲染图片（详情页才有图）
+  assert.doesNotMatch(template, /directory__logo|item\.logoUrl|failedLogos|entityInitial/)
+})
+
+test('律所名称字号调小、字重减轻', () => {
+  assert.match(directory, /h2 \{[^}]*font-size:\s*var\(--text-lg\)/)
+  assert.match(directory, /h2 \{[^}]*font-weight:\s*600/)
+  assert.doesNotMatch(directory, /h2 \{[^}]*font-size:\s*var\(--heading-3\)/)
 })
 
 test('律所详情返回简介 / 图片，并展示在名称右侧', () => {
@@ -49,14 +56,12 @@ test('律所详情返回简介 / 图片，并展示在名称右侧', () => {
   assert.match(detail, /<h2>律所介绍<\/h2>/)
   assert.match(detail, /<h2>律所图片<\/h2>/)
   assert.match(detail, /class="entity-detail__cover entity-detail__cover--firm"/)
-  // 历史案件仍保留
-  assert.match(detail, /<h2>代理的历史案件<\/h2>/)
+  // 历史案件板块已移除
+  assert.doesNotMatch(detail, /代理的历史案件|entity-detail__cases/)
 })
 
-test('律所图片同样只取带水印的 marks 版本', () => {
+test('律所详情图片只取带水印的 marks 版本', () => {
   assert.match(queries, /entity_type = 'law_firm' AND entity_id = \? AND image_url <> ''\s+AND \$\{WATERMARKED_ENTITY_IMAGE_SQL\}/)
-  // 列表 Logo 回退也只用带水印的那张
-  assert.match(queries, /ei\.image_url LIKE '%\/images\/marks\/%'/)
 })
 
 test('律所摘要与详情类型带上新字段', () => {

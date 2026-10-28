@@ -35,8 +35,6 @@ export interface EntitySummary {
   address?: string
   /** 律所专用：官网（law_firms.website）。 */
   website?: string
-  /** 律所专用：列表/详情图片（law_firms.logo_url，缺失时回退第一张采集图）。 */
-  logoUrl?: string
 }
 
 /** 品牌库分类统计；按有公开案件关联的去重品牌数统计。 */
@@ -73,7 +71,6 @@ type EntityRow = {
   short_name?: string | null
   address?: string | null
   website?: string | null
-  logo_url?: string | null
 }
 
 type BrandDirectoryRow = EntityRow & {
@@ -539,19 +536,13 @@ export async function findEntitySummaries(table: 'brands' | 'law_firms', keyword
       params.push(like, like, like)
     }
   }
-  // 律所目录额外展示小程序来源的简称 / 地址 / 官网 / 图片；品牌没有这些列，不查。
+  // 律所目录额外展示小程序来源的简称 / 地址 / 官网；品牌没有这些列，不查。
+  // 列表不展示图片（图片只在详情页），因此这里不再查询 logo_url。
   const firmColumns = table === 'law_firms'
     ? `,
             COALESCE(e.short_name, '') AS short_name,
             COALESCE(e.address, '') AS address,
-            COALESCE(e.website, '') AS website,
-            COALESCE(NULLIF(e.logo_url, ''), (
-              SELECT ei.image_url FROM entity_images ei
-              WHERE ei.entity_type = 'law_firm' AND ei.entity_id = e.id
-                AND ei.image_url <> '' AND ei.image_url LIKE '%/images/marks/%'
-              ORDER BY ei.sort_order, ei.id
-              LIMIT 1
-            ), '') AS logo_url`
+            COALESCE(e.website, '') AS website`
     : ''
   const rows = await queryTarget<EntityRow>(
     `SELECT e.id, e.slug, e.name, COALESCE(e.summary, '') AS description,
@@ -569,7 +560,6 @@ export async function findEntitySummaries(table: 'brands' | 'law_firms', keyword
       shortName: toText(row.short_name),
       address: toText(row.address),
       website: toText(row.website),
-      logoUrl: toText(row.logo_url),
     }
   })
 }

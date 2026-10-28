@@ -29,18 +29,13 @@ test('品牌详情接口返回资料、介绍与图片', () => {
 test('品牌详情页展示资料 / 介绍 / 图片，且不再渲染历史发案', () => {
   assert.match(detail, /class="entity-detail__profile"/)
   assert.match(detail, /v-for="fact in brandFacts"/)
-  // 历史案件只在律所分支出现（品牌档案之后、律所档案之前不应有）
-  const casesIndex = detail.indexOf('<section class="entity-detail__cases">')
-  const firmProfileIndex = detail.indexOf('代理律所 · LAW FIRM PROFILE')
-  assert.ok(casesIndex > firmProfileIndex, '历史案件列表只应出现在律所分支')
-  assert.equal((detail.match(/代理的历史案件<\/h2>/g) ?? []).length, 1)
+  // 品牌 / 律所详情都不再渲染历史案件列表（页面只做档案展示）
+  assert.doesNotMatch(detail, /entity-detail__cases|代理的历史案件/)
   assert.match(detail, /<h2>品牌介绍<\/h2>/)
   assert.match(detail, /v-html="summary\.intro"/)
   assert.match(detail, /<h2>品牌图片<\/h2>/)
   assert.match(detail, /loading="lazy"/)
   assert.match(detail, /显示全部 \{\{ brandImages\.length \}\} 张/)
-  // 律所页保留历史案件
-  assert.match(detail, /<h2>代理的历史案件<\/h2>/)
 })
 
 test('品牌标题比其它页面小一号，长名称不会占满整屏', () => {
