@@ -38,6 +38,15 @@ test('品牌详情页展示资料 / 介绍 / 图片，且不再渲染历史发�
   assert.match(detail, /显示全部 \{\{ brandImages\.length \}\} 张/)
 })
 
+test('品牌详情与律所详情共用两列资料版式，品牌方 / 品牌原告整行', () => {
+  assert.match(detail, /\.entity-detail__facts > \.entity-detail__fact--wide \{ grid-column:1 \/ -1; \}/)
+  const brandFacts = detail.slice(detail.indexOf('const brandFacts'), detail.indexOf('/* ------------------------------- 律所资料'))
+  const order = [...brandFacts.matchAll(/\{ label: '([^']+)'/g)].map(match => match[1])
+  assert.deepEqual(order, ['品牌分类', '起诉州', '关联案件', '代理律所', '品牌原告', '品牌方'])
+  assert.match(brandFacts, /label: '品牌原告'[\s\S]*?wide: true/)
+  assert.match(brandFacts, /label: '品牌方'[\s\S]*?wide: true/)
+})
+
 test('品牌标题比其它页面小一号，长名称不会占满整屏', () => {
   assert.match(detail, /\.entity-detail__headline h1 \{[^}]*font-size:\s*clamp\(20px, 2\.2vw, 28px\)/)
   assert.doesNotMatch(detail, /\.entity-detail__headline h1 \{[^}]*var\(--heading-1\)/)

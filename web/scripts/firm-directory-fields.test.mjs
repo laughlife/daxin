@@ -66,8 +66,9 @@ test('律所详情图片只取带水印的 marks 版本（数据层保留，页�
 })
 
 test('律所资料按两列排布：简称 | 侵权类型，官网 | 关联案件，地址整行在下方', () => {
-  assert.match(detail, /\.entity-detail__profile--firm \.entity-detail__facts \{ grid-template-columns:repeat\(2, minmax\(0, 1fr\)\);/)
-  assert.match(detail, /\.entity-detail__profile--firm \.entity-detail__facts > div \{ grid-template-columns:5\.5em minmax\(0, 1fr\);/)
+  // 品牌与律所共用同一套两列资料版式
+  assert.match(detail, /\.entity-detail__facts \{ display:grid; grid-template-columns:repeat\(2, minmax\(0, 1fr\)\);/)
+  assert.match(detail, /\.entity-detail__facts > div \{ display:grid; grid-template-columns:5\.5em minmax\(0, 1fr\);/)
   assert.match(detail, /\.entity-detail__fact--wide \{ grid-column:1 \/ -1; \}/)
   // 顺序即版式：简称、侵权类型、官网、关联案件、地址（整行）
   const firmFacts = detail.slice(detail.indexOf('const firmFacts'), detail.indexOf('// 切换实体'))

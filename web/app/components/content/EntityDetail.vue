@@ -84,13 +84,14 @@ const brandImages = computed(() => allBrandImages.value.filter(url => url && url
 const brandFacts = computed(() => {
   const item = summary.value
   if (!item) return []
+  // 顺序即版式：短字段两两成排，较长的品牌方 / 品牌原告整行放在下面。
   return [
-    { label: '品牌分类', value: item.ipCategory || item.lawsuitType || '' },
-    { label: '品牌方', value: item.brandOwner || '' },
-    { label: '品牌原告', value: item.plaintiff || '' },
-    { label: '代理律所', value: item.lawFirm || '' },
-    { label: '起诉州', value: item.stateCode || '' },
-    { label: '关联案件', value: item.caseCount > 0 ? `${item.caseCount} 起` : '暂无公开案件' },
+    { label: '品牌分类', value: item.ipCategory || item.lawsuitType || '', wide: false },
+    { label: '起诉州', value: item.stateCode || '', wide: false },
+    { label: '关联案件', value: item.caseCount > 0 ? `${item.caseCount} 起` : '暂无公开案件', wide: false },
+    { label: '代理律所', value: item.lawFirm || '', wide: false },
+    { label: '品牌原告', value: item.plaintiff || '', wide: true },
+    { label: '品牌方', value: item.brandOwner || '', wide: true },
   ].filter(fact => fact.value)
 })
 
@@ -177,7 +178,11 @@ useSeoMeta({
                 <p class="entity-detail__eyebrow">品牌档案 · BRAND PROFILE</p>
                 <h1>{{ summary.name }}</h1>
                 <dl v-if="brandFacts.length" class="entity-detail__facts">
-                  <div v-for="fact in brandFacts" :key="fact.label">
+                  <div
+                    v-for="fact in brandFacts"
+                    :key="fact.label"
+                    :class="{ 'entity-detail__fact--wide': fact.wide }"
+                  >
                     <dt>{{ fact.label }}</dt>
                     <dd>{{ fact.value }}</dd>
                   </div>
@@ -285,12 +290,10 @@ useSeoMeta({
 .entity-detail__eyebrow { color:var(--color-primary); font-size:var(--text-xs); font-weight:700; letter-spacing:.1em; }
 /* 品牌名可能很长（最长 57 字），标题比其它页面小一号，避免占满整屏 */
 .entity-detail__headline h1 { margin:var(--space-3) 0 var(--space-5); font-size:clamp(20px, 2.2vw, 28px); line-height:1.4; overflow-wrap:anywhere; }
-.entity-detail__facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:var(--space-3) var(--space-5); margin:0; }
-/* 律所资料两列布局：第一排简称 | 侵权类型，第二排官网 | 关联案件，地址整行放下面 */
-.entity-detail__profile--firm .entity-detail__facts { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:var(--space-3) var(--space-6); max-width:820px; padding-left:var(--space-4); border-left:2px solid color-mix(in srgb, var(--color-primary) 28%, transparent); }
-.entity-detail__profile--firm .entity-detail__facts > div { grid-template-columns:5.5em minmax(0, 1fr); align-items:baseline; gap:var(--space-4); padding-left:0; border-left:0; }
-.entity-detail__profile--firm .entity-detail__facts > .entity-detail__fact--wide { grid-column:1 / -1; }
-.entity-detail__facts > div { display:grid; gap:2px; min-width:0; padding-left:var(--space-3); border-left:2px solid color-mix(in srgb, var(--color-primary) 28%, transparent); }
+/* 资料两列：短字段两两成排，较长的字段整行（品牌与律所共用同一套版式） */
+.entity-detail__facts { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:var(--space-3) var(--space-6); max-width:820px; margin:0; padding-left:var(--space-4); border-left:2px solid color-mix(in srgb, var(--color-primary) 28%, transparent); }
+.entity-detail__facts > div { display:grid; grid-template-columns:5.5em minmax(0, 1fr); align-items:baseline; gap:var(--space-4); min-width:0; }
+.entity-detail__facts > .entity-detail__fact--wide { grid-column:1 / -1; }
 .entity-detail__facts dt { color:var(--color-text-muted); font-size:var(--text-xs); }
 .entity-detail__facts dd { margin:0; overflow-wrap:anywhere; color:var(--color-text); font-size:var(--text-sm); line-height:1.5; }
 
@@ -319,7 +322,7 @@ useSeoMeta({
   .entity-detail__profile--firm { grid-template-columns:1fr; gap:var(--space-5); padding:var(--space-5); }
   .entity-detail__cover { max-width:220px; }
   /* 手机端资料收成单列，避免两列挤在一起 */
-  .entity-detail__profile--firm .entity-detail__facts { grid-template-columns:minmax(0, 1fr); }
+  .entity-detail__facts { grid-template-columns:minmax(0, 1fr); }
   /* 手机端横图同样通栏，左右贴到卡片内边距之外 */
   .entity-detail__banner { margin:0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5)); }
   .entity-detail__section { padding:var(--space-5); }
