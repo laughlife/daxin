@@ -292,7 +292,7 @@ useSeoMeta({
 /* 资料卡：文字在上、图片通栏在下（品牌与律所共用） */
 .entity-detail__profile { display:grid; grid-template-columns:minmax(0,1fr); gap:var(--space-6); padding:var(--space-8); overflow:hidden; border:1px solid var(--color-border); border-top:3px solid var(--color-primary); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
 /* 右下角通栏图：图片按原比例贴到卡片左下角，不铺底色、不裁切，避免出现白边 */
-.entity-detail__banner { display:flex; justify-content:flex-start; margin:0 calc(-1 * var(--space-8)) calc(-1 * var(--space-8)); background:transparent; }
+.entity-detail__banner { display:flex; justify-content:flex-start; margin:0 calc(-1 * var(--space-8)) calc(-1 * var(--space-8)); background:transparent; border-top:1px solid var(--color-border); }
 .entity-detail__banner img { display:block; width:auto; max-width:100%; height:auto; max-height:380px; object-fit:contain; }
 .entity-detail__headline { min-width:0; }
 .entity-detail__eyebrow { color:var(--color-primary); font-size:var(--text-xs); font-weight:700; letter-spacing:.1em; }
