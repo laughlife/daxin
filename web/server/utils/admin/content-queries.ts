@@ -731,6 +731,9 @@ export function buildArticleAdminFilterSql(input: Record<string, unknown> = {}):
  * 案例后台列表过滤：表别名固定 c。
  * 查询参数 `status` 与 `publishStatus` 都按 publish_status 过滤（后台列表按发布状态筛选，
  * 内部 status 不进入前台列）；非法取值一律忽略，不返回误导性的空列表。
+ *
+ * 关键词字段与公开 TRO 案件查询一致：案件号 / 原告 / 涉案品牌 / 代理律所（采集文本），
+ * 品牌与律所关联表只作历史数据兜底。
  */
 export function buildCaseAdminFilterSql(input: Record<string, unknown> = {}): AdminFilterSql {
   const clauses: string[] = []
@@ -742,6 +745,8 @@ export function buildCaseAdminFilterSql(input: Record<string, unknown> = {}): Ad
     clauses.push(`(
     c.case_number LIKE ? ESCAPE '!'
     OR c.plaintiff LIKE ? ESCAPE '!'
+    OR c.brand_name LIKE ? ESCAPE '!'
+    OR c.law_firm_name LIKE ? ESCAPE '!'
     OR c.title LIKE ? ESCAPE '!'
     OR c.court LIKE ? ESCAPE '!'
     OR EXISTS (
@@ -755,7 +760,7 @@ export function buildCaseAdminFilterSql(input: Record<string, unknown> = {}): Ad
       WHERE clf.case_id = c.id AND lf.name LIKE ? ESCAPE '!'
     )
   )`)
-    params.push(like, like, like, like, like, like)
+    params.push(like, like, like, like, like, like, like, like)
   }
 
   const publishStatus = readPublishStatus(input.status) || readPublishStatus(input.publishStatus)
@@ -767,21 +772,31 @@ export function buildCaseAdminFilterSql(input: Record<string, unknown> = {}): Ad
   return { sql: clauses.map(clause => `\n  AND ${clause}`).join(''), params }
 }
 
-/** 品牌 / 律所后台列表过滤：表别名固定 e。 */
-export function buildEntityAdminFilterSql(input: Record<string, unknown> = {}): AdminFilterSql {
+/**
+ * 品牌 / 律所后台列表过滤：表别名固定 e。
+ *
+ * 关键词字段与公开站对齐：
+ * - 品牌：名称 / 英文名 / 别名（与「侵权品牌库」一致）；
+ * - 律所：名称 / 简称 / 英文名（与「原告律所」列表一致）。
+ * 不再匹配 slug：后台已不展示 slug，用户不会拿它当搜索词。
+ */
+export function buildEntityAdminFilterSql(
+  input: Record<string, unknown> = {},
+  table: AdminEntityTable = 'brands',
+): AdminFilterSql {
   const clauses: string[] = []
   const params: unknown[] = []
 
   const keyword = normalizeText(input.keyword).slice(0, MAX_KEYWORD_LENGTH)
   if (keyword) {
     const like = `%${escapeLikePattern(keyword)}%`
+    const fields = table === 'law_firms'
+      ? ['e.name', 'e.short_name', 'e.name_en']
+      : ['e.name', 'e.name_en', 'e.aliases']
     clauses.push(`(
-    e.name LIKE ? ESCAPE '!'
-    OR e.name_en LIKE ? ESCAPE '!'
-    OR e.slug LIKE ? ESCAPE '!'
-    OR e.aliases LIKE ? ESCAPE '!'
+    ${fields.map(field => `${field} LIKE ? ESCAPE '!'`).join('\n    OR ')}
   )`)
-    params.push(like, like, like, like)
+    params.push(...fields.map(() => like))
   }
 
   const status = filterEntityStatus(input.status)
@@ -820,24 +835,30 @@ LEFT JOIN media_assets cover
 WHERE a.id = ?
 LIMIT 1`
 
-/** 案例列表 / 详情共用列口径；品牌 / 律所 / 侵权类型各取一条用于列表展示。 */
+/**
+ * 案例列表 / 详情共用列口径。
+ *
+ * 品牌 / 律所优先取 cases 里的采集文本（`brand_name` / `law_firm_name`）：
+ * 采集已不再写 case_brands / case_law_firms，只读关联表会全部显示「未关联」。
+ * 关联表只作为历史数据的兜底，与公开 TRO 案件查询的口径一致。
+ */
 export const ADMIN_CASE_COLUMNS = `c.id, c.case_number,
   DATE_FORMAT(c.filed_at, '%Y-%m-%d') AS filed_at,
   c.plaintiff, c.court,
   c.status, c.publish_status,
   DATE_FORMAT(c.updated_at, '%Y-%m-%d %H:%i:%s') AS updated_at,
-  (
+  COALESCE(NULLIF(c.brand_name, ''), (
     SELECT b.name FROM case_brands cb
     JOIN brands b ON b.id = cb.brand_id
     WHERE cb.case_id = c.id
     ORDER BY b.id LIMIT 1
-  ) AS brand_name,
-  (
+  )) AS brand_name,
+  COALESCE(NULLIF(c.law_firm_name, ''), (
     SELECT lf.name FROM case_law_firms clf
     JOIN law_firms lf ON lf.id = clf.law_firm_id
     WHERE clf.case_id = c.id
     ORDER BY clf.is_primary DESC, lf.id LIMIT 1
-  ) AS law_firm_name,
+  )) AS law_firm_name,
   (
     SELECT ip.slug FROM case_ip_types cip
     JOIN ip_types ip ON ip.id = cip.ip_type_id

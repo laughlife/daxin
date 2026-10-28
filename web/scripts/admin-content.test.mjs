@@ -523,9 +523,35 @@ test('列表过滤片段：参数全部走占位符，非法筛选值被忽略',
   assert.match(entity.sql, /e\.status = \?/)
   assert.deepEqual(entity.params, [0])
 
+  // 关键词字段与公开站对齐：品牌 名称/英文名/别名，律所 名称/简称/英文名
+  const brandKeyword = buildEntityAdminFilterSql({ keyword: 'Nike' }, 'brands')
+  assert.match(brandKeyword.sql, /e\.name LIKE/)
+  assert.match(brandKeyword.sql, /e\.name_en LIKE/)
+  assert.match(brandKeyword.sql, /e\.aliases LIKE/)
+  assert.doesNotMatch(brandKeyword.sql, /e\.slug LIKE/)
+  assert.deepEqual(brandKeyword.params, ['%Nike%', '%Nike%', '%Nike%'])
+
+  const firmKeyword = buildEntityAdminFilterSql({ keyword: 'GBC' }, 'law_firms')
+  assert.match(firmKeyword.sql, /e\.name LIKE/)
+  assert.match(firmKeyword.sql, /e\.short_name LIKE/)
+  assert.match(firmKeyword.sql, /e\.name_en LIKE/)
+  assert.deepEqual(firmKeyword.params, ['%GBC%', '%GBC%', '%GBC%'])
+
   assert.deepEqual(buildArticleAdminFilterSql({}), { sql: '', params: [] })
   assert.ok(ADMIN_ARTICLE_LIST_SQL.includes('FROM articles a'))
   assert.ok(ADMIN_ARTICLE_COUNT_SQL.includes('COUNT(*)'))
+})
+
+test('后台案例列表的品牌 / 律所取采集文本，关联表只作兜底', () => {
+  const columns = adminQueries.ADMIN_CASE_COLUMNS
+  assert.match(columns, /COALESCE\(NULLIF\(c\.brand_name, ''\)/)
+  assert.match(columns, /COALESCE\(NULLIF\(c\.law_firm_name, ''\)/)
+  assert.match(columns, /FROM case_law_firms clf/)
+
+  const filter = buildCaseAdminFilterSql({ keyword: 'GBC' })
+  assert.match(filter.sql, /c\.brand_name LIKE \?/)
+  assert.match(filter.sql, /c\.law_firm_name LIKE \?/)
+  assert.equal(filter.params.length, 8)
 })
 
 // ---------------------------------------------------------------------------

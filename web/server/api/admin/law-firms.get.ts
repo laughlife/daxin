@@ -28,7 +28,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const query = getQuery(event) as Record<string, unknown>
-  const filter = buildEntityAdminFilterSql(query)
+  const filter = buildEntityAdminFilterSql(query, 'law_firms')
 
   try {
     const countRows = await queryTarget<CountRow>(`${adminEntityCountSql('law_firms')}${filter.sql}`, filter.params)

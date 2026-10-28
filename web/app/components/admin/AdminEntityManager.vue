@@ -42,6 +42,11 @@ const requestFetch = useRequestFetch()
 const canWrite = computed(() => canWriteContent(user.value))
 const readOnlyReason = READ_ONLY_NOTICE
 
+/** 搜索字段与公开站一致：品牌看名称 / 英文名 / 别名，律所看名称 / 简称 / 英文名。 */
+const keywordPlaceholder = computed(() =>
+  props.kind === 'firm' ? '律所名称 / 简称 / 英文名' : '品牌名称 / 英文名 / 别名'
+)
+
 /** 列表查询条件 */
 const keyword = ref('')
 const page = ref(1)
@@ -240,7 +245,7 @@ function onPageSize(next: number) {
             v-model="keyword"
             class="admin-entity__input"
             type="search"
-            :placeholder="`${entityLabel}名称 / 英文名 / 别名`"
+            :placeholder="keywordPlaceholder"
           >
         </div>
         <BaseButton variant="secondary" size="sm" type="submit">搜索</BaseButton>
