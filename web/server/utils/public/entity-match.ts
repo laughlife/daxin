@@ -61,7 +61,6 @@ export function entityCaseMatchSql(columns: EntityCaseMatchColumns): string {
   )`
 }
 
-/** 目录侧（别名 e）与案件侧（别名 c）的匹配条件，供单实体统计使用。 */
 export function entityCaseMatchSqlForEntity(table: 'brands' | 'law_firms'): string {
   return table === 'brands'
     ? entityCaseMatchSql({
@@ -80,6 +79,13 @@ export function entityCaseMatchSqlForEntity(table: 'brands' | 'law_firms'): stri
       entityShortNameKey: `REPLACE(e.short_name, ' ', '')`,
     })
 }
+
+/**
+ * 小程序采集的图片成对入库：`/images/marks/*.webp` 是带水印的版本，
+ * `/images/images/*.png` 是同一张的无水印版。公开站与后台都只展示带水印的那张，
+ * 否则同一张图会出现两次。
+ */
+export const WATERMARKED_ENTITY_IMAGE_SQL = `image_url LIKE '%/images/marks/%'`
 
 /**
  * 品牌 / 律所的公开关联案件数：只统计已发布案件，随发布状态实时变化。

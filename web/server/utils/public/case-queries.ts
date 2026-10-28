@@ -7,7 +7,7 @@
 //   - 日期列统一用 DATE_FORMAT 取字符串，避免 mysql2 把 DATE 转成 Date 后受服务器时区影响；
 //   - 内部迁移列（migration_batch_id / legacy_source_* / verified_at 等）一律不 SELECT。
 import { queryTarget } from '../db/query'
-import { entityCaseMatchSql, entityCaseMatchSqlForEntity, publishedEntityCaseCountSql } from './entity-match'
+import { entityCaseMatchSql, entityCaseMatchSqlForEntity, publishedEntityCaseCountSql, WATERMARKED_ENTITY_IMAGE_SQL } from './entity-match'
 import {
   buildCaseFilterSql,
   buildBrandDirectoryFilterSql,
@@ -85,14 +85,6 @@ type BrandDirectoryRow = EntityRow & {
 }
 
 type CaseRow = CaseRowInput & { id: number | string | null }
-
-/**
- * 小程序采集的品牌 / 律所图片成对入库：
- *   - `/images/marks/*.webp` 为带「大信」水印的版本（封面与 Logo 也都在这个目录）；
- *   - `/images/images/*.png` 是同一张的无水印清晰版。
- * 公开页只展示带水印的一张，否则同一张图会在画廊里出现两次。
- */
-const WATERMARKED_ENTITY_IMAGE_SQL = `image_url LIKE '%/images/marks/%'`
 
 type RelationRow = {
   case_id: number | string | null

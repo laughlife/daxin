@@ -163,9 +163,12 @@ const viewFacts = computed(() => {
     facts.push(
       { label: '品牌分类', value: item.ipCategory },
       { label: '品牌方', value: item.brandOwner },
-      { label: '起诉类型', value: item.lawsuitType },
-      { label: '默认律所', value: item.defaultLawFirm },
     )
+    // 分类为空时服务端会回退到起诉类型，两者相同就不再重复展示一行。
+    if (item.lawsuitType && item.lawsuitType !== item.ipCategory) {
+      facts.push({ label: '起诉类型', value: item.lawsuitType })
+    }
+    facts.push({ label: '默认律所', value: item.defaultLawFirm })
   } else {
     facts.push(
       { label: '简称', value: item.shortName },

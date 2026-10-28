@@ -10,7 +10,7 @@
 // 相对导入显式带 .ts 后缀：node 的类型剥离不做扩展名补全，
 // 而 Nuxt 生成的 tsconfig 已开启 allowImportingTsExtensions。
 import { escapeLikePattern } from '../public/article-query.ts'
-import { publishedEntityCaseCountSql } from '../public/entity-match.ts'
+import { publishedEntityCaseCountSql, WATERMARKED_ENTITY_IMAGE_SQL } from '../public/entity-match.ts'
 import { normalizeDateOnly, normalizeText } from '../public/query.ts'
 
 /** 关键词长度上限，避免超长输入拖垮 LIKE 查询。 */
@@ -891,7 +891,7 @@ const ENTITY_SPECS: Readonly<Record<AdminEntityTable, EntitySpec>> = Object.free
     relationTable: 'case_brands',
     relationColumn: 'brand_id',
     regionSelect: `'' AS region`,
-    detailSelect: `e.ip_category,
+    detailSelect: `COALESCE(NULLIF(e.ip_category, ''), e.lawsuit_type, '') AS ip_category,
   e.brand_owner,
   e.lawsuit_type,
   COALESCE(e.cover_url, '') AS cover_url,
@@ -955,11 +955,12 @@ export function adminEntityDetailSql(table: AdminEntityTable): string {
 LIMIT 1`
 }
 
-/** 后台实体图片（小程序采集），按 sort_order 排序。 */
+/** 后台实体图片（小程序采集），只取带水印的 marks 版本，按 sort_order 排序。 */
 export function adminEntityImagesSql(table: AdminEntityTable): string {
   const entityType = entitySpec(table).entityType
   return `SELECT image_url FROM entity_images
 WHERE entity_type = '${entityType}' AND entity_id = ?
+  AND ${WATERMARKED_ENTITY_IMAGE_SQL}
 ORDER BY sort_order, id`
 }
 

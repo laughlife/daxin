@@ -5,10 +5,11 @@ import { test } from 'node:test'
 import { toSafeRichText } from '../server/utils/public/sanitize.ts'
 
 const read = path => readFile(new URL(path, import.meta.url), 'utf8')
-const [detail, repository, queries, endpoint] = await Promise.all([
+const [detail, repository, queries, entityMatch, endpoint] = await Promise.all([
   read('../app/components/content/EntityDetail.vue'),
   read('../app/repositories/entities.ts'),
   read('../server/utils/public/case-queries.ts'),
+  read('../server/utils/public/entity-match.ts'),
   read('../server/api/public/brands/[slug].get.ts'),
 ])
 
@@ -72,7 +73,9 @@ test('品牌标题比其它页面小一号，长名称不会占满整屏', () =>
 })
 
 test('品牌图片只取带水印的 marks 版本，避免同图出现两次', () => {
-  assert.match(queries, /const WATERMARKED_ENTITY_IMAGE_SQL = `image_url LIKE '%\/images\/marks\/%'`/)
+  // 过滤常量在 entity-match.ts，公开站与后台共用
+  assert.match(entityMatch, /export const WATERMARKED_ENTITY_IMAGE_SQL = `image_url LIKE '%\/images\/marks\/%'`/)
+  assert.match(queries, /WATERMARKED_ENTITY_IMAGE_SQL/)
   // 品牌画廊查询带上水印过滤
   assert.match(queries, /entity_type = 'brand' AND entity_id = \? AND image_url <> ''\s+AND \$\{WATERMARKED_ENTITY_IMAGE_SQL\}/)
 })
