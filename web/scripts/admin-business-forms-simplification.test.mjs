@@ -14,7 +14,6 @@ const articleForm = articleTemplate.slice(articleTemplate.indexOf('<form class="
 const caseTemplate = casesPage.slice(casesPage.indexOf('<template>'))
 const caseForm = caseTemplate.slice(caseTemplate.indexOf('<form class="admin-cases__form"'))
 const entityTemplate = entityManager.slice(entityManager.indexOf('<template>'))
-const entityForm = entityTemplate.slice(entityTemplate.indexOf('<form class="admin-entity__form"'))
 
 test('后台账号角色是无按钮底色的加粗文字，退出按钮清晰突出', () => {
   const account = adminLayout.match(/\.admin-shell__account\s*\{([^}]+)\}/)?.[1] ?? ''
@@ -45,7 +44,9 @@ test('文章、案件、品牌、律所与用户的新建入口都和搜索控�
   ])
   assert.match(articleTemplate, /admin-articles__filter-form[\s\S]*?搜索[\s\S]*?新建文章/)
   assert.match(casesPage, /admin-cases__filter-form[\s\S]*?搜索[\s\S]*?新建案例/)
-  assert.match(entityManager, /admin-entity__filter-form[\s\S]*?搜索[\s\S]*?新建\{\{ entityLabel \}\}/)
+  // 品牌 / 律所后台只读，筛选栏只有搜索
+  assert.match(entityManager, /admin-entity__filter-form[\s\S]*?搜索/)
+  assert.doesNotMatch(entityManager, /新建\{\{ entityLabel \}\}/)
   assert.match(usersPage, /admin-users__filters[\s\S]*?查询[\s\S]*?新建账号/)
   assert.match(articlesPage, /\.admin-articles__filter-form \{\s*display: flex;/)
   assert.match(casesPage, /\.admin-cases__filter-form \{\s*display: flex;/)
@@ -67,11 +68,13 @@ test('文章编辑移除辅助说明、HTML 原文入口和 slug 字段，但保
   assert.match(articlesPage, /form\.slug = article\.slug/)
 })
 
-test('律所和品牌编辑隐藏 slug 与说明文字，继续保留名称校验和自动 slug 数据', () => {
-  assert.doesNotMatch(entityForm, /slug（可选）|当前 slug：|仅律所有该字段|关联案件数：只读|多个别名用逗号分隔/)
-  assert.match(entityForm, /v-if="nameError"/)
-  assert.match(entityManager, /if \(form\.slug\.trim\(\)\) body\.slug = form\.slug\.trim\(\)/)
-  assert.match(entityManager, /form\.slug = item\.slug/)
+test('律所和品牌改为只读查看，展示现有字段且不再有编辑表单', () => {
+  assert.doesNotMatch(entityTemplate, /<form class="admin-entity__form"/)
+  assert.doesNotMatch(entityManager, /nameError|form\.slug = item\.slug|body\.slug = form\.slug/)
+  assert.match(entityManager, /const viewFacts = computed/)
+  assert.match(entityManager, /label: '品牌分类'[\s\S]*?label: '品牌方'/)
+  assert.match(entityManager, /label: '简称'[\s\S]*?label: '官网'/)
+  assert.match(entityManager, />查看<\/BaseButton>/)
 })
 
 test('案件编辑删除静态提示，保留字段及输入错误反馈', () => {

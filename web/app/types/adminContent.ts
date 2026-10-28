@@ -63,10 +63,24 @@ export interface AdminEntityItem {
   nameEn: string
   aliases: string
   logoMediaId: number | null
+  /** 品牌：logo 媒体资源地址；律所：law_firms.logo_url */
   logoUrl: string
   region: string
   summary: string
-  /** 只读：由关联表实时统计，后台不可写 */
+  /** 小程序采集字段（另一类实体恒为空串） */
+  ipCategory: string
+  brandOwner: string
+  lawsuitType: string
+  coverUrl: string
+  defaultLawFirm: string
+  shortName: string
+  address: string
+  website: string
+  /** 采集简介（富文本原文，展示前需清洗） */
+  intro: string
+  /** 采集图片，仅详情接口返回 */
+  images: string[]
+  /** 只读：与公开站同一套文本匹配统计，后台不可写 */
   caseCount: number
   /** 1 = 正常，0 = 归档 */
   status: number

@@ -10,6 +10,7 @@
 // 相对导入显式带 .ts 后缀：node 的类型剥离不做扩展名补全，
 // 而 Nuxt 生成的 tsconfig 已开启 allowImportingTsExtensions。
 import { escapeLikePattern } from '../public/article-query.ts'
+import { publishedEntityCaseCountSql } from '../public/entity-match.ts'
 import { normalizeDateOnly, normalizeText } from '../public/query.ts'
 
 /** 关键词长度上限，避免超长输入拖垮 LIKE 查询。 */
@@ -879,11 +880,41 @@ interface EntitySpec {
   relationColumn: string
   /** region 只有律所有实列。 */
   regionSelect: string
+  /** 小程序采集字段：品牌与律所列不同，缺失的一侧补空串保持结构一致。 */
+  detailSelect: string
+  /** entity_details / entity_images 的 entity_type 取值。 */
+  entityType: 'brand' | 'law_firm'
 }
 
 const ENTITY_SPECS: Readonly<Record<AdminEntityTable, EntitySpec>> = Object.freeze({
-  brands: { relationTable: 'case_brands', relationColumn: 'brand_id', regionSelect: `'' AS region` },
-  law_firms: { relationTable: 'case_law_firms', relationColumn: 'law_firm_id', regionSelect: 'e.region' },
+  brands: {
+    relationTable: 'case_brands',
+    relationColumn: 'brand_id',
+    regionSelect: `'' AS region`,
+    detailSelect: `e.ip_category,
+  e.brand_owner,
+  e.lawsuit_type,
+  COALESCE(e.cover_url, '') AS cover_url,
+  COALESCE(e.default_law_firm, '') AS default_law_firm,
+  '' AS short_name,
+  '' AS address,
+  '' AS website`,
+    entityType: 'brand',
+  },
+  law_firms: {
+    relationTable: 'case_law_firms',
+    relationColumn: 'law_firm_id',
+    regionSelect: 'e.region',
+    detailSelect: `'' AS ip_category,
+  '' AS brand_owner,
+  '' AS lawsuit_type,
+  '' AS cover_url,
+  '' AS default_law_firm,
+  COALESCE(e.short_name, '') AS short_name,
+  COALESCE(e.address, '') AS address,
+  COALESCE(e.website, '') AS website`,
+    entityType: 'law_firm',
+  },
 })
 
 function entitySpec(table: string): EntitySpec {
@@ -893,30 +924,43 @@ function entitySpec(table: string): EntitySpec {
 
 /**
  * 品牌 / 律所列口径。
- * caseCount 是只读派生值：这里从关联表实时统计，而不是读可能过期的 case_count 冗余列，
- * 因此后台看到的数字一定与「案件关联」一致（公开接口仍读 case_count 列）。
+ * caseCount 是只读派生值：case_brands / case_law_firms 已停止写入，改为与公开站同一套
+ * 文本匹配统计（只算已发布案件），后台看到的数字与官网一致。
  */
 export function adminEntityListSql(table: AdminEntityTable): string {
   const spec = entitySpec(table)
   const logoFields = table === 'brands'
     ? `, e.logo_media_id, COALESCE(logo.public_url, '') AS logo_url`
-    : `, NULL AS logo_media_id, '' AS logo_url`
+    : `, NULL AS logo_media_id, COALESCE(e.logo_url, '') AS logo_url`
   const logoJoin = table === 'brands'
     ? `\nLEFT JOIN media_assets logo ON logo.id = e.logo_media_id AND logo.usage_scope = 'logo' AND logo.deleted_at IS NULL`
     : ''
   return `SELECT e.id, e.slug, e.name, e.name_en, e.aliases, ${spec.regionSelect}${logoFields},
+  ${spec.detailSelect},
   COALESCE(e.summary, '') AS summary, e.status,
+  (SELECT ed.intro FROM entity_details ed
+    WHERE ed.entity_type = '${spec.entityType}' AND ed.entity_id = e.id
+    LIMIT 1) AS intro,
   DATE_FORMAT(e.created_at, '%Y-%m-%d %H:%i:%s') AS created_at,
   DATE_FORMAT(e.updated_at, '%Y-%m-%d %H:%i:%s') AS updated_at,
-  (SELECT COUNT(*) FROM ${spec.relationTable} r WHERE r.${spec.relationColumn} = e.id) AS case_count
+  ${publishedEntityCaseCountSql(table)} AS case_count
 FROM ${table} e${logoJoin}
 WHERE 1 = 1`
 }
 
+/** 详情：列表口径 + id 过滤；图片在接口里单独查（有序且可能很多，不塞进 GROUP_CONCAT）。 */
 export function adminEntityDetailSql(table: AdminEntityTable): string {
   return `${adminEntityListSql(table)}
   AND e.id = ?
 LIMIT 1`
+}
+
+/** 后台实体图片（小程序采集），按 sort_order 排序。 */
+export function adminEntityImagesSql(table: AdminEntityTable): string {
+  const entityType = entitySpec(table).entityType
+  return `SELECT image_url FROM entity_images
+WHERE entity_type = '${entityType}' AND entity_id = ?
+ORDER BY sort_order, id`
 }
 
 /** 品牌 / 律所总数统计；与列表复用同一份过滤片段。 */
@@ -1075,10 +1119,24 @@ export interface AdminEntityItem {
   nameEn: string
   aliases: string
   logoMediaId: number | null
+  /** 品牌：logo 媒体资源地址；律所：law_firms.logo_url。 */
   logoUrl: string
   region: string
   summary: string
-  /** 只读：由 case_brands / case_law_firms 实时统计，不接受后台写入。 */
+  /** 小程序采集字段（另一类实体恒为空串）。 */
+  ipCategory: string
+  brandOwner: string
+  lawsuitType: string
+  coverUrl: string
+  defaultLawFirm: string
+  shortName: string
+  address: string
+  website: string
+  /** 采集简介（富文本原文，展示前需清洗）。 */
+  intro: string
+  /** 采集图片，仅详情接口返回。 */
+  images: string[]
+  /** 只读：与公开站同一套文本匹配统计，不接受后台写入。 */
   caseCount: number
   status: 0 | 1
   createdAt: string
@@ -1095,6 +1153,16 @@ export interface AdminEntityRow {
   logo_url?: unknown
   region?: unknown
   summary?: unknown
+  ip_category?: unknown
+  brand_owner?: unknown
+  lawsuit_type?: unknown
+  cover_url?: unknown
+  default_law_firm?: unknown
+  short_name?: unknown
+  address?: unknown
+  website?: unknown
+  intro?: unknown
+  images?: unknown
   case_count?: unknown
   status?: unknown
   created_at?: unknown
@@ -1112,6 +1180,16 @@ export function mapAdminEntityRow(row: AdminEntityRow): AdminEntityItem {
     logoUrl: toText(row.logo_url),
     region: toText(row.region),
     summary: toText(row.summary),
+    ipCategory: toText(row.ip_category),
+    brandOwner: toText(row.brand_owner),
+    lawsuitType: toText(row.lawsuit_type),
+    coverUrl: toText(row.cover_url),
+    defaultLawFirm: toText(row.default_law_firm),
+    shortName: toText(row.short_name),
+    address: toText(row.address),
+    website: toText(row.website),
+    intro: toText(row.intro),
+    images: Array.isArray(row.images) ? row.images.map(item => toText(item)).filter(Boolean) : [],
     caseCount: toCount(row.case_count),
     status: readEntityStatus(row.status) ?? 0,
     createdAt: toDateTimeText(row.created_at),

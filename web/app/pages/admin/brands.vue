@@ -2,8 +2,8 @@
 /**
  * 品牌管理（/admin/brands）。
  *
- * 列表与编辑表单由 AdminEntityManager 提供（品牌与律所共用同一套字段与列），
- * 这里只声明接口路径、实体名与是否包含「地区」字段。
+ * 数据由小程序后台采集维护，后台只做查看与归档：列表展示当前字段，
+ * 点「查看」打开只读详情（分类 / 品牌方 / 起诉类型 / 封面 / 简介 / 图片）。
  */
 definePageMeta({
   layout: 'admin',
@@ -12,7 +12,7 @@ definePageMeta({
 
 useSeoMeta({
   title: '品牌管理',
-  description: '后台品牌列表与编辑。',
+  description: '后台品牌列表与详情。',
   robots: 'noindex, nofollow'
 })
 </script>
@@ -21,6 +21,6 @@ useSeoMeta({
   <AdminEntityManager
     endpoint="/api/admin/brands"
     entity-label="品牌"
-    with-logo
+    kind="brand"
   />
 </template>

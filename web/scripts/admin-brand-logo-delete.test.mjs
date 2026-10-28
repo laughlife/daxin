@@ -15,15 +15,14 @@ const [brandPage, entityManager, remoteSelect, queries, createApi, updateApi, li
   read('../server/api/admin/law-firms/[id].delete.ts'),
 ])
 
-test('品牌编辑支持品牌图片 OSS 上传和保存', () => {
-  assert.match(brandPage, /with-logo/)
-  assert.match(entityManager, /<SettingImageField/)
-  assert.match(entityManager, /usage-scope="logo"/)
-  assert.match(entityManager, /body\.logoMediaId = form\.logoMediaId/)
-  assert.match(createApi, /logo_media_id/)
-  assert.match(updateApi, /changes\.logo_media_id = parsed\.value/)
-  assert.match(queries, /logoMediaId: toNullableId\(row\.logo_media_id\)/)
-  assert.match(queries, /LEFT JOIN media_assets logo/)
+test('品牌详情展示采集封面 / Logo（只读，不再提供上传表单）', () => {
+  assert.match(entityManager, /const viewCover = computed/)
+  assert.match(entityManager, /props\.kind === 'brand' \? \(item\.coverUrl \|\| item\.logoUrl\) : item\.logoUrl/)
+  assert.match(entityManager, /class="admin-entity__view-cover"/)
+  assert.match(queries, /COALESCE\(logo\.public_url, ''\) AS logo_url/)
+  // 后台只读：编辑表单与图片上传已移除
+  assert.doesNotMatch(entityManager, /SettingImageField|form\.logoMediaId = /)
+  assert.doesNotMatch(brandPage, /with-logo/)
 })
 
 test('品牌与律所列表提供删除操作，后端以软删除保留案件关系', () => {

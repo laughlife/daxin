@@ -17,15 +17,17 @@ test('新账号默认启用，编辑和提交继续沿用已有账号状态', ()
   assert.match(users, /status: form\.status/)
 })
 
-test('品牌与律所管理隐藏状态筛选、状态列、状态表单与归档操作', () => {
-  assert.doesNotMatch(entityTemplate, /entity-status-filter|<th[^>]*>状态<|entity-status|onArchive|归档/)
+test('品牌与律所管理隐藏状态筛选与状态编辑，删除仍是软删除', () => {
+  assert.doesNotMatch(entityTemplate, /entity-status-filter|<th[^>]*>状态<|onArchive/)
   assert.doesNotMatch(entities, /const statusFilter|status: statusFilter\.value|watch\(\[keyword, statusFilter\]/)
+  // 只读查看里展示当前状态：正常 / 已隐藏
+  assert.match(entities, /item\.status === 1 \? '正常' : '已隐藏'/)
 })
 
-test('编辑品牌/律所时回传原状态，新增项默认为正常', () => {
-  assert.match(entities, /status: '1'/)
-  assert.match(entities, /form\.status = String\(item\.status\)/)
-  assert.match(entities, /status: Number\(form\.status\)/)
+test('品牌 / 律所后台不再提供新建与编辑表单', () => {
+  assert.doesNotMatch(entityTemplate, /<form class="admin-entity__form"|新建\{\{ entityLabel \}\}|openCreate|onSubmit/)
+  assert.match(entityTemplate, /@click="openView\(item\)"/)
+  assert.match(entities, /async function openView\(item: AdminEntityItem\)/)
 })
 
 test('用户管理仍由现有管理员权限保护', () => {

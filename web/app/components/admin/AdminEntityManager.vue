@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import type { AdminEntityItem } from '~/types/adminContent'
 import {
   ADMIN_PAGE_SIZE,
@@ -11,30 +11,24 @@ import {
   type AdminWriteResult,
 } from '~/utils/adminApi'
 import { canWriteContent, READ_ONLY_NOTICE } from '~/utils/adminPermission'
+import { safeExternalUrl } from '~/utils/content'
+import { sanitizeHtml } from '~/utils/publicHtml'
 
 /**
- * 品牌 / 律所共用的后台管理界面。
+ * 品牌 / 律所后台：只读查看 + 归档。
  *
- * 两者字段、列表列和编辑表单基本一致，唯一差异是：
- *   - 接口路径不同（/api/admin/brands、/api/admin/law-firms）；
- *   - 律所多一个 region 字段（品牌没有该列，接口也会忽略它）。
- * 因此用同一个组件 + props 配置，避免复制两份易走样的页面代码。
- *
- * 表格列固定为：名称、英文名、关联案件数、更新时间（caseCount 只读，绝不提交）。
+ * 这两类数据现在由小程序后台采集维护，后台不再提供编辑表单：
+ * 列表展示当前字段，点「查看」打开只读详情（基础字段 + 采集字段 + 简介 + 图片）。
+ * 删除仍是软删除（status = 0），用于隐藏不合适的采集记录。
  */
-const props = withDefaults(defineProps<{
+const props = defineProps<{
   /** 列表 / 详情接口前缀，例如 /api/admin/brands */
   endpoint: string
   /** 实体中文名（单数），例如「品牌」 */
   entityLabel: string
-  /** 是否显示「地区」字段（只有律所有） */
-  withRegion?: boolean
-  /** 品牌编辑时提供 Logo 上传 */
-  withLogo?: boolean
-}>(), {
-  withRegion: false,
-  withLogo: false
-})
+  /** 决定列表列与详情字段：品牌看分类/品牌方，律所看简称/官网 */
+  kind: 'brand' | 'firm'
+}>()
 
 const { user, load } = useAdminSession()
 await load()
@@ -117,157 +111,90 @@ watch(keyword, () => { page.value = 1 }, { flush: 'sync' })
 const notice = ref('')
 const actionError = ref('')
 
-/** 编辑器 */
-const editorOpen = ref(false)
-const editingId = ref<number | null>(null)
-const saving = ref(false)
-const saveError = ref('')
-const detailLoading = ref(false)
-const detailError = ref('')
+/* ------------------------------- 查看详情 ------------------------------- */
 
-interface EntityForm {
-  slug: string
-  name: string
-  nameEn: string
-  aliases: string
-  region: string
-  summary: string
-  logoMediaId: number | null
-  logoUrl: string
-  status: string
-}
-
-const form = reactive<EntityForm>({
-  slug: '',
-  name: '',
-  nameEn: '',
-  aliases: '',
-  region: '',
-  summary: '',
-  logoMediaId: null,
-  logoUrl: '',
-  status: '1'
-})
-const imageUploading = ref(false)
-
-const nameError = computed(() => (form.name.trim() ? '' : `${props.entityLabel}名称不能为空`))
-const formValid = computed(() => !nameError.value)
-
-function resetForm() {
-  form.slug = ''
-  form.name = ''
-  form.nameEn = ''
-  form.aliases = ''
-  form.region = ''
-  form.summary = ''
-  form.logoMediaId = null
-  form.logoUrl = ''
-  form.status = '1'
-}
+const viewOpen = ref(false)
+const viewingId = ref<number | null>(null)
+const viewItem = ref<AdminEntityItem | null>(null)
+const viewLoading = ref(false)
+const viewError = ref('')
 
 /**
- * 表单容器引用 + 打开表单后滚动到表单区域。
- * 列表在上、表单在下，不滚动的话点「编辑」后视口仍停在列表，看起来像没反应。
+ * 列表在上、详情在下，不滚动的话点「查看」后视口仍停在列表，看起来像没反应。
  * ref 必须挂在原生元素上（组件上的 ref 拿到的是组件实例，没有 scrollIntoView）。
  */
-const editorRef = ref<HTMLElement | null>(null)
-const { requestScrollToEditor } = useScrollToEditor(editorRef, { selector: '[data-scroll-target="entity-editor"]' })
+const viewerRef = ref<HTMLElement | null>(null)
+const { requestScrollToEditor } = useScrollToEditor(viewerRef, { selector: '[data-scroll-target="entity-viewer"]' })
 
-async function openCreate() {
-  editingId.value = null
-  resetForm()
-  saveError.value = ''
-  detailError.value = ''
-  editorOpen.value = true
-  requestScrollToEditor()
-}
-
-async function openEdit(item: AdminEntityItem) {
-  editorOpen.value = true
-  editingId.value = item.id
-  resetForm()
-  saveError.value = ''
-  detailError.value = ''
-  detailLoading.value = true
-  applyDetail(item)
+async function openView(item: AdminEntityItem) {
+  viewOpen.value = true
+  viewingId.value = item.id
+  // 先用列表行填充，详情返回后覆盖，避免请求期间面板是空的。
+  viewItem.value = item
+  viewError.value = ''
+  viewLoading.value = true
   requestScrollToEditor()
   try {
     const detail = await requestAdminApi<Record<string, AdminEntityItem>>(`${props.endpoint}/${item.id}`, { requestFetch })
-    const record = detail[props.withRegion ? 'lawFirm' : 'brand'] ?? detail.entity ?? item
-    applyDetail(record)
+    viewItem.value = detail[props.kind === 'brand' ? 'brand' : 'lawFirm'] ?? item
   } catch (error) {
-    detailError.value = adminRequestErrorMessage(error, `${props.entityLabel}详情加载失败，请稍后重试`)
+    viewError.value = adminRequestErrorMessage(error, `${props.entityLabel}详情加载失败，请稍后重试`)
   } finally {
-    detailLoading.value = false
+    viewLoading.value = false
   }
 }
 
-function applyDetail(item: AdminEntityItem) {
-  form.slug = item.slug
-  form.name = item.name
-  form.nameEn = item.nameEn
-  form.aliases = item.aliases
-  form.region = item.region
-  form.summary = item.summary
-  form.logoMediaId = item.logoMediaId ?? null
-  form.logoUrl = item.logoUrl ?? ''
-  form.status = String(item.status)
+function closeView() {
+  viewOpen.value = false
+  viewingId.value = null
+  viewItem.value = null
+  viewError.value = ''
 }
 
-function onLogoUploaded(payload: { mediaId: number, mediaUrl: string }) {
-  form.logoMediaId = payload.mediaId
-  form.logoUrl = payload.mediaUrl
-}
-
-function closeEditor() {
-  editorOpen.value = false
-  editingId.value = null
-  saveError.value = ''
-  detailError.value = ''
-}
-
-/** 保存：新建 POST / 编辑 PUT；caseCount 只读，绝不提交。 */
-async function onSubmit() {
-  if (!canWrite.value) {
-    saveError.value = readOnlyReason
-    return
+/** 只读字段：空值不占位，官网渲染成可点击链接。 */
+const viewFacts = computed(() => {
+  const item = viewItem.value
+  if (!item) return []
+  const facts: Array<{ label: string, value: string, href?: string }> = [
+    { label: 'slug', value: item.slug },
+    { label: '英文名', value: item.nameEn },
+    { label: '别名', value: item.aliases },
+  ]
+  if (props.kind === 'brand') {
+    facts.push(
+      { label: '品牌分类', value: item.ipCategory },
+      { label: '品牌方', value: item.brandOwner },
+      { label: '起诉类型', value: item.lawsuitType },
+      { label: '默认律所', value: item.defaultLawFirm },
+    )
+  } else {
+    facts.push(
+      { label: '简称', value: item.shortName },
+      { label: '地址', value: item.address },
+      { label: '官网', value: item.website, href: safeExternalUrl(item.website) },
+      { label: '地区', value: item.region },
+    )
   }
-  if (!formValid.value) {
-    saveError.value = nameError.value
-    return
-  }
-  saving.value = true
-  saveError.value = ''
-  notice.value = ''
-  actionError.value = ''
+  facts.push(
+    { label: '关联案件', value: `${item.caseCount} 件` },
+    { label: '状态', value: item.status === 1 ? '正常' : '已隐藏' },
+    { label: '创建时间', value: item.createdAt },
+    { label: '更新时间', value: item.updatedAt },
+  )
+  return facts.filter(fact => fact.value)
+})
 
-  const body: Record<string, unknown> = {
-    name: form.name.trim(),
-    nameEn: form.nameEn,
-    aliases: form.aliases,
-    summary: form.summary,
-    status: Number(form.status)
-  }
-  if (props.withLogo) body.logoMediaId = form.logoMediaId
-  if (form.slug.trim()) body.slug = form.slug.trim()
-  if (props.withRegion) body.region = form.region
+/** 头图：品牌优先采集封面，其次 logo；律所用 logo_url。 */
+const viewCover = computed(() => {
+  const item = viewItem.value
+  if (!item) return ''
+  return props.kind === 'brand' ? (item.coverUrl || item.logoUrl) : item.logoUrl
+})
 
-  try {
-    if (editingId.value === null) {
-      await requestAdminApi<AdminWriteResult>(props.endpoint, { method: 'POST', body, requestFetch })
-      notice.value = `${props.entityLabel}已新建`
-    } else {
-      await requestAdminApi<AdminWriteResult>(`${props.endpoint}/${editingId.value}`, { method: 'PUT', body, requestFetch })
-      notice.value = `${props.entityLabel}已保存`
-    }
-    await refreshList()
-    closeEditor()
-  } catch (error) {
-    saveError.value = adminRequestErrorMessage(error, '保存失败，请稍后重试')
-  } finally {
-    saving.value = false
-  }
-}
+/** 采集简介：后台同样按白名单清洗后再渲染，不直接输出历史 HTML。 */
+const viewIntro = computed(() => sanitizeHtml(viewItem.value?.intro ?? ''))
+
+const viewImages = computed(() => viewItem.value?.images ?? [])
 
 async function onDelete(item: AdminEntityItem) {
   if (!canWrite.value) return
@@ -279,7 +206,7 @@ async function onDelete(item: AdminEntityItem) {
   try {
     await requestAdminApi<AdminWriteResult>(`${props.endpoint}/${item.id}`, { method: 'DELETE', requestFetch })
     notice.value = `${props.entityLabel}「${item.name}」已删除`
-    if (editingId.value === item.id) closeEditor()
+    if (viewingId.value === item.id) closeView()
     await refreshList()
   } catch (error) {
     actionError.value = adminRequestErrorMessage(error, `${props.entityLabel}删除失败，请稍后重试`)
@@ -310,12 +237,6 @@ function onPageSize(next: number) {
           >
         </div>
         <BaseButton variant="secondary" size="sm" type="submit">搜索</BaseButton>
-        <BaseButton
-          type="button"
-          :disabled="!canWrite"
-          :title="canWrite ? undefined : readOnlyReason"
-          @click="openCreate"
-        >新建{{ entityLabel }}</BaseButton>
     </form>
 
     <section class="admin-entity__list" :aria-label="`${entityLabel}列表`" aria-live="polite">
@@ -334,7 +255,8 @@ function onPageSize(next: number) {
             <thead>
               <tr>
                 <th scope="col">名称</th>
-                <th scope="col">英文名</th>
+                <th scope="col">{{ kind === 'brand' ? '品牌分类' : '简称' }}</th>
+                <th scope="col">{{ kind === 'brand' ? '品牌方' : '官网' }}</th>
                 <th scope="col">关联案件数</th>
                 <th scope="col">更新时间</th>
                 <th scope="col">操作</th>
@@ -345,23 +267,21 @@ function onPageSize(next: number) {
                 <td>
                   <span class="admin-entity__cell-title">{{ item.name }}</span>
                   <span class="admin-entity__cell-sub">
-                    {{ item.slug }}<template v-if="item.aliases">｜别名：{{ item.aliases }}</template>
-                    <template v-if="withRegion && item.region">｜地区：{{ item.region }}</template>
+                    {{ item.slug }}<template v-if="item.shortName">｜简称：{{ item.shortName }}</template>
                   </span>
                 </td>
-                <td>{{ item.nameEn || '—' }}</td>
-                <td>{{ item.caseCount }} 件（只读）</td>
+                <td>{{ (kind === 'brand' ? item.ipCategory : item.shortName) || '—' }}</td>
+                <td>
+                  <template v-if="kind === 'brand'">{{ item.brandOwner || '—' }}</template>
+                  <a v-else-if="safeExternalUrl(item.website)" :href="safeExternalUrl(item.website)" target="_blank" rel="noopener noreferrer">
+                    {{ item.website }}
+                  </a>
+                  <template v-else>—</template>
+                </td>
+                <td>{{ item.caseCount }} 件</td>
                 <td>{{ item.updatedAt }}</td>
                 <td class="admin-entity__cell-actions">
-                  <BaseButton
-                    variant="secondary"
-                    size="sm"
-                    :disabled="!canWrite"
-                    :title="canWrite ? undefined : readOnlyReason"
-                    @click="openEdit(item)"
-                  >
-                    编辑
-                  </BaseButton>
+                  <BaseButton variant="secondary" size="sm" @click="openView(item)">查看</BaseButton>
                   <BaseButton
                     variant="ghost"
                     size="sm"
@@ -395,91 +315,65 @@ function onPageSize(next: number) {
     </section>
 
     <!-- ref 挂在原生元素上：组件上的 ref 是组件实例，没有 scrollIntoView -->
-    <div v-if="editorOpen" ref="editorRef" data-scroll-target="entity-editor" class="admin-entity__editor">
-      <BaseCard
-        :title="editingId === null ? `新建${entityLabel}` : `编辑${entityLabel} #${editingId}`"
-        :title-level="2"
-      >
-      <p v-if="detailLoading" class="admin-entity__loading" role="status">正在加载{{ entityLabel }}详情…</p>
-      <p v-if="detailError" class="admin-entity__error" role="alert">{{ detailError }}</p>
+    <div v-if="viewOpen" ref="viewerRef" data-scroll-target="entity-viewer" class="admin-entity__viewer">
+      <BaseCard :title="`查看${entityLabel} #${viewingId}`" :title-level="2">
+        <p v-if="viewLoading" class="admin-entity__loading" role="status">正在加载{{ entityLabel }}详情…</p>
+        <p v-if="viewError" class="admin-entity__error" role="alert">{{ viewError }}</p>
 
-      <form class="admin-entity__form" novalidate @submit.prevent="onSubmit">
-        <div class="admin-entity__grid">
-          <div class="admin-entity__field">
-            <label class="admin-entity__label" for="entity-name">名称（必填）</label>
-            <input
-              id="entity-name"
-              v-model="form.name"
-              class="admin-entity__input"
-              type="text"
-              maxlength="191"
-              :disabled="!canWrite"
-              :aria-invalid="Boolean(nameError)"
-            >
-            <p v-if="nameError" class="admin-entity__hint admin-entity__hint--error">{{ nameError }}</p>
+        <template v-if="viewItem">
+          <header class="admin-entity__view-head">
+            <div>
+              <h3 class="admin-entity__view-name">{{ viewItem.name }}</h3>
+              <p class="admin-entity__view-sub">{{ viewItem.slug }}</p>
+            </div>
+            <span class="admin-entity__status" :class="`admin-entity__status--${viewItem.status === 1 ? 'active' : 'archived'}`">
+              {{ viewItem.status === 1 ? '正常' : '已隐藏' }}
+            </span>
+          </header>
+
+          <div v-if="viewCover" class="admin-entity__view-cover">
+            <img :src="viewCover" :alt="`${viewItem.name}图片`" loading="lazy" decoding="async">
           </div>
 
-          <div class="admin-entity__field">
-            <label class="admin-entity__label" for="entity-name-en">英文名</label>
-            <input id="entity-name-en" v-model="form.nameEn" class="admin-entity__input" type="text" maxlength="191" :disabled="!canWrite">
+          <dl class="admin-entity__view-facts">
+            <div v-for="fact in viewFacts" :key="fact.label">
+              <dt>{{ fact.label }}</dt>
+              <dd>
+                <a v-if="fact.href" :href="fact.href" target="_blank" rel="noopener noreferrer">{{ fact.value }}</a>
+                <template v-else>{{ fact.value }}</template>
+              </dd>
+            </div>
+          </dl>
+
+          <section v-if="viewItem.summary" class="admin-entity__view-section">
+            <h4>简介</h4>
+            <p>{{ viewItem.summary }}</p>
+          </section>
+
+          <section v-if="viewIntro" class="admin-entity__view-section">
+            <h4>采集介绍</h4>
+            <div class="admin-entity__rich" v-html="viewIntro" />
+          </section>
+
+          <section v-if="viewImages.length" class="admin-entity__view-section">
+            <h4>采集图片（{{ viewImages.length }} 张）</h4>
+            <div class="admin-entity__gallery">
+              <a
+                v-for="(image, index) in viewImages"
+                :key="image"
+                :href="image"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img :src="image" :alt="`${viewItem.name}图片 ${index + 1}`" loading="lazy" decoding="async">
+              </a>
+            </div>
+          </section>
+
+          <div class="admin-entity__actions">
+            <BaseButton variant="secondary" @click="closeView">关闭</BaseButton>
           </div>
-
-          <div v-if="withRegion" class="admin-entity__field">
-            <label class="admin-entity__label" for="entity-region">地区</label>
-            <input id="entity-region" v-model="form.region" class="admin-entity__input" type="text" maxlength="191" :disabled="!canWrite">
-          </div>
-        </div>
-
-        <div class="admin-entity__field">
-          <label class="admin-entity__label" for="entity-aliases">别名</label>
-          <input
-            id="entity-aliases"
-            v-model="form.aliases"
-            class="admin-entity__input"
-            type="text"
-            maxlength="512"
-            :disabled="!canWrite"
-          >
-        </div>
-
-        <div class="admin-entity__field">
-          <label class="admin-entity__label" for="entity-summary">简介</label>
-          <textarea
-            id="entity-summary"
-            v-model="form.summary"
-            class="admin-entity__textarea"
-            rows="4"
-            :disabled="!canWrite"
-          />
-        </div>
-
-        <div v-if="withLogo" class="admin-entity__brand-image">
-          <span class="admin-entity__label">品牌图片</span>
-          <SettingImageField
-            input-id="entity-brand-logo"
-            label="品牌图片"
-            :media-url="form.logoUrl"
-            :disabled="!canWrite || saving || detailLoading"
-            usage-scope="logo"
-            @uploaded="onLogoUploaded"
-            @uploading="imageUploading = $event"
-          />
-        </div>
-
-        <p v-if="saveError" class="admin-entity__error" role="alert">{{ saveError }}</p>
-        <p v-if="!canWrite" class="admin-entity__readonly" role="note">{{ readOnlyReason }}</p>
-
-        <div class="admin-entity__actions">
-          <BaseButton
-            type="submit"
-            :disabled="!canWrite || !formValid || saving || detailLoading || imageUploading"
-            :title="canWrite ? undefined : readOnlyReason"
-          >
-            {{ saving ? '保存中…' : '保存' }}
-          </BaseButton>
-          <BaseButton variant="secondary" :disabled="saving || imageUploading" @click="closeEditor">取消</BaseButton>
-        </div>
-      </form>
+        </template>
       </BaseCard>
     </div>
 
@@ -489,17 +383,6 @@ function onPageSize(next: number) {
 <style scoped>
 .admin-entity {
   padding-block: var(--space-8) var(--space-16);
-}
-
-.admin-entity__title {
-  font-size: var(--text-2xl);
-  color: var(--color-text);
-}
-
-.admin-entity__desc {
-  margin-top: var(--space-2);
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
 }
 
 .admin-entity__readonly {
@@ -533,7 +416,7 @@ function onPageSize(next: number) {
 }
 
 .admin-entity__filters,
-.admin-entity__editor {
+.admin-entity__viewer {
   margin-top: var(--space-6);
 }
 
@@ -577,9 +460,7 @@ function onPageSize(next: number) {
   color: var(--color-text);
 }
 
-.admin-entity__input,
-.admin-entity__select,
-.admin-entity__textarea {
+.admin-entity__input {
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-md);
@@ -587,37 +468,6 @@ function onPageSize(next: number) {
   color: var(--color-text);
   font-family: inherit;
   font-size: var(--text-base);
-}
-
-.admin-entity__select {
-  max-width: 260px;
-}
-
-.admin-entity__input[aria-invalid='true'] {
-  border-color: var(--color-error);
-}
-
-.admin-entity__input:disabled,
-.admin-entity__select:disabled,
-.admin-entity__textarea:disabled {
-  background-color: var(--color-bg-light);
-  color: var(--color-text-muted);
-  cursor: not-allowed;
-}
-
-.admin-entity__textarea {
-  width: 100%;
-  max-width: 720px;
-  resize: vertical;
-}
-
-.admin-entity__hint {
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-}
-
-.admin-entity__hint--error {
-  color: var(--color-error);
 }
 
 .admin-entity__list {
@@ -704,29 +554,39 @@ function onPageSize(next: number) {
   color: var(--color-text-muted);
 }
 
-.admin-entity__form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-5);
-}
-
-.admin-entity__brand-image {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: var(--space-3);
-}
-
-.admin-entity__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: var(--space-4);
-}
-
+/* 只读详情 */
+.admin-entity__view-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
+.admin-entity__view-name { margin: 0; font-size: var(--text-xl); color: var(--color-text); overflow-wrap: anywhere; }
+.admin-entity__view-sub { margin-top: var(--space-1); color: var(--color-text-muted); font-size: var(--text-xs); }
+.admin-entity__status { flex: none; padding: 2px var(--space-3); border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: 700; }
+.admin-entity__status--active { background: color-mix(in srgb, var(--color-success) 12%, transparent); color: var(--color-success); }
+.admin-entity__status--archived { background: var(--color-bg-light); color: var(--color-text-muted); }
+.admin-entity__view-cover { margin-top: var(--space-4); max-width: 360px; padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #f6f7f9; }
+.admin-entity__view-cover img { display: block; width: 100%; height: auto; max-height: 240px; object-fit: contain; }
+.admin-entity__view-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3) var(--space-6); margin-top: var(--space-5); }
+.admin-entity__view-facts > div { display: grid; grid-template-columns: 6.5em minmax(0, 1fr); align-items: baseline; gap: var(--space-3); }
+.admin-entity__view-facts dt { color: var(--color-text-muted); font-size: var(--text-xs); }
+.admin-entity__view-facts dd { margin: 0; color: var(--color-text); font-size: var(--text-sm); overflow-wrap: anywhere; }
+.admin-entity__view-facts a { color: var(--color-primary); }
+.admin-entity__view-section { margin-top: var(--space-6); }
+.admin-entity__view-section h4 { margin-bottom: var(--space-2); font-size: var(--text-base); color: var(--color-text); }
+.admin-entity__view-section p { color: var(--color-text-muted); font-size: var(--text-sm); line-height: var(--leading-relaxed); }
+.admin-entity__rich { color: var(--color-text-muted); font-size: var(--text-sm); line-height: var(--leading-relaxed); overflow-wrap: anywhere; }
+.admin-entity__rich :deep(p) { margin: 0 0 var(--space-3); }
+.admin-entity__rich :deep(img) { max-width: 100%; height: auto; }
+.admin-entity__rich :deep(a) { color: var(--color-primary); word-break: break-all; }
+.admin-entity__gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: var(--space-3); }
+.admin-entity__gallery a { display: block; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #f6f7f9; }
+.admin-entity__gallery img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
 .admin-entity__actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-3);
+  margin-top: var(--space-6);
 }
 
+@media (max-width: 767px) {
+  .admin-entity__view-facts { grid-template-columns: minmax(0, 1fr); }
+  .admin-entity__view-cover { max-width: 100%; }
+}
 </style>
