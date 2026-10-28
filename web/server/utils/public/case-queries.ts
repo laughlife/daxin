@@ -221,27 +221,50 @@ async function loadCaseExtras(ids: number[]) {
             EXISTS (SELECT 1 FROM case_events e WHERE e.case_id = c.id) AS has_events,
             (
               SELECT b.slug FROM brands b
-              WHERE b.status = 1 AND CHAR_LENGTH(TRIM(c.brand_name)) >= 2 AND (
-                REPLACE(b.name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.brand_name), ' ', ''), '%')
-                OR REPLACE(TRIM(c.brand_name), ' ', '') LIKE CONCAT('%', REPLACE(b.name, ' ', ''), '%')
-                OR (b.aliases <> '' AND REPLACE(b.aliases, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.brand_name), ' ', ''), '%'))
+              WHERE b.status = 1 AND (
+                -- 英文主干：互相包含
+                (CHAR_LENGTH(c.brand_latin) >= 4 AND CHAR_LENGTH(b.name_latin) >= 4 AND (
+                  b.name_latin LIKE CONCAT('%', c.brand_latin, '%')
+                  OR c.brand_latin LIKE CONCAT('%', b.name_latin, '%')
+                  -- 只差构词（rubikcube / rubikscube）：前 6 位相同
+                  OR LEFT(b.name_latin, 6) = LEFT(c.brand_latin, 6)
+                ))
+                -- 中文名称：去空格后互相包含
+                OR (CHAR_LENGTH(TRIM(c.brand_name)) >= 2 AND (
+                  REPLACE(b.name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.brand_name), ' ', ''), '%')
+                  OR REPLACE(TRIM(c.brand_name), ' ', '') LIKE CONCAT('%', REPLACE(b.name, ' ', ''), '%')
+                  OR (b.aliases <> '' AND REPLACE(b.aliases, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.brand_name), ' ', ''), '%'))
+                ))
               )
               ORDER BY
-                (REPLACE(b.name, ' ', '') = REPLACE(TRIM(c.brand_name), ' ', '')) DESC,
+                (b.name_latin = c.brand_latin) DESC,
+                (LEFT(b.name_latin, 6) = LEFT(c.brand_latin, 6)) DESC,
                 CHAR_LENGTH(b.name) ASC
               LIMIT 1
             ) AS brand_slug,
             (
               SELECT lf.slug FROM law_firms lf
-              WHERE lf.status = 1 AND CHAR_LENGTH(TRIM(c.law_firm_name)) >= 2 AND (
-                REPLACE(lf.name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.law_firm_name), ' ', ''), '%')
-                OR REPLACE(TRIM(c.law_firm_name), ' ', '') LIKE CONCAT('%', REPLACE(lf.name, ' ', ''), '%')
-                OR REPLACE(lf.short_name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.law_firm_name), ' ', ''), '%')
-                OR REPLACE(TRIM(c.law_firm_name), ' ', '') LIKE CONCAT('%', REPLACE(lf.short_name, ' ', ''), '%')
+              WHERE lf.status = 1 AND (
+                (CHAR_LENGTH(c.firm_latin) >= 4 AND CHAR_LENGTH(lf.name_latin) >= 4 AND (
+                  lf.name_latin LIKE CONCAT('%', c.firm_latin, '%')
+                  OR c.firm_latin LIKE CONCAT('%', lf.name_latin, '%')
+                  OR LEFT(lf.name_latin, 6) = LEFT(c.firm_latin, 6)
+                  OR (lf.short_latin <> '' AND (
+                    lf.short_latin LIKE CONCAT('%', c.firm_latin, '%')
+                    OR c.firm_latin LIKE CONCAT('%', lf.short_latin, '%')
+                    OR LEFT(lf.short_latin, 6) = LEFT(c.firm_latin, 6)
+                  ))
+                ))
+                OR (CHAR_LENGTH(TRIM(c.law_firm_name)) >= 2 AND (
+                  REPLACE(lf.name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.law_firm_name), ' ', ''), '%')
+                  OR REPLACE(TRIM(c.law_firm_name), ' ', '') LIKE CONCAT('%', REPLACE(lf.name, ' ', ''), '%')
+                  OR REPLACE(lf.short_name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.law_firm_name), ' ', ''), '%')
+                  OR REPLACE(TRIM(c.law_firm_name), ' ', '') LIKE CONCAT('%', REPLACE(lf.short_name, ' ', ''), '%')
+                ))
               )
               ORDER BY
-                (REPLACE(lf.name, ' ', '') = REPLACE(TRIM(c.law_firm_name), ' ', '')
-                 OR REPLACE(lf.short_name, ' ', '') = REPLACE(TRIM(c.law_firm_name), ' ', '')) DESC,
+                (lf.name_latin = c.firm_latin OR lf.short_latin = c.firm_latin) DESC,
+                (LEFT(lf.name_latin, 6) = LEFT(c.firm_latin, 6)) DESC,
                 CHAR_LENGTH(lf.name) ASC
               LIMIT 1
             ) AS firm_slug
