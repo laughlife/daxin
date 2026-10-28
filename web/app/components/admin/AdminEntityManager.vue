@@ -156,7 +156,6 @@ const viewFacts = computed(() => {
   const item = viewItem.value
   if (!item) return []
   const facts: Array<{ label: string, value: string, href?: string }> = [
-    { label: 'slug', value: item.slug },
     { label: '英文名', value: item.nameEn },
     { label: '别名', value: item.aliases },
   ]
@@ -233,7 +232,7 @@ function onPageSize(next: number) {
             v-model="keyword"
             class="admin-entity__input"
             type="search"
-            :placeholder="`${entityLabel}名称 / 英文名 / slug / 别名`"
+            :placeholder="`${entityLabel}名称 / 英文名 / 别名`"
           >
         </div>
         <BaseButton variant="secondary" size="sm" type="submit">搜索</BaseButton>
@@ -266,9 +265,6 @@ function onPageSize(next: number) {
               <tr v-for="item in items" :key="item.id">
                 <td>
                   <span class="admin-entity__cell-title">{{ item.name }}</span>
-                  <span class="admin-entity__cell-sub">
-                    {{ item.slug }}<template v-if="item.shortName">｜简称：{{ item.shortName }}</template>
-                  </span>
                 </td>
                 <td>{{ (kind === 'brand' ? item.ipCategory : item.shortName) || '—' }}</td>
                 <td>
@@ -324,7 +320,6 @@ function onPageSize(next: number) {
           <header class="admin-entity__view-head">
             <div>
               <h3 class="admin-entity__view-name">{{ viewItem.name }}</h3>
-              <p class="admin-entity__view-sub">{{ viewItem.slug }}</p>
             </div>
             <span class="admin-entity__status" :class="`admin-entity__status--${viewItem.status === 1 ? 'active' : 'archived'}`">
               {{ viewItem.status === 1 ? '正常' : '已隐藏' }}
@@ -520,14 +515,6 @@ function onPageSize(next: number) {
   color: var(--color-text);
 }
 
-.admin-entity__cell-sub {
-  display: block;
-  margin-top: var(--space-1);
-  color: var(--color-text-muted);
-  font-size: var(--text-xs);
-  word-break: break-all;
-}
-
 .admin-entity__cell-actions {
   display: flex;
   gap: var(--space-2);
@@ -557,7 +544,6 @@ function onPageSize(next: number) {
 /* 只读详情 */
 .admin-entity__view-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
 .admin-entity__view-name { margin: 0; font-size: var(--text-xl); color: var(--color-text); overflow-wrap: anywhere; }
-.admin-entity__view-sub { margin-top: var(--space-1); color: var(--color-text-muted); font-size: var(--text-xs); }
 .admin-entity__status { flex: none; padding: 2px var(--space-3); border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: 700; }
 .admin-entity__status--active { background: color-mix(in srgb, var(--color-success) 12%, transparent); color: var(--color-success); }
 .admin-entity__status--archived { background: var(--color-bg-light); color: var(--color-text-muted); }

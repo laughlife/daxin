@@ -30,6 +30,10 @@ test('品牌 / 律所后台不再提供新建与编辑表单', () => {
   assert.match(entities, /async function openView\(item: AdminEntityItem\)/)
 })
 
+test('品牌 / 律所后台不再展示 slug', () => {
+  assert.doesNotMatch(entityTemplate, /item\.slug|viewItem\.slug|label: 'slug'/)
+})
+
 test('用户管理仍由现有管理员权限保护', () => {
   assert.match(users, /definePageMeta\(\{ layout: 'admin', middleware: 'admin' \}\)/)
   assert.match(users, /useAdminSession\(\)/)
