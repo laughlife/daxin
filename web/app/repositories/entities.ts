@@ -52,6 +52,12 @@ export interface FirmSummary {
   name: string
   description: string
   caseCount: number
+  /** 简称（law_firms.short_name），可能为空串。 */
+  shortName?: string
+  /** 地址（law_firms.address）。 */
+  address?: string
+  /** 官网（law_firms.website），只有 http(s) 链接才应渲染成可点击链接。 */
+  website?: string
 }
 
 export interface BrandDetail {

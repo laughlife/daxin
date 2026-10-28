@@ -7,12 +7,17 @@ import { fetchBrands, fetchLawFirms } from '~/repositories/entities'
  * 列表来自 `~/repositories/entities` 的 fetchBrands() / fetchLawFirms()，
  * caseCount 由接口给出；目录页只做名称 / 简介的关键词定位，不再对案件做本地筛选。
  * 支持通过 URL query `q` 定位（案件列表里的品牌 / 律所入口会带上该参数）。
+ *
+ * 律所额外展示小程序来源的简称 / 地址 / 官网；品牌没有这三项。
  */
 interface EntitySummary {
   slug: string
   name: string
   description: string
   caseCount: number
+  shortName?: string
+  address?: string
+  website?: string
 }
 
 const props = defineProps<{ kind: 'brand' | 'firm' }>()
@@ -33,11 +38,27 @@ const errorMessage = computed(() =>
     : '目录加载失败，请稍后重试'
 )
 
+/** 只把 http(s) 官网渲染成链接，其它协议（含 javascript:）一律当普通文字。 */
+function safeWebsite(value?: string): string {
+  const url = (value ?? '').trim()
+  return /^https?:\/\//i.test(url) ? url : ''
+}
+
+/** 官网省略协议头展示，避免卡片里出现又长又重复的 https://。 */
+function websiteLabel(value: string): string {
+  return value.replace(/^https?:\/\//i, '').replace(/\/$/, '')
+}
+
 const entities = computed<EntitySummary[]>(() => data.value ?? [])
 const filtered = computed(() => {
   const query = keyword.value.trim().toLowerCase()
   if (!query) return entities.value
-  return entities.value.filter(item => `${item.name} ${item.description}`.toLowerCase().includes(query))
+  return entities.value.filter(item => [
+    item.name,
+    item.description,
+    item.shortName ?? '',
+    item.address ?? '',
+  ].join(' ').toLowerCase().includes(query))
 })
 const totalCases = computed(() => entities.value.reduce((sum, item) => sum + item.caseCount, 0))
 const stats = computed(() => [
@@ -108,7 +129,24 @@ useSeoMeta({
               <h2>
                 <NuxtLink :to="`${kind === 'brand' ? '/brands' : '/law-firms'}/${item.slug}`">{{ item.name }}</NuxtLink>
               </h2>
+              <p v-if="kind === 'firm' && item.shortName" class="directory__short-name">
+                简称：<strong>{{ item.shortName }}</strong>
+              </p>
               <p>{{ item.description || '简介资料整理后补充。' }}</p>
+              <dl v-if="kind === 'firm' && (item.address || safeWebsite(item.website))" class="directory__firm-meta">
+                <div v-if="item.address">
+                  <dt>地址</dt>
+                  <dd>{{ item.address }}</dd>
+                </div>
+                <div v-if="safeWebsite(item.website)">
+                  <dt>官网</dt>
+                  <dd>
+                    <a :href="safeWebsite(item.website)" target="_blank" rel="noopener noreferrer">
+                      {{ websiteLabel(safeWebsite(item.website)) }}
+                    </a>
+                  </dd>
+                </div>
+              </dl>
               <p class="directory__count">{{ item.caseCount }} 条关联案件</p>
             </article>
           </div>
@@ -137,5 +175,7 @@ useSeoMeta({
 input,select { width:100%; min-width:0; }
 .directory__notice { margin:var(--space-5) 0; color:var(--color-text-muted); font-size:var(--text-sm); } .directory__grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-5); }
 .directory__card { padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); } .directory__label { margin-bottom:var(--space-3); color:var(--color-primary); font-size:var(--text-xs); } h2 { margin-bottom:var(--space-3); font-size:var(--heading-3); } h2 a { color:var(--color-text); } .directory__card > p:not(:first-child) { color:var(--color-text-muted); font-size:var(--text-sm); line-height:var(--leading-relaxed); } .directory__count { margin:var(--space-4) 0; } .directory__card > a { font-size:var(--text-sm); }
+.directory__short-name { margin-bottom:var(--space-2); } .directory__short-name strong { color:var(--color-text); }
+.directory__firm-meta { display:grid; gap:var(--space-2); margin:var(--space-3) 0 0; } .directory__firm-meta > div { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:var(--space-3); } .directory__firm-meta dt { color:var(--color-text-muted); font-size:var(--text-sm); } .directory__firm-meta dd { margin:0; overflow-wrap:anywhere; color:var(--color-text); font-size:var(--text-sm); line-height:var(--leading-relaxed); } .directory__firm-meta a { color:var(--color-primary); }
 @media(max-width:639px) { .directory__stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .directory__grid { grid-template-columns:1fr; } .directory__search { grid-template-columns:1fr; } .directory__search label { gap:var(--space-3); } }
 </style>
