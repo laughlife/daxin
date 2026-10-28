@@ -8,6 +8,9 @@ import { canWriteSettings, nextUniqueSlug } from '~/utils/adminPermission'
 interface ServicesPayload { items: ServiceSection[] }
 const requestFetch = useRequestFetch()
 const { user } = useAdminSession()
+const emit = defineEmits<{
+  'section-count-change': [count: number]
+}>()
 const writable = computed(() => canWriteSettings(user.value?.roles))
 const sections = ref<ServiceSection[]>([])
 const baseline = ref(JSON.stringify(sections.value))
@@ -53,6 +56,7 @@ function applyPayload(payload: { data: ServicesPayload }) {
     }))
   }))
   baseline.value = snapshot()
+  emit('section-count-change', sections.value.filter(section => section.status === 1).length)
   return sections.value
 }
 
@@ -139,6 +143,7 @@ function removeSection(index: number) {
   const [section] = sections.value.splice(index, 1)
   if (!section) return
   if (section.id > 0 && !deleteSectionIds.value.includes(section.id)) deleteSectionIds.value.push(section.id)
+  emit('section-count-change', sections.value.filter(entry => entry.status === 1).length)
   saveSuccess.value = ''
 }
 function removeChild(section: ServiceSection, index: number) {
@@ -178,6 +183,7 @@ function addSection() {
     status: 1,
     items: []
   })
+  emit('section-count-change', sections.value.filter(section => section.status === 1).length)
   saveSuccess.value = ''
 }
 function addChild(section: ServiceSection) {

@@ -43,16 +43,16 @@ const statsBackgroundStyle = computed(() => {
 })
 const coreBusinessBackgroundImage = computed(() => readSettingText('home_core_business_background'))
 const coreBusinessCoverImages = computed(() => Array.from(
-  { length: 5 },
+  { length: homeData.value?.teamServices.length ?? 0 },
   (_, index) => readSettingText(`home_core_business_cover_${index + 1}`),
 ))
 const coreAdvantagesBackgroundImage = computed(() => readSettingText('home_core_advantages_background'))
 const coreAdvantageCoverImages = computed(() => Array.from(
-  { length: 5 },
+  { length: homeData.value?.coreAdvantages.length ?? 0 },
   (_, index) => readSettingText(`home_core_advantage_cover_${index + 1}`),
 ))
 const coreAdvantageExpandedImages = computed(() => Array.from(
-  { length: 5 },
+  { length: homeData.value?.coreAdvantages.length ?? 0 },
   (_, index) => readSettingText(`home_core_advantage_expanded_${index + 1}`),
 ))
 

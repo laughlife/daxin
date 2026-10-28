@@ -80,6 +80,8 @@ const TABS: { kind: SettingsTabKind, label: string }[] = [
 
 /** 默认展开第一个 tab */
 const activeKind = ref<SettingsTabKind>(route.query.tab === 'services' ? 'services' : 'site')
+/** 核心业务在独立配置页维护；其板块数量用于同步首页封面图上传位。 */
+const coreBusinessImageCount = ref<number | null>(null)
 
 const SETTING_LABELS: Record<string, string> = {
   site_name: '网站名称', site_subtitle: '网站副标题', site_description: '网站简介', site_logo: '网站 Logo', site_favicon: '浏览器标签页图标',
@@ -147,7 +149,44 @@ const editItems = {
 }
 
 function settingLabel(key: string): string {
+  const dynamicImageMatch = key.match(/^home_core_(business_cover|advantage_cover|advantage_expanded)_(\d+)$/)
+  if (dynamicImageMatch) {
+    const ordinal = Number(dynamicImageMatch[2])
+    const ordinalLabels = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十']
+    const suffix = ordinalLabels[ordinal - 1] ?? String(ordinal)
+    if (dynamicImageMatch[1] === 'business_cover') return `核心业务封面图${suffix}`
+    if (dynamicImageMatch[1] === 'advantage_cover') return `核心优势封面图${suffix}`
+    return `核心优势展开图${suffix}`
+  }
   return SETTING_LABELS[key] ?? '其他配置项'
+}
+
+function isDynamicHomeImageKey(key: string): boolean {
+  return /^home_core_(?:business_cover|advantage_cover|advantage_expanded)_\d+$/.test(key)
+}
+
+function numberedImageKeys(prefix: string, count: number): string[] {
+  return Array.from({ length: Math.max(0, count) }, (_, index) => `${prefix}_${index + 1}`)
+}
+
+function keysForSettingsGroup(kind: GroupKind, group: { id: string, keys: string[] }, items: SettingItem[]): string[] {
+  if (kind !== 'home') return group.keys
+  if (group.id === 'business-images') {
+    const persistedCount = items.reduce((max, item) => {
+      const match = item.key.match(/^home_core_business_cover_(\d+)$/)
+      return match ? Math.max(max, Number(match[1])) : max
+    }, 0)
+    const count = coreBusinessImageCount.value ?? persistedCount
+    return numberedImageKeys('home_core_business_cover', count)
+  }
+  if (group.id === 'advantage-images') {
+    const count = coreAdvantages.value.length
+    return [
+      ...numberedImageKeys('home_core_advantage_cover', count),
+      ...numberedImageKeys('home_core_advantage_expanded', count),
+    ]
+  }
+  return group.keys
 }
 
 function moveSidebarLink(index: number, delta: number) {
@@ -163,9 +202,20 @@ function settingsGroups(kind: GroupKind) {
   const items = editItems[kind].value
   const groups = SETTING_GROUPS[kind].map(group => ({
     ...group,
-    items: group.keys.flatMap(key => items.filter(item => item.key === key))
+    keys: keysForSettingsGroup(kind, group, items),
+    items: keysForSettingsGroup(kind, group, items).map((key) => items.find(item => item.key === key) ?? ({
+      key,
+      value: '',
+      valueType: 'image',
+      mediaId: null,
+      mediaUrl: '',
+      status: 'published',
+    }))
   })).filter(group => group.items.length > 0)
-  const knownKeys = new Set(SETTING_GROUPS[kind].flatMap(group => group.keys))
+  const knownKeys = new Set([
+    ...SETTING_GROUPS[kind].flatMap(group => group.keys),
+    ...items.filter(item => isDynamicHomeImageKey(item.key)).map(item => item.key),
+  ])
   const remaining = items.filter(item => !knownKeys.has(item.key))
   if (remaining.length) {
     groups.push({
@@ -751,7 +801,11 @@ function imageScope(kind: GroupKind): 'logo' | 'background' | 'about' {
 
 function onImageUploaded(kind: GroupKind, key: string, payload: { mediaId: number, mediaUrl: string }) {
   // 服务端只持久化 mediaId，所以拿到后先写回配置项，保存时才带得出去
-  const item = findItem(kind, key)
+  let item = findItem(kind, key)
+  if (!item && kind === 'home' && isDynamicHomeImageKey(key)) {
+    item = { key, value: '', valueType: 'image', mediaId: null, mediaUrl: '', status: 'published' }
+    editItems.home.value.push(item)
+  }
   if (item) item.mediaId = payload.mediaId
   uploadedUrls[`${kind}:${key}`] = payload.mediaUrl
   saveSuccess[kind] = ''
@@ -851,7 +905,7 @@ function useTextarea(value: string): boolean {
       tabindex="0"
     >
       <template v-if="tab.kind === 'services'">
-        <AdminServicesSettings />
+        <AdminServicesSettings @section-count-change="coreBusinessImageCount = $event" />
       </template>
       <template v-else-if="tab.kind === 'qr'">
         <AdminSitePublishingSettings />
