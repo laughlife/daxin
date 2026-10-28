@@ -128,6 +128,9 @@ const SECTION_PATHS: Record<string, string> = {
   'labor-case': '/domestic/labor-disputes',
   'freight-case': '/domestic/freight-cases',
   'cross-border-consulting': '/domestic/cross-border-news',
+  'tro-faq': '/faq/tro',
+  'labor-faq': '/faq/labor',
+  'cross-border-faq': '/faq/cross-border',
 }
 
 export const DEFAULT_ARTICLE_SECTION_PATH = '/tro/news'

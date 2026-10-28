@@ -91,21 +91,21 @@ export const contentSections: ContentSection[] = [
     title: 'TRO 常见问题',
     group: 'tro',
     description: '从案件通知、应诉材料到沟通流程，快速查找常见问题。',
-    category: ''
+    category: 'tro-faq'
   },
   {
     path: '/faq/labor',
     title: '劳动争议',
     group: 'labor',
     description: '劳动关系与企业用工管理常见问题。',
-    category: ''
+    category: 'labor-faq'
   },
   {
     path: '/faq/cross-border',
     title: '跨境干货',
     group: 'all',
     description: '跨境电商与国际物流经营中的资料准备与风险管理。',
-    category: ''
+    category: 'cross-border-faq'
   }
 ]
 
