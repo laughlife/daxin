@@ -55,9 +55,16 @@ function toLines(html) {
 
 const CAPTCHA_HINTS = ['安全验证', '向右拖动滑块', '完成验证']
 // 正常详情页里也会出现「404」字样（脚本/CSS），因此只认明确的缺失文案
-const MISSING_HINTS = ['页面不存在', '该页面不存在', '案件不存在']
+const MISSING_HINTS = ['页面不存在', '该页面不存在', '案件不存在', '未查询到案件']
+
+/** 「未查询到案件号：xxx 的案件信息」是源站明确的无此案件页，不是滑块拦截。 */
+function isUnavailableCase(html) {
+  return html.includes('未查询到案件')
+}
 
 function detectBlock(html) {
+  // 无此案件的提示页往往很小，先排除，否则会被误判成滑块验证页
+  if (isUnavailableCase(html)) return false
   // 正常详情页 17~27KB；验证页只有 4.4~4.9KB。
   // 正常页也内嵌了「完成验证」滑块脚本，按关键词判定会误杀，因此只按体积判。
   if (html.length < 6000) return true
@@ -65,6 +72,7 @@ function detectBlock(html) {
 }
 
 function detectMissing(html) {
+  if (isUnavailableCase(html)) return true
   return html.length < 12000 && MISSING_HINTS.some((hint) => html.includes(hint))
 }
 

@@ -17,7 +17,7 @@ const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML,
 
 const CAPTCHA_HINTS = ['安全验证', '向右拖动滑块', '完成验证']
 // 正常详情页里也会出现「404」字样（脚本/CSS），因此只认明确的缺失文案
-const MISSING_HINTS = ['页面不存在', '该页面不存在', '案件不存在']
+const MISSING_HINTS = ['页面不存在', '该页面不存在', '案件不存在', '未查询到案件']
 const DATE_RE = /(20\d{2})[-/年.](\d{1,2})[-/月.](\d{1,2})/
 const EVENT_HINTS = /立案|起诉|冻结|禁令|TRO|PI|和解|判决|撤诉|延长|听证|送达|缺席|动议|驳回|开庭|进展/i
 
@@ -148,7 +148,14 @@ async function fetchPage(url: string): Promise<{ status: number; html: string }>
   return { status: lastStatus, html: lastHtml }
 }
 
+/** 「未查询到案件号：xxx 的案件信息」是源站明确的无此案件页，不是滑块拦截。 */
+function isUnavailableCase(html: string): boolean {
+  return html.includes('未查询到案件')
+}
+
 function isBlocked(html: string): boolean {
+  // 无此案件的提示页往往很小，先排除，否则会被误判成滑块验证页并触发「连续 3 条停止」
+  if (isUnavailableCase(html)) return false
   // 正常详情页 17~27KB；验证页只有 4.4~4.9KB。
   // 注意：正常页里也内嵌了「完成验证」的滑块脚本，不能按关键词判定，否则会误杀。
   if (html.length < 6000) return true
@@ -156,7 +163,8 @@ function isBlocked(html: string): boolean {
 }
 
 function isMissing(html: string): boolean {
-  // 正常详情页很长且可能含「404」字样，只有短页面 + 明确文案才算缺失
+  // 无此案件的提示页无论长短都算缺失；正常详情页很长且可能含「404」字样，只有短页面才按文案判
+  if (isUnavailableCase(html)) return true
   return html.length < 12000 && MISSING_HINTS.some((hint) => html.includes(hint))
 }
 
