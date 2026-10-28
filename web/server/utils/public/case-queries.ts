@@ -405,16 +405,44 @@ export async function findPublishedCaseByNumber(caseNumber: string): Promise<Cas
 }
 
 /** 品牌 / 律所公开关联案件数：只统计已发布案件，随发布状态实时变化。 */
+/**
+ * 品牌 / 律所的关联案件数：与案件列表使用同一套匹配规则
+ * （英文主干互相包含或前 6 位相同；中文名称去空格互相包含；含简称）。
+ * 关联表 case_brands / case_law_firms 已停止写入，这里直接按文本匹配。
+ */
 function publishedEntityCaseCountSql(table: 'brands' | 'law_firms'): string {
-  return table === 'brands'
-    ? `(SELECT COUNT(DISTINCT c.id)
-       FROM case_brands relation
-       JOIN cases c ON c.id = relation.case_id AND c.publish_status = 'published'
-       WHERE relation.brand_id = e.id)`
-    : `(SELECT COUNT(DISTINCT c.id)
-       FROM case_law_firms relation
-       JOIN cases c ON c.id = relation.case_id AND c.publish_status = 'published'
-       WHERE relation.law_firm_id = e.id)`
+  if (table === 'brands') {
+    return `(SELECT COUNT(DISTINCT c.id)
+      FROM cases c
+      WHERE c.publish_status = 'published' AND (
+        (CHAR_LENGTH(c.brand_latin) >= 4 AND CHAR_LENGTH(e.name_latin) >= 4 AND (
+          e.name_latin LIKE CONCAT('%', c.brand_latin, '%')
+          OR c.brand_latin LIKE CONCAT('%', e.name_latin, '%')
+          OR LEFT(e.name_latin, 6) = LEFT(c.brand_latin, 6)
+        ))
+        OR (CHAR_LENGTH(TRIM(c.brand_name)) >= 2 AND (
+          REPLACE(e.name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.brand_name), ' ', ''), '%')
+          OR REPLACE(TRIM(c.brand_name), ' ', '') LIKE CONCAT('%', REPLACE(e.name, ' ', ''), '%')
+          OR (e.aliases <> '' AND REPLACE(e.aliases, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.brand_name), ' ', ''), '%'))
+        ))
+      ))`
+  }
+  return `(SELECT COUNT(DISTINCT c.id)
+    FROM cases c
+    WHERE c.publish_status = 'published' AND (
+      (CHAR_LENGTH(c.firm_latin) >= 4 AND CHAR_LENGTH(e.name_latin) >= 4 AND (
+        e.name_latin LIKE CONCAT('%', c.firm_latin, '%')
+        OR c.firm_latin LIKE CONCAT('%', e.name_latin, '%')
+        OR LEFT(e.name_latin, 6) = LEFT(c.firm_latin, 6)
+        OR (e.short_latin <> '' AND LEFT(e.short_latin, 6) = LEFT(c.firm_latin, 6))
+      ))
+      OR (CHAR_LENGTH(TRIM(c.law_firm_name)) >= 2 AND (
+        REPLACE(e.name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.law_firm_name), ' ', ''), '%')
+        OR REPLACE(TRIM(c.law_firm_name), ' ', '') LIKE CONCAT('%', REPLACE(e.name, ' ', ''), '%')
+        OR REPLACE(e.short_name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.law_firm_name), ' ', ''), '%')
+        OR REPLACE(TRIM(c.law_firm_name), ' ', '') LIKE CONCAT('%', REPLACE(e.short_name, ' ', ''), '%')
+      ))
+    ))`
 }
 
 /** 品牌 / 律所列表实时计算公开关联案件数，避免状态变更后沿用过期的冗余计数。 */
