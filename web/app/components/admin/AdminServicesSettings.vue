@@ -1,23 +1,23 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { ServiceChildItem, ServiceSection } from '~/types/adminSettings'
+import type { ServiceChildItem, ServiceSection, SettingItem } from '~/types/adminSettings'
 import SettingImageField from '~/components/admin/SettingImageField.vue'
 import { apiErrorMessage, httpStatusOf } from '~/utils/publicApi'
 import { canWriteSettings, nextUniqueSlug } from '~/utils/adminPermission'
 
 interface ServicesPayload { items: ServiceSection[] }
+interface HomeSettingsPayload { items: SettingItem[] }
 const requestFetch = useRequestFetch()
 const { user } = useAdminSession()
-const emit = defineEmits<{
-  'section-count-change': [count: number]
-}>()
 const writable = computed(() => canWriteSettings(user.value?.roles))
 const sections = ref<ServiceSection[]>([])
-const baseline = ref(JSON.stringify(sections.value))
+const baselineSections = ref(JSON.stringify(sections.value))
+const baselineHomeImageSettings = ref('[]')
+const homeImageSettings = ref<SettingItem[]>([])
 const saving = ref(false)
 const saveError = ref('')
 const saveSuccess = ref('')
-const uploadingSectionIndexes = ref(new Set<number>())
+const uploadingSectionIndexes = ref(new Set<string>())
 const deleteSectionIds = ref<number[]>([])
 const deleteItemIds = ref<number[]>([])
 
@@ -30,6 +30,42 @@ function toNumber(value: unknown): number {
 }
 function toFlag(value: unknown): number { return value ? 1 : 0 }
 function snapshot(): string { return JSON.stringify(sections.value) }
+function activeHomeImageSettings(): SettingItem[] {
+  return homeImageSettings.value.filter((item) => {
+    if (item.key === 'home_core_business_background') return true
+    const match = item.key.match(/^home_core_business_cover_(\d+)$/)
+    return match !== null && Number(match[1]) <= sections.value.length
+  })
+}
+function homeImageSnapshot(): string { return JSON.stringify(homeImageSettings.value) }
+function coverSettingForIndex(index: number): SettingItem | undefined {
+  return homeImageSettings.value.find(item => item.key === `home_core_business_cover_${index + 1}`)
+}
+function coverImageUrl(index: number): string {
+  const item = coverSettingForIndex(index)
+  return item?.mediaUrl || item?.value || ''
+}
+function homeImageUrl(key: string): string {
+  const item = homeImageSettings.value.find(entry => entry.key === key)
+  return item?.mediaUrl || item?.value || ''
+}
+function onHomeImageUploaded(key: string, payload: { mediaId: number, mediaUrl: string }) {
+  let item = homeImageSettings.value.find(entry => entry.key === key)
+  if (!item) {
+    item = { key, value: '', valueType: 'image', mediaId: null, mediaUrl: '', status: 'published' }
+    homeImageSettings.value.push(item)
+  }
+  item.mediaId = payload.mediaId
+  item.mediaUrl = payload.mediaUrl
+  saveSuccess.value = ''
+  saveError.value = ''
+}
+function onImageUploading(token: string, value: boolean) {
+  const next = new Set(uploadingSectionIndexes.value)
+  if (value) next.add(token)
+  else next.delete(token)
+  uploadingSectionIndexes.value = next
+}
 function applyPayload(payload: { data: ServicesPayload }) {
   sections.value = (payload?.data?.items ?? []).map(section => ({
     ...section,
@@ -55,9 +91,12 @@ function applyPayload(payload: { data: ServicesPayload }) {
       status: toFlag(child.status)
     }))
   }))
-  baseline.value = snapshot()
-  emit('section-count-change', sections.value.filter(section => section.status === 1).length)
+  baselineSections.value = snapshot()
   return sections.value
+}
+function applyHomeSettings(payload: { data: HomeSettingsPayload }) {
+  homeImageSettings.value = (payload?.data?.items ?? []).filter(item => /^home_core_business_(?:background|cover_\d+)$/.test(item.key))
+  if (servicesPayload.value?.data?.items) baselineHomeImageSettings.value = homeImageSnapshot()
 }
 
 /**
@@ -70,13 +109,23 @@ const { data: servicesPayload, error: loadError, refresh, pending } = await useA
   'admin-settings-services',
   () => requestFetch<{ data: ServicesPayload }>('/api/admin/settings', { query: { kind: 'services' } })
 )
+const { data: homeSettingsPayload, error: homeSettingsError, refresh: refreshHomeSettings, pending: homeSettingsPending } = await useAsyncData(
+  'admin-settings-business-image-settings',
+  () => requestFetch<{ data: HomeSettingsPayload }>('/api/admin/settings', { query: { kind: 'home' } })
+)
 watch(servicesPayload, (payload) => {
   if (payload?.data?.items) applyPayload(payload)
 }, { immediate: true })
-const dirty = computed(() => snapshot() !== baseline.value)
-function canSave(): boolean { return writable.value && !saving.value && !pending.value && uploadingSectionIndexes.value.size === 0 && dirty.value }
+watch(homeSettingsPayload, (payload) => {
+  if (payload?.data?.items) applyHomeSettings(payload)
+}, { immediate: true })
+const dirty = computed(() => snapshot() !== baselineSections.value || homeImageSnapshot() !== baselineHomeImageSettings.value)
+function canSave(): boolean { return writable.value && !saving.value && !pending.value && !homeSettingsPending.value && uploadingSectionIndexes.value.size === 0 && dirty.value }
+async function retryLoad() {
+  await Promise.all([refresh(), refreshHomeSettings()])
+}
 function saveLabel(): string {
-  if (pending.value) return '正在加载配置…'
+  if (pending.value || homeSettingsPending.value) return '正在加载配置…'
   if (uploadingSectionIndexes.value.size) return '图片上传中…'
   if (saving.value) return '保存中…'
   if (!writable.value) return '保存（只读角色不可用）'
@@ -84,13 +133,16 @@ function saveLabel(): string {
   return '保存'
 }
 function loadErrorMessage(): string {
-  const message = apiErrorMessage(loadError.value)
+  const error = loadError.value || homeSettingsError.value
+  const message = apiErrorMessage(error)
   if (message) return message
-  const status = httpStatusOf(loadError.value)
+  const status = httpStatusOf(error)
   if (status === 401) return '登录状态已失效，请重新登录后再试'
   if (status === 403) return '当前账号没有站点配置读取权限'
   if (status >= 500) return '服务器暂时不可用，请稍后重试'
-  return '核心业务配置加载失败，请稍后重试'
+  return homeSettingsError.value && !loadError.value
+    ? '核心业务首页封面图配置加载失败，请稍后重试'
+    : '核心业务配置加载失败，请稍后重试'
 }
 
 function buildPayload() {
@@ -107,25 +159,52 @@ function buildPayload() {
 }
 async function save() {
   if (!canSave()) return
+  const shouldSaveSections = snapshot() !== baselineSections.value
+  const shouldSaveHomeImages = homeImageSnapshot() !== baselineHomeImageSettings.value
+  let sectionsSaved = false
+  let homeImagesSaved = false
   saving.value = true
   saveError.value = ''
   saveSuccess.value = ''
   try {
-    await requestFetch('/api/admin/settings', {
-      method: 'PUT',
-      body: {
-        kind: 'services',
-        items: buildPayload(),
-        deleteSectionIds: deleteSectionIds.value,
-        deleteItemIds: deleteItemIds.value
+    if (shouldSaveSections) {
+      await requestFetch('/api/admin/settings', {
+        method: 'PUT',
+        body: {
+          kind: 'services',
+          items: buildPayload(),
+          deleteSectionIds: deleteSectionIds.value,
+          deleteItemIds: deleteItemIds.value
+        }
+      })
+      sectionsSaved = true
+      deleteSectionIds.value = []
+      deleteItemIds.value = []
+      await refresh()
+    }
+    if (shouldSaveHomeImages) {
+      const items = activeHomeImageSettings().map(item => ({
+        key: item.key,
+        value: item.value,
+        valueType: item.valueType,
+        mediaId: item.mediaId,
+        status: item.status,
+      }))
+      if (items.length > 0) {
+        await requestFetch('/api/admin/settings', {
+          method: 'PUT',
+          body: { kind: 'home', items }
+        })
+        homeImagesSaved = true
+        await refreshHomeSettings()
       }
-    })
-    saveSuccess.value = '核心业务已保存'
-    deleteSectionIds.value = []
-    deleteItemIds.value = []
-    await refresh()
+    }
+    saveSuccess.value = shouldSaveHomeImages ? '核心业务与首页背景、封面图已保存' : '核心业务已保存'
   } catch (cause) {
-    saveError.value = apiErrorMessage(cause) || '保存失败，请稍后重试'
+    const message = apiErrorMessage(cause) || '保存失败，请稍后重试'
+    saveError.value = sectionsSaved && shouldSaveHomeImages && !homeImagesSaved
+      ? `核心业务板块已保存，但首页背景或封面图保存失败：${message}`
+      : message
   } finally {
     saving.value = false
   }
@@ -143,7 +222,6 @@ function removeSection(index: number) {
   const [section] = sections.value.splice(index, 1)
   if (!section) return
   if (section.id > 0 && !deleteSectionIds.value.includes(section.id)) deleteSectionIds.value.push(section.id)
-  emit('section-count-change', sections.value.filter(entry => entry.status === 1).length)
   saveSuccess.value = ''
 }
 function removeChild(section: ServiceSection, index: number) {
@@ -156,12 +234,6 @@ function onSectionImageUploaded(section: ServiceSection, payload: { mediaId: num
   section.imageMediaId = payload.mediaId
   section.imageUrl = payload.mediaUrl
   saveSuccess.value = ''
-}
-function onSectionImageUploading(index: number, value: boolean) {
-  const next = new Set(uploadingSectionIndexes.value)
-  if (value) next.add(index)
-  else next.delete(index)
-  uploadingSectionIndexes.value = next
 }
 function usedSlugs(): string[] {
   return sections.value.flatMap(section => [section.slug, ...section.items.map(child => child.slug)])
@@ -183,7 +255,6 @@ function addSection() {
     status: 1,
     items: []
   })
-  emit('section-count-change', sections.value.filter(section => section.status === 1).length)
   saveSuccess.value = ''
 }
 function addChild(section: ServiceSection) {
@@ -203,9 +274,21 @@ function addChild(section: ServiceSection) {
 
 <template>
   <div class="admin-services">
-    <ErrorState v-if="loadError" title="核心业务配置加载失败" :message="loadErrorMessage()" @retry="refresh()" />
+    <ErrorState v-if="loadError || homeSettingsError" title="核心业务配置加载失败" :message="loadErrorMessage()" @retry="retryLoad" />
     <template v-else>
-      <p v-if="pending" class="admin-services__loading" role="status">正在加载配置…</p>
+      <p v-if="pending || homeSettingsPending" class="admin-services__loading" role="status">正在加载配置…</p>
+      <div class="admin-services__image-row">
+        <label class="admin-services__label">核心业务背景图</label>
+        <SettingImageField
+          input-id="home-core-business-background"
+          label="核心业务背景图"
+          :media-url="homeImageUrl('home_core_business_background')"
+          :disabled="!writable || saving || pending || homeSettingsPending"
+          usage-scope="background"
+          @uploaded="payload => onHomeImageUploaded('home_core_business_background', payload)"
+          @uploading="value => onImageUploading('home:core-business-background', value)"
+        />
+      </div>
       <BaseCard
         v-for="(section, sectionIndex) in sections"
         :key="section.id || section.slug || sectionIndex"
@@ -224,15 +307,28 @@ function addChild(section: ServiceSection) {
         </div>
 
         <div class="admin-services__image-row">
-          <label class="admin-services__label">板块图片</label>
+          <label class="admin-services__label">详情图片</label>
           <SettingImageField
-            :input-id="`section-${sectionIndex}-image`"
-            :label="`${section.title || '业务板块'}图片`"
+            :input-id="`section-${sectionIndex}-detail-image`"
+            :label="`${section.title || '业务板块'}详情图片`"
             :media-url="section.imageUrl"
-            :disabled="!writable || saving || pending"
+            :disabled="!writable || saving || pending || homeSettingsPending"
             usage-scope="background"
             @uploaded="payload => onSectionImageUploaded(section, payload)"
-            @uploading="value => onSectionImageUploading(sectionIndex, value)"
+            @uploading="value => onImageUploading(`section:${sectionIndex}:detail`, value)"
+          />
+        </div>
+
+        <div class="admin-services__image-row">
+          <label class="admin-services__label">首页封面图</label>
+          <SettingImageField
+            :input-id="`section-${sectionIndex}-cover-image`"
+            :label="`${section.title || '业务板块'}首页封面图`"
+            :media-url="coverImageUrl(sectionIndex)"
+            :disabled="!writable || saving || pending || homeSettingsPending"
+            usage-scope="background"
+            @uploaded="payload => onHomeImageUploaded(`home_core_business_cover_${sectionIndex + 1}`, payload)"
+            @uploading="value => onImageUploading(`section:${sectionIndex}:cover`, value)"
           />
         </div>
 

@@ -80,8 +80,6 @@ const TABS: { kind: SettingsTabKind, label: string }[] = [
 
 /** 默认展开第一个 tab */
 const activeKind = ref<SettingsTabKind>(route.query.tab === 'services' ? 'services' : 'site')
-/** 核心业务在独立配置页维护；其板块数量用于同步首页封面图上传位。 */
-const coreBusinessImageCount = ref<number | null>(null)
 
 const SETTING_LABELS: Record<string, string> = {
   site_name: '网站名称', site_subtitle: '网站副标题', site_description: '网站简介', site_logo: '网站 Logo', site_favicon: '浏览器标签页图标',
@@ -121,12 +119,9 @@ const SETTING_GROUPS: Record<GroupKind, { id: string, title: string, keys: strin
   ],
   home: [
     { id: 'home-team', title: '首页团队介绍', keys: ['home_team_background', 'home_team_title', 'home_team_paragraphs', 'home_team_feature_1', 'home_team_feature_2', 'home_team_feature_3', 'home_team_feature_4'] },
-    { id: 'stats', title: '首页数据指标', keys: ['home_stats'] },
-    { id: 'home-backgrounds', title: '首页区块背景图', keys: ['home_stats_background', 'home_core_business_background', 'home_core_advantages_background', 'home_legal_guides_background'] },
-    { id: 'business-images', title: '核心业务封面图', keys: ['home_core_business_cover_1', 'home_core_business_cover_2', 'home_core_business_cover_3', 'home_core_business_cover_4', 'home_core_business_cover_5'] },
-    { id: 'advantage-images', title: '核心优势封面图与展开图', keys: ['home_core_advantage_cover_1', 'home_core_advantage_cover_2', 'home_core_advantage_cover_3', 'home_core_advantage_cover_4', 'home_core_advantage_cover_5', 'home_core_advantage_expanded_1', 'home_core_advantage_expanded_2', 'home_core_advantage_expanded_3', 'home_core_advantage_expanded_4', 'home_core_advantage_expanded_5'] },
-    { id: 'advantages', title: '核心优势', keys: ['home_core_advantages'] },
-    { id: 'guides', title: '普法干货轮播', keys: ['home_legal_guides'] },
+    { id: 'stats', title: '首页数据指标', keys: ['home_stats_background', 'home_stats'] },
+    { id: 'advantages', title: '核心优势', keys: ['home_core_advantages_background', 'home_core_advantages'] },
+    { id: 'guides', title: '普法干货轮播', keys: ['home_legal_guides_background', 'home_legal_guides'] },
     { id: 'consultation', title: '咨询区域', keys: ['home_consultation_title', 'home_consultation_description', 'home_consultation_button'] }
   ],
   about: [
@@ -165,30 +160,6 @@ function isDynamicHomeImageKey(key: string): boolean {
   return /^home_core_(?:business_cover|advantage_cover|advantage_expanded)_\d+$/.test(key)
 }
 
-function numberedImageKeys(prefix: string, count: number): string[] {
-  return Array.from({ length: Math.max(0, count) }, (_, index) => `${prefix}_${index + 1}`)
-}
-
-function keysForSettingsGroup(kind: GroupKind, group: { id: string, keys: string[] }, items: SettingItem[]): string[] {
-  if (kind !== 'home') return group.keys
-  if (group.id === 'business-images') {
-    const persistedCount = items.reduce((max, item) => {
-      const match = item.key.match(/^home_core_business_cover_(\d+)$/)
-      return match ? Math.max(max, Number(match[1])) : max
-    }, 0)
-    const count = coreBusinessImageCount.value ?? persistedCount
-    return numberedImageKeys('home_core_business_cover', count)
-  }
-  if (group.id === 'advantage-images') {
-    const count = coreAdvantages.value.length
-    return [
-      ...numberedImageKeys('home_core_advantage_cover', count),
-      ...numberedImageKeys('home_core_advantage_expanded', count),
-    ]
-  }
-  return group.keys
-}
-
 function moveSidebarLink(index: number, delta: number) {
   const links = contentSidebar.value.faqLinks
   const target = index + delta
@@ -202,15 +173,7 @@ function settingsGroups(kind: GroupKind) {
   const items = editItems[kind].value
   const groups = SETTING_GROUPS[kind].map(group => ({
     ...group,
-    keys: keysForSettingsGroup(kind, group, items),
-    items: keysForSettingsGroup(kind, group, items).map((key) => items.find(item => item.key === key) ?? ({
-      key,
-      value: '',
-      valueType: 'image',
-      mediaId: null,
-      mediaUrl: '',
-      status: 'published',
-    }))
+    items: group.keys.flatMap(key => items.filter(item => item.key === key))
   })).filter(group => group.items.length > 0)
   const knownKeys = new Set([
     ...SETTING_GROUPS[kind].flatMap(group => group.keys),
@@ -511,7 +474,8 @@ function onImagesUploading(key: string, value: boolean) {
  */
 function applyGroup(kind: GroupKind, payload: { data: GroupPayload }) {
   const sourceItems = payload?.data?.items ?? []
-  const items = sourceItems.filter(item => !HIDDEN_SETTING_KEYS.has(item.key))
+  const items = sourceItems.filter(item => !HIDDEN_SETTING_KEYS.has(item.key)
+    && !(kind === 'home' && /^home_core_business_(?:background|cover_\d+)$/.test(item.key)))
   const prefix = `${kind}:`
   for (const key of Object.keys(blockingErrors)) {
     if (key.startsWith(prefix)) delete blockingErrors[key]
@@ -905,7 +869,7 @@ function useTextarea(value: string): boolean {
       tabindex="0"
     >
       <template v-if="tab.kind === 'services'">
-        <AdminServicesSettings @section-count-change="coreBusinessImageCount = $event" />
+        <AdminServicesSettings />
       </template>
       <template v-else-if="tab.kind === 'qr'">
         <AdminSitePublishingSettings />
@@ -1199,6 +1163,32 @@ function useTextarea(value: string): boolean {
                         type="text"
                         :disabled="controlsDisabled || savingKind !== ''"
                       >
+                    </div>
+                    <div class="admin-settings__row-grid">
+                      <div class="admin-settings__cell">
+                        <span class="admin-settings__cell-label">封面图</span>
+                        <SettingImageField
+                          :input-id="`setting-image-home-core-advantage-cover-${index + 1}`"
+                          :label="`核心优势封面图${index + 1}`"
+                          :media-url="imageUrl('home', `home_core_advantage_cover_${index + 1}`)"
+                          :disabled="controlsDisabled || savingKind !== ''"
+                          usage-scope="background"
+                          @uploaded="payload => onSettingImageUploaded('home', `home_core_advantage_cover_${index + 1}`, payload)"
+                          @uploading="value => onImageUploading(`home:home_core_advantage_cover_${index + 1}`, value)"
+                        />
+                      </div>
+                      <div class="admin-settings__cell">
+                        <span class="admin-settings__cell-label">展开图</span>
+                        <SettingImageField
+                          :input-id="`setting-image-home-core-advantage-expanded-${index + 1}`"
+                          :label="`核心优势展开图${index + 1}`"
+                          :media-url="imageUrl('home', `home_core_advantage_expanded_${index + 1}`)"
+                          :disabled="controlsDisabled || savingKind !== ''"
+                          usage-scope="background"
+                          @uploaded="payload => onSettingImageUploaded('home', `home_core_advantage_expanded_${index + 1}`, payload)"
+                          @uploading="value => onImageUploading(`home:home_core_advantage_expanded_${index + 1}`, value)"
+                        />
+                      </div>
                     </div>
                     <div class="admin-settings__cell">
                       <label class="admin-settings__cell-label" :for="`advantage-${index}-description`">展开说明</label>
