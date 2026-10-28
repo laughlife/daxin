@@ -9,6 +9,10 @@ import {
 } from '../utils/publicApi'
 
 export interface BrandSummary {
+  /** 品牌分类：专利 / 版权 / 商标 */
+  ipCategory?: string
+  /** 品牌方 */
+  brandOwner?: string
   slug: string
   name: string
   description: string

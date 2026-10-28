@@ -42,6 +42,8 @@ export interface BrandDirectoryStats {
 /** 品牌库列表记录。 */
 export interface BrandDirectoryEntry extends EntitySummary {
   logoUrl: string
+  ipCategory: string
+  brandOwner: string
   plaintiff: string
   lawFirm: string
   stateCode: string
@@ -58,6 +60,8 @@ type EntityRow = {
 
 type BrandDirectoryRow = EntityRow & {
   logo_url: string | null
+  ip_category: string | null
+  brand_owner: string | null
   plaintiff: string | null
   law_firm: string | null
   state_code: string | null
@@ -522,7 +526,9 @@ export async function findPublicBrandDirectoryPage(
   const filter = buildBrandDirectoryFilterSql(query)
   const rows = await queryTarget<BrandDirectoryRow>(
     `SELECT b.id, b.slug, b.name, COALESCE(b.summary, '') AS description,
-            COALESCE(logo.public_url, '') AS logo_url,
+            COALESCE(NULLIF(b.cover_url, ''), logo.public_url, '') AS logo_url,
+            b.ip_category,
+            b.brand_owner,
             COALESCE(latest.plaintiff, '') AS plaintiff,
             COALESCE(latest.law_firm, '') AS law_firm,
             COALESCE(latest.state_code, '') AS state_code,
@@ -563,6 +569,8 @@ export async function findPublicBrandDirectoryPage(
     return {
       ...summary,
       logoUrl: toText(row.logo_url),
+      ipCategory: toText(row.ip_category),
+      brandOwner: toText(row.brand_owner),
       plaintiff: toText(row.plaintiff),
       lawFirm: toText(row.law_firm),
       stateCode: toText(row.state_code),

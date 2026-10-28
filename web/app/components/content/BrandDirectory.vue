@@ -209,6 +209,12 @@ useSeoMeta({
                     <p>
                       <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14h12M3.5 14V4.5L8 2l4.5 2.5V14M6 6h.1M10 6h.1M6 9h.1M10 9h.1M7 14v-2h2v2" /></svg>
                       <strong>代理律所：</strong><span :title="item.lawFirm || '暂未关联'">{{ item.lawFirm || '暂未关联' }}</span>
+            <p v-if="item.ipCategory" class="brand-directory__meta-line">
+              <strong>品牌分类：</strong><span>{{ item.ipCategory }}</span>
+            </p>
+            <p v-if="item.brandOwner" class="brand-directory__meta-line">
+              <strong>品牌方：</strong><span>{{ item.brandOwner }}</span>
+            </p>
                     </p>
                     <p>
                       <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13 6.5c0 3.3-5 7.5-5 7.5S3 9.8 3 6.5a5 5 0 1 1 10 0Z" /><circle cx="8" cy="6.5" r="1.5" /></svg>
