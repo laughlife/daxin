@@ -1,5 +1,5 @@
 // 从小程序后台（wx.daxinfawu.com:8443）采集品牌与律所，写入 brands / law_firms
-// + entity_images / entity_details。
+// + entity_images / entity_details / entity_case_rows（品牌「起诉信息」）。
 //
 // 认证：优先用 WX_ADMIN_USER / WX_ADMIN_PASSWORD 自动登录（服务端不校验验证码），
 // 也可用 WX_ADMIN_COOKIE 直接带会话（本地调试用）。
@@ -7,6 +7,8 @@
 // 用法：
 //   node tools/import-mini-program.mjs --limit 3 --dry-run
 //   node tools/import-mini-program.mjs --only brands
+//   node tools/import-mini-program.mjs --only brands --brand 1029   # 只同步一个品牌（强制重抓详情）
+//   node tools/import-mini-program.mjs --only brands --force --limit 200   # 强制重抓详情（补历史发案）
 //   node tools/import-mini-program.mjs                 # 全量
 import { readFileSync, existsSync } from 'node:fs'
 import { createHash } from 'node:crypto'
@@ -59,6 +61,10 @@ const option = (name, fallback) => {
 const LIMIT = Number(option('limit', 0))
 const DRY_RUN = args.includes('--dry-run')
 const ONLY = option('only', '') // brands | lawfirms
+// 只同步一个小程序品牌（mp_id），便于单条补抓/验证；指定后强制重抓详情
+const ONLY_BRAND = option('brand', '')
+// 强制重抓所有详情（首次补「起诉信息」/图片时用，耗时长，建议配合 --limit 分批）
+const FORCE_DETAIL = args.includes('--force')
 // 滚动刷新：每班次额外抓 1/N 详情（默认 4 → 4 个班次覆盖全部）
 const DETAIL_SLICE = Math.max(1, Number(env.WX_DETAIL_SLICE || 4))
 // 当前班次序号（0..N-1），用于挑选本班次要刷新的切片
@@ -156,8 +162,7 @@ function parseForm(html) {
 }
 
 /** 详情页里的图片地址（去掉防缓存参数） */
-function parseImages(html) {
-  const urls = []
+function parseImages(html) {  const urls = []
   for (const m of html.matchAll(/(?:src|value)="([^"]*\/images\/[^"?]+)(?:\?[^"]*)?"/g)) {
     const path = m[1].trim()
     if (!path || path.includes('noMark')) continue
@@ -178,6 +183,34 @@ function parseRichTextImages(html) {
   }
   return urls
 }
+
+/** 单元格纯文本：去标签、解实体、压空白 */
+function cellText(html) {
+  return decodeEntities(String(html).replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim()
+}
+
+/**
+ * 品牌详情页的「起诉信息」表格（#qsTable）：
+ * 每行依次是 起诉时间 / 案件号 / 代理律所 / 受理法院 / 起诉ID / 删除按钮。
+ * 一行可能带多个案件号（顿号分隔），原样保留。
+ */
+function parseCaseRows(html) {
+  const start = html.indexOf('id="qsTable"')
+  if (start < 0) return []
+  const table = html.slice(start, html.indexOf('</table>', start))
+  const rows = []
+  for (const tr of table.matchAll(/<tr[^>]*>([\s\S]*?)<\/tr>/g)) {
+    const cells = [...tr[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map(m => cellText(m[1]))
+    if (cells.length < 4) continue
+    const [filedAt, caseNumber, lawFirm, court] = cells
+    // 表头是 th，不会进 <td>；这里再用日期格式兜底
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(filedAt)) continue
+    if (!caseNumber) continue
+    rows.push({ filedAt, caseNumber, lawFirm: lawFirm || '', court: court || '' })
+  }
+  return rows
+}
+
 
 // ---------- 采集 ----------
 async function fetchPage(path, key) {
@@ -210,7 +243,7 @@ async function collectDetail(kind, id) {
   const res = await request(path)
   const fields = parseForm(res.text)
   const images = [...parseImages(res.text), ...parseRichTextImages(res.text)]
-  return { fields, images: [...new Set(images)] }
+  return { fields, images: [...new Set(images)], caseRows: parseCaseRows(res.text) }
 }
 
 // ---------- 入库 ----------
@@ -250,6 +283,7 @@ async function saveBrand(db, item, detail, hash) {
   const [[{ id: brandId }]] = await db.execute('SELECT id FROM brands WHERE mp_id = ?', [item.id])
   if (!detail) return brandId
   await saveImages(db, 'brand', brandId, detail.images)
+  await saveCaseRows(db, 'brand', brandId, detail.caseRows || [])
   await db.execute(
     `INSERT INTO entity_details (entity_type, entity_id, intro, raw_json, updated_at)
      VALUES ('brand', ?, ?, ?, NOW())
@@ -320,6 +354,22 @@ async function saveImages(db, type, entityId, urls) {
   }
 }
 
+/**
+ * 品牌历史发案（小程序「起诉信息」表格）：整块先删后插，保持与后台一致。
+ * 不合并 cases 表：这里存的是小程序维护的行，前台按原样展示。
+ */
+async function saveCaseRows(db, type, entityId, rows) {
+  await db.execute('DELETE FROM entity_case_rows WHERE entity_type = ? AND entity_id = ?', [type, entityId])
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i]
+    await db.execute(
+      `INSERT INTO entity_case_rows (entity_type, entity_id, filed_at, case_number, law_firm, court, sort_order)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [type, entityId, row.filedAt || null, row.caseNumber || '', row.lawFirm || '', row.court || '', i],
+    )
+  }
+}
+
 function slugOf(text) {
   const base = String(text).toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60)
   return `${base || 'entity'}-${createHash('md5').update(String(text)).digest('hex').slice(0, 6)}`
@@ -338,14 +388,16 @@ if (!ONLY || ONLY === 'brands') {
   console.log(`品牌列表：${list.length} 条`)
   for (let i = 0; i < list.length; i += 1) {
     const item = list[i]
+    if (ONLY_BRAND && String(item.id) !== String(ONLY_BRAND)) continue
     try {
       const hash = listHash(item, 'brand')
-      const needDetail = await shouldFetchDetail(db, 'brand', item.id, hash)
+      // 指定单条或 --force 时强制重抓详情，便于补「起诉信息」等详情字段
+      const needDetail = (ONLY_BRAND || FORCE_DETAIL) ? true : await shouldFetchDetail(db, 'brand', item.id, hash)
       const detail = needDetail ? await collectDetail('brand', item.id) : null
       if (db) await saveBrand(db, item, detail, hash)
       brandCount += 1
       if (!needDetail) { await sleep(DELAY_MS); continue }
-      if (i < 3) console.log(`  ✓ ${item.id} ${item.mc} 图片 ${detail.images.length} 张`)
+      if (i < 3 || ONLY_BRAND) console.log(`  ✓ ${item.id} ${item.mc} 图片 ${detail.images.length} 张、起诉信息 ${detail.caseRows.length} 行`)
     } catch (error) {
       console.warn(`  ✗ 品牌 ${item.id}: ${String(error).slice(0, 80)}`)
     }
@@ -361,7 +413,7 @@ if (!ONLY || ONLY === 'lawfirms') {
     const item = list[i]
     try {
       const hash = listHash(item, 'lawfirm')
-      const needDetail = await shouldFetchDetail(db, 'lawfirm', item.id, hash)
+      const needDetail = FORCE_DETAIL ? true : await shouldFetchDetail(db, 'lawfirm', item.id, hash)
       const detail = needDetail ? await collectDetail('lawfirm', item.id) : null
       if (db) await saveLawFirm(db, item, detail, hash)
       firmCount += 1
