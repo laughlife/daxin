@@ -28,6 +28,14 @@ function loadEnv() {
       if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, '').trim()
     }
   }
+  for (const extra of ['web/.env.local', '.env.local']) {
+    const path = resolve(ROOT, extra)
+    if (!existsSync(path)) continue
+    for (const line of readFileSync(path, 'utf8').split(/\r?\n/)) {
+      const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/)
+      if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, '').trim()
+    }
+  }
   const appEnv = resolve(ROOT, 'web/.env')
   if (existsSync(appEnv)) {
     for (const line of readFileSync(appEnv, 'utf8').split(/\r?\n/)) {
@@ -51,6 +59,17 @@ const option = (name, fallback) => {
 const LIMIT = Number(option('limit', 0))
 const DRY_RUN = args.includes('--dry-run')
 const ONLY = option('only', '') // brands | lawfirms
+// 滚动刷新：每班次额外抓 1/N 详情（默认 4 → 4 个班次覆盖全部）
+const DETAIL_SLICE = Math.max(1, Number(env.WX_DETAIL_SLICE || 4))
+// 当前班次序号（0..N-1），用于挑选本班次要刷新的切片
+const SLICE_INDEX = Math.abs(Number(option('slice', new Date().getHours() < 12 ? 0 : 1))) % DETAIL_SLICE
+
+function listHash(item, kind) {
+  const parts = kind === 'brand'
+    ? [item.mc, item.ppf, item.dlls, item.flmc, item.qslx, item.zs, item.status]
+    : [item.name, item.jc, item.dz, item.ls_url, item.url, item.zs, item.status]
+  return createHash('md5').update(parts.map((v) => String(v ?? '')).join('|')).digest('hex')
+}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const md5 = (s) => createHash('md5').update(s, 'utf8').digest('hex')
@@ -209,22 +228,26 @@ async function connectDb() {
   })
 }
 
-async function saveBrand(db, item, detail) {
+async function saveBrand(db, item, detail, hash) {
   const [rows] = await db.execute(
     `INSERT INTO brands (mp_id, name, slug, summary, ip_category, lawsuit_type, brand_owner,
-       default_law_firm, cover_url, source, is_published, created_at, updated_at)
-     VALUES (?, ?, ?, '', ?, ?, ?, ?, ?, 'import', 1, NOW(), NOW())
+       default_law_firm, cover_url, source, is_published, source_hash, created_at, updated_at)
+     VALUES (?, ?, ?, '', ?, ?, ?, ?, ?, 'import', 1, ?, NOW(), NOW())
      ON DUPLICATE KEY UPDATE name = VALUES(name), ip_category = VALUES(ip_category),
        lawsuit_type = VALUES(lawsuit_type), brand_owner = VALUES(brand_owner),
-       default_law_firm = VALUES(default_law_firm), cover_url = VALUES(cover_url),
-       is_published = 1, updated_at = NOW()`,
+       default_law_firm = VALUES(default_law_firm),
+       cover_url = IF(?, cover_url, VALUES(cover_url)),
+       is_published = 1, source_hash = VALUES(source_hash),
+       detail_synced_at = IF(?, NOW(), detail_synced_at), updated_at = NOW()`,
     [
       item.id, item.mc || '', slugOf(item.mc || String(item.id)),
       item.flmc || '', item.qslx || '', item.ppf || '', item.dlls || '',
-      detail.images[0] || '',
+      detail ? detail.images[0] || '' : '', hash,
+      detail ? 1 : 0, detail ? 1 : 0,
     ],
   )
   const [[{ id: brandId }]] = await db.execute('SELECT id FROM brands WHERE mp_id = ?', [item.id])
+  if (!detail) return brandId
   await saveImages(db, 'brand', brandId, detail.images)
   await db.execute(
     `INSERT INTO entity_details (entity_type, entity_id, intro, raw_json, updated_at)
@@ -235,21 +258,25 @@ async function saveBrand(db, item, detail) {
   return brandId
 }
 
-async function saveLawFirm(db, item, detail) {
+async function saveLawFirm(db, item, detail, hash) {
   const name = item.name || ''
   await db.execute(
     `INSERT INTO law_firms (mp_id, name, slug, summary, short_name, address, website, logo_url,
-       source, is_published, created_at, updated_at)
-     VALUES (?, ?, ?, '', ?, ?, ?, ?, 'import', 1, NOW(), NOW())
+       source, is_published, source_hash, created_at, updated_at)
+     VALUES (?, ?, ?, '', ?, ?, ?, ?, 'import', 1, ?, NOW(), NOW())
      ON DUPLICATE KEY UPDATE name = VALUES(name), short_name = VALUES(short_name),
-       address = VALUES(address), website = VALUES(website), logo_url = VALUES(logo_url),
-       is_published = 1, updated_at = NOW()`,
+       address = VALUES(address), website = VALUES(website),
+       logo_url = IF(?, logo_url, VALUES(logo_url)),
+       is_published = 1, source_hash = VALUES(source_hash),
+       detail_synced_at = IF(?, NOW(), detail_synced_at), updated_at = NOW()`,
     [
       item.id, name, slugOf(name || String(item.id)), item.jc || '', (item.dz || '').trim(),
-      (item.ls_url || item.url || '').trim(), detail.images[0] || '',
+      (item.ls_url || item.url || '').trim(), detail ? detail.images[0] || '' : '', hash,
+      detail ? 1 : 0, detail ? 1 : 0,
     ],
   )
   const [[{ id: firmId }]] = await db.execute('SELECT id FROM law_firms WHERE mp_id = ?', [item.id])
+  if (!detail) return firmId
   await saveImages(db, 'law_firm', firmId, detail.images)
   await db.execute(
     `INSERT INTO entity_details (entity_type, entity_id, intro, raw_json, updated_at)
@@ -258,6 +285,26 @@ async function saveLawFirm(db, item, detail) {
     [firmId, item.other || '', JSON.stringify(item)],
   )
   return firmId
+}
+
+/**
+ * 是否需要抓详情：
+ *   - 库里没有这条 → 需要
+ *   - 列表指纹变了 → 需要
+ *   - 命中本班次滚动切片 → 需要（覆盖图片/富文本的静默改动）
+ */
+async function shouldFetchDetail(db, kind, mpId, hash) {
+  if (!db) return true
+  const table = kind === 'brand' ? 'brands' : 'law_firms'
+  const [rows] = await db.execute(
+    `SELECT source_hash, mp_id FROM ${table} WHERE mp_id = ? LIMIT 1`,
+    [mpId],
+  )
+  const row = rows[0]
+  if (!row) return true
+  if ((row.source_hash || '') !== hash) return true
+  const [remainder] = await db.execute('SELECT ? % ? AS r', [Number(mpId), DETAIL_SLICE])
+  return Number(remainder[0].r) === SLICE_INDEX
 }
 
 async function saveImages(db, type, entityId, urls) {
@@ -290,9 +337,12 @@ if (!ONLY || ONLY === 'brands') {
   for (let i = 0; i < list.length; i += 1) {
     const item = list[i]
     try {
-      const detail = await collectDetail('brand', item.id)
-      if (db) await saveBrand(db, item, detail)
+      const hash = listHash(item, 'brand')
+      const needDetail = await shouldFetchDetail(db, 'brand', item.id, hash)
+      const detail = needDetail ? await collectDetail('brand', item.id) : null
+      if (db) await saveBrand(db, item, detail, hash)
       brandCount += 1
+      if (!needDetail) { await sleep(DELAY_MS); continue }
       if (i < 3) console.log(`  ✓ ${item.id} ${item.mc} 图片 ${detail.images.length} 张`)
     } catch (error) {
       console.warn(`  ✗ 品牌 ${item.id}: ${String(error).slice(0, 80)}`)
@@ -308,9 +358,12 @@ if (!ONLY || ONLY === 'lawfirms') {
   for (let i = 0; i < list.length; i += 1) {
     const item = list[i]
     try {
-      const detail = await collectDetail('lawfirm', item.id)
-      if (db) await saveLawFirm(db, item, detail)
+      const hash = listHash(item, 'lawfirm')
+      const needDetail = await shouldFetchDetail(db, 'lawfirm', item.id, hash)
+      const detail = needDetail ? await collectDetail('lawfirm', item.id) : null
+      if (db) await saveLawFirm(db, item, detail, hash)
       firmCount += 1
+      if (!needDetail) { await sleep(DELAY_MS); continue }
       if (i < 3) console.log(`  ✓ ${item.id} ${item.name} 图片 ${detail.images.length} 张`)
     } catch (error) {
       console.warn(`  ✗ 律所 ${item.id}: ${String(error).slice(0, 80)}`)
