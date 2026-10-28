@@ -16,7 +16,7 @@ test('侵权品牌卡片提供图片或首字母占位，并支持加载失败�
 })
 
 test('品牌卡片整体可点击，展示案件相关信息并移除独立操作按钮', () => {
-  for (const text of ['品牌原告：', '品牌方（原告）：', '代理律所：', '品牌分类：', '品牌方：', '起诉州：', '已发案：', '查看品牌详情：']) {
+  for (const text of ['品牌方：', '代理律所：', '品牌分类：', '起诉州：', '已发案：', '查看品牌详情：']) {
     assert.ok(directory.includes(text), `缺少品牌卡片字段或链接语义：${text}`)
   }
   assert.match(directory, /class="brand-card"\s*:to="`\/brands\/\$\{item\.slug\}`"/)
@@ -25,27 +25,21 @@ test('品牌卡片整体可点击，展示案件相关信息并移除独立操�
   assert.match(directory, /grid-template-columns: repeat\(auto-fit, minmax\(min\(100%, 340px\), 1fr\)\)/)
 })
 
-test('品牌卡片字段与详情一致，品牌方放第一位，原告与品牌方重复时合并', () => {
-  assert.match(directory, /function isSameParty\(item: BrandSummary\): boolean/)
-  assert.match(directory, /samePartyName\(item\.plaintiff, item\.brandOwner\)/)
-  assert.match(directory, /import \{ samePartyName \} from '~\/utils\/content'/)
+test('品牌卡片统一展示品牌方，字段与详情一致', () => {
   const facts = directory.slice(
-    directory.indexOf('class="brand-card__facts"'),
+    directory.indexOf('class="brand-card__body"'),
     directory.indexOf('class="brand-card__media"'),
   )
   const labels = [...facts.matchAll(/<strong>([^<]+)：<\/strong>/g)].map(match => match[1])
-  // 品牌方排第一；其后是分类 / 起诉州 / 代理律所 / 已发案
-  assert.deepEqual(labels, ['品牌方（原告）', '品牌方', '品牌原告', '品牌分类', '起诉州', '代理律所', '已发案'])
-  // 合并分支用 v-if，分开的两行在 v-else 模板里
-  assert.match(facts, /<p v-if="isSameParty\(item\)">/)
-  assert.match(facts, /<template v-else>/)
+  // 品牌方整行在上，其后是分类 / 起诉州 / 代理律所 / 已发案；不再出现「原告」
+  assert.deepEqual(labels, ['品牌方', '品牌分类', '起诉州', '代理律所', '已发案'])
+  assert.doesNotMatch(directory, /品牌原告|品牌方（原告）/)
 })
 
-test('品牌图片放在文字下方通栏，随卡片宽度缩放', () => {
-  const media = directory.slice(directory.indexOf('class="brand-card__media"'))
-  assert.match(media, /class="brand-card__media"/)
-  assert.match(directory, /\.brand-card__media \{[^}]*overflow: hidden;/s)
-  assert.match(directory, /\.brand-card__media img \{[^}]*width: 100%;[^}]*max-height: 170px;/s)
+test('品牌图片铺在「品牌分类 ~ 已发案」右侧单元格', () => {
+  assert.match(directory, /grid-template-areas: "party party" "facts media"/)
+  assert.match(directory, /\.brand-card__media \{[^}]*grid-area: media;[^}]*align-self: stretch;/s)
+  assert.match(directory, /\.brand-card__media img \{[^}]*width: 100%;[^}]*height: 100%;[^}]*object-fit: cover;/s)
   assert.doesNotMatch(directory, /brand-card__logo/)
 })
 

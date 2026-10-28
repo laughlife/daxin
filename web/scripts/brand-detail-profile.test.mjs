@@ -5,13 +5,12 @@ import { test } from 'node:test'
 import { toSafeRichText } from '../server/utils/public/sanitize.ts'
 
 const read = path => readFile(new URL(path, import.meta.url), 'utf8')
-const [detail, repository, queries, entityMatch, endpoint, withParties] = await Promise.all([
+const [detail, repository, queries, entityMatch, endpoint] = await Promise.all([
   read('../app/components/content/EntityDetail.vue'),
   read('../app/repositories/entities.ts'),
   read('../server/utils/public/case-queries.ts'),
   read('../server/utils/public/entity-match.ts'),
   read('../server/api/public/brands/[slug].get.ts'),
-  read('../app/utils/content.ts'),
 ])
 
 test('品牌详情接口返回资料、介绍与图片', () => {
@@ -40,22 +39,18 @@ test('品牌详情页展示资料 / 介绍 / 图片，且不再渲染历史发�
   assert.match(detail, /显示全部 \{\{ brandImages\.length \}\} 张/)
 })
 
-test('品牌详情与律所详情共用两列资料版式，品牌方 / 品牌原告整行', () => {
+test('品牌详情与律所详情共用两列资料版式，品牌方整行', () => {
   assert.match(detail, /\.entity-detail__facts > \.entity-detail__fact--wide \{ grid-column:1 \/ -1; \}/)
   const brandFacts = detail.slice(detail.indexOf('const brandFacts'), detail.indexOf('/* ------------------------------- 律所资料'))
   const order = [...brandFacts.matchAll(/\{ label: '([^']+)'/g)].map(match => match[1])
-  // 前四个固定：分类 / 起诉州 / 代理律所 / 关联案件；原告与品牌方按是否重复动态追加
-  assert.deepEqual(order.slice(0, 4), ['品牌分类', '起诉州', '代理律所', '关联案件'])
-  assert.match(brandFacts, /label: '品牌方（原告）'[\s\S]*?wide: true/)
-  assert.match(brandFacts, /label: '品牌原告'[\s\S]*?wide: true/)
+  // 分类 / 起诉州 / 代理律所 / 关联案件，最后是整行的品牌方
+  assert.deepEqual(order, ['品牌分类', '起诉州', '代理律所', '关联案件', '品牌方'])
   assert.match(brandFacts, /label: '品牌方'[\s\S]*?wide: true/)
 })
 
-test('品牌原告与品牌方重复时合并成一行（判断逻辑与列表共用）', () => {
-  assert.match(detail, /const duplicateParties = samePartyName\(plaintiff, owner\)/)
-  assert.match(detail, /if \(duplicateParties\) \{[\s\S]*?品牌方（原告）/)
-  // 规则在 utils/content，列表卡片与详情页共用
-  assert.match(withParties, /export function samePartyName/)
+test('品牌详情不再区分原告，只展示品牌方', () => {
+  assert.doesNotMatch(detail, /品牌原告|品牌方（原告）/)
+  assert.match(detail, /label: '品牌方', value: item\.brandOwner \|\| item\.plaintiff \|\| ''/)
 })
 
 test('品牌页不单独放通栏图，封面并入品牌图片画廊', () => {

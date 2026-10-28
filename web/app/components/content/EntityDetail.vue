@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { fetchBrandDetail, fetchLawFirmDetail } from '~/repositories/entities'
 import { caseTypeLabel } from '~/utils/caseTypeLabel'
-import { externalUrlLabel, samePartyName, safeExternalUrl } from '~/utils/content'
+import { externalUrlLabel, safeExternalUrl } from '~/utils/content'
 import type { CaseRecord } from '~/types/content'
 
 /**
@@ -81,30 +81,18 @@ const brandImages = computed(() => {
   return cover ? [cover, ...rest] : rest
 })
 
-/**
- * 品牌方与品牌原告经常是同一个主体，重复时合并成一行，避免同一家公司出现两次。
- * 判断规则见 `~/utils/content` 的 `samePartyName`（列表卡片复用同一份）。
- */
+/** 品牌资料：原告与品牌方统一成一个「品牌方」字段，不再区分原告。 */
 const brandFacts = computed(() => {
   const item = summary.value
   if (!item) return []
-  const owner = item.brandOwner || ''
-  const plaintiff = item.plaintiff || ''
-  const duplicateParties = samePartyName(plaintiff, owner)
-  const facts = [
+  return [
     // 顺序即版式：短字段两两成排，较长的名称整行放在下面。
     { label: '品牌分类', value: item.ipCategory || item.lawsuitType || '', wide: false },
     { label: '起诉州', value: item.stateCode || '', wide: false },
     { label: '代理律所', value: item.lawFirm || '', wide: false },
     { label: '关联案件', value: item.caseCount > 0 ? `${item.caseCount} 起` : '暂无公开案件', wide: false },
-  ]
-  if (duplicateParties) {
-    facts.push({ label: '品牌方（原告）', value: owner || plaintiff, wide: true })
-  } else {
-    if (plaintiff) facts.push({ label: '品牌原告', value: plaintiff, wide: true })
-    if (owner) facts.push({ label: '品牌方', value: owner, wide: true })
-  }
-  return facts.filter(fact => fact.value)
+    { label: '品牌方', value: item.brandOwner || item.plaintiff || '', wide: true },
+  ].filter(fact => fact.value)
 })
 
 /** 首屏最多展示 12 张，其余点「显示全部」再渲染，避免一次拉 70+ 张大图。 */

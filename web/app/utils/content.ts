@@ -55,20 +55,3 @@ export function safeExternalUrl(value?: string | null): string {
 export function externalUrlLabel(url: string): string {
   return url.replace(/^https?:\/\//i, '').replace(/\/$/, '')
 }
-
-/**
- * 品牌方与品牌原告是否同一主体。
- *
- * 库里 603 个可匹配品牌中有 288 个两者文本完全一致，还有不少是
- * 「Zhenbiao Zhang / Zhang」这种简写。比较时去掉标点空格、忽略大小写；
- * 短的一方（≥ 4 个字符）被长的一方包含也算同一主体。列表卡片与详情页共用。
- */
-export function samePartyName(a?: string | null, b?: string | null): boolean {
-  const normalize = (value: string) => value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '')
-  const left = normalize(a ?? '')
-  const right = normalize(b ?? '')
-  if (!left || !right) return false
-  if (left === right) return true
-  const [short, long] = left.length <= right.length ? [left, right] : [right, left]
-  return short.length >= 4 && long.includes(short)
-}
