@@ -111,12 +111,13 @@ const firmFacts = computed(() => {
   const item = summary.value
   if (!item) return []
   const website = safeExternalUrl(item.website)
+  // 顺序即版式：第一排「简称 | 侵权类型」，第二排「官网 | 关联案件」，地址单独整行放下面。
   return [
-    { label: '简称', value: item.shortName || '' },
-    { label: '地址', value: item.address || '' },
-    { label: '官网', value: website ? externalUrlLabel(website) : '', href: website },
-    { label: '侵权类型', value: typeLabels.value },
-    { label: '关联案件', value: item.caseCount > 0 ? `${item.caseCount} 起` : '暂无公开案件' },
+    { label: '简称', value: item.shortName || '', href: '', wide: false },
+    { label: '侵权类型', value: typeLabels.value, href: '', wide: false },
+    { label: '官网', value: website ? externalUrlLabel(website) : '', href: website, wide: false },
+    { label: '关联案件', value: item.caseCount > 0 ? `${item.caseCount} 起` : '暂无公开案件', href: '', wide: false },
+    { label: '地址', value: item.address || '', href: '', wide: true },
   ].filter(fact => fact.value)
 })
 
@@ -226,7 +227,11 @@ useSeoMeta({
                 <p class="entity-detail__eyebrow">代理律所 · LAW FIRM PROFILE</p>
                 <h1>{{ summary.name }}</h1>
                 <dl v-if="firmFacts.length" class="entity-detail__facts">
-                  <div v-for="fact in firmFacts" :key="fact.label">
+                  <div
+                    v-for="fact in firmFacts"
+                    :key="fact.label"
+                    :class="{ 'entity-detail__fact--wide': fact.wide }"
+                  >
                     <dt>{{ fact.label }}</dt>
                     <dd>
                       <a
@@ -281,9 +286,10 @@ useSeoMeta({
 /* 品牌名可能很长（最长 57 字），标题比其它页面小一号，避免占满整屏 */
 .entity-detail__headline h1 { margin:var(--space-3) 0 var(--space-5); font-size:clamp(20px, 2.2vw, 28px); line-height:1.4; overflow-wrap:anywhere; }
 .entity-detail__facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:var(--space-3) var(--space-5); margin:0; }
-/* 律所资料逐行排列：标签在左、值在右，整段左侧一条竖线，避免四个字段挤成一排 */
-.entity-detail__profile--firm .entity-detail__facts { grid-template-columns:minmax(0, 1fr); gap:var(--space-3); max-width:820px; padding-left:var(--space-4); border-left:2px solid color-mix(in srgb, var(--color-primary) 28%, transparent); }
+/* 律所资料两列布局：第一排简称 | 侵权类型，第二排官网 | 关联案件，地址整行放下面 */
+.entity-detail__profile--firm .entity-detail__facts { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:var(--space-3) var(--space-6); max-width:820px; padding-left:var(--space-4); border-left:2px solid color-mix(in srgb, var(--color-primary) 28%, transparent); }
 .entity-detail__profile--firm .entity-detail__facts > div { grid-template-columns:5.5em minmax(0, 1fr); align-items:baseline; gap:var(--space-4); padding-left:0; border-left:0; }
+.entity-detail__profile--firm .entity-detail__facts > .entity-detail__fact--wide { grid-column:1 / -1; }
 .entity-detail__facts > div { display:grid; gap:2px; min-width:0; padding-left:var(--space-3); border-left:2px solid color-mix(in srgb, var(--color-primary) 28%, transparent); }
 .entity-detail__facts dt { color:var(--color-text-muted); font-size:var(--text-xs); }
 .entity-detail__facts dd { margin:0; overflow-wrap:anywhere; color:var(--color-text); font-size:var(--text-sm); line-height:1.5; }
@@ -312,6 +318,8 @@ useSeoMeta({
   .entity-detail__profile,
   .entity-detail__profile--firm { grid-template-columns:1fr; gap:var(--space-5); padding:var(--space-5); }
   .entity-detail__cover { max-width:220px; }
+  /* 手机端资料收成单列，避免两列挤在一起 */
+  .entity-detail__profile--firm .entity-detail__facts { grid-template-columns:minmax(0, 1fr); }
   /* 手机端横图同样通栏，左右贴到卡片内边距之外 */
   .entity-detail__banner { margin:0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5)); }
   .entity-detail__section { padding:var(--space-5); }

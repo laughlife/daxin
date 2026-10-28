@@ -65,10 +65,14 @@ test('律所详情图片只取带水印的 marks 版本（数据层保留，页�
   assert.match(queries, /entity_type = 'law_firm' AND entity_id = \? AND image_url <> ''\s+AND \$\{WATERMARKED_ENTITY_IMAGE_SQL\}/)
 })
 
-test('律所资料逐行排列，不再排成一行', () => {
-  // 资料区单列、每行「标签 + 值」，左侧一条竖线
-  assert.match(detail, /\.entity-detail__profile--firm \.entity-detail__facts \{ grid-template-columns:minmax\(0, 1fr\);/)
+test('律所资料按两列排布：简称 | 侵权类型，官网 | 关联案件，地址整行在下方', () => {
+  assert.match(detail, /\.entity-detail__profile--firm \.entity-detail__facts \{ grid-template-columns:repeat\(2, minmax\(0, 1fr\)\);/)
   assert.match(detail, /\.entity-detail__profile--firm \.entity-detail__facts > div \{ grid-template-columns:5\.5em minmax\(0, 1fr\);/)
+  assert.match(detail, /\.entity-detail__fact--wide \{ grid-column:1 \/ -1; \}/)
+  // 顺序即版式：简称、侵权类型、官网、关联案件、地址（整行）
+  const firmFacts = detail.slice(detail.indexOf('const firmFacts'), detail.indexOf('// 切换实体'))
+  const order = [...firmFacts.matchAll(/\{ label: '([^']+)'/g)].map(match => match[1])
+  assert.deepEqual(order, ['简称', '侵权类型', '官网', '关联案件', '地址'])
 })
 
 test('律所摘要与详情类型带上新字段', () => {
