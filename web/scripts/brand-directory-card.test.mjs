@@ -16,12 +16,32 @@ test('侵权品牌卡片提供图片或首字母占位，并支持加载失败�
 })
 
 test('品牌卡片整体可点击，展示案件相关信息并移除独立操作按钮', () => {
-  for (const text of ['品牌原告：', '代理律所：', '起诉州：', '已发案：', '查看品牌详情：']) {
+  for (const text of ['品牌原告：', '代理律所：', '品牌分类：', '品牌方：', '起诉州：', '已发案：', '查看品牌详情：']) {
     assert.ok(directory.includes(text), `缺少品牌卡片字段或链接语义：${text}`)
   }
   assert.match(directory, /class="brand-card"\s*:to="`\/brands\/\$\{item\.slug\}`"/)
   assert.doesNotMatch(directory, /brand-card__action|查看 TRO 案件/)
-  assert.match(directory, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/)
+  // 卡片网格随容器宽度自适应（每列最小 340px），窄屏自动变单列
+  assert.match(directory, /grid-template-columns: repeat\(auto-fit, minmax\(min\(100%, 340px\), 1fr\)\)/)
+})
+
+test('品牌分类 / 品牌方各占一行，不再嵌在代理律所那一段里', () => {
+  // 旧实现把两行塞进「代理律所」的 <p> 内部，浏览器会提前闭合导致挤在一起
+  assert.doesNotMatch(directory, /brand-directory__meta-line/)
+  const facts = directory.slice(
+    directory.indexOf('class="brand-card__facts"'),
+    directory.indexOf('class="brand-card__logo"'),
+  )
+  const labels = [...facts.matchAll(/<strong>([^<]+)：<\/strong>/g)].map(match => match[1])
+  assert.deepEqual(labels, ['品牌原告', '代理律所', '品牌分类', '品牌方', '起诉州', '已发案'])
+  // 每一行都是独立的 <p>（6 个开始标签 + 6 个闭合），没有跨行嵌套
+  assert.equal((facts.match(/<p[\s>]/g) ?? []).length, 6)
+  assert.equal((facts.match(/<\/p>/g) ?? []).length, 6)
+})
+
+test('品牌封面框随卡片宽度缩放，不再是固定 76px', () => {
+  assert.match(directory, /grid-template-columns: minmax\(0, 1fr\) clamp\(104px, 30%, 160px\)/)
+  assert.match(directory, /\.brand-card__logo \{[^}]*width: 100%;[^}]*aspect-ratio: 1;/s)
 })
 
 test('品牌类型标签使用蓝、绿、红纯色区分，不继承金色主题', () => {

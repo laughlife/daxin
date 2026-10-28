@@ -209,12 +209,14 @@ useSeoMeta({
                     <p>
                       <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14h12M3.5 14V4.5L8 2l4.5 2.5V14M6 6h.1M10 6h.1M6 9h.1M10 9h.1M7 14v-2h2v2" /></svg>
                       <strong>代理律所：</strong><span :title="item.lawFirm || '暂未关联'">{{ item.lawFirm || '暂未关联' }}</span>
-            <p v-if="item.ipCategory" class="brand-directory__meta-line">
-              <strong>品牌分类：</strong><span>{{ item.ipCategory }}</span>
-            </p>
-            <p v-if="item.brandOwner" class="brand-directory__meta-line">
-              <strong>品牌方：</strong><span>{{ item.brandOwner }}</span>
-            </p>
+                    </p>
+                    <p v-if="item.ipCategory">
+                      <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h5l7 7-5 5-7-7z" /><circle cx="5" cy="5" r="1" /></svg>
+                      <strong>品牌分类：</strong><span :title="item.ipCategory">{{ item.ipCategory }}</span>
+                    </p>
+                    <p v-if="item.brandOwner">
+                      <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5.5h11v8h-11zM6.5 5.5v-2h3v2M2.5 8.5h11" /></svg>
+                      <strong>品牌方：</strong><span :title="item.brandOwner">{{ item.brandOwner }}</span>
                     </p>
                     <p>
                       <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13 6.5c0 3.3-5 7.5-5 7.5S3 9.8 3 6.5a5 5 0 1 1 10 0Z" /><circle cx="8" cy="6.5" r="1.5" /></svg>
@@ -295,13 +297,14 @@ useSeoMeta({
 .brand-directory__tabs button[data-type='trademark'].is-active, .brand-directory__tabs button[data-type='patent'].is-active, .brand-directory__tabs button[data-type='copyright'].is-active { border-color: var(--brand-type-color); background: var(--brand-type-color); color: #fff; }
 .brand-directory__tabs small { min-width: 1.5em; font-size: var(--text-xs); opacity: .8; }
 .brand-directory__list { padding: var(--space-5); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-page); box-shadow: var(--shadow-sm); }
-.brand-directory__result-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); margin-bottom: var(--space-4); color: var(--color-text-muted); font-size: var(--text-sm); }
+.brand-directory__result-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-2) var(--space-4); margin-bottom: var(--space-4); color: var(--color-text-muted); font-size: var(--text-sm); }
+.brand-directory__page-hint { margin: 0; white-space: nowrap; }
 .brand-directory__list-title { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-2); }
 .brand-directory__list-title h2 { margin: 0; color: var(--color-text); font-size: var(--text-lg); font-weight: 700; }
 .brand-directory__list-title span { color: var(--color-text-muted); }
 .brand-directory__result-head label { display: flex; align-items: center; gap: var(--space-2); white-space: nowrap; }
 .brand-directory__result-head select { min-height: 36px; padding: 0 var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: var(--color-bg-page); color: var(--color-text); }
-.brand-directory__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
+.brand-directory__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); gap: var(--space-4); }
 .brand-card { display: flex; min-width: 0; flex-direction: column; padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-page); box-shadow: var(--shadow-sm); color: inherit; text-decoration: none; transition: border-color var(--transition-base), transform var(--transition-base), box-shadow var(--transition-base); }
 .brand-card:hover, .brand-card:focus-visible { transform: translateY(-2px); border-color: color-mix(in srgb, var(--color-primary) 45%, var(--color-border)); box-shadow: var(--shadow-md); text-decoration: none; }
 .brand-card__header { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-2); margin-bottom: var(--space-3); }
@@ -312,16 +315,17 @@ useSeoMeta({
 .brand-card__types span { flex: none; max-width: 100%; padding: 3px 8px; border: 1px solid color-mix(in srgb, var(--color-primary) 24%, white); border-radius: var(--radius-full); background: color-mix(in srgb, var(--color-primary) 8%, white); color: var(--color-primary); font-family: var(--font-family-base); font-size: var(--text-xs); font-weight: 700; text-align: center; white-space: nowrap; }
 .brand-card__types span[data-type] { border-color: var(--brand-type-border); background: var(--brand-type-soft); color: var(--brand-type-text); }
 .brand-card__types .brand-card__type-muted { color: var(--color-text-muted); }
-.brand-card__body { display: grid; grid-template-columns: minmax(0, 1fr) 76px; align-items: center; gap: var(--space-3); min-height: 84px; }
-.brand-card__facts { display: grid; gap: 6px; min-width: 0; }
+.brand-card__body { display: grid; grid-template-columns: minmax(0, 1fr) clamp(104px, 30%, 160px); align-items: center; gap: var(--space-4); min-height: 108px; }
+.brand-card__facts { display: grid; gap: 7px; min-width: 0; }
 .brand-card__facts p { display: flex; align-items: center; gap: 5px; min-width: 0; margin: 0; color: var(--color-text-muted); font-size: var(--text-xs); line-height: 1.45; }
 .brand-card__facts strong { flex: none; color: var(--color-text-muted); font-weight: 500; }
 .brand-card__facts p > span { overflow: hidden; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
 .brand-card__facts b { color: var(--color-primary); font-size: var(--text-sm); }
 .brand-card__fact-icon { flex: 0 0 14px; width: 14px; height: 14px; fill: none; stroke: var(--color-primary); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-.brand-card__logo { display: grid; width: 76px; height: 76px; place-items: center; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-sm); background: #f6f7f9; }
+/* 封面框随卡片宽度自适应（96–148px），不再固定 76px；图片等比缩放不裁切 */
+.brand-card__logo { display: grid; width: 100%; aspect-ratio: 1; place-items: center; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #f6f7f9; }
 .brand-card__logo img { width: 100%; height: 100%; object-fit: contain; }
-.brand-card__logo span { color: var(--color-primary); font-size: 2rem; font-weight: 750; }
+.brand-card__logo span { color: var(--color-primary); font-size: clamp(2rem, 3vw, 2.75rem); font-weight: 750; }
 .brand-card__description { display: -webkit-box; overflow: hidden; margin: var(--space-3) 0 0; color: var(--color-text-muted); font-size: var(--text-xs); line-height: var(--leading-relaxed); -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .brand-directory__state, .brand-directory__empty { padding: var(--space-8); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-page); color: var(--color-text-muted); text-align: center; }
 .brand-directory__pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-6); color: var(--color-text-muted); font-size: var(--text-sm); }
@@ -338,6 +342,8 @@ useSeoMeta({
   .brand-directory__tabs { overflow-x: auto; padding-inline: var(--space-4); }
   .brand-directory__tabs button { flex: 0 0 auto; padding-inline: var(--space-3); }
   .brand-directory__grid { grid-template-columns: minmax(0, 1fr); }
+  /* 移动端单列，行数已不是 6 行，隐藏该提示避免误导与折行 */
+  .brand-directory__page-hint { display: none; }
   .brand-directory__pagination { justify-content: center; }
 }
 </style>
