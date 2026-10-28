@@ -73,13 +73,13 @@ const errorMessage = computed(() =>
 
 /* ------------------------------- 品牌资料 ------------------------------- */
 
-const coverFailed = ref(false)
-
 const allBrandImages = computed(() => summary.value?.images ?? [])
-/** 封面优先用 brands.cover_url，没有就用第一张品牌图。 */
-const brandCover = computed(() => summary.value?.coverUrl || allBrandImages.value[0] || '')
-/** 画廊里去掉已作为封面展示的那张，避免同一张图出现两次。 */
-const brandImages = computed(() => allBrandImages.value.filter(url => url && url !== brandCover.value))
+/** 品牌页不再单独放通栏图：封面并入下方「品牌图片」画廊，排在第一张。 */
+const brandImages = computed(() => {
+  const cover = summary.value?.coverUrl || allBrandImages.value[0] || ''
+  const rest = allBrandImages.value.filter(url => url && url !== cover)
+  return cover ? [cover, ...rest] : rest
+})
 
 /**
  * 品牌方与品牌原告经常是同一个主体（库里 603 个可匹配品牌中有 288 个文本完全一致，
@@ -152,7 +152,6 @@ const firmFacts = computed(() => {
 // 切换实体（同一组件复用时）重置图片展开与封面失败状态。
 watch(() => props.slug, () => {
   showAllImages.value = false
-  coverFailed.value = false
   firmCoverFailed.value = false
 })
 
@@ -201,15 +200,6 @@ useSeoMeta({
                   </div>
                 </dl>
               </div>
-              <!-- 封面同样作为资料卡底部的通栏图（与律所一致） -->
-              <figure v-if="brandCover && !coverFailed" class="entity-detail__banner">
-                <img
-                  :src="brandCover"
-                  :alt="`${summary.name} 品牌图片`"
-                  decoding="async"
-                  @error="coverFailed = true"
-                >
-              </figure>
             </header>
 
             <section v-if="summary.intro" class="entity-detail__section">

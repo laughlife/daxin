@@ -55,6 +55,17 @@ test('品牌原告与品牌方重复时合并成一行', () => {
   assert.match(detail, /if \(duplicateParties\) \{[\s\S]*?品牌方（原告）/)
 })
 
+test('品牌页不单独放通栏图，封面并入品牌图片画廊', () => {
+  const brandBranch = detail.slice(
+    detail.indexOf('品牌档案 · BRAND PROFILE'),
+    detail.indexOf('代理律所 · LAW FIRM PROFILE'),
+  )
+  assert.doesNotMatch(brandBranch, /entity-detail__banner/)
+  // 封面排到画廊第一张，其余图片去重后跟随
+  assert.match(detail, /const brandImages = computed\(\(\) => \{[\s\S]*?cover \? \[cover, \.\.\.rest\] : rest/)
+  assert.match(detail, /<h2>品牌图片<\/h2>/)
+})
+
 test('品牌标题比其它页面小一号，长名称不会占满整屏', () => {
   assert.match(detail, /\.entity-detail__headline h1 \{[^}]*font-size:\s*clamp\(20px, 2\.2vw, 28px\)/)
   assert.doesNotMatch(detail, /\.entity-detail__headline h1 \{[^}]*var\(--heading-1\)/)
