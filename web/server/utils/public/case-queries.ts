@@ -88,6 +88,14 @@ type BrandDirectoryRow = EntityRow & {
 
 type CaseRow = CaseRowInput & { id: number | string | null }
 
+/**
+ * 小程序采集的品牌 / 律所图片成对入库：
+ *   - `/images/marks/*.webp` 为带「大信」水印的版本（封面与 Logo 也都在这个目录）；
+ *   - `/images/images/*.png` 是同一张的无水印清晰版。
+ * 公开页只展示带水印的一张，否则同一张图会在画廊里出现两次。
+ */
+const WATERMARKED_ENTITY_IMAGE_SQL = `image_url LIKE '%/images/marks/%'`
+
 type RelationRow = {
   case_id: number | string | null
   value: string | null
@@ -539,7 +547,8 @@ export async function findEntitySummaries(table: 'brands' | 'law_firms', keyword
             COALESCE(e.website, '') AS website,
             COALESCE(NULLIF(e.logo_url, ''), (
               SELECT ei.image_url FROM entity_images ei
-              WHERE ei.entity_type = 'law_firm' AND ei.entity_id = e.id AND ei.image_url <> ''
+              WHERE ei.entity_type = 'law_firm' AND ei.entity_id = e.id
+                AND ei.image_url <> '' AND ei.image_url LIKE '%/images/marks/%'
               ORDER BY ei.sort_order, ei.id
               LIMIT 1
             ), '') AS logo_url`
@@ -829,6 +838,7 @@ export async function findPublicBrandProfile(
     queryTarget<{ image_url: string | null }>(
       `SELECT image_url FROM entity_images
        WHERE entity_type = 'brand' AND entity_id = ? AND image_url <> ''
+         AND ${WATERMARKED_ENTITY_IMAGE_SQL}
        ORDER BY sort_order, id`,
       [id],
     ),
@@ -912,6 +922,7 @@ export async function findPublicFirmProfile(
     queryTarget<{ image_url: string | null }>(
       `SELECT image_url FROM entity_images
        WHERE entity_type = 'law_firm' AND entity_id = ? AND image_url <> ''
+         AND ${WATERMARKED_ENTITY_IMAGE_SQL}
        ORDER BY sort_order, id`,
       [id],
     ),

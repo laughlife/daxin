@@ -48,6 +48,12 @@ test('品牌标题比其它页面小一号，长名称不会占满整屏', () =>
   assert.doesNotMatch(detail, /\.entity-detail__headline h1 \{[^}]*var\(--heading-1\)/)
 })
 
+test('品牌图片只取带水印的 marks 版本，避免同图出现两次', () => {
+  assert.match(queries, /const WATERMARKED_ENTITY_IMAGE_SQL = `image_url LIKE '%\/images\/marks\/%'`/)
+  // 品牌画廊查询带上水印过滤
+  assert.match(queries, /entity_type = 'brand' AND entity_id = \? AND image_url <> ''\s+AND \$\{WATERMARKED_ENTITY_IMAGE_SQL\}/)
+})
+
 test('富文本简介：纯文本分段包 <p>，HTML 走白名单清洗', () => {
   assert.equal(toSafeRichText(''), '')
   assert.equal(toSafeRichText('  第一段\n\n第二段  '), '<p>第一段</p><p>第二段</p>')

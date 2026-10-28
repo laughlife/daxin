@@ -74,9 +74,11 @@ const errorMessage = computed(() =>
 
 const coverFailed = ref(false)
 
-const brandImages = computed(() => summary.value?.images ?? [])
+const allBrandImages = computed(() => summary.value?.images ?? [])
 /** 封面优先用 brands.cover_url，没有就用第一张品牌图。 */
-const brandCover = computed(() => summary.value?.coverUrl || brandImages.value[0] || '')
+const brandCover = computed(() => summary.value?.coverUrl || allBrandImages.value[0] || '')
+/** 画廊里去掉已作为封面展示的那张，避免同一张图出现两次。 */
+const brandImages = computed(() => allBrandImages.value.filter(url => url && url !== brandCover.value))
 
 const brandFacts = computed(() => {
   const item = summary.value

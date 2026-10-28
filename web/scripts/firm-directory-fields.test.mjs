@@ -53,6 +53,12 @@ test('律所详情返回简介 / 图片，并展示在名称右侧', () => {
   assert.match(detail, /<h2>代理的历史案件<\/h2>/)
 })
 
+test('律所图片同样只取带水印的 marks 版本', () => {
+  assert.match(queries, /entity_type = 'law_firm' AND entity_id = \? AND image_url <> ''\s+AND \$\{WATERMARKED_ENTITY_IMAGE_SQL\}/)
+  // 列表 Logo 回退也只用带水印的那张
+  assert.match(queries, /ei\.image_url LIKE '%\/images\/marks\/%'/)
+})
+
 test('律所摘要与详情类型带上新字段', () => {
   for (const field of ['shortName?: string', 'address?: string', 'website?: string', 'logoUrl?: string', 'intro?: string', 'images?: string[]']) {
     assert.ok(repository.includes(field), `FirmSummary 缺少字段：${field}`)
