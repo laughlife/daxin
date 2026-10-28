@@ -268,18 +268,39 @@ export function buildCaseFilterSql(query: NormalizedCaseQuery): CaseFilterSql {
     clauses.push(`(
     c.case_number LIKE ?
     OR c.plaintiff LIKE ?
+    OR c.brand_name LIKE ?
+    OR c.law_firm_name LIKE ?
+    OR c.brand_latin LIKE LOWER(REPLACE(?, ' ', ''))
+    OR c.firm_latin LIKE LOWER(REPLACE(?, ' ', ''))
     OR EXISTS (
-      SELECT 1 FROM case_brands cb
-      JOIN brands b ON b.id = cb.brand_id
-      WHERE cb.case_id = c.id AND b.name LIKE ?
+      SELECT 1 FROM brands b
+      WHERE b.status = 1
+        AND (b.name LIKE ? OR b.name_en LIKE ? OR b.aliases LIKE ?
+             OR b.name_latin LIKE LOWER(REPLACE(?, ' ', '')))
+        AND (
+          b.name_latin LIKE CONCAT('%', c.brand_latin, '%')
+          OR c.brand_latin LIKE CONCAT('%', b.name_latin, '%')
+          OR REPLACE(b.name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.brand_name), ' ', ''), '%')
+          OR REPLACE(TRIM(c.brand_name), ' ', '') LIKE CONCAT('%', REPLACE(b.name, ' ', ''), '%')
+        )
     )
     OR EXISTS (
-      SELECT 1 FROM case_law_firms clf
-      JOIN law_firms lf ON lf.id = clf.law_firm_id
-      WHERE clf.case_id = c.id AND lf.name LIKE ?
+      SELECT 1 FROM law_firms lf
+      WHERE lf.status = 1
+        AND (lf.name LIKE ? OR lf.short_name LIKE ? OR lf.name_en LIKE ?
+             OR lf.name_latin LIKE LOWER(REPLACE(?, ' ', '')))
+        AND (
+          lf.name_latin LIKE CONCAT('%', c.firm_latin, '%')
+          OR c.firm_latin LIKE CONCAT('%', lf.name_latin, '%')
+          OR (lf.short_latin <> '' AND LEFT(lf.short_latin, 6) = LEFT(c.firm_latin, 6))
+          OR REPLACE(lf.name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.law_firm_name), ' ', ''), '%')
+          OR REPLACE(TRIM(c.law_firm_name), ' ', '') LIKE CONCAT('%', REPLACE(lf.short_name, ' ', ''), '%')
+        )
     )
   )`)
-    params.push(like, like, like, like)
+    params.push(like, like, like, like, like, like,
+      like, like, like, like,
+      like, like, like, like)
   }
 
   if (query.caseType) {

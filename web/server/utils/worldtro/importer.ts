@@ -171,6 +171,7 @@ async function persistCases(cases: WorldTroCase[], initialImport: boolean) {
              brand_name = IF(brand_name = '', ?, brand_name),
              law_firm_name = IF(law_firm_name = '', ?, law_firm_name),
              state_code = IF(state_code = '', ?, state_code),
+             publish_status = IF(publish_status = 'draft', 'published', publish_status),
              updated_at = NOW()
            WHERE id = ?`,
           // 顺序必须与 SET 里的占位符一致：
@@ -182,7 +183,7 @@ async function persistCases(cases: WorldTroCase[], initialImport: boolean) {
           `INSERT INTO cases
              (case_number, case_year, case_seq, case_type, court, state_code, filed_at, plaintiff,
               brand_name, law_firm_name, title, status, publish_status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, ?, '', 'open', 'draft', NOW(), NOW())`,
+           VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, ?, '', 'open', 'published', NOW(), NOW())`,
           [item.caseNumber, parts.year, parts.sequence, parts.type, item.stateCode, item.filedAt || null,
             item.plaintiff, item.brand || '', item.lawFirm || ''],
         )

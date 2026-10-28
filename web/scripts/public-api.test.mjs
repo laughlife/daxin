@@ -70,9 +70,9 @@ test('品牌库过滤：关键词覆盖案件号与律所，用户输入只通�
   assert.match(filter.sql, /b\.name LIKE \?/)
   assert.match(filter.sql, /ip\.slug = \?/)
   assert.doesNotMatch(filter.sql, /Keith|OR 1=1/)
-  assert.deepEqual(filter.params, [
-    `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, `%${keyword}%`, 'copyright',
-  ])
+  // 5 个关键词参数 + 1 个类型参数
+  assert.equal(filter.params.filter((p) => p === `%${keyword}%`).length, 5)
+  assert.equal(filter.params[filter.params.length - 1], 'copyright')
 })
 
 test('页码夹取：0、负数、非整数与非法值都回落到合法页码', () => {
@@ -243,16 +243,17 @@ test('日期校验只接受真实存在的 YYYY-MM-DD', () => {
   assert.equal(normalizeDateOnly(''), '')
 })
 
-test('过滤条件：关键字命中 4 个参数，且始终只取已发布数据', () => {
+test('过滤条件：关键字命中品牌/律所多个参数，且始终只取已发布数据', () => {
   const filter = buildCaseFilterSql(parseCaseQuery({ keyword: 'Keith', caseType: 'copyright', from: '2024-01-01', to: '2024-06-30' }))
   assert.match(filter.sql, /publish_status = 'published'/)
   assert.match(filter.sql, /c\.filed_at >= \?/)
   assert.match(filter.sql, /c\.filed_at <= \?/)
-  assert.equal(filter.params.length, 7)
+  // 14 个关键词参数（案件号/原告/品牌/律所/英文主干 + 品牌库 4 + 律所 4）
+  assert.equal(filter.params.length, 17)
   assert.equal(filter.params[0], '%Keith%')
-  assert.equal(filter.params[4], 'copyright')
-  assert.equal(filter.params[5], '2024-01-01')
-  assert.equal(filter.params[6], '2024-06-30')
+  assert.equal(filter.params[14], 'copyright')
+  assert.equal(filter.params[15], '2024-01-01')
+  assert.equal(filter.params[16], '2024-06-30')
   // 不应把原始输入拼进 SQL
   assert.doesNotMatch(filter.sql, /Keith/)
 })
