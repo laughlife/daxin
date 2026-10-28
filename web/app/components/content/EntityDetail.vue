@@ -10,8 +10,8 @@ import type { CaseRecord } from '~/types/content'
  * 品牌页：封面 + 资料（分类 / 品牌方 / 原告 / 代理律所 / 起诉州 / 关联案件）
  * + 小程序采集的富文本介绍 + 品牌图片。
  *
- * 律所页：图片放在名称右侧（不套边框），展示简称 / 地址 / 官网 / 侵权类型 / 关联案件，
- * 下方是律所介绍与律所图片。
+ * 律所页：纯文字档案——名称 + 资料（简称 / 地址 / 官网 / 侵权类型 / 关联案件）+ 律所介绍，
+ * 不保留图片位置。
  *
  * 两类详情都只做档案展示，不再嵌入历史案件列表（案件数仍作为字段展示）。
  * 通过仓储 fetchBrandDetail / fetchLawFirmDetail 读取数据；不存在返回 404，
@@ -103,12 +103,6 @@ const visibleImages = computed(() => (
 
 /* ------------------------------- 律所资料 ------------------------------- */
 
-const firmCoverFailed = ref(false)
-/** 律所图片：优先 law_firms.logo_url，其次第一张采集图。 */
-const firmCover = computed(() => summary.value?.logoUrl || summary.value?.images?.[0] || '')
-/** 画廊里去掉已作为头图展示的那张，避免重复。 */
-const firmGallery = computed(() => (summary.value?.images ?? []).filter(url => url && url !== firmCover.value))
-
 const firmFacts = computed(() => {
   const item = summary.value
   if (!item) return []
@@ -126,7 +120,6 @@ const firmFacts = computed(() => {
 watch(() => props.slug, () => {
   showAllImages.value = false
   coverFailed.value = false
-  firmCoverFailed.value = false
 })
 
 function entityInitial(name: string): string {
@@ -242,42 +235,12 @@ useSeoMeta({
                   </div>
                 </dl>
               </div>
-              <div class="entity-detail__cover entity-detail__cover--firm" :class="{ 'is-placeholder': !firmCover || firmCoverFailed }">
-                <img
-                  v-if="firmCover && !firmCoverFailed"
-                  :src="firmCover"
-                  :alt="`${summary.name}图片`"
-                  decoding="async"
-                  @error="firmCoverFailed = true"
-                >
-                <span v-else aria-hidden="true">{{ entityInitial(summary.name) }}</span>
-              </div>
             </header>
 
             <section v-if="summary.intro" class="entity-detail__section">
               <h2>律所介绍</h2>
               <!-- intro 已在服务端按白名单清洗（toSafeRichText），这里只做排版 -->
               <div class="entity-detail__rich" v-html="summary.intro" />
-            </section>
-
-            <section v-if="firmGallery.length" class="entity-detail__section">
-              <h2>律所图片</h2>
-              <div class="entity-detail__gallery">
-                <a
-                  v-for="(image, index) in firmGallery"
-                  :key="image"
-                  :href="image"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <img
-                    :src="image"
-                    :alt="`${summary.name}图片 ${index + 1}`"
-                    loading="lazy"
-                    decoding="async"
-                  >
-                </a>
-              </div>
             </section>
           </template>
         </template>
@@ -292,15 +255,11 @@ useSeoMeta({
 
 /* 品牌资料卡：左侧封面，右侧名称与字段 */
 .entity-detail__profile { display:grid; grid-template-columns:200px minmax(0,1fr); gap:var(--space-8); padding:var(--space-8); border:1px solid var(--color-border); border-top:3px solid var(--color-primary); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
-/* 律所资料卡：名称在左、图片在右上；图片不套边框，按原比例完整展示 */
-.entity-detail__profile--firm { grid-template-columns:minmax(0,1fr) clamp(260px, 44%, 460px); align-items:start; }
+/* 律所资料卡：纯文字，不保留图片位置 */
+.entity-detail__profile--firm { grid-template-columns:minmax(0,1fr); }
 .entity-detail__cover { display:grid; width:100%; aspect-ratio:1; place-items:center; overflow:hidden; border:1px solid var(--color-border); border-radius:var(--radius-md); background:#f6f7f9; }
 .entity-detail__cover img { width:100%; height:100%; object-fit:contain; }
 .entity-detail__cover.is-placeholder span { color:var(--color-primary); font-size:3rem; font-weight:750; }
-/* 律所头图：去掉外框与底色，按容器宽度等比缩放，完整显示不裁切 */
-.entity-detail__cover--firm { aspect-ratio:auto; border:0; border-radius:0; background:transparent; overflow:visible; }
-.entity-detail__cover--firm img { width:100%; height:auto; max-height:280px; object-fit:contain; }
-.entity-detail__cover--firm.is-placeholder span { font-size:clamp(2rem, 4vw, 3rem); }
 .entity-detail__headline { min-width:0; }
 .entity-detail__eyebrow { color:var(--color-primary); font-size:var(--text-xs); font-weight:700; letter-spacing:.1em; }
 /* 品牌名可能很长（最长 57 字），标题比其它页面小一号，避免占满整屏 */
@@ -334,9 +293,6 @@ useSeoMeta({
   .entity-detail__profile,
   .entity-detail__profile--firm { grid-template-columns:1fr; gap:var(--space-5); padding:var(--space-5); }
   .entity-detail__cover { max-width:220px; }
-  /* 手机上律所图片放到名称上方，占满整行、不套框 */
-  .entity-detail__profile--firm .entity-detail__cover { order:-1; max-width:100%; }
-  .entity-detail__profile--firm .entity-detail__cover img { max-height:220px; }
   .entity-detail__section { padding:var(--space-5); }
 }
 @media(max-width:639px) {

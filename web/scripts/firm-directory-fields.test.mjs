@@ -45,22 +45,20 @@ test('律所名称字号调小、字重减轻', () => {
   assert.doesNotMatch(directory, /h2 \{[^}]*font-size:\s*var\(--heading-3\)/)
 })
 
-test('律所详情返回简介 / 图片，并展示在名称右侧', () => {
+test('律所详情是纯文字档案：资料 + 介绍，不保留图片位置', () => {
   assert.match(queries, /export async function findPublicFirmProfile/)
   assert.match(queries, /FROM entity_details WHERE entity_type = 'law_firm'/)
-  assert.match(queries, /FROM entity_images\s+WHERE entity_type = 'law_firm'/)
-  assert.match(queries, /logoUrl: toText\(row\.logo_url\) \|\| images\[0\]/)
   assert.match(detailEndpoint, /intro: toSafeRichText\(found\.firm\.intro\)/)
-  // 头图在名称右侧、下方有介绍与图片
   assert.match(detail, /entity-detail__profile--firm/)
   assert.match(detail, /<h2>律所介绍<\/h2>/)
-  assert.match(detail, /<h2>律所图片<\/h2>/)
-  assert.match(detail, /class="entity-detail__cover entity-detail__cover--firm"/)
-  // 历史案件板块已移除
+  // 头图与图片画廊都不再渲染
+  assert.doesNotMatch(detail, /entity-detail__cover--firm/)
+  assert.doesNotMatch(detail, /<h2>律所图片<\/h2>/)
+  // 历史案件板块也已移除
   assert.doesNotMatch(detail, /代理的历史案件|entity-detail__cases/)
 })
 
-test('律所详情图片只取带水印的 marks 版本', () => {
+test('律所详情图片只取带水印的 marks 版本（数据层保留，页面暂不展示）', () => {
   assert.match(queries, /entity_type = 'law_firm' AND entity_id = \? AND image_url <> ''\s+AND \$\{WATERMARKED_ENTITY_IMAGE_SQL\}/)
 })
 

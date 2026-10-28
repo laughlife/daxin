@@ -168,8 +168,9 @@ useSeoMeta({
 .directory__search label { display:grid; grid-template-columns:max-content minmax(0,1fr); align-items:center; gap:var(--space-4); color:var(--color-text-muted); font-size:var(--text-sm); }
 input,select { width:100%; min-width:0; }
 .directory__notice { margin:var(--space-5) 0; color:var(--color-text-muted); font-size:var(--text-sm); } .directory__grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-5); }
-.directory__card { padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); } .directory__label { margin-bottom:var(--space-3); color:var(--color-primary); font-size:var(--text-xs); } h2 { margin-bottom:var(--space-3); font-size:var(--text-lg); font-weight:600; line-height:1.4; } h2 a { color:var(--color-text); } .directory__card > a { font-size:var(--text-sm); }
-.directory__card > p:not(.directory__label) { margin:0 0 var(--space-2); color:var(--color-text-muted); font-size:var(--text-sm); line-height:var(--leading-relaxed); }
+.directory__card { padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); } .directory__label { margin-bottom:var(--space-3); color:var(--color-primary); font-size:var(--text-xs); } h2 { margin-bottom:var(--space-3); font-size:var(--text-lg); font-weight:600; line-height:1.35; } h2 a { color:var(--color-text); } .directory__card > a { font-size:var(--text-sm); }
+/* 字号与品牌列表保持一致：名称 19px，各项信息 13px */
+.directory__card > p:not(.directory__label) { margin:0 0 var(--space-2); color:var(--color-text-muted); font-size:var(--text-xs); line-height:1.45; }
 .directory__card > p:last-child { margin-bottom:0; }
 .directory__short-name { margin-bottom:var(--space-2); } .directory__short-name strong { color:var(--color-text); }
 .directory__website a { color:var(--color-primary); overflow-wrap:anywhere; }
