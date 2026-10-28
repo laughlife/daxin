@@ -179,10 +179,15 @@ const viewFacts = computed(() => {
   }
   facts.push(
     { label: '关联案件', value: `${item.caseCount} 件` },
-    { label: '状态', value: item.status === 1 ? '正常' : '已隐藏' },
-    { label: '创建时间', value: item.createdAt },
-    { label: '更新时间', value: item.updatedAt },
   )
+  // 品牌保留状态与时间；律所只看业务字段（状态用右上角徽标表示）。
+  if (props.kind === 'brand') {
+    facts.push(
+      { label: '状态', value: item.status === 1 ? '正常' : '已隐藏' },
+      { label: '创建时间', value: item.createdAt },
+      { label: '更新时间', value: item.updatedAt },
+    )
+  }
   return facts.filter(fact => fact.value)
 })
 
@@ -315,7 +320,7 @@ function onPageSize(next: number) {
 
     <!-- ref 挂在原生元素上：组件上的 ref 是组件实例，没有 scrollIntoView -->
     <div v-if="viewOpen" ref="viewerRef" data-scroll-target="entity-viewer" class="admin-entity__viewer">
-      <BaseCard :title="`查看${entityLabel} #${viewingId}`" :title-level="2">
+      <BaseCard>
         <p v-if="viewLoading" class="admin-entity__loading" role="status">正在加载{{ entityLabel }}详情…</p>
         <p v-if="viewError" class="admin-entity__error" role="alert">{{ viewError }}</p>
 

@@ -34,6 +34,17 @@ test('品牌 / 律所后台不再展示 slug', () => {
   assert.doesNotMatch(entityTemplate, /item\.slug|viewItem\.slug|label: 'slug'/)
 })
 
+test('律所查看不显示状态与时间字段，品牌保留', () => {
+  // 品牌保留状态 / 创建 / 更新时间；律所只留业务字段
+  assert.match(entities, /if \(props\.kind === 'brand'\) \{\s*facts\.push\(\s*\{ label: '状态'/)
+  assert.match(entities, /label: '创建时间'/)
+  assert.match(entities, /label: '更新时间'/)
+})
+
+test('查看面板不再显示「查看品牌 / 律所 #id」标题', () => {
+  assert.doesNotMatch(entityTemplate, /查看\$\{entityLabel\} #|查看品牌 #|查看律所 #/)
+})
+
 test('用户管理仍由现有管理员权限保护', () => {
   assert.match(users, /definePageMeta\(\{ layout: 'admin', middleware: 'admin' \}\)/)
   assert.match(users, /useAdminSession\(\)/)
