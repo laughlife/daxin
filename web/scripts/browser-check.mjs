@@ -304,11 +304,13 @@ try {
   // 律所 slug 会随数据导入变化（worldtro 导入后是 worldtro-law-firm-*），
   // 不再写死某一个 slug，改为取列表里第一条真实详情链接
   await visit('/law-firms')
+  check('律所卡片带图片或首字占位', await page.locator('.directory__logo').count() > 0)
   const lawFirmHref = await page.locator('a[href^="/law-firms/"]').first().getAttribute('href')
   check('律所库有详情链接', Boolean(lawFirmHref), lawFirmHref ?? '')
   await visit(lawFirmHref)
-  await page.locator('.entity-detail__header').waitFor()
-  check('律所详情页可打开', await page.locator('.entity-detail__header').count() === 1)
+  await page.locator('.entity-detail__profile').waitFor()
+  check('律所详情页可打开', await page.locator('.entity-detail__profile--firm').count() === 1)
+  check('律所详情展示介绍或图片', await page.locator('.entity-detail__section').count() > 0)
 
   // ---------- 关于我们 ----------
   await visit('/about')

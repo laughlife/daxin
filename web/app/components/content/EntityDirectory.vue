@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { fetchBrands, fetchLawFirms } from '~/repositories/entities'
+import { externalUrlLabel, safeExternalUrl } from '~/utils/content'
 
 /**
  * 品牌 / 律所目录。
@@ -18,6 +19,7 @@ interface EntitySummary {
   shortName?: string
   address?: string
   website?: string
+  logoUrl?: string
 }
 
 const props = defineProps<{ kind: 'brand' | 'firm' }>()
@@ -25,6 +27,16 @@ const props = defineProps<{ kind: 'brand' | 'firm' }>()
 const route = useRoute()
 const router = useRouter()
 const keyword = ref(typeof route.query.q === 'string' ? route.query.q : '')
+/** 图片加载失败的实体；失败后回退到名称首字占位，避免出现破图。 */
+const failedLogos = ref(new Set<string>())
+
+function markLogoFailed(slug: string) {
+  failedLogos.value = new Set([...failedLogos.value, slug])
+}
+
+function entityInitial(name: string): string {
+  return Array.from(name.trim())[0] || 'L'
+}
 
 const { data, error, refresh } = await useAsyncData(
   () => `entity-directory:${props.kind}`,
@@ -40,13 +52,12 @@ const errorMessage = computed(() =>
 
 /** 只把 http(s) 官网渲染成链接，其它协议（含 javascript:）一律当普通文字。 */
 function safeWebsite(value?: string): string {
-  const url = (value ?? '').trim()
-  return /^https?:\/\//i.test(url) ? url : ''
+  return safeExternalUrl(value)
 }
 
 /** 官网省略协议头展示，避免卡片里出现又长又重复的 https://。 */
 function websiteLabel(value: string): string {
-  return value.replace(/^https?:\/\//i, '').replace(/\/$/, '')
+  return externalUrlLabel(value)
 }
 
 const entities = computed<EntitySummary[]>(() => data.value ?? [])
@@ -126,28 +137,37 @@ useSeoMeta({
           <div class="directory__grid">
             <article v-for="item in filtered" :key="item.slug" class="directory__card">
               <p class="directory__label">{{ kind === 'brand' ? '品牌档案' : '律所档案' }}</p>
-              <h2>
-                <NuxtLink :to="`${kind === 'brand' ? '/brands' : '/law-firms'}/${item.slug}`">{{ item.name }}</NuxtLink>
-              </h2>
-              <p v-if="kind === 'firm' && item.shortName" class="directory__short-name">
-                简称：<strong>{{ item.shortName }}</strong>
-              </p>
-              <p>{{ item.description || '简介资料整理后补充。' }}</p>
-              <dl v-if="kind === 'firm' && (item.address || safeWebsite(item.website))" class="directory__firm-meta">
-                <div v-if="item.address">
-                  <dt>地址</dt>
-                  <dd>{{ item.address }}</dd>
+              <div class="directory__body">
+                <div class="directory__info">
+                  <h2>
+                    <NuxtLink :to="`${kind === 'brand' ? '/brands' : '/law-firms'}/${item.slug}`">{{ item.name }}</NuxtLink>
+                  </h2>
+                  <!-- 律所卡片只保留名称 / 简称 / 官网 / 关联案件；不再显示「简介资料整理后补充」占位 -->
+                  <template v-if="kind === 'firm'">
+                    <p v-if="item.shortName" class="directory__short-name">
+                      简称：<strong>{{ item.shortName }}</strong>
+                    </p>
+                    <p v-if="safeWebsite(item.website)" class="directory__website">
+                      官网：<a :href="safeWebsite(item.website)" target="_blank" rel="noopener noreferrer">{{ websiteLabel(safeWebsite(item.website)) }}</a>
+                    </p>
+                  </template>
+                  <p v-else class="directory__description">
+                    {{ item.description || '简介资料整理后补充。' }}
+                  </p>
+                  <p class="directory__count">{{ item.caseCount }} 条关联案件</p>
                 </div>
-                <div v-if="safeWebsite(item.website)">
-                  <dt>官网</dt>
-                  <dd>
-                    <a :href="safeWebsite(item.website)" target="_blank" rel="noopener noreferrer">
-                      {{ websiteLabel(safeWebsite(item.website)) }}
-                    </a>
-                  </dd>
+                <div class="directory__logo">
+                  <img
+                    v-if="item.logoUrl && !failedLogos.has(item.slug)"
+                    :src="item.logoUrl"
+                    :alt="`${item.name}图片`"
+                    loading="lazy"
+                    decoding="async"
+                    @error="markLogoFailed(item.slug)"
+                  >
+                  <span v-else aria-hidden="true">{{ entityInitial(item.name) }}</span>
                 </div>
-              </dl>
-              <p class="directory__count">{{ item.caseCount }} 条关联案件</p>
+              </div>
             </article>
           </div>
 
@@ -174,8 +194,16 @@ useSeoMeta({
 .directory__search label { display:grid; grid-template-columns:max-content minmax(0,1fr); align-items:center; gap:var(--space-4); color:var(--color-text-muted); font-size:var(--text-sm); }
 input,select { width:100%; min-width:0; }
 .directory__notice { margin:var(--space-5) 0; color:var(--color-text-muted); font-size:var(--text-sm); } .directory__grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--space-5); }
-.directory__card { padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); } .directory__label { margin-bottom:var(--space-3); color:var(--color-primary); font-size:var(--text-xs); } h2 { margin-bottom:var(--space-3); font-size:var(--heading-3); } h2 a { color:var(--color-text); } .directory__card > p:not(:first-child) { color:var(--color-text-muted); font-size:var(--text-sm); line-height:var(--leading-relaxed); } .directory__count { margin:var(--space-4) 0; } .directory__card > a { font-size:var(--text-sm); }
+.directory__card { padding:var(--space-6); border:1px solid var(--color-border); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); } .directory__label { margin-bottom:var(--space-3); color:var(--color-primary); font-size:var(--text-xs); } h2 { margin-bottom:var(--space-3); font-size:var(--heading-3); } h2 a { color:var(--color-text); } .directory__card > a { font-size:var(--text-sm); }
+.directory__body { display:grid; grid-template-columns:minmax(0,1fr) clamp(92px, 26%, 132px); align-items:center; gap:var(--space-4); }
+.directory__info { min-width:0; }
+.directory__info p { margin:0 0 var(--space-2); color:var(--color-text-muted); font-size:var(--text-sm); line-height:var(--leading-relaxed); }
+.directory__info p:last-child { margin-bottom:0; }
+.directory__logo { display:grid; width:100%; aspect-ratio:1; place-items:center; overflow:hidden; border:1px solid var(--color-border); border-radius:var(--radius-md); background:#f6f7f9; }
+.directory__logo img { width:100%; height:100%; object-fit:contain; }
+.directory__logo span { color:var(--color-primary); font-size:clamp(1.75rem, 3vw, 2.5rem); font-weight:750; }
 .directory__short-name { margin-bottom:var(--space-2); } .directory__short-name strong { color:var(--color-text); }
-.directory__firm-meta { display:grid; gap:var(--space-2); margin:var(--space-3) 0 0; } .directory__firm-meta > div { display:grid; grid-template-columns:max-content minmax(0,1fr); gap:var(--space-3); } .directory__firm-meta dt { color:var(--color-text-muted); font-size:var(--text-sm); } .directory__firm-meta dd { margin:0; overflow-wrap:anywhere; color:var(--color-text); font-size:var(--text-sm); line-height:var(--leading-relaxed); } .directory__firm-meta a { color:var(--color-primary); }
+.directory__website a { color:var(--color-primary); overflow-wrap:anywhere; }
+.directory__description { margin:var(--space-3) 0 0; }
 @media(max-width:639px) { .directory__stats-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } .directory__grid { grid-template-columns:1fr; } .directory__search { grid-template-columns:1fr; } .directory__search label { gap:var(--space-3); } }
 </style>

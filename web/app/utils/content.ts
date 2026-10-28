@@ -41,3 +41,17 @@ export function entityDirectoryHref(kind: 'brand' | 'firm', keyword: string): st
   const trimmed = keyword.trim()
   return trimmed ? `${base}?q=${encodeURIComponent(trimmed)}` : base
 }
+
+/**
+ * 外链归一化：只把 http(s) 地址渲染成可点击链接。
+ * 后台/采集数据可能带 `javascript:` 之类的伪协议，宁可当普通文字也不生成链接。
+ */
+export function safeExternalUrl(value?: string | null): string {
+  const url = (value ?? '').trim()
+  return /^https?:\/\//i.test(url) ? url : ''
+}
+
+/** 外链展示文案：省略协议头与结尾斜杠，避免卡片里出现又长又重复的 https://。 */
+export function externalUrlLabel(url: string): string {
+  return url.replace(/^https?:\/\//i, '').replace(/\/$/, '')
+}

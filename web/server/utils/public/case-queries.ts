@@ -35,6 +35,8 @@ export interface EntitySummary {
   address?: string
   /** 律所专用：官网（law_firms.website）。 */
   website?: string
+  /** 律所专用：列表/详情图片（law_firms.logo_url，缺失时回退第一张采集图）。 */
+  logoUrl?: string
 }
 
 /** 品牌库分类统计；按有公开案件关联的去重品牌数统计。 */
@@ -71,6 +73,7 @@ type EntityRow = {
   short_name?: string | null
   address?: string | null
   website?: string | null
+  logo_url?: string | null
 }
 
 type BrandDirectoryRow = EntityRow & {
@@ -528,12 +531,18 @@ export async function findEntitySummaries(table: 'brands' | 'law_firms', keyword
       params.push(like, like, like)
     }
   }
-  // 律所目录额外展示小程序来源的简称 / 地址 / 官网；品牌没有这三列，不查。
+  // 律所目录额外展示小程序来源的简称 / 地址 / 官网 / 图片；品牌没有这些列，不查。
   const firmColumns = table === 'law_firms'
     ? `,
             COALESCE(e.short_name, '') AS short_name,
             COALESCE(e.address, '') AS address,
-            COALESCE(e.website, '') AS website`
+            COALESCE(e.website, '') AS website,
+            COALESCE(NULLIF(e.logo_url, ''), (
+              SELECT ei.image_url FROM entity_images ei
+              WHERE ei.entity_type = 'law_firm' AND ei.entity_id = e.id AND ei.image_url <> ''
+              ORDER BY ei.sort_order, ei.id
+              LIMIT 1
+            ), '') AS logo_url`
     : ''
   const rows = await queryTarget<EntityRow>(
     `SELECT e.id, e.slug, e.name, COALESCE(e.summary, '') AS description,
@@ -551,6 +560,7 @@ export async function findEntitySummaries(table: 'brands' | 'law_firms', keyword
       shortName: toText(row.short_name),
       address: toText(row.address),
       website: toText(row.website),
+      logoUrl: toText(row.logo_url),
     }
   })
 }
@@ -841,6 +851,86 @@ export async function findPublicBrandProfile(
       coverUrl: toText(row.cover_url),
       intro: toText(detailRows[0]?.intro),
       images: imageRows.map(item => toText(item.image_url)).filter(Boolean),
+    },
+  }
+}
+
+/** 律所详情页资料；介绍与多图同样来自小程序采集。 */
+export interface FirmProfile {
+  slug: string
+  name: string
+  description: string
+  caseCount: number
+  /** 简称（law_firms.short_name），列表与详情都会展示 */
+  shortName: string
+  address: string
+  website: string
+  /** Logo / 首页图：优先 law_firms.logo_url，其次第一张采集图 */
+  coverUrl: string
+  /** 富文本简介（未清洗，输出前由 toSafeRichText 处理） */
+  intro: string
+  /** 律所图片，按 sort_order 排序 */
+  images: string[]
+}
+
+type FirmProfileRow = EntityRow & {
+  short_name: string | null
+  address: string | null
+  website: string | null
+  logo_url: string | null
+}
+
+/**
+ * 律所详情资料：律所自身字段 + 关联案件数（文本匹配）+ 简介 + 图片。
+ * 律所不存在或未启用返回 null。
+ */
+export async function findPublicFirmProfile(
+  slug: string,
+): Promise<{ id: number; firm: FirmProfile } | null> {
+  const rows = await queryTarget<FirmProfileRow>(
+    // 别名必须是 e：publishedEntityCaseCountSql 内部按 e 引用律所表。
+    `SELECT e.id, e.slug, e.name, COALESCE(e.summary, '') AS description,
+            COALESCE(e.short_name, '') AS short_name,
+            COALESCE(e.address, '') AS address,
+            COALESCE(e.website, '') AS website,
+            COALESCE(e.logo_url, '') AS logo_url,
+            ${publishedEntityCaseCountSql('law_firms')} AS case_count
+     FROM law_firms e
+     WHERE e.status = 1 AND e.slug = ?
+     LIMIT 1`,
+    [slug],
+  )
+  const row = rows[0]
+  if (!row) return null
+
+  const id = toNumber(row.id)
+  const [detailRows, imageRows] = await Promise.all([
+    queryTarget<{ intro: string | null }>(
+      `SELECT intro FROM entity_details WHERE entity_type = 'law_firm' AND entity_id = ? LIMIT 1`,
+      [id],
+    ),
+    queryTarget<{ image_url: string | null }>(
+      `SELECT image_url FROM entity_images
+       WHERE entity_type = 'law_firm' AND entity_id = ? AND image_url <> ''
+       ORDER BY sort_order, id`,
+      [id],
+    ),
+  ])
+
+  const images = imageRows.map(item => toText(item.image_url)).filter(Boolean)
+  return {
+    id,
+    firm: {
+      slug: toText(row.slug),
+      name: toText(row.name),
+      description: toText(row.description),
+      caseCount: toNumber(row.case_count),
+      shortName: toText(row.short_name),
+      address: toText(row.address),
+      website: toText(row.website),
+      coverUrl: toText(row.logo_url) || images[0] || '',
+      intro: toText(detailRows[0]?.intro),
+      images,
     },
   }
 }

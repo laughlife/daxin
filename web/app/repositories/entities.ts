@@ -66,10 +66,16 @@ export interface FirmSummary {
   caseCount: number
   /** 简称（law_firms.short_name），可能为空串。 */
   shortName?: string
-  /** 地址（law_firms.address）。 */
+  /** 地址（law_firms.address），详情页展示。 */
   address?: string
   /** 官网（law_firms.website），只有 http(s) 链接才应渲染成可点击链接。 */
   website?: string
+  /** 详情页：Logo / 首页图。 */
+  logoUrl?: string
+  /** 详情页：已清洗的富文本简介。 */
+  intro?: string
+  /** 详情页：律所图片（小程序采集）。 */
+  images?: string[]
 }
 
 export interface BrandDetail {
