@@ -41,8 +41,9 @@ test('律所查看不显示状态与时间字段，品牌保留', () => {
   assert.match(entities, /label: '更新时间'/)
 })
 
-test('查看面板不再显示「查看品牌 / 律所 #id」标题', () => {
+test('查看面板不再显示「查看品牌 / 律所 #id」标题与状态徽标', () => {
   assert.doesNotMatch(entityTemplate, /查看\$\{entityLabel\} #|查看品牌 #|查看律所 #/)
+  assert.doesNotMatch(entityTemplate, /admin-entity__status/)
 })
 
 test('用户管理仍由现有管理员权限保护', () => {

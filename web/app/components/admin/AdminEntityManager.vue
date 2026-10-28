@@ -325,14 +325,7 @@ function onPageSize(next: number) {
         <p v-if="viewError" class="admin-entity__error" role="alert">{{ viewError }}</p>
 
         <template v-if="viewItem">
-          <header class="admin-entity__view-head">
-            <div>
-              <h3 class="admin-entity__view-name">{{ viewItem.name }}</h3>
-            </div>
-            <span class="admin-entity__status" :class="`admin-entity__status--${viewItem.status === 1 ? 'active' : 'archived'}`">
-              {{ viewItem.status === 1 ? '正常' : '已隐藏' }}
-            </span>
-          </header>
+          <h3 class="admin-entity__view-name">{{ viewItem.name }}</h3>
 
           <div v-if="viewCover" class="admin-entity__view-cover">
             <img :src="viewCover" :alt="`${viewItem.name}图片`" loading="lazy" decoding="async">
@@ -550,11 +543,7 @@ function onPageSize(next: number) {
 }
 
 /* 只读详情 */
-.admin-entity__view-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-4); }
 .admin-entity__view-name { margin: 0; font-size: var(--text-xl); color: var(--color-text); overflow-wrap: anywhere; }
-.admin-entity__status { flex: none; padding: 2px var(--space-3); border-radius: var(--radius-full); font-size: var(--text-xs); font-weight: 700; }
-.admin-entity__status--active { background: color-mix(in srgb, var(--color-success) 12%, transparent); color: var(--color-success); }
-.admin-entity__status--archived { background: var(--color-bg-light); color: var(--color-text-muted); }
 .admin-entity__view-cover { margin-top: var(--space-4); max-width: 360px; padding: var(--space-2); border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #f6f7f9; }
 .admin-entity__view-cover img { display: block; width: 100%; height: auto; max-height: 240px; object-fit: contain; }
 .admin-entity__view-facts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-3) var(--space-6); margin-top: var(--space-5); }
