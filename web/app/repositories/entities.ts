@@ -24,6 +24,18 @@ export interface BrandSummary {
   caseTypes?: CaseType[]
 }
 
+/** 品牌详情页资料：在列表字段之外补充分类、封面、介绍与多图。 */
+export interface BrandProfile extends BrandSummary {
+  /** 起诉类型（小程序字段） */
+  lawsuitType?: string
+  /** 封面图（优先 brands.cover_url） */
+  coverUrl?: string
+  /** 已清洗的富文本简介 */
+  intro?: string
+  /** 品牌图片（小程序采集，可能较多） */
+  images?: string[]
+}
+
 export interface BrandDirectoryQuery {
   keyword?: string
   caseType?: CaseType
@@ -61,7 +73,7 @@ export interface FirmSummary {
 }
 
 export interface BrandDetail {
-  brand: BrandSummary
+  brand: BrandProfile
   cases: CaseRecord[]
 }
 

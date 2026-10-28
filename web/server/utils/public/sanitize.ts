@@ -195,3 +195,24 @@ export function sanitizeHtml(html: unknown): string {
 
   return output.join('').replace(/\s{2,}/g, ' ').trim()
 }
+
+/**
+ * 后台富文本简介 → 可安全渲染的 HTML。
+ *
+ * 数据来源不统一：小程序后台有的字段是富文本 HTML（带 `<p style>`），有的是纯文本段落。
+ * 含标签时按白名单清洗；纯文本按空行分段包成 `<p>`，避免整段挤成一行。
+ */
+export function toSafeRichText(input: unknown): string {
+  const raw = String(input ?? '').trim()
+  if (!raw) return ''
+  if (!/<\/?[a-z][\s\S]*?>/i.test(raw)) {
+    return raw
+      .split(/\n\s*\n/)
+      .map(paragraph => paragraph.trim())
+      .filter(Boolean)
+      .map(paragraph => `<p>${sanitizeHtml(paragraph).replace(/\s*\n\s*/g, '<br>')}</p>`)
+      .join('')
+  }
+  // 富文本里常见的「空段落 + <br>」没有实际内容，清洗后顺手去掉，避免页面顶部出现大片空白。
+  return sanitizeHtml(raw).replace(/<p>\s*(?:<br\s*\/?>)?\s*<\/p>/gi, '')
+}

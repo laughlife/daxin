@@ -295,8 +295,11 @@ try {
   const brandDetailHref = await page.locator('.brand-card[href^="/brands/"]').first().getAttribute('href')
   check('品牌档案有详情链接', Boolean(brandDetailHref))
   await visit(brandDetailHref)
-  await page.locator('.entity-detail__header').waitFor()
-  check('品牌详情显示关联案件', await page.locator('.entity-detail__cases article').count() > 0)
+  // 2026-10-28 改版：品牌详情展示资料 / 介绍 / 图片，不再展示历史发案列表
+  await page.locator('.entity-detail__profile').waitFor()
+  check('品牌详情显示品牌资料字段', await page.locator('.entity-detail__facts dt').count() > 0)
+  check('品牌详情显示介绍或图片', await page.locator('.entity-detail__section').count() > 0)
+  check('品牌详情不再展示历史发案', await page.locator('.entity-detail__cases').count() === 0)
 
   // 律所 slug 会随数据导入变化（worldtro 导入后是 worldtro-law-firm-*），
   // 不再写死某一个 slug，改为取列表里第一条真实详情链接

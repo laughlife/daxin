@@ -737,6 +737,114 @@ export async function findEntityBySlug(
   return { id: toNumber(first.id), summary: toEntitySummary(first) }
 }
 
+/** 品牌详情页资料；介绍与多图来自小程序采集（entity_details / entity_images）。 */
+export interface BrandProfile {
+  slug: string
+  name: string
+  description: string
+  caseCount: number
+  /** 品牌分类：商标 / 专利 / 版权图片 / 奢侈大牌 …（小程序字段） */
+  ipCategory: string
+  /** 品牌方 */
+  brandOwner: string
+  /** 起诉类型（小程序字段，通常与分类一致） */
+  lawsuitType: string
+  /** 最新一条关联公开案件的原告 */
+  plaintiff: string
+  /** 最新一条关联公开案件的代理律所；缺失时回退到小程序记录的默认律所 */
+  lawFirm: string
+  /** 最新一条关联公开案件的起诉州 */
+  stateCode: string
+  /** 封面图：优先 brands.cover_url，其次旧的 logo 媒体资源 */
+  coverUrl: string
+  /** 富文本简介（未清洗，输出前由 toSafeRichText 处理） */
+  intro: string
+  /** 品牌图片，按 sort_order 排序 */
+  images: string[]
+}
+
+type BrandProfileRow = EntityRow & {
+  cover_url: string | null
+  ip_category: string | null
+  brand_owner: string | null
+  lawsuit_type: string | null
+  default_law_firm: string | null
+}
+
+/**
+ * 品牌详情资料。
+ *
+ * 除 brands 自身字段外：
+ *   - 原告 / 代理律所 / 起诉州取「最新一条关联公开案件」，与目录卡片同一套文本匹配；
+ *   - 介绍取 entity_details.intro，图片取 entity_images（小程序采集，一个品牌最多几十张）。
+ * 品牌不存在或未启用返回 null。
+ */
+export async function findPublicBrandProfile(
+  slug: string,
+): Promise<{ id: number; brand: BrandProfile } | null> {
+  const rows = await queryTarget<BrandProfileRow>(
+    // 别名必须是 e：publishedEntityCaseCountSql 内部按 e 引用品牌表。
+    `SELECT e.id, e.slug, e.name, COALESCE(e.summary, '') AS description,
+            COALESCE(NULLIF(e.cover_url, ''), logo.public_url, '') AS cover_url,
+            e.ip_category,
+            e.brand_owner,
+            e.lawsuit_type,
+            e.default_law_firm,
+            ${publishedEntityCaseCountSql('brands')} AS case_count
+     FROM brands e
+     LEFT JOIN media_assets logo ON logo.id = e.logo_media_id AND logo.usage_scope = 'logo' AND logo.deleted_at IS NULL
+     WHERE e.status = 1 AND e.slug = ?
+     LIMIT 1`,
+    [slug],
+  )
+  const row = rows[0]
+  if (!row) return null
+
+  const id = toNumber(row.id)
+  const [latestRows, detailRows, imageRows] = await Promise.all([
+    // 最新一条关联案件：与目录/详情列表同样的匹配规则，NULL 日期排最后。
+    queryTarget<{ plaintiff: string | null; law_firm_name: string | null; state_code: string | null }>(
+      `SELECT c.plaintiff, c.law_firm_name, c.state_code
+       FROM cases c
+       JOIN brands e ON e.id = ? AND e.status = 1
+       WHERE c.publish_status = 'published' AND ${entityCaseMatchSqlForEntity('brands')}
+       ORDER BY (c.filed_at IS NULL) ASC, c.filed_at DESC, c.id DESC
+       LIMIT 1`,
+      [id],
+    ),
+    queryTarget<{ intro: string | null }>(
+      `SELECT intro FROM entity_details WHERE entity_type = 'brand' AND entity_id = ? LIMIT 1`,
+      [id],
+    ),
+    queryTarget<{ image_url: string | null }>(
+      `SELECT image_url FROM entity_images
+       WHERE entity_type = 'brand' AND entity_id = ? AND image_url <> ''
+       ORDER BY sort_order, id`,
+      [id],
+    ),
+  ])
+
+  const latest = latestRows[0]
+  return {
+    id,
+    brand: {
+      slug: toText(row.slug),
+      name: toText(row.name),
+      description: toText(row.description),
+      caseCount: toNumber(row.case_count),
+      ipCategory: toText(row.ip_category),
+      brandOwner: toText(row.brand_owner),
+      lawsuitType: toText(row.lawsuit_type),
+      plaintiff: toText(latest?.plaintiff),
+      lawFirm: toText(latest?.law_firm_name) || toText(row.default_law_firm),
+      stateCode: toText(latest?.state_code),
+      coverUrl: toText(row.cover_url),
+      intro: toText(detailRows[0]?.intro),
+      images: imageRows.map(item => toText(item.image_url)).filter(Boolean),
+    },
+  }
+}
+
 /** 某个品牌 / 律所下已发布的案件。 */
 export async function findCasesForEntity(
   relation: 'brand' | 'law_firm',
