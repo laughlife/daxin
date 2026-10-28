@@ -324,10 +324,10 @@ useSeoMeta({
 .brand-card__facts p > span { overflow: hidden; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
 .brand-card__facts b { color: var(--color-primary); font-size: var(--text-sm); }
 .brand-card__fact-icon { flex: 0 0 14px; width: 14px; height: 14px; fill: none; stroke: var(--color-primary); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-/* 图片平铺在右侧单元格（高度跟随左侧字段块） */
-.brand-card__media { grid-area: media; display: flex; align-self: stretch; overflow: hidden; border-radius: var(--radius-md); background: #f6f7f9; }
-.brand-card__media img { display: block; width: 100%; height: 100%; object-fit: cover; }
-.brand-card__media span { display: grid; width: 100%; place-items: center; color: var(--color-primary); font-size: clamp(1.75rem, 3vw, 2.5rem); font-weight: 750; }
+/* 图片平铺在右侧单元格（高度跟随左侧字段块，图片绝对定位避免竖图把卡片撑高） */
+.brand-card__media { position: relative; grid-area: media; align-self: stretch; overflow: hidden; border-radius: var(--radius-md); background: #f6f7f9; }
+.brand-card__media img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; object-fit: cover; }
+.brand-card__media span { position: absolute; inset: 0; display: grid; place-items: center; color: var(--color-primary); font-size: clamp(1.75rem, 3vw, 2.5rem); font-weight: 750; }
 .brand-card__description { display: -webkit-box; overflow: hidden; margin: var(--space-3) 0 0; color: var(--color-text-muted); font-size: var(--text-xs); line-height: var(--leading-relaxed); -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .brand-directory__state, .brand-directory__empty { padding: var(--space-8); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-page); color: var(--color-text-muted); text-align: center; }
 .brand-directory__pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-6); color: var(--color-text-muted); font-size: var(--text-sm); }
