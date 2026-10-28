@@ -83,6 +83,10 @@ export interface CaseRowInput {
   case_number: string | null
   filed_at: string | Date | null
   plaintiff: string | null
+  /** 采集写入的涉案品牌文本；为空时回退到 case_brands 关联 */
+  brand_name?: string | null
+  /** 采集写入的代理律所文本；为空时回退到 case_law_firms 关联 */
+  law_firm_name?: string | null
 }
 
 /** case_sources + articles 关联出的来源信息。 */
@@ -162,8 +166,8 @@ export function mapCaseRecord(row: CaseRowInput, relations: CaseRelationsInput =
     id: toIdText(row.id),
     caseNumber,
     filedAt: toDateOnly(row.filed_at),
-    lawFirm: normalizeText(relations.lawFirmNames?.[0]),
-    plaintiffBrand: normalizeText(relations.brandNames?.[0]),
+    lawFirm: normalizeText(row.law_firm_name) || normalizeText(relations.lawFirmNames?.[0]),
+    plaintiffBrand: normalizeText(row.brand_name) || normalizeText(relations.brandNames?.[0]),
     state: '',
     // 没有已确认的侵权类型时返回空串，绝不回退成某个具体类型：
     // 界面统一用 caseTypeLabel() 显示“待确认类型”，而接口层保持“未知即空”的语义，

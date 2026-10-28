@@ -86,7 +86,9 @@ type SourceRow = {
 const CASE_COLUMNS = `c.id,
   c.case_number,
   DATE_FORMAT(c.filed_at, '%Y-%m-%d') AS filed_at,
-  c.plaintiff`
+  c.plaintiff,
+  c.brand_name,
+  c.law_firm_name`
 
 /** NULL 日期排在最后，其余按起诉时间倒序、案件号倒序。 */
 const CASE_ORDER_BY = 'ORDER BY (c.filed_at IS NULL) ASC, c.filed_at DESC, c.case_number DESC'

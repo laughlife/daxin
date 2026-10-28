@@ -229,6 +229,7 @@ async function connectDb() {
 }
 
 async function saveBrand(db, item, detail, hash) {
+  if (!item || item.id === undefined) throw new Error('列表项缺少 id')
   const [rows] = await db.execute(
     `INSERT INTO brands (mp_id, name, slug, summary, ip_category, lawsuit_type, brand_owner,
        default_law_firm, cover_url, source, is_published, source_hash, created_at, updated_at)
@@ -236,11 +237,11 @@ async function saveBrand(db, item, detail, hash) {
      ON DUPLICATE KEY UPDATE name = VALUES(name), ip_category = VALUES(ip_category),
        lawsuit_type = VALUES(lawsuit_type), brand_owner = VALUES(brand_owner),
        default_law_firm = VALUES(default_law_firm),
-       cover_url = IF(?, cover_url, VALUES(cover_url)),
+       cover_url = IF(? OR cover_url = '', VALUES(cover_url), cover_url),
        is_published = 1, source_hash = VALUES(source_hash),
        detail_synced_at = IF(?, NOW(), detail_synced_at), updated_at = NOW()`,
     [
-      item.id, item.mc || '', slugOf(item.mc || String(item.id)),
+      item.id, item.mc || '', `${slugOf(item.mc || 'brand')}-${item.id}`,
       item.flmc || '', item.qslx || '', item.ppf || '', item.dlls || '',
       detail ? detail.images[0] || '' : '', hash,
       detail ? 1 : 0, detail ? 1 : 0,
@@ -259,6 +260,7 @@ async function saveBrand(db, item, detail, hash) {
 }
 
 async function saveLawFirm(db, item, detail, hash) {
+  if (!item || item.id === undefined) throw new Error('列表项缺少 id')
   const name = item.name || ''
   await db.execute(
     `INSERT INTO law_firms (mp_id, name, slug, summary, short_name, address, website, logo_url,
@@ -266,11 +268,11 @@ async function saveLawFirm(db, item, detail, hash) {
      VALUES (?, ?, ?, '', ?, ?, ?, ?, 'import', 1, ?, NOW(), NOW())
      ON DUPLICATE KEY UPDATE name = VALUES(name), short_name = VALUES(short_name),
        address = VALUES(address), website = VALUES(website),
-       logo_url = IF(?, logo_url, VALUES(logo_url)),
+       logo_url = IF(? OR logo_url = '', VALUES(logo_url), logo_url),
        is_published = 1, source_hash = VALUES(source_hash),
        detail_synced_at = IF(?, NOW(), detail_synced_at), updated_at = NOW()`,
     [
-      item.id, name, slugOf(name || String(item.id)), item.jc || '', (item.dz || '').trim(),
+      item.id, name, `${slugOf(name || 'firm')}-${item.id}`, item.jc || '', (item.dz || '').trim(),
       (item.ls_url || item.url || '').trim(), detail ? detail.images[0] || '' : '', hash,
       detail ? 1 : 0, detail ? 1 : 0,
     ],

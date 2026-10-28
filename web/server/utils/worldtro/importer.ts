@@ -168,18 +168,21 @@ async function persistCases(cases: WorldTroCase[], initialImport: boolean) {
           `UPDATE cases SET
              filed_at = COALESCE(filed_at, ?),
              plaintiff = IF(plaintiff = '', ?, plaintiff),
+             brand_name = IF(brand_name = '', ?, brand_name),
+             law_firm_name = IF(law_firm_name = '', ?, law_firm_name),
              state_code = IF(state_code = '', ?, state_code),
              updated_at = NOW()
            WHERE id = ?`,
-          [item.filedAt || null, item.plaintiff, item.stateCode, caseId],
+          [item.filedAt || null, item.plaintiff, item.stateCode, item.brand || '', item.lawFirm || '', caseId],
         )
       } else {
         const [header] = await connection.execute(
           `INSERT INTO cases
-             (case_number, case_year, case_seq, case_type, court, state_code, filed_at, plaintiff, title,
-              status, publish_status, created_at, updated_at)
-           VALUES (?, ?, ?, ?, '', ?, ?, ?, '', 'open', 'draft', NOW(), NOW())`,
-          [item.caseNumber, parts.year, parts.sequence, parts.type, item.stateCode, item.filedAt || null, item.plaintiff],
+             (case_number, case_year, case_seq, case_type, court, state_code, filed_at, plaintiff,
+              brand_name, law_firm_name, title, status, publish_status, created_at, updated_at)
+           VALUES (?, ?, ?, ?, '', ?, ?, ?, ?, ?, '', 'open', 'draft', NOW(), NOW())`,
+          [item.caseNumber, parts.year, parts.sequence, parts.type, item.stateCode, item.filedAt || null,
+            item.plaintiff, item.brand || '', item.lawFirm || ''],
         )
         caseId = Number((header as DbHeader).insertId ?? 0)
         if (!caseId) throw new Error(`写入案件失败：${item.caseNumber}`)
