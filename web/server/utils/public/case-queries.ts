@@ -866,7 +866,7 @@ export interface FirmProfile {
   address: string
   website: string
   /** Logo / 首页图：优先 law_firms.logo_url，其次第一张采集图 */
-  coverUrl: string
+  logoUrl: string
   /** 富文本简介（未清洗，输出前由 toSafeRichText 处理） */
   intro: string
   /** 律所图片，按 sort_order 排序 */
@@ -928,7 +928,7 @@ export async function findPublicFirmProfile(
       shortName: toText(row.short_name),
       address: toText(row.address),
       website: toText(row.website),
-      coverUrl: toText(row.logo_url) || images[0] || '',
+      logoUrl: toText(row.logo_url) || images[0] || '',
       intro: toText(detailRows[0]?.intro),
       images,
     },

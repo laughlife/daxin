@@ -42,6 +42,7 @@ test('律所详情返回简介 / 图片，并展示在名称右侧', () => {
   assert.match(queries, /export async function findPublicFirmProfile/)
   assert.match(queries, /FROM entity_details WHERE entity_type = 'law_firm'/)
   assert.match(queries, /FROM entity_images\s+WHERE entity_type = 'law_firm'/)
+  assert.match(queries, /logoUrl: toText\(row\.logo_url\) \|\| images\[0\]/)
   assert.match(detailEndpoint, /intro: toSafeRichText\(found\.firm\.intro\)/)
   // 头图在名称右侧、下方有介绍与图片
   assert.match(detail, /entity-detail__profile--firm/)
