@@ -123,6 +123,13 @@ export default defineEventHandler(async (event) => {
       insertParams,
     )
 
+    if (categoryId !== null) {
+      await executeWrite(
+        'INSERT IGNORE INTO article_category_links (article_id, category_id) VALUES (?, ?)',
+        [result.insertId, categoryId],
+      )
+    }
+
     const created = await queryTarget<{ slug: string }>('SELECT slug FROM articles WHERE id = ? LIMIT 1', [result.insertId])
     const createdSlug = created[0]?.slug ?? slug
 

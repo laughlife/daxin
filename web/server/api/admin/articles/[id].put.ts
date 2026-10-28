@@ -188,6 +188,37 @@ export default defineEventHandler(async (event) => {
       })
     }
 
+    if (changes.category_id !== undefined) {
+      const previousCategoryId = current.category_id === null ? null : Number(current.category_id)
+      const nextCategoryId = changes.category_id === null ? null : Number(changes.category_id)
+      const categoryChanged = previousCategoryId !== nextCategoryId
+
+      if (categoryChanged && previousCategoryId !== null) {
+        // 移除旧主分类关联；若文章仍由公众号来源映射到该分类，则保留来源关联。
+        await executeWrite(
+          `DELETE link FROM article_category_links link
+           WHERE link.article_id = ?
+             AND link.category_id = ?
+             AND NOT EXISTS (
+               SELECT 1
+               FROM wechat_album_items item
+               JOIN wechat_album_sources source ON source.id = item.source_id
+               JOIN article_categories mapped_category ON mapped_category.slug = source.category_slug
+               WHERE item.article_id = link.article_id
+                 AND mapped_category.id = link.category_id
+             )`,
+          [id, previousCategoryId],
+        )
+      }
+
+      if (nextCategoryId !== null) {
+        await executeWrite(
+          'INSERT IGNORE INTO article_category_links (article_id, category_id) VALUES (?, ?)',
+          [id, nextCategoryId],
+        )
+      }
+    }
+
     const rows = await queryTarget<AdminArticleRow>(ADMIN_ARTICLE_DETAIL_SQL, [id])
     const row = rows[0]
     if (!row) return fail(event, 404, 'ARTICLE_NOT_FOUND', '文章不存在')
