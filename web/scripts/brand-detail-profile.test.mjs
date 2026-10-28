@@ -5,12 +5,13 @@ import { test } from 'node:test'
 import { toSafeRichText } from '../server/utils/public/sanitize.ts'
 
 const read = path => readFile(new URL(path, import.meta.url), 'utf8')
-const [detail, repository, queries, entityMatch, endpoint] = await Promise.all([
+const [detail, repository, queries, entityMatch, endpoint, withParties] = await Promise.all([
   read('../app/components/content/EntityDetail.vue'),
   read('../app/repositories/entities.ts'),
   read('../server/utils/public/case-queries.ts'),
   read('../server/utils/public/entity-match.ts'),
   read('../server/api/public/brands/[slug].get.ts'),
+  read('../app/utils/content.ts'),
 ])
 
 test('品牌详情接口返回资料、介绍与图片', () => {
@@ -50,10 +51,11 @@ test('品牌详情与律所详情共用两列资料版式，品牌方 / 品牌�
   assert.match(brandFacts, /label: '品牌方'[\s\S]*?wide: true/)
 })
 
-test('品牌原告与品牌方重复时合并成一行', () => {
-  assert.match(detail, /function sameParty\(a: string, b: string\): boolean/)
-  assert.match(detail, /const duplicateParties = sameParty\(plaintiff, owner\)/)
+test('品牌原告与品牌方重复时合并成一行（判断逻辑与列表共用）', () => {
+  assert.match(detail, /const duplicateParties = samePartyName\(plaintiff, owner\)/)
   assert.match(detail, /if \(duplicateParties\) \{[\s\S]*?品牌方（原告）/)
+  // 规则在 utils/content，列表卡片与详情页共用
+  assert.match(withParties, /export function samePartyName/)
 })
 
 test('品牌页不单独放通栏图，封面并入品牌图片画廊', () => {

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { fetchBrandDetail, fetchLawFirmDetail } from '~/repositories/entities'
 import { caseTypeLabel } from '~/utils/caseTypeLabel'
-import { externalUrlLabel, safeExternalUrl } from '~/utils/content'
+import { externalUrlLabel, samePartyName, safeExternalUrl } from '~/utils/content'
 import type { CaseRecord } from '~/types/content'
 
 /**
@@ -82,30 +82,15 @@ const brandImages = computed(() => {
 })
 
 /**
- * 品牌方与品牌原告经常是同一个主体（库里 603 个可匹配品牌中有 288 个文本完全一致，
- * 还有一大部分是「Zhenbiao Zhang / Zhang」这种简写）。比较时去掉标点空格、忽略大小写，
- * 短的一方被长的一方包含也算同一主体；重复时合并成一行，避免同一家公司出现两次。
+ * 品牌方与品牌原告经常是同一个主体，重复时合并成一行，避免同一家公司出现两次。
+ * 判断规则见 `~/utils/content` 的 `samePartyName`（列表卡片复用同一份）。
  */
-function normalizeParty(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/g, '')
-}
-
-function sameParty(a: string, b: string): boolean {
-  if (!a || !b) return false
-  const left = normalizeParty(a)
-  const right = normalizeParty(b)
-  if (!left || !right) return false
-  if (left === right) return true
-  const [short, long] = left.length <= right.length ? [left, right] : [right, left]
-  return short.length >= 4 && long.includes(short)
-}
-
 const brandFacts = computed(() => {
   const item = summary.value
   if (!item) return []
   const owner = item.brandOwner || ''
   const plaintiff = item.plaintiff || ''
-  const duplicateParties = sameParty(plaintiff, owner)
+  const duplicateParties = samePartyName(plaintiff, owner)
   const facts = [
     // 顺序即版式：短字段两两成排，较长的名称整行放在下面。
     { label: '品牌分类', value: item.ipCategory || item.lawsuitType || '', wide: false },

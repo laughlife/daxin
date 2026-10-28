@@ -1,8 +1,14 @@
 <script setup lang="ts">
 import { fetchBrandDirectory } from '~/repositories/entities'
-import type { BrandDirectoryPage, BrandDirectoryStats } from '~/repositories/entities'
+import type { BrandDirectoryPage, BrandDirectoryStats, BrandSummary } from '~/repositories/entities'
 import type { CaseType } from '~/types/content'
 import { CASE_TYPE_LABELS } from '~/utils/caseTypeLabel'
+import { samePartyName } from '~/utils/content'
+
+/** 品牌原告与品牌方是同一主体时只显示一行（与详情页同一套判断）。 */
+function isSameParty(item: BrandSummary): boolean {
+  return samePartyName(item.plaintiff, item.brandOwner)
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -202,30 +208,37 @@ useSeoMeta({
                 </div>
                 <div class="brand-card__body">
                   <div class="brand-card__facts">
-                    <p>
-                      <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="2.5" /><path d="M3.5 14a4.5 4.5 0 0 1 9 0" /></svg>
-                      <strong>品牌原告：</strong><span :title="item.plaintiff || '暂无公开信息'">{{ item.plaintiff || '暂无公开信息' }}</span>
-                    </p>
-                    <p>
-                      <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14h12M3.5 14V4.5L8 2l4.5 2.5V14M6 6h.1M10 6h.1M6 9h.1M10 9h.1M7 14v-2h2v2" /></svg>
-                      <strong>代理律所：</strong><span :title="item.lawFirm || '暂未关联'">{{ item.lawFirm || '暂未关联' }}</span>
-                    </p>
+                    <!-- 字段与品牌详情保持一致；品牌原告与品牌方是同一主体时合并成一行 -->
                     <p v-if="item.ipCategory">
                       <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h5l7 7-5 5-7-7z" /><circle cx="5" cy="5" r="1" /></svg>
                       <strong>品牌分类：</strong><span :title="item.ipCategory">{{ item.ipCategory }}</span>
-                    </p>
-                    <p v-if="item.brandOwner">
-                      <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5.5h11v8h-11zM6.5 5.5v-2h3v2M2.5 8.5h11" /></svg>
-                      <strong>品牌方：</strong><span :title="item.brandOwner">{{ item.brandOwner }}</span>
                     </p>
                     <p>
                       <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M13 6.5c0 3.3-5 7.5-5 7.5S3 9.8 3 6.5a5 5 0 1 1 10 0Z" /><circle cx="8" cy="6.5" r="1.5" /></svg>
                       <strong>起诉州：</strong><span>{{ item.stateCode || '未标注' }}</span>
                     </p>
                     <p>
+                      <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 14h12M3.5 14V4.5L8 2l4.5 2.5V14M6 6h.1M10 6h.1M6 9h.1M10 9h.1M7 14v-2h2v2" /></svg>
+                      <strong>代理律所：</strong><span :title="item.lawFirm || '暂未关联'">{{ item.lawFirm || '暂未关联' }}</span>
+                    </p>
+                    <p>
                       <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h6l3 3v9H4zM10 2v3h3M6 8h5M6 11h5" /></svg>
                       <strong>已发案：</strong><span><b>{{ item.caseCount }}</b> 起</span>
                     </p>
+                    <p v-if="isSameParty(item)">
+                      <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="2.5" /><path d="M3.5 14a4.5 4.5 0 0 1 9 0" /></svg>
+                      <strong>品牌方（原告）：</strong><span :title="item.brandOwner || item.plaintiff">{{ item.brandOwner || item.plaintiff }}</span>
+                    </p>
+                    <template v-else>
+                      <p v-if="item.plaintiff">
+                        <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="2.5" /><path d="M3.5 14a4.5 4.5 0 0 1 9 0" /></svg>
+                        <strong>品牌原告：</strong><span :title="item.plaintiff">{{ item.plaintiff }}</span>
+                      </p>
+                      <p v-if="item.brandOwner">
+                        <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5.5h11v8h-11zM6.5 5.5v-2h3v2M2.5 8.5h11" /></svg>
+                        <strong>品牌方：</strong><span :title="item.brandOwner">{{ item.brandOwner }}</span>
+                      </p>
+                    </template>
                   </div>
                   <div class="brand-card__logo">
                     <img
