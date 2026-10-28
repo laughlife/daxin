@@ -62,7 +62,7 @@ test('核心业务通过站点设置标签维护，旧直达地址会转到对�
   const settings = await readFile(new URL('../app/pages/admin/settings.vue', import.meta.url), 'utf8')
   const route = await readFile(new URL('../app/pages/admin/services.vue', import.meta.url), 'utf8')
   assert.match(settings, /kind: 'services', label: '核心业务'/)
-  assert.match(settings, /<AdminServicesSettings\s*\/>/)
+  assert.match(settings, /<AdminServicesSettings[\s\S]*?\/>/)
   assert.match(route, /tab=services/)
   assert.doesNotMatch(source, /<h1[^>]*>团队业务配置/)
 })

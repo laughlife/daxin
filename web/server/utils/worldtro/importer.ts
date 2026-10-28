@@ -140,8 +140,6 @@ async function replaceOldCasesAndEntities(connection: SqlConnection): Promise<vo
   await connection.execute('DELETE FROM case_related_cases', [])
   await connection.execute('DELETE FROM case_progress', [])
   await connection.execute('DELETE FROM case_sources', [])
-  await connection.execute('DELETE FROM case_brands', [])
-  await connection.execute('DELETE FROM case_law_firms', [])
   await connection.execute('DELETE FROM case_ip_types', [])
   await connection.execute('DELETE FROM case_ingest_sources', [])
   await connection.execute('DELETE FROM cases', [])
