@@ -1,16 +1,18 @@
-// 品牌详情页：资料字段、介绍清洗、图片画廊，以及不再展示历史发案。
+// 品牌详情页：资料字段、介绍清洗、图片画廊，以及小程序「起诉信息」历史发案。
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import { toSafeRichText } from '../server/utils/public/sanitize.ts'
 
 const read = path => readFile(new URL(path, import.meta.url), 'utf8')
-const [detail, repository, queries, entityMatch, endpoint] = await Promise.all([
+const [detail, repository, queries, entityMatch, endpoint, importer, migration] = await Promise.all([
   read('../app/components/content/EntityDetail.vue'),
   read('../app/repositories/entities.ts'),
   read('../server/utils/public/case-queries.ts'),
   read('../server/utils/public/entity-match.ts'),
   read('../server/api/public/brands/[slug].get.ts'),
+  read('../../tools/import-mini-program.mjs'),
+  read('../../database/migrations/055_entity_case_rows.sql'),
 ])
 
 test('品牌详情接口返回资料、介绍与图片', () => {
@@ -27,16 +29,38 @@ test('品牌详情接口返回资料、介绍与图片', () => {
   }
 })
 
-test('品牌详情页展示资料 / 介绍 / 图片，且不再渲染历史发案', () => {
+test('品牌详情页展示资料 / 介绍 / 图片，历史发案只读小程序行', () => {
   assert.match(detail, /class="entity-detail__profile/)
   assert.match(detail, /v-for="fact in brandFacts"/)
-  // 品牌 / 律所详情都不再渲染历史案件列表（页面只做档案展示）
-  assert.doesNotMatch(detail, /entity-detail__cases|代理的历史案件/)
+  // 页面不再用 cases 关联渲染历史案件（历史发案来自 entity_case_rows）
+  assert.doesNotMatch(detail, /entity-detail__cases|代理的历史案件|summary\.cases/)
   assert.match(detail, /<h2>品牌介绍<\/h2>/)
   assert.match(detail, /v-html="summary\.intro"/)
   assert.match(detail, /<h2>品牌图片<\/h2>/)
   assert.match(detail, /loading="lazy"/)
   assert.match(detail, /显示全部 \{\{ brandImages\.length \}\} 张/)
+})
+
+test('品牌历史发案：小程序「起诉信息」入库并在详情页最下方按表格展示', () => {
+  // 表结构
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS entity_case_rows/)
+  assert.match(migration, /case_number VARCHAR\(255\)/)
+  // 采集：解析 #qsTable 并整块替换
+  assert.match(importer, /function parseCaseRows/)
+  assert.match(importer, /id="qsTable"/)
+  assert.match(importer, /INSERT INTO entity_case_rows/)
+  assert.match(importer, /await saveCaseRows\(db, 'brand', brandId, detail\.caseRows \|\| \[\]\)/)
+  // 接口：原样返回，不 JOIN cases
+  assert.match(queries, /FROM entity_case_rows\s+WHERE entity_type = 'brand' AND entity_id = \?/)
+  assert.match(queries, /historyCases:/)
+  assert.match(repository, /historyCases\?: BrandHistoryCase\[\]/)
+  // 页面：四列表格，放在品牌图片之后
+  assert.match(detail, /<h2>历史发案<\/h2>/)
+  for (const header of ['起诉时间', '案件号', '代理律所', '受理法院']) {
+    assert.ok(detail.includes(`<th scope="col">${header}</th>`), `历史发案缺少列：${header}`)
+  }
+  assert.match(detail, /class="entity-detail__case-table"/)
+  assert.match(detail, /v-for="\(row, index\) in historyCases"/)
 })
 
 test('品牌详情与律所详情共用两列资料版式，品牌方整行', () => {

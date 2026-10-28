@@ -24,6 +24,14 @@ export interface BrandSummary {
   caseTypes?: CaseType[]
 }
 
+/** 品牌历史发案的一行（小程序「起诉信息」原样展示）。 */
+export interface BrandHistoryCase {
+  filedAt: string
+  caseNumber: string
+  lawFirm: string
+  court: string
+}
+
 /** 品牌详情页资料：在列表字段之外补充分类、封面、介绍与多图。 */
 export interface BrandProfile extends BrandSummary {
   /** 起诉类型（小程序字段） */
@@ -34,6 +42,8 @@ export interface BrandProfile extends BrandSummary {
   intro?: string
   /** 品牌图片（小程序采集，可能较多） */
   images?: string[]
+  /** 历史发案（小程序「起诉信息」，按起诉时间倒序） */
+  historyCases?: BrandHistoryCase[]
 }
 
 export interface BrandDirectoryQuery {

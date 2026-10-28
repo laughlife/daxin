@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { fetchBrandDetail, fetchLawFirmDetail } from '~/repositories/entities'
+import type { BrandHistoryCase } from '~/repositories/entities'
 import { caseTypeLabel } from '~/utils/caseTypeLabel'
 import { externalUrlLabel, safeExternalUrl } from '~/utils/content'
 import type { CaseRecord } from '~/types/content'
@@ -37,6 +38,7 @@ interface EntitySummaryData {
   website?: string
   intro?: string
   images?: string[]
+  historyCases?: BrandHistoryCase[]
 }
 
 interface EntityDetailData {
@@ -62,6 +64,8 @@ if (!data.value && !error.value) {
 
 const summary = computed(() => data.value?.summary ?? null)
 const cases = computed(() => data.value?.cases ?? [])
+/** 品牌历史发案（小程序「起诉信息」原样展示，接口已按起诉时间倒序）。 */
+const historyCases = computed<BrandHistoryCase[]>(() => summary.value?.historyCases ?? [])
 
 /** 律所页的类型徽标仍按历史案件的侵权类型汇总。 */
 const typeLabels = computed(() => Array.from(new Set(cases.value.map(item => caseTypeLabel(item.caseType)))).join(' / '))
@@ -208,6 +212,31 @@ useSeoMeta({
                 显示全部 {{ brandImages.length }} 张
               </button>
             </section>
+
+            <!-- 历史发案：小程序「起诉信息」原样展示，不查 cases 表 -->
+            <section v-if="historyCases.length" class="entity-detail__section">
+              <h2>历史发案</h2>
+              <div class="entity-detail__case-table-wrap">
+                <table class="entity-detail__case-table">
+                  <thead>
+                    <tr>
+                      <th scope="col">起诉时间</th>
+                      <th scope="col">案件号</th>
+                      <th scope="col">代理律所</th>
+                      <th scope="col">受理法院</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(row, index) in historyCases" :key="`${row.caseNumber}-${index}`">
+                      <td>{{ row.filedAt || '—' }}</td>
+                      <td>{{ row.caseNumber }}</td>
+                      <td>{{ row.lawFirm || '—' }}</td>
+                      <td>{{ row.court || '—' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </section>
           </template>
 
           <!-- 律所：图片在名称右侧 + 资料 + 介绍 + 图片（不再嵌入历史案件列表） -->
@@ -295,6 +324,17 @@ useSeoMeta({
 .entity-detail__gallery a:hover img { transform:scale(1.03); }
 .entity-detail__more { margin-top:var(--space-4); padding:var(--space-2) var(--space-4); border:1px solid var(--color-border-strong); border-radius:var(--radius-full); background:var(--color-bg-page); color:var(--color-primary); font:inherit; font-size:var(--text-sm); cursor:pointer; }
 .entity-detail__more:hover { border-color:var(--color-primary); }
+
+/* 历史发案：小程序「起诉信息」原样表格 */
+.entity-detail__case-table-wrap { margin-top:var(--space-4); overflow-x:auto; }
+.entity-detail__case-table { width:100%; min-width:600px; border-collapse:collapse; font-size:var(--text-sm); }
+.entity-detail__case-table th,
+.entity-detail__case-table td { padding:var(--space-3); text-align:left; border-bottom:1px solid var(--color-border); vertical-align:top; }
+.entity-detail__case-table th { background:var(--color-bg-light); color:var(--color-text-muted); font-size:var(--text-xs); font-weight:600; white-space:nowrap; }
+.entity-detail__case-table td { color:var(--color-text); }
+.entity-detail__case-table td:nth-child(2) { word-break:break-all; }
+.entity-detail__case-table tbody tr:last-child td { border-bottom:none; }
+.entity-detail__case-table tbody tr:hover { background:var(--color-bg-light); }
 
 
 

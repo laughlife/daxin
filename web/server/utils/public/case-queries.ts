@@ -19,6 +19,7 @@ import {
 } from './query'
 import {
   mapCaseRecord,
+  toDateOnly,
   type CaseRowInput,
   type CaseSourceInput,
 } from './case-mapper'
@@ -674,6 +675,18 @@ export interface BrandProfile {
   intro: string
   /** 品牌图片，按 sort_order 排序 */
   images: string[]
+  /** 小程序后台维护的「起诉信息」：历史发案原样展示，不查 cases 表 */
+  historyCases: BrandHistoryCase[]
+}
+
+/** 品牌历史发案的一行（来自小程序「起诉信息」表格）。 */
+export interface BrandHistoryCase {
+  /** YYYY-MM-DD，缺失为空串 */
+  filedAt: string
+  /** 原样保留，一行可能带多个案件号 */
+  caseNumber: string
+  lawFirm: string
+  court: string
 }
 
 type BrandProfileRow = EntityRow & {
@@ -714,7 +727,7 @@ export async function findPublicBrandProfile(
   if (!row) return null
 
   const id = toNumber(row.id)
-  const [latestRows, detailRows, imageRows] = await Promise.all([
+  const [latestRows, detailRows, imageRows, historyRows] = await Promise.all([
     // 最新一条关联案件：与目录/详情列表同样的匹配规则，NULL 日期排最后。
     queryTarget<{ plaintiff: string | null; law_firm_name: string | null; state_code: string | null }>(
       `SELECT c.plaintiff, c.law_firm_name, c.state_code
@@ -736,6 +749,14 @@ export async function findPublicBrandProfile(
        ORDER BY sort_order, id`,
       [id],
     ),
+    // 小程序「起诉信息」：原样取，不参与 cases 文本匹配
+    queryTarget<{ filed_at: string | Date | null; case_number: string | null; law_firm: string | null; court: string | null }>(
+      `SELECT filed_at, case_number, law_firm, court
+       FROM entity_case_rows
+       WHERE entity_type = 'brand' AND entity_id = ?
+       ORDER BY (filed_at IS NULL) ASC, filed_at DESC, sort_order, id`,
+      [id],
+    ),
   ])
 
   const latest = latestRows[0]
@@ -755,6 +776,14 @@ export async function findPublicBrandProfile(
       coverUrl: toText(row.cover_url),
       intro: toText(detailRows[0]?.intro),
       images: imageRows.map(item => toText(item.image_url)).filter(Boolean),
+      historyCases: historyRows
+        .map(item => ({
+          filedAt: toDateOnly(item.filed_at),
+          caseNumber: toText(item.case_number),
+          lawFirm: toText(item.law_firm),
+          court: toText(item.court),
+        }))
+        .filter(item => item.caseNumber),
     },
   }
 }
