@@ -28,8 +28,15 @@ function loadEnv() {
       if (m) env[m[1]] = m[2].replace(/^["']|["']$/g, '').trim()
     }
   }
-  for (const extra of ['web/.env.local', '.env.local']) {
-    const path = resolve(ROOT, extra)
+  // 生产：/etc/daxin/web.env（部署时拷入）；开发：web/.env.local 或根目录 .env.local
+  const extraFiles = [
+    process.env.WX_ADMIN_ENV_FILE,
+    '/etc/daxin/web.env',
+    'web/.env.local',
+    '.env.local',
+  ].filter(Boolean)
+  for (const extra of extraFiles) {
+    const path = extra.startsWith('/') ? extra : resolve(ROOT, extra)
     if (!existsSync(path)) continue
     for (const line of readFileSync(path, 'utf8').split(/\r?\n/)) {
       const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)$/)
