@@ -279,6 +279,27 @@ export async function runWorldTroImport(now = new Date()) {
       })
 
       const result = await persistCases(crawl.cases, initialImport)
+
+      // 回填：最近 N 页里已存在的案件，源站后来补了品牌/律所/原告就写回本地
+      const refreshPages = Number(process.env.WORLDTRO_REFRESH_PAGES ?? 10)
+      if (!initialImport && refreshPages > 0) {
+        try {
+          const refreshCrawl = await crawlWorldTroList({
+            fetchPage: (url) => fetchListingHtml(url, robots),
+            knownCaseNumbers,
+            refreshPages,
+            pageDelayMs: Math.max(1500, robots.crawlDelayMs),
+          })
+          const refreshResult = await persistCases(refreshCrawl.cases, false)
+          console.info('[worldtro-import] 回填完成', {
+            pages: refreshCrawl.pageCount,
+            cases: refreshCrawl.cases.length,
+            updated: refreshResult.duplicateCount,
+          })
+        } catch (refreshError) {
+          console.error('[worldtro-import] 回填失败（不影响主流程）', refreshError)
+        }
+      }
       await queryTarget(
         `UPDATE case_ingest_runs SET status = 'success', fetched_count = ?, inserted_count = ?, duplicate_count = ?,
            rejected_count = ?, error_message = '', finished_at = NOW(), updated_at = NOW()

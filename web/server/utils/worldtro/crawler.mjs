@@ -5,11 +5,13 @@ const DEFAULT_START_URL = 'https://worldtro.com/tro'
 /**
  * 遍历公开案件列表页。initialImport 会沿同一列表分页完整采集；日常模式向后翻页，
  * 并在按时间倒序的列表中遇到已知案件号后停止。不会访问案件详情链接。
- * @param {{ fetchPage: (url: string) => Promise<string>, initialImport?: boolean, knownCaseNumbers?: Iterable<string>, startUrl?: string, maxPages?: number, pageDelayMs?: number, sleep?: (ms: number) => Promise<void> }} options
+ * @param {{ fetchPage: (url: string) => Promise<string>, initialImport?: boolean, refreshPages?: number, knownCaseNumbers?: Iterable<string>, startUrl?: string, maxPages?: number, pageDelayMs?: number, sleep?: (ms: number) => Promise<void> }} options
  */
 export async function crawlWorldTroList({
   fetchPage,
   initialImport = false,
+  // >0 时不因已知案件中断，抓满 N 页后返回（用于回填已有案件的空字段）
+  refreshPages = 0,
   knownCaseNumbers = [],
   startUrl = DEFAULT_START_URL,
   maxPages = 500,
@@ -37,7 +39,7 @@ export async function crawlWorldTroList({
 
     for (const item of page.cases) {
       const key = item.caseNumber.trim().toLowerCase()
-      if (!initialImport && known.has(key)) {
+      if (!initialImport && refreshPages === 0 && known.has(key)) {
         stoppedAtKnown = true
         break
       }
@@ -49,6 +51,7 @@ export async function crawlWorldTroList({
       cases.push(item)
     }
     if (stoppedAtKnown || !page.nextPageUrl) break
+    if (refreshPages > 0 && pageCount >= refreshPages) break
     if (visitedPages.has(page.nextPageUrl)) throw new Error('WorldTRO 列表分页链接返回已访问页面，本次全量采集已终止')
     await sleep(pageDelayMs)
     currentUrl = page.nextPageUrl
