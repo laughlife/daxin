@@ -1,6 +1,7 @@
 import { millisecondsUntilFirstWorldTroRun, millisecondsUntilNextWorldTroRun } from '../utils/worldtro/schedule.mjs'
 import { runWorldTroImport } from '../utils/worldtro/importer'
 import { runCaseDetailSync } from '../utils/worldtro/detail'
+import { runMiniProgramImport } from '../utils/miniprogram/run-import'
 
 export default defineNitroPlugin((nitroApp) => {
   if (process.env.NODE_ENV !== 'production' || process.env.NUXT_WORLDTRO_IMPORT_ENABLED === 'false') return
@@ -16,6 +17,14 @@ export default defineNitroPlugin((nitroApp) => {
         delayMs: Number(process.env.WORLDTRO_DETAIL_DELAY_MS ?? 8000),
       })
       console.info('[worldtro-scheduler] 案件详情抓取完成', detail)
+
+      // 小程序后台的品牌/律所：列表全量比对 + 滚动刷新详情
+      try {
+        const mini = await runMiniProgramImport()
+        console.info('[worldtro-scheduler] 小程序品牌/律所同步完成', mini)
+      } catch (miniError) {
+        console.error('[worldtro-scheduler] 小程序品牌/律所同步失败', miniError)
+      }
       return { result, detail }
     } catch (error) {
       console.error('[worldtro-scheduler] 案件详情抓取失败', error)
