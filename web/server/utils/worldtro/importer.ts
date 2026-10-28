@@ -194,11 +194,8 @@ async function persistCases(cases: WorldTroCase[], initialImport: boolean) {
         [caseId],
       )
 
-      const brandId = await findOrCreateEntity(connection, 'brand', item.brand, entityIds)
-      if (brandId) await connection.execute('INSERT IGNORE INTO case_brands (case_id, brand_id, created_at) VALUES (?, ?, NOW())', [caseId, brandId])
-
-      const lawFirmId = await findOrCreateEntity(connection, 'law-firm', item.lawFirm, entityIds)
-      if (lawFirmId) await connection.execute('INSERT IGNORE INTO case_law_firms (case_id, law_firm_id, is_primary, created_at) VALUES (?, ?, 1, NOW())', [caseId, lawFirmId])
+      // 品牌与律所不在采集时拆分写入：brands / law_firms 及关联表由其它来源维护。
+      // 原始文本保留在 case_ingest_sources.source_brand / source_law_firm。
 
       const typeSlug = ipTypeSlug(item.ipType)
       const ipTypeId = typeSlug ? ipTypes.get(typeSlug) : undefined
