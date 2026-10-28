@@ -281,6 +281,9 @@ useSeoMeta({
 /* 品牌名可能很长（最长 57 字），标题比其它页面小一号，避免占满整屏 */
 .entity-detail__headline h1 { margin:var(--space-3) 0 var(--space-5); font-size:clamp(20px, 2.2vw, 28px); line-height:1.4; overflow-wrap:anywhere; }
 .entity-detail__facts { display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:var(--space-3) var(--space-5); margin:0; }
+/* 律所资料逐行排列：标签在左、值在右，整段左侧一条竖线，避免四个字段挤成一排 */
+.entity-detail__profile--firm .entity-detail__facts { grid-template-columns:minmax(0, 1fr); gap:var(--space-3); max-width:820px; padding-left:var(--space-4); border-left:2px solid color-mix(in srgb, var(--color-primary) 28%, transparent); }
+.entity-detail__profile--firm .entity-detail__facts > div { grid-template-columns:5.5em minmax(0, 1fr); align-items:baseline; gap:var(--space-4); padding-left:0; border-left:0; }
 .entity-detail__facts > div { display:grid; gap:2px; min-width:0; padding-left:var(--space-3); border-left:2px solid color-mix(in srgb, var(--color-primary) 28%, transparent); }
 .entity-detail__facts dt { color:var(--color-text-muted); font-size:var(--text-xs); }
 .entity-detail__facts dd { margin:0; overflow-wrap:anywhere; color:var(--color-text); font-size:var(--text-sm); line-height:1.5; }
