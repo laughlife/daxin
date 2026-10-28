@@ -36,15 +36,9 @@ export async function runMiniProgramImport(): Promise<MiniProgramImportResult> {
     return { ok: true, skipped: true, reason: 'disabled' }
   }
   if (!process.env.WX_ADMIN_USER && !process.env.WX_ADMIN_COOKIE) {
-    // 凭据可能放在 /etc/daxin/web.env（生产）或 web/.env.local（开发），由脚本自己读取
-    const candidates = [
-      process.env.WX_ADMIN_ENV_FILE,
-      '/etc/daxin/web.env',
-      resolve(process.cwd(), '.env.local'),
-      resolve(process.cwd(), 'web/.env.local'),
-    ].filter((value): value is string => Boolean(value))
-    const hasCredentialsFile = candidates.some((path) => existsSync(path))
-    if (!hasCredentialsFile) {
+    // 凭据在 web/.env.local，由脚本自己读取；这里只做粗判
+    const hasLocalFile = existsSync(resolve(process.cwd(), '.env.local'))
+    if (!hasLocalFile && !process.env.WX_ADMIN_USER) {
       return { ok: true, skipped: true, reason: 'no-credentials' }
     }
   }
