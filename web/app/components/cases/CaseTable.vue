@@ -39,32 +39,37 @@ const emit = defineEmits<{
         <tr v-for="record in records" :key="record.id">
           <td class="case-table__date">{{ record.filedAt || '—' }}</td>
           <td class="case-table__number">
-            <NuxtLink class="case-table__detail" :to="`/tro/cases/${record.slug}`">
+            <NuxtLink
+              v-if="record.hasEvents"
+              class="case-table__detail"
+              :to="`/tro/cases/${record.slug}`"
+            >
               {{ record.caseNumber }}
             </NuxtLink>
+            <span v-else class="case-table__detail case-table__detail--disabled">{{ record.caseNumber }}</span>
             <span v-if="isRecent(record.filedAt)" class="case-table__recent">近 3 天</span>
           </td>
           <td>
-            <button
-              v-if="record.lawFirm"
-              type="button"
+            <NuxtLink
+              v-if="record.lawFirm && record.firmSlug"
               class="case-table__firm"
-              :title="`按 ${record.lawFirm} 筛选`"
-              @click="emit('filterByFirm', record.lawFirm)"
+              :to="entityDirectoryHref('firm', record.firmSlug)"
             >
               {{ record.lawFirm }}
-            </button>
+            </NuxtLink>
+            <span v-else-if="record.lawFirm" class="case-table__firm case-table__firm--plain">{{ record.lawFirm }}</span>
             <span v-else>—</span>
           </td>
           <td class="case-table__plaintiff">{{ record.plaintiffName || '—' }}</td>
           <td>
             <NuxtLink
-              v-if="record.plaintiffBrand"
+              v-if="record.plaintiffBrand && record.brandSlug"
               class="case-table__brand"
-              :to="entityDirectoryHref('brand', record.plaintiffBrand)"
+              :to="entityDirectoryHref('brand', record.brandSlug)"
             >
               {{ record.plaintiffBrand }}
             </NuxtLink>
+            <span v-else-if="record.plaintiffBrand" class="case-table__brand case-table__brand--plain">{{ record.plaintiffBrand }}</span>
             <span v-else>—</span>
           </td>
           <td>{{ caseTypeLabel(record.caseType) }}</td>
@@ -174,5 +179,16 @@ const emit = defineEmits<{
 .case-table__firm:hover {
   color: var(--color-primary);
   border-bottom-color: var(--color-primary);
+}
+
+.case-table__detail--disabled {
+  color: var(--color-text-muted);
+  cursor: default;
+}
+
+.case-table__firm--plain,
+.case-table__brand--plain {
+  color: var(--color-text-muted);
+  cursor: default;
 }
 </style>

@@ -6,6 +6,7 @@ import { withPublicApi } from '../../utils/public/http'
 
 export default defineEventHandler(async (event) => {
   return withPublicApi(event, '律所列表加载失败，请稍后重试', async () => {
-    return { data: await findEntitySummaries('law_firms') }
+    const keyword = String((getQuery(event) as Record<string, unknown>).keyword ?? '').trim()
+    return { data: await findEntitySummaries('law_firms', keyword) }
   })
 })

@@ -124,18 +124,14 @@ export function buildBrandDirectoryFilterSql(query: NormalizedBrandDirectoryQuer
       OR b.aliases LIKE ?
       OR EXISTS (
         SELECT 1
-        FROM case_brands cb
-        JOIN cases c ON c.id = cb.case_id AND c.publish_status = 'published'
-        WHERE cb.brand_id = b.id
+        FROM cases c
+        WHERE c.publish_status = 'published'
           AND (
-            c.case_number LIKE ?
-            OR EXISTS (
-              SELECT 1
-              FROM case_law_firms clf
-              JOIN law_firms lf ON lf.id = clf.law_firm_id AND lf.status = 1
-              WHERE clf.case_id = c.id AND lf.name LIKE ?
-            )
+            c.brand_name = b.name
+            OR c.brand_name LIKE CONCAT('%', b.name, '%')
+            OR b.name LIKE CONCAT('%', c.brand_name, '%')
           )
+          AND (c.case_number LIKE ? OR c.law_firm_name LIKE ?)
       )
     )`)
     params.push(like, like, like, like, like)

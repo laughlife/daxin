@@ -64,6 +64,12 @@ export interface CaseDetailInfo {
 }
 
 export interface CaseRecord {
+  /** 是否已抓到案件进展；false 时案件号不可点击 */
+  hasEvents?: boolean
+  /** 品牌库匹配到的 slug；空串表示目录里没有该品牌 */
+  brandSlug?: string
+  /** 律所目录匹配到的 slug；空串表示目录里没有该律所 */
+  firmSlug?: string
   /** 详情页附加信息（未抓取时为空对象字段） */
   detail?: CaseDetailInfo
   /** 唯一标识 */

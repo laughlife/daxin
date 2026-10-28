@@ -202,18 +202,79 @@ async function loadCaseRelations(ids: number[]): Promise<CaseRelations> {
 }
 
 /** 批量映射当前页的案件行；关联数据只查一次。 */
+/**
+ * 案件列表附加信息：是否已有进展、品牌/律所是否能在目录里匹配到。
+ *
+ * 匹配用双向 LIKE：案件里存的是采集原始文本（如「Keith A. Vogt / JiangIP LLC」或「Keith」），
+ * 品牌库/律所目录里可能是全称或简称，两边互相包含即视为同一主体。
+ */
+async function loadCaseExtras(ids: number[]) {
+  const extras = new Map<number, { hasEvents: boolean; brandSlug: string; firmSlug: string }>()
+  if (ids.length === 0) return extras
+  const rows = await queryTarget<{
+    id: number | string
+    has_events: number | string | null
+    brand_slug: string | null
+    firm_slug: string | null
+  }>(
+    `SELECT c.id,
+            EXISTS (SELECT 1 FROM case_events e WHERE e.case_id = c.id) AS has_events,
+            (
+              SELECT b.slug FROM brands b
+              WHERE b.status = 1 AND c.brand_name <> '' AND (
+                b.name = c.brand_name
+                OR b.name LIKE CONCAT('%', c.brand_name, '%')
+                OR c.brand_name LIKE CONCAT('%', b.name, '%')
+                OR (b.aliases <> '' AND b.aliases LIKE CONCAT('%', c.brand_name, '%'))
+              )
+              ORDER BY (b.name = c.brand_name) DESC, CHAR_LENGTH(b.name) ASC
+              LIMIT 1
+            ) AS brand_slug,
+            (
+              SELECT lf.slug FROM law_firms lf
+              WHERE lf.status = 1 AND c.law_firm_name <> '' AND (
+                lf.name = c.law_firm_name
+                OR lf.short_name = c.law_firm_name
+                OR lf.name LIKE CONCAT('%', c.law_firm_name, '%')
+                OR c.law_firm_name LIKE CONCAT('%', lf.name, '%')
+                OR lf.short_name LIKE CONCAT('%', c.law_firm_name, '%')
+              )
+              ORDER BY (lf.name = c.law_firm_name OR lf.short_name = c.law_firm_name) DESC, CHAR_LENGTH(lf.name) ASC
+              LIMIT 1
+            ) AS firm_slug
+     FROM cases c
+     WHERE c.id IN (${placeholdersFor(ids)})`,
+    [...ids],
+  )
+  for (const row of rows) {
+    extras.set(toNumber(row.id), {
+      hasEvents: toNumber(row.has_events) === 1,
+      brandSlug: toText(row.brand_slug),
+      firmSlug: toText(row.firm_slug),
+    })
+  }
+  return extras
+}
+
 async function mapCaseRows(rows: CaseRow[]): Promise<CaseRecord[]> {
   if (rows.length === 0) return []
   const ids = toSafeNumericIds(rows.map(row => row.id))
-  const relations = await loadCaseRelations(ids)
+  const [relations, extras] = await Promise.all([loadCaseRelations(ids), loadCaseExtras(ids)])
   return rows.map((row) => {
     const caseId = toNumber(row.id)
-    return mapCaseRecord(row, {
+    const extra = extras.get(caseId)
+    const record = mapCaseRecord(row, {
       brandNames: relations.brandNames.get(caseId) ?? [],
       lawFirmNames: relations.lawFirmNames.get(caseId) ?? [],
       ipTypeSlugs: relations.ipTypeSlugs.get(caseId) ?? [],
       source: relations.sources.get(caseId) ?? null,
     })
+    return {
+      ...record,
+      hasEvents: extra?.hasEvents ?? false,
+      brandSlug: extra?.brandSlug ?? '',
+      firmSlug: extra?.firmSlug ?? '',
+    }
   })
 }
 
@@ -331,15 +392,28 @@ function publishedEntityCaseCountSql(table: 'brands' | 'law_firms'): string {
 }
 
 /** 品牌 / 律所列表实时计算公开关联案件数，避免状态变更后沿用过期的冗余计数。 */
-export async function findEntitySummaries(table: 'brands' | 'law_firms'): Promise<EntitySummary[]> {
-  // 表名只来自字面量联合类型，不含用户输入。
+export async function findEntitySummaries(table: 'brands' | 'law_firms', keyword = ''): Promise<EntitySummary[]> {
+  // 表名只来自字面量联合类型，不含用户输入；关键词走 ? 占位符。
+  const filters = ['e.status = 1']
+  const params: unknown[] = []
+  if (keyword.trim()) {
+    const like = `%${keyword.trim()}%`
+    if (table === 'law_firms') {
+      // 律所：全称或简称任意包含
+      filters.push('(e.name LIKE ? OR e.short_name LIKE ? OR e.name_en LIKE ?)')
+      params.push(like, like, like)
+    } else {
+      filters.push('(e.name LIKE ? OR e.name_en LIKE ? OR e.aliases LIKE ?)')
+      params.push(like, like, like)
+    }
+  }
   const rows = await queryTarget<EntityRow>(
     `SELECT e.id, e.slug, e.name, COALESCE(e.summary, '') AS description,
             ${publishedEntityCaseCountSql(table)} AS case_count
      FROM ${table} e
-     WHERE e.status = 1
+     WHERE ${filters.join(' AND ')}
      ORDER BY 5 DESC, e.name ASC, e.id ASC`,
-    [],
+    params,
   )
   return rows.map(toEntitySummary)
 }

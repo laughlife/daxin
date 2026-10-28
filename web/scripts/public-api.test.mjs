@@ -65,7 +65,8 @@ test('品牌库过滤：关键词覆盖案件号与律所，用户输入只通�
   const keyword = "Keith' OR 1=1 --"
   const filter = buildBrandDirectoryFilterSql(parseBrandDirectoryQuery({ keyword, type: 'copyright' }))
   assert.match(filter.sql, /c\.case_number LIKE \?/)
-  assert.match(filter.sql, /lf\.name LIKE \?/)
+  assert.match(filter.sql, /c\.law_firm_name LIKE \?/)
+  assert.match(filter.sql, /c\.brand_name = b\.name/)
   assert.match(filter.sql, /b\.name LIKE \?/)
   assert.match(filter.sql, /ip\.slug = \?/)
   assert.doesNotMatch(filter.sql, /Keith|OR 1=1/)
