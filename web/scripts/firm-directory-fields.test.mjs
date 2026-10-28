@@ -45,13 +45,16 @@ test('律所名称字号调小、字重减轻', () => {
   assert.doesNotMatch(directory, /h2 \{[^}]*font-size:\s*var\(--heading-3\)/)
 })
 
-test('律所详情是纯文字档案：资料 + 介绍，不保留图片位置', () => {
+test('律所详情保留横长图，作为资料卡底部的通栏', () => {
   assert.match(queries, /export async function findPublicFirmProfile/)
   assert.match(queries, /FROM entity_details WHERE entity_type = 'law_firm'/)
   assert.match(detailEndpoint, /intro: toSafeRichText\(found\.firm\.intro\)/)
   assert.match(detail, /entity-detail__profile--firm/)
   assert.match(detail, /<h2>律所介绍<\/h2>/)
-  // 头图与图片画廊都不再渲染
+  // 图片是 1500×600 左右的横图：放在资料下方，负边距贴到卡片边缘
+  assert.match(detail, /class="entity-detail__banner"/)
+  assert.match(detail, /\.entity-detail__banner \{ margin:0 calc\(-1 \* var\(--space-8\)\) calc\(-1 \* var\(--space-8\)\); \}/)
+  // 详情已去掉右栏头图与图片画廊（避免同一张图重复）
   assert.doesNotMatch(detail, /entity-detail__cover--firm/)
   assert.doesNotMatch(detail, /<h2>律所图片<\/h2>/)
   // 历史案件板块也已移除

@@ -103,6 +103,10 @@ const visibleImages = computed(() => (
 
 /* ------------------------------- 律所资料 ------------------------------- */
 
+const firmCoverFailed = ref(false)
+/** 律所图片是横长图：优先 law_firms.logo_url，其次第一张采集图。 */
+const firmCover = computed(() => summary.value?.logoUrl || summary.value?.images?.[0] || '')
+
 const firmFacts = computed(() => {
   const item = summary.value
   if (!item) return []
@@ -120,6 +124,7 @@ const firmFacts = computed(() => {
 watch(() => props.slug, () => {
   showAllImages.value = false
   coverFailed.value = false
+  firmCoverFailed.value = false
 })
 
 function entityInitial(name: string): string {
@@ -235,6 +240,15 @@ useSeoMeta({
                   </div>
                 </dl>
               </div>
+              <!-- 律所图片是 1500×600 左右的横长图，作为资料卡底部的通栏展示 -->
+              <figure v-if="firmCover && !firmCoverFailed" class="entity-detail__banner">
+                <img
+                  :src="firmCover"
+                  :alt="`${summary.name}图片`"
+                  decoding="async"
+                  @error="firmCoverFailed = true"
+                >
+              </figure>
             </header>
 
             <section v-if="summary.intro" class="entity-detail__section">
@@ -254,9 +268,11 @@ useSeoMeta({
 .entity-detail__crumb { margin-bottom:var(--space-6); color:var(--color-text-muted); font-size:var(--text-sm); }
 
 /* 品牌资料卡：左侧封面，右侧名称与字段 */
-.entity-detail__profile { display:grid; grid-template-columns:200px minmax(0,1fr); gap:var(--space-8); padding:var(--space-8); border:1px solid var(--color-border); border-top:3px solid var(--color-primary); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
-/* 律所资料卡：纯文字，不保留图片位置 */
-.entity-detail__profile--firm { grid-template-columns:minmax(0,1fr); }
+.entity-detail__profile { display:grid; grid-template-columns:200px minmax(0,1fr); gap:var(--space-8); padding:var(--space-8); overflow:hidden; border:1px solid var(--color-border); border-top:3px solid var(--color-primary); border-radius:var(--radius-lg); background:var(--color-bg-page); box-shadow:var(--shadow-sm); }
+/* 律所资料卡：文字在上、横长图通栏在下 */
+.entity-detail__profile--firm { grid-template-columns:minmax(0,1fr); gap:var(--space-6); }
+.entity-detail__banner { margin:0 calc(-1 * var(--space-8)) calc(-1 * var(--space-8)); }
+.entity-detail__banner img { display:block; width:100%; height:auto; }
 .entity-detail__cover { display:grid; width:100%; aspect-ratio:1; place-items:center; overflow:hidden; border:1px solid var(--color-border); border-radius:var(--radius-md); background:#f6f7f9; }
 .entity-detail__cover img { width:100%; height:100%; object-fit:contain; }
 .entity-detail__cover.is-placeholder span { color:var(--color-primary); font-size:3rem; font-weight:750; }
@@ -293,6 +309,8 @@ useSeoMeta({
   .entity-detail__profile,
   .entity-detail__profile--firm { grid-template-columns:1fr; gap:var(--space-5); padding:var(--space-5); }
   .entity-detail__cover { max-width:220px; }
+  /* 手机端横图同样通栏，左右贴到卡片内边距之外 */
+  .entity-detail__banner { margin:0 calc(-1 * var(--space-5)) calc(-1 * var(--space-5)); }
   .entity-detail__section { padding:var(--space-5); }
 }
 @media(max-width:639px) {
