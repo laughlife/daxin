@@ -221,25 +221,28 @@ async function loadCaseExtras(ids: number[]) {
             EXISTS (SELECT 1 FROM case_events e WHERE e.case_id = c.id) AS has_events,
             (
               SELECT b.slug FROM brands b
-              WHERE b.status = 1 AND c.brand_name <> '' AND (
-                b.name = c.brand_name
-                OR b.name LIKE CONCAT('%', c.brand_name, '%')
-                OR c.brand_name LIKE CONCAT('%', b.name, '%')
-                OR (b.aliases <> '' AND b.aliases LIKE CONCAT('%', c.brand_name, '%'))
+              WHERE b.status = 1 AND CHAR_LENGTH(TRIM(c.brand_name)) >= 2 AND (
+                REPLACE(b.name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.brand_name), ' ', ''), '%')
+                OR REPLACE(TRIM(c.brand_name), ' ', '') LIKE CONCAT('%', REPLACE(b.name, ' ', ''), '%')
+                OR (b.aliases <> '' AND REPLACE(b.aliases, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.brand_name), ' ', ''), '%'))
               )
-              ORDER BY (b.name = c.brand_name) DESC, CHAR_LENGTH(b.name) ASC
+              ORDER BY
+                (REPLACE(b.name, ' ', '') = REPLACE(TRIM(c.brand_name), ' ', '')) DESC,
+                CHAR_LENGTH(b.name) ASC
               LIMIT 1
             ) AS brand_slug,
             (
               SELECT lf.slug FROM law_firms lf
-              WHERE lf.status = 1 AND c.law_firm_name <> '' AND (
-                lf.name = c.law_firm_name
-                OR lf.short_name = c.law_firm_name
-                OR lf.name LIKE CONCAT('%', c.law_firm_name, '%')
-                OR c.law_firm_name LIKE CONCAT('%', lf.name, '%')
-                OR lf.short_name LIKE CONCAT('%', c.law_firm_name, '%')
+              WHERE lf.status = 1 AND CHAR_LENGTH(TRIM(c.law_firm_name)) >= 2 AND (
+                REPLACE(lf.name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.law_firm_name), ' ', ''), '%')
+                OR REPLACE(TRIM(c.law_firm_name), ' ', '') LIKE CONCAT('%', REPLACE(lf.name, ' ', ''), '%')
+                OR REPLACE(lf.short_name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.law_firm_name), ' ', ''), '%')
+                OR REPLACE(TRIM(c.law_firm_name), ' ', '') LIKE CONCAT('%', REPLACE(lf.short_name, ' ', ''), '%')
               )
-              ORDER BY (lf.name = c.law_firm_name OR lf.short_name = c.law_firm_name) DESC, CHAR_LENGTH(lf.name) ASC
+              ORDER BY
+                (REPLACE(lf.name, ' ', '') = REPLACE(TRIM(c.law_firm_name), ' ', '')
+                 OR REPLACE(lf.short_name, ' ', '') = REPLACE(TRIM(c.law_firm_name), ' ', '')) DESC,
+                CHAR_LENGTH(lf.name) ASC
               LIMIT 1
             ) AS firm_slug
      FROM cases c
