@@ -25,25 +25,28 @@ test('品牌卡片整体可点击，展示案件相关信息并移除独立操�
   assert.match(directory, /grid-template-columns: repeat\(auto-fit, minmax\(min\(100%, 340px\), 1fr\)\)/)
 })
 
-test('品牌卡片字段与详情一致，原告与品牌方重复时合并', () => {
+test('品牌卡片字段与详情一致，品牌方放第一位，原告与品牌方重复时合并', () => {
   assert.match(directory, /function isSameParty\(item: BrandSummary\): boolean/)
   assert.match(directory, /samePartyName\(item\.plaintiff, item\.brandOwner\)/)
   assert.match(directory, /import \{ samePartyName \} from '~\/utils\/content'/)
   const facts = directory.slice(
     directory.indexOf('class="brand-card__facts"'),
-    directory.indexOf('class="brand-card__logo"'),
+    directory.indexOf('class="brand-card__media"'),
   )
   const labels = [...facts.matchAll(/<strong>([^<]+)：<\/strong>/g)].map(match => match[1])
-  // 顺序与详情页一致：分类 / 起诉州 / 代理律所 / 已发案，最后是原告与品牌方
-  assert.deepEqual(labels, ['品牌分类', '起诉州', '代理律所', '已发案', '品牌方（原告）', '品牌原告', '品牌方'])
+  // 品牌方排第一；其后是分类 / 起诉州 / 代理律所 / 已发案
+  assert.deepEqual(labels, ['品牌方（原告）', '品牌方', '品牌原告', '品牌分类', '起诉州', '代理律所', '已发案'])
   // 合并分支用 v-if，分开的两行在 v-else 模板里
   assert.match(facts, /<p v-if="isSameParty\(item\)">/)
   assert.match(facts, /<template v-else>/)
 })
 
-test('品牌封面框随卡片宽度缩放，不再是固定 76px', () => {
-  assert.match(directory, /grid-template-columns: minmax\(0, 1fr\) clamp\(104px, 30%, 160px\)/)
-  assert.match(directory, /\.brand-card__logo \{[^}]*width: 100%;[^}]*aspect-ratio: 1;/s)
+test('品牌图片放在文字下方通栏，随卡片宽度缩放', () => {
+  const media = directory.slice(directory.indexOf('class="brand-card__media"'))
+  assert.match(media, /class="brand-card__media"/)
+  assert.match(directory, /\.brand-card__media \{[^}]*overflow: hidden;/s)
+  assert.match(directory, /\.brand-card__media img \{[^}]*width: 100%;[^}]*max-height: 170px;/s)
+  assert.doesNotMatch(directory, /brand-card__logo/)
 })
 
 test('品牌类型标签使用蓝、绿、红纯色区分，不继承金色主题', () => {

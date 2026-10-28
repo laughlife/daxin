@@ -208,7 +208,21 @@ useSeoMeta({
                 </div>
                 <div class="brand-card__body">
                   <div class="brand-card__facts">
-                    <!-- 字段与品牌详情保持一致；品牌原告与品牌方是同一主体时合并成一行 -->
+                    <!-- 品牌方放第一个字段；与原告是同一主体时合并成一行 -->
+                    <p v-if="isSameParty(item)">
+                      <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="2.5" /><path d="M3.5 14a4.5 4.5 0 0 1 9 0" /></svg>
+                      <strong>品牌方（原告）：</strong><span :title="item.brandOwner || item.plaintiff">{{ item.brandOwner || item.plaintiff }}</span>
+                    </p>
+                    <template v-else>
+                      <p v-if="item.brandOwner">
+                        <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5.5h11v8h-11zM6.5 5.5v-2h3v2M2.5 8.5h11" /></svg>
+                        <strong>品牌方：</strong><span :title="item.brandOwner">{{ item.brandOwner }}</span>
+                      </p>
+                      <p v-if="item.plaintiff">
+                        <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="2.5" /><path d="M3.5 14a4.5 4.5 0 0 1 9 0" /></svg>
+                        <strong>品牌原告：</strong><span :title="item.plaintiff">{{ item.plaintiff }}</span>
+                      </p>
+                    </template>
                     <p v-if="item.ipCategory">
                       <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h5l7 7-5 5-7-7z" /><circle cx="5" cy="5" r="1" /></svg>
                       <strong>品牌分类：</strong><span :title="item.ipCategory">{{ item.ipCategory }}</span>
@@ -225,32 +239,19 @@ useSeoMeta({
                       <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 2h6l3 3v9H4zM10 2v3h3M6 8h5M6 11h5" /></svg>
                       <strong>已发案：</strong><span><b>{{ item.caseCount }}</b> 起</span>
                     </p>
-                    <p v-if="isSameParty(item)">
-                      <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="2.5" /><path d="M3.5 14a4.5 4.5 0 0 1 9 0" /></svg>
-                      <strong>品牌方（原告）：</strong><span :title="item.brandOwner || item.plaintiff">{{ item.brandOwner || item.plaintiff }}</span>
-                    </p>
-                    <template v-else>
-                      <p v-if="item.plaintiff">
-                        <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="2.5" /><path d="M3.5 14a4.5 4.5 0 0 1 9 0" /></svg>
-                        <strong>品牌原告：</strong><span :title="item.plaintiff">{{ item.plaintiff }}</span>
-                      </p>
-                      <p v-if="item.brandOwner">
-                        <svg class="brand-card__fact-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5.5h11v8h-11zM6.5 5.5v-2h3v2M2.5 8.5h11" /></svg>
-                        <strong>品牌方：</strong><span :title="item.brandOwner">{{ item.brandOwner }}</span>
-                      </p>
-                    </template>
                   </div>
-                  <div class="brand-card__logo">
-                    <img
-                      v-if="item.logoUrl && !failedLogoSlugs.has(item.slug)"
-                      :src="item.logoUrl"
-                      :alt="`${item.name}品牌图片`"
-                      loading="lazy"
-                      decoding="async"
-                      @error="markLogoFailed(item.slug)"
-                    >
-                    <span v-else aria-hidden="true">{{ brandInitial(item.name) }}</span>
-                  </div>
+                </div>
+                <!-- 图片放在文字下方通栏展示 -->
+                <div class="brand-card__media">
+                  <img
+                    v-if="item.logoUrl && !failedLogoSlugs.has(item.slug)"
+                    :src="item.logoUrl"
+                    :alt="`${item.name}品牌图片`"
+                    loading="lazy"
+                    decoding="async"
+                    @error="markLogoFailed(item.slug)"
+                  >
+                  <span v-else aria-hidden="true">{{ brandInitial(item.name) }}</span>
                 </div>
                 <p v-if="item.description" class="brand-card__description">{{ item.description }}</p>
               </NuxtLink>
@@ -328,17 +329,17 @@ useSeoMeta({
 .brand-card__types span { flex: none; max-width: 100%; padding: 3px 8px; border: 1px solid color-mix(in srgb, var(--color-primary) 24%, white); border-radius: var(--radius-full); background: color-mix(in srgb, var(--color-primary) 8%, white); color: var(--color-primary); font-family: var(--font-family-base); font-size: var(--text-xs); font-weight: 700; text-align: center; white-space: nowrap; }
 .brand-card__types span[data-type] { border-color: var(--brand-type-border); background: var(--brand-type-soft); color: var(--brand-type-text); }
 .brand-card__types .brand-card__type-muted { color: var(--color-text-muted); }
-.brand-card__body { display: grid; grid-template-columns: minmax(0, 1fr) clamp(104px, 30%, 160px); align-items: center; gap: var(--space-4); min-height: 108px; }
+.brand-card__body { display: block; }
 .brand-card__facts { display: grid; gap: 7px; min-width: 0; }
 .brand-card__facts p { display: flex; align-items: center; gap: 5px; min-width: 0; margin: 0; color: var(--color-text-muted); font-size: var(--text-xs); line-height: 1.45; }
 .brand-card__facts strong { flex: none; color: var(--color-text-muted); font-weight: 500; }
 .brand-card__facts p > span { overflow: hidden; min-width: 0; text-overflow: ellipsis; white-space: nowrap; }
 .brand-card__facts b { color: var(--color-primary); font-size: var(--text-sm); }
 .brand-card__fact-icon { flex: 0 0 14px; width: 14px; height: 14px; fill: none; stroke: var(--color-primary); stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
-/* 封面框随卡片宽度自适应（96–148px），不再固定 76px；图片等比缩放不裁切 */
-.brand-card__logo { display: grid; width: 100%; aspect-ratio: 1; place-items: center; overflow: hidden; border: 1px solid var(--color-border); border-radius: var(--radius-md); background: #f6f7f9; }
-.brand-card__logo img { width: 100%; height: 100%; object-fit: contain; }
-.brand-card__logo span { color: var(--color-primary); font-size: clamp(2rem, 3vw, 2.75rem); font-weight: 750; }
+/* 图片放在文字下方通栏：随卡片宽度缩放，限高显示完整内容 */
+.brand-card__media { display: flex; justify-content: center; margin-top: var(--space-3); overflow: hidden; border-radius: var(--radius-md); background: #f6f7f9; }
+.brand-card__media img { display: block; width: 100%; height: auto; max-height: 170px; object-fit: contain; }
+.brand-card__media span { display: grid; width: 100%; height: 96px; place-items: center; color: var(--color-primary); font-size: clamp(2rem, 3vw, 2.75rem); font-weight: 750; }
 .brand-card__description { display: -webkit-box; overflow: hidden; margin: var(--space-3) 0 0; color: var(--color-text-muted); font-size: var(--text-xs); line-height: var(--leading-relaxed); -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 .brand-directory__state, .brand-directory__empty { padding: var(--space-8); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg-page); color: var(--color-text-muted); text-align: center; }
 .brand-directory__pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--space-4); margin-top: var(--space-6); color: var(--color-text-muted); font-size: var(--text-sm); }
