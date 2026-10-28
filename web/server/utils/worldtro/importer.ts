@@ -173,7 +173,9 @@ async function persistCases(cases: WorldTroCase[], initialImport: boolean) {
              state_code = IF(state_code = '', ?, state_code),
              updated_at = NOW()
            WHERE id = ?`,
-          [item.filedAt || null, item.plaintiff, item.stateCode, item.brand || '', item.lawFirm || '', caseId],
+          // 顺序必须与 SET 里的占位符一致：
+          // filed_at → plaintiff → brand_name → law_firm_name → state_code → id
+          [item.filedAt || null, item.plaintiff, item.brand || '', item.lawFirm || '', item.stateCode, caseId],
         )
       } else {
         const [header] = await connection.execute(
