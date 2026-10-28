@@ -2,14 +2,14 @@
 //
 // 详情页地址：https://worldtro.com/case-{州}-{案件号}.html
 // 站点有滑块验证：连续请求会被拦（返回 4KB 左右的「安全验证」页）。
-// 因此默认按 25 秒间隔慢慢抓，命中验证立刻停止本次运行，把该条标 blocked，次日再试。
+// 默认 8 秒/条；命中验证会标 blocked 并停止本次运行，下次继续。
+// 队列：case_details.fetch_status IN ('pending','blocked')，按立案时间倒序。
 //
 // 用法：
-//   node tools/fetch-case-details.mjs                 # 抓 5 条
-//   node tools/fetch-case-details.mjs --limit 20
-//   node tools/fetch-case-details.mjs --delay 30000
-//   node tools/fetch-case-details.mjs --case 2026-cv-12835   # 只抓指定案件
-//   node tools/fetch-case-details.mjs --refetch              # 重新抓已成功的
+//   node tools/fetch-case-details.mjs --limit 5      # 建议总是带 --limit（不带 = 不限条数）
+//   node tools/fetch-case-details.mjs --limit 200 --delay 30000
+//   node tools/fetch-case-details.mjs --case 2026-cv-12835   # 只抓指定案件（pending 或已抓过的都行）
+//   node tools/fetch-case-details.mjs --refetch --limit 5    # 重新抓已成功的
 import { createHash } from 'node:crypto'
 import { execFileSync } from 'node:child_process'
 
