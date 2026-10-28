@@ -387,6 +387,18 @@ const mode = await login()
 console.log(`已认证（${mode}），开始采集${ONLY ? `（仅 ${ONLY}）` : ''}`)
 
 const db = DRY_RUN ? null : await connectDb()
+
+// 启动自检：起诉信息表缺失时每个品牌都会静默失败，这里直接报错并给出修复命令
+if (db) {
+  const [tables] = await db.query("SHOW TABLES LIKE 'entity_case_rows'")
+  if (!tables.length) {
+    console.error('缺少表 entity_case_rows，采集会失败。请先执行：')
+    console.error('  node tools/migrate-legacy/schema-check.mjs --apply')
+    await db.end()
+    process.exit(1)
+  }
+}
+
 let brandCount = 0
 let firmCount = 0
 
