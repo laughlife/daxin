@@ -29,6 +29,12 @@ export interface EntitySummary {
   name: string
   description: string
   caseCount: number
+  /** 律所专用：简称（law_firms.short_name）；品牌不返回。 */
+  shortName?: string
+  /** 律所专用：地址（law_firms.address）。 */
+  address?: string
+  /** 律所专用：官网（law_firms.website）。 */
+  website?: string
 }
 
 /** 品牌库分类统计；按有公开案件关联的去重品牌数统计。 */
@@ -50,12 +56,21 @@ export interface BrandDirectoryEntry extends EntitySummary {
   caseTypes: Array<'trademark' | 'patent' | 'copyright'>
 }
 
+/** 品牌库分页结果：一次查询同时拿当前页与命中总数，避免为取总数再跑一遍全量匹配。 */
+export interface BrandDirectoryPage {
+  items: BrandDirectoryEntry[]
+  total: number
+}
+
 type EntityRow = {
   id: number | string | null
   slug: string | null
   name: string | null
   description: string | null
   case_count: number | string | null
+  short_name?: string | null
+  address?: string | null
+  website?: string | null
 }
 
 type BrandDirectoryRow = EntityRow & {
@@ -408,45 +423,93 @@ export async function findPublishedCaseByNumber(caseNumber: string): Promise<Cas
   }
 }
 
-/** 品牌 / 律所公开关联案件数：只统计已发布案件，随发布状态实时变化。 */
 /**
- * 品牌 / 律所的关联案件数：与案件列表使用同一套匹配规则
- * （英文主干互相包含或前 6 位相同；中文名称去空格互相包含；含简称）。
+ * 品牌 / 律所与案件的文本匹配规则（目录、详情、关联案件数共用这一份定义）。
+ *
+ * 采集已不再写 case_brands / case_law_firms，两边靠文本对齐：
+ * - 英文主干（生成列 `*_latin`，已转小写且只保留字母数字）双向包含，或前 6 位相同；
+ * - 中文名称去空格后双向包含；品牌另看 aliases，律所另看简称 short_name；
+ * - 律所简称的英文主干按前 6 位参与匹配。
+ *
+ * 用 LOCATE 而不是 LIKE：两者在 utf8mb4_unicode_ci 下都按排序规则比较（大小写不敏感），
+ * 但 LOCATE 把 `%`/`_` 当普通字符，名称里带这些符号时不会误判成通配符。
+ *
+ * 入参是「列表达式」而不是固定列名，方便调用方按需传入原始列或已归一化的派生列：
+ * 品牌目录要把归一化结果物化后复用（见 brandDirectoryCte），单实体统计则直接拼表达式。
+ */
+interface EntityCaseMatchColumns {
+  /** 案件侧英文主干：cases.brand_latin / cases.firm_latin */
+  caseLatin: string
+  /** 案件侧去空格名称：REPLACE(TRIM(cases.brand_name), ' ', '') 等 */
+  caseNameKey: string
+  /** 目录侧英文主干：brands/law_firms.name_latin */
+  entityLatin: string
+  /** 目录侧去空格名称 */
+  entityNameKey: string
+  /** 律所简称英文主干（law_firms.short_latin），可选 */
+  entityShortLatin?: string
+  /** 律所简称去空格（law_firms.short_name），可选 */
+  entityShortNameKey?: string
+  /** 品牌别名去空格（brands.aliases），可选 */
+  entityAliasesKey?: string
+}
+
+function entityCaseMatchSql(columns: EntityCaseMatchColumns): string {
+  const latinRules = [
+    `LOCATE(${columns.caseLatin}, ${columns.entityLatin}) > 0`,
+    `LOCATE(${columns.entityLatin}, ${columns.caseLatin}) > 0`,
+    `LEFT(${columns.entityLatin}, 6) = LEFT(${columns.caseLatin}, 6)`,
+  ]
+  if (columns.entityShortLatin) {
+    latinRules.push(`(${columns.entityShortLatin} <> '' AND LEFT(${columns.entityShortLatin}, 6) = LEFT(${columns.caseLatin}, 6))`)
+  }
+
+  const nameRules = [
+    `LOCATE(${columns.caseNameKey}, ${columns.entityNameKey}) > 0`,
+    `LOCATE(${columns.entityNameKey}, ${columns.caseNameKey}) > 0`,
+  ]
+  if (columns.entityShortNameKey) {
+    nameRules.push(`(${columns.entityShortNameKey} <> '' AND LOCATE(${columns.caseNameKey}, ${columns.entityShortNameKey}) > 0)`)
+  }
+  if (columns.entityAliasesKey) {
+    nameRules.push(`(${columns.entityAliasesKey} <> '' AND LOCATE(${columns.caseNameKey}, ${columns.entityAliasesKey}) > 0)`)
+  }
+
+  return `(
+    (CHAR_LENGTH(${columns.caseLatin}) >= 4 AND CHAR_LENGTH(${columns.entityLatin}) >= 4
+      AND (${latinRules.join('\n        OR ')}))
+    OR (CHAR_LENGTH(${columns.caseNameKey}) >= 2 AND (${nameRules.join('\n        OR ')}))
+  )`
+}
+
+/** 目录侧（别名 e）与案件侧（别名 c）的匹配条件，供单实体统计使用。 */
+function entityCaseMatchSqlForEntity(table: 'brands' | 'law_firms'): string {
+  return table === 'brands'
+    ? entityCaseMatchSql({
+      caseLatin: 'c.brand_latin',
+      caseNameKey: `REPLACE(TRIM(c.brand_name), ' ', '')`,
+      entityLatin: 'e.name_latin',
+      entityNameKey: `REPLACE(e.name, ' ', '')`,
+      entityAliasesKey: `REPLACE(e.aliases, ' ', '')`,
+    })
+    : entityCaseMatchSql({
+      caseLatin: 'c.firm_latin',
+      caseNameKey: `REPLACE(TRIM(c.law_firm_name), ' ', '')`,
+      entityLatin: 'e.name_latin',
+      entityNameKey: `REPLACE(e.name, ' ', '')`,
+      entityShortLatin: 'e.short_latin',
+      entityShortNameKey: `REPLACE(e.short_name, ' ', '')`,
+    })
+}
+
+/**
+ * 品牌 / 律所的公开关联案件数：只统计已发布案件，随发布状态实时变化。
  * 关联表 case_brands / case_law_firms 已停止写入，这里直接按文本匹配。
  */
 function publishedEntityCaseCountSql(table: 'brands' | 'law_firms'): string {
-  if (table === 'brands') {
-    return `(SELECT COUNT(DISTINCT c.id)
-      FROM cases c
-      WHERE c.publish_status = 'published' AND (
-        (CHAR_LENGTH(c.brand_latin) >= 4 AND CHAR_LENGTH(e.name_latin) >= 4 AND (
-          e.name_latin LIKE CONCAT('%', c.brand_latin, '%')
-          OR c.brand_latin LIKE CONCAT('%', e.name_latin, '%')
-          OR LEFT(e.name_latin, 6) = LEFT(c.brand_latin, 6)
-        ))
-        OR (CHAR_LENGTH(TRIM(c.brand_name)) >= 2 AND (
-          REPLACE(e.name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.brand_name), ' ', ''), '%')
-          OR REPLACE(TRIM(c.brand_name), ' ', '') LIKE CONCAT('%', REPLACE(e.name, ' ', ''), '%')
-          OR (e.aliases <> '' AND REPLACE(e.aliases, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.brand_name), ' ', ''), '%'))
-        ))
-      ))`
-  }
   return `(SELECT COUNT(DISTINCT c.id)
     FROM cases c
-    WHERE c.publish_status = 'published' AND (
-      (CHAR_LENGTH(c.firm_latin) >= 4 AND CHAR_LENGTH(e.name_latin) >= 4 AND (
-        e.name_latin LIKE CONCAT('%', c.firm_latin, '%')
-        OR c.firm_latin LIKE CONCAT('%', e.name_latin, '%')
-        OR LEFT(e.name_latin, 6) = LEFT(c.firm_latin, 6)
-        OR (e.short_latin <> '' AND LEFT(e.short_latin, 6) = LEFT(c.firm_latin, 6))
-      ))
-      OR (CHAR_LENGTH(TRIM(c.law_firm_name)) >= 2 AND (
-        REPLACE(e.name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.law_firm_name), ' ', ''), '%')
-        OR REPLACE(TRIM(c.law_firm_name), ' ', '') LIKE CONCAT('%', REPLACE(e.name, ' ', ''), '%')
-        OR REPLACE(e.short_name, ' ', '') LIKE CONCAT('%', REPLACE(TRIM(c.law_firm_name), ' ', ''), '%')
-        OR REPLACE(TRIM(c.law_firm_name), ' ', '') LIKE CONCAT('%', REPLACE(e.short_name, ' ', ''), '%')
-      ))
-    ))`
+    WHERE c.publish_status = 'published' AND ${entityCaseMatchSqlForEntity(table)})`
 }
 
 /** 品牌 / 律所列表实时计算公开关联案件数，避免状态变更后沿用过期的冗余计数。 */
@@ -457,7 +520,7 @@ export async function findEntitySummaries(table: 'brands' | 'law_firms', keyword
   if (keyword.trim()) {
     const like = `%${keyword.trim()}%`
     if (table === 'law_firms') {
-      // 律所：全称或简称任意包含
+      // 律所：全称、简称或英文名任意包含
       filters.push('(e.name LIKE ? OR e.short_name LIKE ? OR e.name_en LIKE ?)')
       params.push(like, like, like)
     } else {
@@ -465,27 +528,94 @@ export async function findEntitySummaries(table: 'brands' | 'law_firms', keyword
       params.push(like, like, like)
     }
   }
+  // 律所目录额外展示小程序来源的简称 / 地址 / 官网；品牌没有这三列，不查。
+  const firmColumns = table === 'law_firms'
+    ? `,
+            COALESCE(e.short_name, '') AS short_name,
+            COALESCE(e.address, '') AS address,
+            COALESCE(e.website, '') AS website`
+    : ''
   const rows = await queryTarget<EntityRow>(
     `SELECT e.id, e.slug, e.name, COALESCE(e.summary, '') AS description,
-            ${publishedEntityCaseCountSql(table)} AS case_count
+            ${publishedEntityCaseCountSql(table)} AS case_count${firmColumns}
      FROM ${table} e
      WHERE ${filters.join(' AND ')}
      ORDER BY 5 DESC, e.name ASC, e.id ASC`,
     params,
   )
-  return rows.map(toEntitySummary)
+  return rows.map((row) => {
+    const summary = toEntitySummary(row)
+    if (table !== 'law_firms') return summary
+    return {
+      ...summary,
+      shortName: toText(row.short_name),
+      address: toText(row.address),
+      website: toText(row.website),
+    }
+  })
 }
 
-/** 品牌库匹配的品牌数（关键词可命中公开案件号、品牌名或代理律所）。 */
-export async function countPublicBrandDirectoryEntries(query: NormalizedBrandDirectoryQuery): Promise<number> {
-  const filter = buildBrandDirectoryFilterSql(query)
-  const rows = await queryTarget<{ total: number | string | null }>(
-    `SELECT COUNT(*) AS total
-     FROM brands b
-     WHERE 1 = 1${filter.sql}`,
-    filter.params,
-  )
-  return toNumber(rows[0]?.total)
+/**
+ * 品牌目录的聚合 CTE（brand_case → brand_agg）。
+ *
+ * 采集不再写 case_brands，品牌和案件只能按文本匹配。若直接在每行上拼匹配表达式，
+ * 1695 个品牌 × 2000+ 个已发布案件要跑 6 秒以上，而列表、统计、计数每次请求都要重算。
+ * 这里先把两侧去重后物化：REPLACE 之类的归一化只算一次，匹配范围也从
+ * 「品牌 × 案件」降到「品牌 × 不同品牌文本」（库内约 690 种），实测每条约 1 秒。
+ *
+ * brand_agg 只引用 brand_case 一次；关键字命中的案件同样在同一次聚合里标出来
+ * （keyword_hit），避免第二次引用 CTE 让整段匹配重算。
+ */
+function brandDirectoryCte(withKeywordCase: boolean): string {
+  const caseColumns = withKeywordCase
+    ? `GROUP_CONCAT(DISTINCT ip.slug ORDER BY ip.sort_order SEPARATOR ',') AS case_types,
+           MAX(CASE WHEN c.case_number LIKE ? OR c.law_firm_name LIKE ? THEN 1 ELSE 0 END) AS keyword_hit`
+    : `GROUP_CONCAT(DISTINCT ip.slug ORDER BY ip.sort_order SEPARATOR ',') AS case_types`
+  const aggColumns = withKeywordCase ? ',\n           MAX(keyword_hit) AS keyword_hit' : ''
+  const rankedColumns = withKeywordCase ? ', keyword_hit' : ''
+
+  return `WITH brand_case AS (
+    SELECT b2.id AS brand_id, c.id AS case_id, c.filed_at, c.plaintiff, c.state_code,
+           c.law_firm_name,
+           ${caseColumns}
+    FROM (SELECT DISTINCT id, name, name_latin, aliases,
+                 REPLACE(name, ' ', '') AS name_key,
+                 REPLACE(aliases, ' ', '') AS aliases_key
+          FROM brands WHERE status = 1) b2
+    JOIN (SELECT DISTINCT brand_name, brand_latin, REPLACE(TRIM(brand_name), ' ', '') AS brand_key
+          FROM cases WHERE publish_status = 'published') ct
+      ON ${entityCaseMatchSql({
+        caseLatin: 'ct.brand_latin',
+        caseNameKey: 'ct.brand_key',
+        entityLatin: 'b2.name_latin',
+        entityNameKey: 'b2.name_key',
+        entityAliasesKey: 'b2.aliases_key',
+      })}
+    JOIN cases c ON c.publish_status = 'published'
+      AND c.brand_name = ct.brand_name AND c.brand_latin = ct.brand_latin
+    LEFT JOIN case_ip_types cip ON cip.case_id = c.id
+    LEFT JOIN ip_types ip ON ip.id = cip.ip_type_id AND ip.status = 1
+    GROUP BY b2.id, c.id, c.filed_at, c.plaintiff, c.state_code, c.law_firm_name
+  ),
+  brand_agg AS (
+    SELECT brand_id, COUNT(*) AS case_count,
+           GROUP_CONCAT(case_types SEPARATOR ',') AS case_types,
+           MAX(CASE WHEN row_num = 1 THEN plaintiff END) AS plaintiff,
+           MAX(CASE WHEN row_num = 1 THEN law_firm_name END) AS law_firm,
+           MAX(CASE WHEN row_num = 1 THEN state_code END) AS state_code${aggColumns}
+    FROM (
+      SELECT brand_id, plaintiff, law_firm_name, state_code, case_types${rankedColumns},
+             ROW_NUMBER() OVER (PARTITION BY brand_id
+               ORDER BY (filed_at IS NULL) ASC, filed_at DESC, case_id DESC) AS row_num
+      FROM brand_case
+    ) ranked
+    GROUP BY brand_id
+  )`
+}
+
+/** 关键字在案件号 / 代理律所上的两个 LIKE 参数。 */
+function brandKeywordCaseParams(keyword: string): unknown[] {
+  return keyword ? [`%${keyword}%`, `%${keyword}%`] : []
 }
 
 /** 品牌库全局分类统计；一个品牌即使有多个同类案件也只计一次。 */
@@ -496,16 +626,12 @@ export async function findPublicBrandDirectoryStats(): Promise<BrandDirectorySta
     patent: number | string | null
     copyright: number | string | null
   }>(
-    `SELECT COUNT(DISTINCT b.id) AS total,
-            COUNT(DISTINCT CASE WHEN ip.slug = 'trademark' THEN b.id END) AS trademark,
-            COUNT(DISTINCT CASE WHEN ip.slug = 'patent' THEN b.id END) AS patent,
-            COUNT(DISTINCT CASE WHEN ip.slug = 'copyright' THEN b.id END) AS copyright
-     FROM brands b
-     LEFT JOIN case_brands cb ON cb.brand_id = b.id
-     LEFT JOIN cases c ON c.id = cb.case_id AND c.publish_status = 'published'
-     LEFT JOIN case_ip_types cip ON cip.case_id = c.id
-     LEFT JOIN ip_types ip ON ip.id = cip.ip_type_id AND ip.status = 1
-     WHERE b.status = 1`,
+    `${brandDirectoryCte(false)}
+     SELECT COUNT(*) AS total,
+            COALESCE(SUM(FIND_IN_SET('trademark', agg.case_types) > 0), 0) AS trademark,
+            COALESCE(SUM(FIND_IN_SET('patent', agg.case_types) > 0), 0) AS patent,
+            COALESCE(SUM(FIND_IN_SET('copyright', agg.case_types) > 0), 0) AS copyright
+     FROM brand_agg agg`,
     [],
   )
   const row = rows[0]
@@ -517,53 +643,61 @@ export async function findPublicBrandDirectoryStats(): Promise<BrandDirectorySta
   }
 }
 
-/** 分页获取品牌库；卡片信息取最新已发布关联案件，Logo 只读取有效的品牌图片。 */
+/** 命中关键词 / 分类过滤的品牌数；只在越界页取总数时单独调用。 */
+export async function countPublicBrandDirectoryEntries(query: NormalizedBrandDirectoryQuery): Promise<number> {
+  const filter = buildBrandDirectoryFilterSql(query)
+  const rows = await queryTarget<{ total: number | string | null }>(
+    `${brandDirectoryCte(Boolean(query.keyword))}
+     SELECT COUNT(*) AS total
+     FROM brands b
+     LEFT JOIN brand_agg agg ON agg.brand_id = b.id
+     WHERE 1 = 1${filter.sql}`,
+    [...brandKeywordCaseParams(query.keyword), ...filter.params],
+  )
+  return toNumber(rows[0]?.total)
+}
+
+/**
+ * 分页获取品牌库；卡片信息取最新已发布关联案件，Logo 只读取有效的品牌图片。
+ *
+ * 总数与当前页由同一条查询返回（COUNT(*) OVER () 在 LIMIT 之前计算），
+ * 避免为了分页再跑一遍全量匹配。只有请求页码越界、当前页取不到任何行时，
+ * 才额外查一次总数（见上方 countPublicBrandDirectoryEntries）。
+ */
 export async function findPublicBrandDirectoryPage(
   query: NormalizedBrandDirectoryQuery,
-  window: PageWindow,
-): Promise<BrandDirectoryEntry[]> {
-  if (window.beyondLastPage || window.total === 0) return []
+): Promise<BrandDirectoryPage> {
   const filter = buildBrandDirectoryFilterSql(query)
-  const rows = await queryTarget<BrandDirectoryRow>(
-    `SELECT b.id, b.slug, b.name, COALESCE(b.summary, '') AS description,
+  const rows = await queryTarget<BrandDirectoryRow & { total: number | string | null }>(
+    `${brandDirectoryCte(Boolean(query.keyword))}
+     SELECT b.id, b.slug, b.name, COALESCE(b.summary, '') AS description,
             COALESCE(NULLIF(b.cover_url, ''), logo.public_url, '') AS logo_url,
             b.ip_category,
             b.brand_owner,
-            COALESCE(latest.plaintiff, '') AS plaintiff,
-            COALESCE(latest.law_firm, '') AS law_firm,
-            COALESCE(latest.state_code, '') AS state_code,
-            COUNT(DISTINCT c.id) AS case_count,
-            GROUP_CONCAT(DISTINCT ip.slug ORDER BY ip.sort_order SEPARATOR ',') AS case_types
+            COALESCE(agg.plaintiff, '') AS plaintiff,
+            COALESCE(agg.law_firm, '') AS law_firm,
+            COALESCE(agg.state_code, '') AS state_code,
+            COALESCE(agg.case_count, 0) AS case_count,
+            COALESCE(agg.case_types, '') AS case_types,
+            COUNT(*) OVER () AS total
      FROM brands b
      LEFT JOIN media_assets logo ON logo.id = b.logo_media_id AND logo.usage_scope = 'logo' AND logo.deleted_at IS NULL
-     LEFT JOIN (
-       SELECT ranked.brand_id, ranked.plaintiff, ranked.law_firm, ranked.state_code
-       FROM (
-         SELECT cb.brand_id, c.plaintiff, COALESCE(lf.name, '') AS law_firm, c.state_code,
-                ROW_NUMBER() OVER (
-                  PARTITION BY cb.brand_id
-                  ORDER BY (c.filed_at IS NULL) ASC, c.filed_at DESC, c.id DESC, clf.is_primary DESC, lf.name ASC
-                ) AS row_num
-         FROM case_brands cb
-         JOIN cases c ON c.id = cb.case_id AND c.publish_status = 'published'
-         LEFT JOIN case_law_firms clf ON clf.case_id = c.id
-         LEFT JOIN law_firms lf ON lf.id = clf.law_firm_id AND lf.status = 1
-       ) ranked
-       WHERE ranked.row_num = 1
-     ) latest ON latest.brand_id = b.id
-     LEFT JOIN case_brands cb ON cb.brand_id = b.id
-     LEFT JOIN cases c ON c.id = cb.case_id AND c.publish_status = 'published'
-     LEFT JOIN case_ip_types cip ON cip.case_id = c.id
-     LEFT JOIN ip_types ip ON ip.id = cip.ip_type_id AND ip.status = 1
+     LEFT JOIN brand_agg agg ON agg.brand_id = b.id
      WHERE 1 = 1${filter.sql}
-     GROUP BY b.id, b.slug, b.name, b.summary, logo.public_url, latest.plaintiff, latest.law_firm, latest.state_code
-     ORDER BY 9 DESC, b.name ASC, b.id ASC
+     ORDER BY COALESCE(agg.case_count, 0) DESC, b.name ASC, b.id ASC
      LIMIT ? OFFSET ?`,
-    [...filter.params, window.pageSize, window.offset],
+    [
+      ...brandKeywordCaseParams(query.keyword),
+      ...filter.params,
+      query.pageSize,
+      (query.page - 1) * query.pageSize,
+    ],
   )
-  return rows.map((row) => {
+
+  const items = rows.map((row) => {
     const summary = toEntitySummary(row)
-    const types = String(row.case_types ?? '').split(',')
+    // brand_case 里每种案件先各自 GROUP_CONCAT 类型，聚合后会有重复（trademark,trademark,…）。
+    const types = Array.from(new Set(String(row.case_types ?? '').split(',')))
       .filter((value): value is 'trademark' | 'patent' | 'copyright' =>
         value === 'trademark' || value === 'patent' || value === 'copyright')
     return {
@@ -577,6 +711,12 @@ export async function findPublicBrandDirectoryPage(
       caseTypes: types,
     }
   })
+
+  if (rows.length > 0) return { items, total: toNumber(rows[0]?.total) }
+  // 越界页（offset 超过结果数）不会返回任何行，COUNT(*) OVER () 也就读不到；
+  // 这种情况只在手工改 URL 页码时出现，单独查一次总数即可。
+  if (query.page <= 1) return { items, total: 0 }
+  return { items, total: await countPublicBrandDirectoryEntries(query) }
 }
 
 /** 单个品牌 / 律所，找不到返回 null。 */
@@ -603,22 +743,15 @@ export async function findCasesForEntity(
   entityId: number,
 ): Promise<CaseRecord[]> {
   if (!Number.isInteger(entityId) || entityId <= 0) return []
-  const rows = relation === 'brand'
-    ? await queryTarget<CaseRow>(
-      `SELECT ${CASE_COLUMNS}
-       FROM cases c
-       JOIN case_brands cb ON cb.case_id = c.id
-       WHERE cb.brand_id = ? AND c.publish_status = 'published'
-       ${CASE_ORDER_BY}`,
-      [entityId],
-    )
-    : await queryTarget<CaseRow>(
-      `SELECT ${CASE_COLUMNS}
-       FROM cases c
-       JOIN case_law_firms clf ON clf.case_id = c.id
-       WHERE clf.law_firm_id = ? AND c.publish_status = 'published'
-       ${CASE_ORDER_BY}`,
-      [entityId],
-    )
+  const table: 'brands' | 'law_firms' = relation === 'brand' ? 'brands' : 'law_firms'
+  // 关联表 case_brands / case_law_firms 已停止写入：按与列表一致的文本规则找该实体名下的案件。
+  const rows = await queryTarget<CaseRow>(
+    `SELECT ${CASE_COLUMNS}
+     FROM cases c
+     JOIN ${table} e ON e.id = ? AND e.status = 1
+     WHERE c.publish_status = 'published' AND ${entityCaseMatchSqlForEntity(table)}
+     ${CASE_ORDER_BY}`,
+    [entityId],
+  )
   return mapCaseRows(rows)
 }

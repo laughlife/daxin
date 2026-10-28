@@ -61,17 +61,17 @@ test('品牌库查询：规范化关键词、分类和分页参数', () => {
   assert.equal(parseBrandDirectoryQuery().pageSize, 20)
 })
 
-test('品牌库过滤：关键词覆盖案件号与律所，用户输入只通过 SQL 参数传递', () => {
+test('品牌库过滤：关键词覆盖品牌自身字段与聚合出的案件命中，用户输入只通过 SQL 参数传递', () => {
   const keyword = "Keith' OR 1=1 --"
   const filter = buildBrandDirectoryFilterSql(parseBrandDirectoryQuery({ keyword, type: 'copyright' }))
-  assert.match(filter.sql, /c\.case_number LIKE \?/)
-  assert.match(filter.sql, /c\.law_firm_name LIKE \?/)
-  assert.match(filter.sql, /c\.brand_name = b\.name/)
   assert.match(filter.sql, /b\.name LIKE \?/)
-  assert.match(filter.sql, /ip\.slug = \?/)
+  // 案件号 / 律所的命中在聚合阶段算好（keyword_hit），过滤时不再回表扫案件
+  assert.match(filter.sql, /agg\.keyword_hit = 1/)
+  assert.match(filter.sql, /FIND_IN_SET\(\?, agg\.case_types\) > 0/)
+  assert.doesNotMatch(filter.sql, /case_brands|cb\.brand_id/)
   assert.doesNotMatch(filter.sql, /Keith|OR 1=1/)
-  // 5 个关键词参数 + 1 个类型参数
-  assert.equal(filter.params.filter((p) => p === `%${keyword}%`).length, 5)
+  // 3 个品牌字段参数 + 1 个类型参数
+  assert.equal(filter.params.filter((p) => p === `%${keyword}%`).length, 3)
   assert.equal(filter.params[filter.params.length - 1], 'copyright')
 })
 

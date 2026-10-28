@@ -32,10 +32,18 @@ test('品牌类型标签使用蓝、绿、红纯色区分，不继承金色主�
 })
 
 test('品牌公开接口返回有效 Logo 和最新已发布案件的卡片信息', () => {
-  assert.match(queries, /LEFT JOIN media_assets logo ON logo\.id = b\.logo_media_id AND logo\.usage_scope = 'logo' AND logo\.deleted_at IS NULL/)
-  assert.match(queries, /ROW_NUMBER\(\) OVER \([\s\S]*?PARTITION BY cb\.brand_id[\s\S]*?\)/)
-  assert.match(queries, /JOIN cases c ON c\.id = cb\.case_id AND c\.publish_status = 'published'/)
-  assert.match(queries, /COALESCE\(latest\.law_firm, ''\) AS law_firm/)
+  const directoryQuery = queries.slice(
+    queries.indexOf('function brandDirectoryCte'),
+    queries.indexOf('/** 单个品牌 / 律所，找不到返回 null。 */'),
+  )
+  assert.match(directoryQuery, /LEFT JOIN media_assets logo ON logo\.id = b\.logo_media_id AND logo\.usage_scope = 'logo' AND logo\.deleted_at IS NULL/)
+  // 采集已停止写 case_brands：匹配改成文本规则，并在 CTE 里按品牌聚合成最新案件与类型
+  assert.doesNotMatch(directoryQuery, /case_brands/)
+  assert.match(directoryQuery, /WITH brand_case AS \(/)
+  assert.match(directoryQuery, /ROW_NUMBER\(\) OVER \(PARTITION BY brand_id/)
+  assert.match(directoryQuery, /LEFT JOIN brand_agg agg ON agg\.brand_id = b\.id/)
+  assert.match(directoryQuery, /COALESCE\(agg\.law_firm, ''\) AS law_firm/)
+  assert.match(directoryQuery, /COUNT\(\*\) OVER \(\) AS total/)
   assert.match(repository, /logoUrl\?: string/)
   assert.match(repository, /stateCode\?: string/)
 })

@@ -111,7 +111,14 @@ export function parseBrandDirectoryQuery(input?: Record<string, unknown> | null)
   }
 }
 
-/** 构造品牌列表过滤条件；关键词匹配品牌、关联公开案件号和代理律所。 */
+/**
+ * 构造品牌列表过滤条件。
+ *
+ * 注意：返回的片段依赖品牌目录查询的固定结构——外层品牌别名 `b`，
+ * 以及聚合派生表 `brand_agg agg`（列：`case_types`、`keyword_hit`）。
+ * 关键词命中案件时不再回表扫 cases，改用聚合阶段算好的 `keyword_hit`；
+ * 侵权分类也用聚合里的 `case_types`，避免再按品牌逐条扫案件。
+ */
 export function buildBrandDirectoryFilterSql(query: NormalizedBrandDirectoryQuery): CaseFilterSql {
   const clauses: string[] = ['b.status = 1']
   const params: unknown[] = []
@@ -122,30 +129,13 @@ export function buildBrandDirectoryFilterSql(query: NormalizedBrandDirectoryQuer
       b.name LIKE ?
       OR b.name_en LIKE ?
       OR b.aliases LIKE ?
-      OR EXISTS (
-        SELECT 1
-        FROM cases c
-        WHERE c.publish_status = 'published'
-          AND (
-            c.brand_name = b.name
-            OR c.brand_name LIKE CONCAT('%', b.name, '%')
-            OR b.name LIKE CONCAT('%', c.brand_name, '%')
-          )
-          AND (c.case_number LIKE ? OR c.law_firm_name LIKE ?)
-      )
+      OR agg.keyword_hit = 1
     )`)
-    params.push(like, like, like, like, like)
+    params.push(like, like, like)
   }
 
   if (query.caseType) {
-    clauses.push(`EXISTS (
-      SELECT 1
-      FROM case_brands cb
-      JOIN cases c ON c.id = cb.case_id AND c.publish_status = 'published'
-      JOIN case_ip_types cip ON cip.case_id = c.id
-      JOIN ip_types ip ON ip.id = cip.ip_type_id AND ip.status = 1
-      WHERE cb.brand_id = b.id AND ip.slug = ?
-    )`)
+    clauses.push('FIND_IN_SET(?, agg.case_types) > 0')
     params.push(query.caseType)
   }
 
