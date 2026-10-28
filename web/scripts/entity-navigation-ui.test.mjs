@@ -25,6 +25,13 @@ test('案件详情返回上一级，且无站内上一页时有稳定的 TRO 查
   assert.doesNotMatch(caseDetail, /返回 TRO 案件查询|返回案件列表/)
 })
 
+test('案件详情不再单独放标题卡片与同品牌相关案件，案件号在资料卡顶部', () => {
+  assert.doesNotMatch(caseDetail, /case-detail__head|case-detail__title|同品牌相关案件/)
+  assert.match(caseDetail, /class="case-detail__facts-card"/)
+  assert.match(caseDetail, /class="case-detail__case-number">案件号：/)
+  assert.match(caseDetail, /\.case-detail__case-number \{[^}]*font-weight: 400/s)
+})
+
 test('TRO 案件检索与文章检索统一使用胶囊搜索框', () => {
   // 需求 2026-10-20：三处搜索框统一为「放大镜 + 输入 + 金色搜索按钮」的胶囊样式，
   // 旧的「标签 + 输入框」两列排布已废弃，改由公共组件 SearchPill 承担。

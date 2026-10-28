@@ -1,14 +1,11 @@
 <script setup lang="ts">
-import { fetchCaseDetail, fetchCases } from '~/repositories/cases'
+import { fetchCaseDetail } from '~/repositories/cases'
 import { caseTypeLabel } from '~/utils/caseTypeLabel'
-import type { CaseRecord } from '~/types/content'
-
-const { isRecent } = useContentDate()
 
 /**
  * TRO 案件详情页。
  * 通过仓储 fetchCaseDetail(slug) 读取真实数据；未命中返回 404，接口失败展示错误状态。
- * 相关案件取同一原告品牌的历史案件（服务端关键词覆盖品牌名）。
+ * 页面不再单独放标题卡片：案件号显示在资料卡顶部，作为区块标识。
  */
 const route = useRoute()
 const router = useRouter()
@@ -27,18 +24,7 @@ const { data, error, refresh } = await useAsyncData(
   () => `tro-case:${slug}`,
   async () => {
     const record = await fetchCaseDetail(slug)
-    if (!record) return null
-    let related: CaseRecord[] = []
-    if (record.plaintiffBrand) {
-      try {
-        const page = await fetchCases({ keyword: record.plaintiffBrand, pageSize: 4 })
-        related = page.items.filter(item => item.id !== record.id).slice(0, 3)
-      } catch {
-        // 相关案件属于附加信息，失败不影响详情展示。
-        related = []
-      }
-    }
-    return { record, related }
+    return record ?? null
   }
 )
 
@@ -50,8 +36,7 @@ if (!data.value && !error.value) {
   })
 }
 
-const record = computed(() => data.value?.record ?? null)
-const relatedCases = computed(() => data.value?.related ?? [])
+const record = computed(() => data.value ?? null)
 /** 详情附加信息；未抓取时为空，模板里按字段是否存在决定渲染 */
 const detail = computed(() => record.value?.detail ?? null)
 const errorMessage = computed(() =>
@@ -83,76 +68,70 @@ useSeoMeta({
       />
 
       <template v-else-if="record">
-        <header class="case-detail__head">
-          <div class="case-detail__badges">
-            <span class="case-detail__type">{{ caseTypeLabel(record.caseType) }}</span>
-            <span v-if="isRecent(record.filedAt)" class="case-detail__recent">近 3 天更新</span>
-          </div>
-          <h1 class="case-detail__title">{{ record.plaintiffBrand || record.caseNumber }}</h1>
-          <p class="case-detail__number">案件号：{{ record.caseNumber || '—' }}</p>
-        </header>
-
         <div class="case-detail__grid">
-          <dl class="case-detail__facts">
-            <div>
-              <dt>起诉时间</dt>
-              <dd>{{ record.filedAt || '—' }}</dd>
-            </div>
-            <div v-if="detail?.courtFull">
-              <dt>受理法院</dt>
-              <dd>{{ detail.courtFull }}</dd>
-            </div>
-            <div>
-              <dt>代理律所</dt>
-              <dd>
-                <NuxtLink
-                  v-if="record.lawFirm && record.firmSlug"
-                  :to="`/law-firms/${record.firmSlug}`"
-                >
-                  {{ record.lawFirm }}
-                </NuxtLink>
-                <span v-else-if="record.lawFirm" class="case-detail__plain">{{ record.lawFirm }}</span>
-                <span v-else>—</span>
-              </dd>
-            </div>
-            <div>
-              <dt>原告</dt>
-              <dd>{{ record.plaintiffName || '—' }}</dd>
-            </div>
-            <div v-if="detail?.defendants.length">
-              <dt>被告</dt>
-              <dd>{{ detail.defendants.join('、') }}</dd>
-            </div>
-            <div>
-              <dt>涉案品牌</dt>
-              <dd>
-                <NuxtLink
-                  v-if="record.plaintiffBrand && record.brandSlug"
-                  :to="`/brands/${record.brandSlug}`"
-                >
-                  {{ record.plaintiffBrand }} · 历史发案
-                </NuxtLink>
-                <span v-else-if="record.plaintiffBrand" class="case-detail__plain">{{ record.plaintiffBrand }}</span>
-                <span v-else>—</span>
-              </dd>
-            </div>
-            <div>
-              <dt>侵权类型</dt>
-              <dd>{{ caseTypeLabel(record.caseType) }}</dd>
-            </div>
-            <div v-if="detail?.causeOfAction && detail.causeOfAction !== caseTypeLabel(record.caseType)">
-              <dt>案由</dt>
-              <dd>{{ detail.causeOfAction }}</dd>
-            </div>
-            <div v-if="detail?.frozenAmount">
-              <dt>冻结金额</dt>
-              <dd>{{ detail.frozenAmount }}</dd>
-            </div>
-            <div v-if="detail?.claimAmount">
-              <dt>索赔金额</dt>
-              <dd>{{ detail.claimAmount }}</dd>
-            </div>
-          </dl>
+          <div class="case-detail__facts-card">
+            <p class="case-detail__case-number">案件号：{{ record.caseNumber || '—' }}</p>
+            <dl class="case-detail__facts">
+              <div>
+                <dt>起诉时间</dt>
+                <dd>{{ record.filedAt || '—' }}</dd>
+              </div>
+              <div v-if="detail?.courtFull">
+                <dt>受理法院</dt>
+                <dd>{{ detail.courtFull }}</dd>
+              </div>
+              <div>
+                <dt>代理律所</dt>
+                <dd>
+                  <NuxtLink
+                    v-if="record.lawFirm && record.firmSlug"
+                    :to="`/law-firms/${record.firmSlug}`"
+                  >
+                    {{ record.lawFirm }}
+                  </NuxtLink>
+                  <span v-else-if="record.lawFirm" class="case-detail__plain">{{ record.lawFirm }}</span>
+                  <span v-else>—</span>
+                </dd>
+              </div>
+              <div>
+                <dt>原告</dt>
+                <dd>{{ record.plaintiffName || '—' }}</dd>
+              </div>
+              <div v-if="detail?.defendants.length">
+                <dt>被告</dt>
+                <dd>{{ detail.defendants.join('、') }}</dd>
+              </div>
+              <div>
+                <dt>涉案品牌</dt>
+                <dd>
+                  <NuxtLink
+                    v-if="record.plaintiffBrand && record.brandSlug"
+                    :to="`/brands/${record.brandSlug}`"
+                  >
+                    {{ record.plaintiffBrand }} · 历史发案
+                  </NuxtLink>
+                  <span v-else-if="record.plaintiffBrand" class="case-detail__plain">{{ record.plaintiffBrand }}</span>
+                  <span v-else>—</span>
+                </dd>
+              </div>
+              <div>
+                <dt>侵权类型</dt>
+                <dd>{{ caseTypeLabel(record.caseType) }}</dd>
+              </div>
+              <div v-if="detail?.causeOfAction && detail.causeOfAction !== caseTypeLabel(record.caseType)">
+                <dt>案由</dt>
+                <dd>{{ detail.causeOfAction }}</dd>
+              </div>
+              <div v-if="detail?.frozenAmount">
+                <dt>冻结金额</dt>
+                <dd>{{ detail.frozenAmount }}</dd>
+              </div>
+              <div v-if="detail?.claimAmount">
+                <dt>索赔金额</dt>
+                <dd>{{ detail.claimAmount }}</dd>
+              </div>
+            </dl>
+          </div>
 
           <aside v-if="detail?.events.length" class="case-detail__timeline" aria-label="案件进展">
             <h2 class="case-detail__timeline-title">案件进展</h2>
@@ -174,24 +153,6 @@ useSeoMeta({
             {{ record.source.title }}
           </NuxtLink>
           <span v-else class="case-detail__source-link">{{ record.source.title }}</span>
-        </section>
-
-        <section
-          v-if="relatedCases.length"
-          class="case-detail__section"
-          aria-label="相关案件"
-        >
-          <SectionHeading :level="2" title="同品牌相关案件" />
-          <ul class="case-detail__related">
-            <li v-for="item in relatedCases" :key="item.id">
-              <NuxtLink :to="`/tro/cases/${item.slug}`">
-                {{ item.caseNumber }}
-                <span class="case-detail__related-meta">
-                  {{ item.filedAt }} · {{ caseTypeLabel(item.caseType) }}
-                </span>
-              </NuxtLink>
-            </li>
-          </ul>
         </section>
 
         <div class="case-detail__actions">
@@ -223,63 +184,33 @@ useSeoMeta({
   cursor: pointer;
 }
 
-.case-detail__head {
-  padding: var(--space-6);
-  background-color: var(--color-bg-page);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-}
-
-.case-detail__badges {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  margin-bottom: var(--space-3);
-}
-
-.case-detail__type {
-  padding: 2px var(--space-3);
-  border-radius: var(--radius-full);
-  background-color: var(--color-primary-light);
-  color: var(--color-primary);
-  font-size: var(--text-xs);
-  font-weight: 600;
-}
-
-.case-detail__recent {
-  padding: 2px var(--space-3);
-  border-radius: var(--radius-full);
-  background-color: color-mix(in srgb, var(--color-warning) 14%, transparent);
-  color: var(--color-warning);
-  font-size: var(--text-xs);
-  font-weight: 600;
-}
-
-.case-detail__title {
-  font-size: var(--text-3xl);
-  color: var(--color-text);
-}
-
-.case-detail__number {
-  margin-top: var(--space-2);
-  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
-  font-size: var(--text-sm);
-  color: var(--color-text-muted);
-}
-
-.case-detail__facts {
+.case-detail__facts-card {
   height: 100%;
-  margin: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: var(--space-3);
-  margin: var(--space-6) 0 0;
+  display: flex;
+  flex-direction: column;
   padding: var(--space-5);
   background-color: var(--color-bg-page);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
+}
+
+/* 案件号作为资料卡顶部标识：小字号、常规字重，不抢内容 */
+.case-detail__case-number {
+  margin: 0 0 var(--space-4);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: var(--text-sm);
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.case-detail__facts {
+  flex: 1;
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-3);
 }
 
 .case-detail__facts dt {
@@ -302,37 +233,6 @@ useSeoMeta({
 }
 
 .case-detail__source-link { display:inline-block; margin-top:var(--space-3); color:var(--color-primary); font-weight:600; }
-
-.case-detail__related {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
-}
-
-.case-detail__related a {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-3);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-text);
-  font-size: var(--text-sm);
-  font-weight: 600;
-}
-
-.case-detail__related a:hover {
-  border-color: var(--color-primary);
-  color: var(--color-primary);
-  text-decoration: none;
-}
-
-.case-detail__related-meta {
-  font-weight: 400;
-  font-size: var(--text-xs);
-  color: var(--color-text-muted);
-}
 
 .case-detail__actions {
   display: flex;
@@ -419,7 +319,7 @@ useSeoMeta({
   }
 }
 /* 覆盖前面残留的外边距，保证两列严格上下对齐 */
-.case-detail__grid > .case-detail__facts,
+.case-detail__grid > .case-detail__facts-card,
 .case-detail__grid > .case-detail__timeline {
   margin: 0;
   align-self: stretch;
@@ -428,8 +328,8 @@ useSeoMeta({
 .case-detail__grid {
   grid-template-columns: minmax(0, 1fr);
   gap: var(--space-4);
-  /* 与上方标题卡片保持间距（此前被 margin: 0 抹掉，两个卡片贴在一起） */
-  margin-top: var(--space-6);
+  /* 标题卡片已移除，只留一点与返回链接的间距 */
+  margin-top: var(--space-2);
 }
 
 .case-detail__timeline {
