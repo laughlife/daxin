@@ -168,7 +168,6 @@ const emit = defineEmits<{
   padding: 0;
   font: inherit;
   color: var(--color-text);
-  border-bottom: 1px dashed var(--color-border-strong);
   white-space: normal;
   overflow-wrap: anywhere;
   text-align: left;
@@ -177,7 +176,6 @@ const emit = defineEmits<{
 
 .case-table__firm:hover {
   color: var(--color-primary);
-  border-bottom-color: var(--color-primary);
 }
 
 .case-table__detail--disabled {

@@ -148,7 +148,6 @@ const emit = defineEmits<{
   font: inherit;
   font-size: var(--text-xs);
   color: var(--color-text);
-  border-bottom: 1px dashed var(--color-border-strong);
 }
 
 .case-card__firm:hover {
