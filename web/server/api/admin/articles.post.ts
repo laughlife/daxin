@@ -118,8 +118,8 @@ export default defineEventHandler(async (event) => {
 
     const result = await executeWrite(
       `INSERT INTO articles
-         (slug, title, content_html, category_id, published_at, cover_media_id, status, is_featured, show_in_sidebar, created_at, updated_at)
-       VALUES (?, ?, ?, ?, ${publishedAtExpression}, ?, ?, ?, ?, NOW(), NOW())`,
+         (legacy_source_table, legacy_source_id, slug, title, content_html, category_id, published_at, cover_media_id, status, is_featured, show_in_sidebar, created_at, updated_at)
+       VALUES ('manual', UUID_SHORT(), ?, ?, ?, ?, ${publishedAtExpression}, ?, ?, ?, ?, NOW(), NOW())`,
       insertParams,
     )
 
@@ -146,7 +146,15 @@ export default defineEventHandler(async (event) => {
 
     return { data: { id: result.insertId, slug: createdSlug } }
   } catch (error) {
-    if (isDuplicateKeyError(error)) return fail(event, 409, 'SLUG_CONFLICT', '文章标识已被占用，请更换 slug')
+    if (isDuplicateKeyError(error)) {
+      const duplicate = error as { sqlMessage?: string; message?: string }
+      const message = `${duplicate.sqlMessage ?? ''} ${duplicate.message ?? ''}`
+      const keyMatch = message.match(/for key ['`"]?([^'`"\s]+)['`"]?/i)
+      const keyName = keyMatch?.[1]?.split('.').pop()?.replace(/['`"\\]/g, '')
+      if (keyName === 'uk_articles_slug') {
+        return fail(event, 409, 'SLUG_CONFLICT', '文章标识已被占用，请更换 slug')
+      }
+    }
     console.error('[admin-articles] 新建文章失败', error)
     return fail(event, 500, 'ARTICLE_CREATE_FAILED', '文章创建失败，请稍后重试')
   }
