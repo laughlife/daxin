@@ -35,6 +35,16 @@ import {
 
 const MAX_TITLE_LENGTH = 255
 const MAX_SLUG_LENGTH = 191
+const MAX_SLUG_INSERT_ATTEMPTS = 5
+
+function isArticleSlugDuplicateError(error: unknown): boolean {
+  if (!isDuplicateKeyError(error)) return false
+  const duplicate = error as { sqlMessage?: string; message?: string }
+  const message = `${duplicate.sqlMessage ?? ''} ${duplicate.message ?? ''}`
+  const keyMatch = message.match(/for key ['`"]?([^'`"\s]+)['`"]?/i)
+  const keyName = keyMatch?.[1]?.split('.').pop()?.replace(/['`"\\]/g, '')
+  return keyName?.toLowerCase() === 'uk_articles_slug'
+}
 
 export default defineEventHandler(async (event) => {
   let admin: AdminUser
@@ -78,8 +88,8 @@ export default defineEventHandler(async (event) => {
   const autoPublishAt = status === 'published' && !publishedAt
 
   const requestedSlug = hasOwn(body, 'slug') ? toText(body.slug) : ''
-  let slug = (requestedSlug ? slugifyTitle(requestedSlug) : slugifyTitle(title)).slice(0, MAX_SLUG_LENGTH)
-  if (!slug) slug = slugifyTitle(title).slice(0, MAX_SLUG_LENGTH)
+  const slugBase = (requestedSlug ? slugifyTitle(requestedSlug) : slugifyTitle(title)).slice(0, MAX_SLUG_LENGTH)
+  let slug = slugBase || slugifyTitle(title).slice(0, MAX_SLUG_LENGTH)
 
   const contentHtml = typeof body.contentHtml === 'string' ? body.contentHtml : ''
   const isFeatured = toBooleanFlag(body.isFeatured)
@@ -106,22 +116,33 @@ export default defineEventHandler(async (event) => {
     // 只取同前缀的 slug 用于唯一化，避免把全表 slug 拉进内存。
     const existing = await queryTarget<{ slug: string }>(
       `SELECT slug FROM articles WHERE slug LIKE ? ESCAPE '!'`,
-      [`${escapeLikePattern(slug)}%`],
+      [`${escapeLikePattern(slugBase)}%`],
     )
-    slug = ensureUniqueSlug(slug, existing.map(row => row.slug))
+    const reservedSlugs = existing.map(row => row.slug)
+    slug = ensureUniqueSlug(slugBase, reservedSlugs)
 
     // published_at 要么走参数（?），要么走常量 NOW()：占位符数量由服务端决定，绝不来自请求体。
     const publishedAtExpression = autoPublishAt ? 'NOW()' : '?'
-    const insertParams: unknown[] = [slug, title, contentHtml, categoryId]
-    if (!autoPublishAt) insertParams.push(publishedAt)
-    insertParams.push(coverMediaId, status, isFeatured, showInSidebar)
+    const insertSql = `INSERT INTO articles
+       (legacy_source_table, legacy_source_id, slug, title, content_html, category_id, published_at, cover_media_id, status, is_featured, show_in_sidebar, created_at, updated_at)
+     VALUES ('manual', UUID_SHORT(), ?, ?, ?, ?, ${publishedAtExpression}, ?, ?, ?, ?, NOW(), NOW())`
+    let result: { insertId: number; affectedRows: number } | null = null
+    for (let attempt = 0; attempt < MAX_SLUG_INSERT_ATTEMPTS; attempt += 1) {
+      const insertParams: unknown[] = [slug, title, contentHtml, categoryId]
+      if (!autoPublishAt) insertParams.push(publishedAt)
+      insertParams.push(coverMediaId, status, isFeatured, showInSidebar)
 
-    const result = await executeWrite(
-      `INSERT INTO articles
-         (legacy_source_table, legacy_source_id, slug, title, content_html, category_id, published_at, cover_media_id, status, is_featured, show_in_sidebar, created_at, updated_at)
-       VALUES ('manual', UUID_SHORT(), ?, ?, ?, ?, ${publishedAtExpression}, ?, ?, ?, ?, NOW(), NOW())`,
-      insertParams,
-    )
+      try {
+        result = await executeWrite(insertSql, insertParams)
+        break
+      } catch (error) {
+        if (!isArticleSlugDuplicateError(error) || attempt === MAX_SLUG_INSERT_ATTEMPTS - 1) throw error
+        // slug 在后台表单中不开放编辑；并发创建撞到唯一键时自动分配下一个后缀再试。
+        reservedSlugs.push(slug)
+        slug = ensureUniqueSlug(slugBase, reservedSlugs)
+      }
+    }
+    if (!result) throw new Error('文章标识自动生成失败')
 
     if (categoryId !== null) {
       await executeWrite(
@@ -146,15 +167,6 @@ export default defineEventHandler(async (event) => {
 
     return { data: { id: result.insertId, slug: createdSlug } }
   } catch (error) {
-    if (isDuplicateKeyError(error)) {
-      const duplicate = error as { sqlMessage?: string; message?: string }
-      const message = `${duplicate.sqlMessage ?? ''} ${duplicate.message ?? ''}`
-      const keyMatch = message.match(/for key ['`"]?([^'`"\s]+)['`"]?/i)
-      const keyName = keyMatch?.[1]?.split('.').pop()?.replace(/['`"\\]/g, '')
-      if (keyName === 'uk_articles_slug') {
-        return fail(event, 409, 'SLUG_CONFLICT', '文章标识已被占用，请更换 slug')
-      }
-    }
     console.error('[admin-articles] 新建文章失败', error)
     return fail(event, 500, 'ARTICLE_CREATE_FAILED', '文章创建失败，请稍后重试')
   }
